@@ -1,0 +1,73 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package greeting
+
+import "piko.sh/piko"
+
+type Props struct {
+	Name    string
+	Age     int
+	IsVIP   bool
+}
+
+type Response struct {
+	Greeting    string
+	AgeMessage  string
+	VIPStatus   string
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+	greeting := "Hello, " + props.Name + "!"
+
+	ageMessage := "You are " + string(rune(props.Age+'0')) + " years old"
+	if props.Age >= 10 {
+		ageMessage = "Age: " + formatAge(props.Age)
+	}
+
+	vipStatus := "Standard"
+	if props.IsVIP {
+		vipStatus = "VIP Member"
+	}
+
+	return Response{
+		Greeting:   greeting,
+		AgeMessage: ageMessage,
+		VIPStatus:  vipStatus,
+	}, piko.Metadata{
+		Title: "Greeting for " + props.Name,
+	}, nil
+}
+
+func formatAge(age int) string {
+	if age < 10 {
+		return string(rune(age + '0'))
+	}
+	return string(rune(age/10+'0')) + string(rune(age%10+'0'))
+}
+</script>
+<template>
+	<div class="greeting-card">
+		<h1 class="greeting">{{ state.Greeting }}</h1>
+		<p class="age">{{ state.AgeMessage }}</p>
+		<span class="vip-badge">{{ state.VIPStatus }}</span>
+	</div>
+</template>

@@ -1,0 +1,14 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <multiHostInjector implementation="io.politepixels.piko.pk.injection.PKGoLanguageInjector"/>
+        <projectService serviceImplementation="io.politepixels.piko.pk.service.PikoModuleIndexService"/>
+        <implicitUsageProvider implementation="io.politepixels.piko.pk.go.PKGoImplicitUsageProvider"/>
+        <referencesSearch
+                implementation="io.politepixels.piko.pk.go.PKGoReferencesSearchContributor"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="com.goide">
+        <rootsProvider implementation="io.politepixels.piko.pk.injection.PkGoRootsProvider" order="first"/>
+        <importResolver implementation="io.politepixels.piko.pk.injection.PkGoImportResolver" order="before vgo"/>
+    </extensions>
+</idea-plugin>

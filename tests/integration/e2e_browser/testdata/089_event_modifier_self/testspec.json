@@ -1,0 +1,49 @@
+{
+  "description": "Tests that .self modifier only fires handler when event.target is the element itself, not a child",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Click the inner button - .self handler should NOT fire because target is the button, not the container"
+    },
+    {
+      "action": "click",
+      "selector": "#inner-btn"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#container-count",
+      "expected": "0"
+    },
+    {
+      "action": "comment",
+      "value": "Click the container directly - .self handler SHOULD fire because target is the container itself"
+    },
+    {
+      "action": "click",
+      "selector": "#container"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#container-count",
+      "expected": "1"
+    }
+  ]
+}

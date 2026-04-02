@@ -1,0 +1,56 @@
+/*
+--- BEGIN AST DUMP ---
+
+<p class="pair-key" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.UserProduct.GetKey().FullInfo() }}
+  </RichText>
+</p>
+<p class="pair-value" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.UserProduct.GetValue().Description() }}
+  </RichText>
+</p>
+<p class="pair-swap-key" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.UserProduct.Swap().GetKey().Description() }}
+  </RichText>
+</p>
+<p class="pair-swap-value" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.UserProduct.Swap().GetValue().FullInfo() }}
+  </RichText>
+</p>
+<p class="triple-first" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Mixed.GetFirst().Name.String() }}
+  </RichText>
+</p>
+<p class="triple-second" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Mixed.GetSecond().Title.String() }}
+  </RichText>
+</p>
+<p class="triple-third" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Mixed.GetThird().Display() }}
+  </RichText>
+</p>
+<p class="result-check" [p-if: props.Data.UserResult.IsSuccess()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Success!"
+</p>
+<p class="result-value" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.UserResult.GetValue().FullInfo() }}
+  </RichText>
+</p>
+<p class="field-access" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.UserProduct.Key.Name.String() }}
+    " bought "
+    {{ props.Data.UserProduct.Value.Title.String() }}
+  </RichText>
+</p>
+
+--- END AST DUMP ---
+*/

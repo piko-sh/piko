@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_110_partial_import_function_call/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

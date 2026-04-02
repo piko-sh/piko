@@ -1,0 +1,68 @@
+[
+  {
+    "action": "checkConsoleMessage",
+    "expected": "Component Connected!"
+  },
+  {
+    "action": "checkText",
+    "selector": "lifecycle-hooks >>> p:first-of-type",
+    "expected": "Scroll Count: 0"
+  },
+  {
+    "action": "eval",
+    "selector": "window",
+    "value": "this.dispatchEvent(new Event('scroll'))"
+  },
+  {
+    "action": "checkText",
+    "selector": "lifecycle-hooks >>> p:first-of-type",
+    "expected": "Scroll Count: 1"
+  },
+  {
+    "action": "checkConsoleMessage",
+    "expected": "Component Updated. Changed props: scrollCount"
+  },
+  {
+    "action": "checkText",
+    "selector": "lifecycle-hooks >>> p:last-of-type",
+    "expected": "Update Count: 0"
+  },
+  {
+    "action": "click",
+    "selector": "lifecycle-hooks >>> button"
+  },
+  {
+    "action": "checkText",
+    "selector": "lifecycle-hooks >>> p:last-of-type",
+    "expected": "Update Count: 1"
+  },
+  {
+    "action": "checkConsoleMessage",
+    "expected": "Component Updated. Changed props: name"
+  },
+  {
+    "action": "eval",
+    "selector": "lifecycle-hooks",
+    "value": "this.remove()"
+  },
+  {
+    "action": "checkConsoleMessage",
+    "expected": "Component Disconnected!"
+  },
+  {
+    "action": "clearConsole"
+  },
+  {
+    "action": "eval",
+    "selector": "window",
+    "value": "this.dispatchEvent(new Event('scroll'))"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkNoConsoleMessage",
+    "expected": "Scroll handler fired"
+  }
+]

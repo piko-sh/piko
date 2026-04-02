@@ -1,0 +1,22 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="layout-wrapper" [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk PARTIAL InvKey: layout_1745aa65 Package: partials_layout_ee037d9a InvPackage: main_aaf9a2e0]>
+  <header [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    "Layout Header"
+  </header>
+  <main class="content" [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <div id="loop-container" :p-key="item.Value" {P: item.Value} [p-for: (idx, item) in state.Items] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <div class="child-item" id="loop-child" :data="item.Value" {P: item.Value, OriginPackage: main_aaf9a2e0} :index="idx" {P: idx, OriginPackage: main_aaf9a2e0} :label="item.Label" {P: item.Label, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk PARTIAL InvKey: child_layout_1745aa65_data_item_value_index_idx_label_item_label_dc9a1179 Package: partials_child_d247007e InvPackage: main_aaf9a2e0]>
+        <span [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk]>
+          <RichText>
+            {{ state.DisplayText }}
+          </RichText>
+        </span>
+      </div>
+    </div>
+  </main>
+</div>
+
+--- END AST DUMP ---
+*/

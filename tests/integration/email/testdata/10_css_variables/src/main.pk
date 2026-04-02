@@ -1,0 +1,14 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p class="themed" font-size="16px" padding="10px 25px">Themed content</pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.themed {
+    color: var(--text-color);
+    background-color: var(--bg-color);
+}
+</style>

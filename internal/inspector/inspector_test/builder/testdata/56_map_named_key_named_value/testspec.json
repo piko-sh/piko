@@ -1,0 +1,22 @@
+{
+  "description": "Tests a map where both key and value are named types from different packages to ensure the value-type's package takes precedence for PackagePath.",
+  "moduleName": "testcase_56_map_named_key_named_value",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_56_map_named_key_named_value",
+    "testcase_56_map_named_key_named_value/keys",
+    "testcase_56_map_named_key_named_value/values"
+  ],
+  "assertions": [
+    {
+      "description": "The field's TypeString should be correct for the map.",
+      "select": "packages.testcase_56_map_named_key_named_value.named_types.Response.fields.0.type_string",
+      "expect": "map[keys.Key]values.Value"
+    },
+    {
+      "description": "The field's PackagePath MUST be populated from the VALUE's package, demonstrating precedence.",
+      "select": "packages.testcase_56_map_named_key_named_value.named_types.Response.fields.0.pkg_path",
+      "expect": "testcase_56_map_named_key_named_value/values"
+    }
+  ]
+}

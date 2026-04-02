@@ -1,0 +1,205 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+//go:build !(js && wasm)
+
+package runtime
+
+import (
+	"context"
+
+	"piko.sh/piko/internal/bootstrap"
+	"piko.sh/piko/internal/collection/collection_domain"
+	"piko.sh/piko/internal/search/search_dto"
+	"piko.sh/piko/internal/templater/templater_dto"
+)
+
+// SearchCollection performs fuzzy text search on collection data.
+// Returns results ranked by relevance score.
+//
+// This is a facade function that delegates to the bootstrap SearchService. It
+// handles:
+//  1. Extracting current page data from r.CollectionData (if available)
+//  2. Converting search options to domain configuration
+//  3. Converting domain search results to typed results
+//
+// The function automatically detects which mode to use:
+//   - Single-page mode: When r.CollectionData is populated (called from
+//     collection page)
+//   - Full-collection mode: When r.CollectionData is nil (called from search
+//     page)
+//
+// Takes r (*templater_dto.RequestData) which provides the request context.
+// Takes collectionName (string) which identifies the collection to search.
+// Takes query (string) which is the search text.
+// Takes opts (...SearchOption) which provides optional search configuration.
+//
+// Returns []SearchResult[T] which contains the ranked search results.
+// Returns error when the search fails.
+func SearchCollection[T any](
+	r *templater_dto.RequestData,
+	collectionName string,
+	query string,
+	opts ...SearchOption,
+) ([]SearchResult[T], error) {
+	if query == "" {
+		return nil, nil
+	}
+
+	searchConfig := applySearchOptions(opts...)
+
+	currentPageData, err := extractCurrentPageData(r)
+	if err != nil {
+		return nil, err
+	}
+
+	domainResults, err := executeCollectionSearch(r.Context(), collectionName, query, currentPageData, searchConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return convertSearchResults[T](domainResults), nil
+}
+
+// QuickSearch performs a simple search returning just the items (no scores).
+// Uses default settings: fuzzy threshold 0.3, searches all fields, top 10
+// results.
+//
+// Takes r (*templater_dto.RequestData) which provides the request context.
+// Takes collectionName (string) which specifies the collection to search.
+// Takes query (string) which contains the search text.
+//
+// Returns []T which contains the matching items without scores.
+// Returns error when the search fails.
+func QuickSearch[T any](r *templater_dto.RequestData, collectionName string, query string) ([]T, error) {
+	results, err := SearchCollection[T](r, collectionName, query,
+		WithSearchLimit(defaultQuickSearchLimit),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]T, len(results))
+	for i, result := range results {
+		items[i] = result.Item
+	}
+
+	return items, nil
+}
+
+// extractCurrentPageData extracts the current page data from the request if
+// available.
+//
+// Takes r (*templater_dto.RequestData) which contains the collection data to
+// extract from.
+//
+// Returns map[string]any which contains the page data from the collection.
+// Returns error when the collection data is not a map or page data is missing.
+func extractCurrentPageData(r *templater_dto.RequestData) (map[string]any, error) {
+	if r.CollectionData() == nil {
+		return nil, nil
+	}
+
+	rootMap, ok := r.CollectionData().(map[string]any)
+	if !ok {
+		return nil, ErrCollectionDataNotMap
+	}
+
+	pageData, exists := rootMap["page"]
+	if !exists {
+		return nil, ErrNoPageData
+	}
+
+	pageMap, ok := pageData.(map[string]any)
+	if !ok {
+		return nil, ErrPageDataNotMap
+	}
+
+	return pageMap, nil
+}
+
+// executeCollectionSearch performs the search using the domain search service.
+//
+// Takes collectionName (string) which identifies the collection to search.
+// Takes query (string) which specifies the search query text.
+// Takes currentPageData (map[string]any) which provides page context for the
+// search.
+// Takes searchConfig (searchConfig) which contains search options such as fields,
+// limits,
+// and thresholds.
+//
+// Returns []collection_domain.SearchResult which contains the matching results.
+// Returns error when the search service cannot be obtained or the search fails.
+func executeCollectionSearch(ctx context.Context, collectionName, query string, currentPageData map[string]any, searchConfig searchConfig) ([]collection_domain.SearchResult, error) {
+	domainConfig := collection_domain.SearchConfig{
+		Query:          query,
+		Fields:         convertSearchFields(searchConfig.fields),
+		FuzzyThreshold: searchConfig.fuzzyThreshold,
+		MinScore:       searchConfig.minScore,
+		Limit:          searchConfig.limit,
+		Offset:         searchConfig.offset,
+		CaseSensitive:  searchConfig.caseSensitive,
+	}
+
+	searchService, err := bootstrap.GetSearchService()
+	if err != nil {
+		return nil, err
+	}
+
+	return searchService.Search(ctx, collectionName, currentPageData, domainConfig, searchConfig.searchMode)
+}
+
+// convertSearchResults converts domain search results to typed facade results.
+//
+// Takes domainResults ([]collection_domain.SearchResult) which contains the
+// domain-level search results to convert.
+//
+// Returns []SearchResult[T] which contains the typed facade results.
+func convertSearchResults[T any](domainResults []collection_domain.SearchResult) []SearchResult[T] {
+	results := make([]SearchResult[T], 0, len(domainResults))
+	for _, domainResult := range domainResults {
+		var item T
+		if err := collection_domain.ConvertSearchResultToType(domainResult.Item, &item); err != nil {
+			continue
+		}
+
+		results = append(results, SearchResult[T]{
+			Item:        item,
+			Score:       domainResult.Score,
+			FieldScores: domainResult.FieldScores,
+		})
+	}
+	return results
+}
+
+// convertSearchFields converts runtime SearchField values to search_dto
+// SearchField values.
+//
+// Takes fields ([]SearchField) which specifies the fields to convert.
+//
+// Returns []search_dto.SearchField which contains the converted fields.
+func convertSearchFields(fields []SearchField) []search_dto.SearchField {
+	result := make([]search_dto.SearchField, len(fields))
+	for i, f := range fields {
+		result[i] = search_dto.SearchField{
+			Name:   f.Name,
+			Weight: f.Weight,
+		}
+	}
+	return result
+}

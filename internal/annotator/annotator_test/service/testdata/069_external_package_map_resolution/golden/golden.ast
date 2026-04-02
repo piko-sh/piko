@@ -1,0 +1,116 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="container" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "External Package Variable Test"
+  </h1>
+  <p class="parish-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.ParishMap[props.Parish] }}
+    </RichText>
+  </p>
+  <p class="status-code" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.StatusCodes[props.Index] }}
+    </RichText>
+  </p>
+  <p class="max-retries" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.MaxRetries }}
+    </RichText>
+  </p>
+  <p class="app-version" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.AppVersion }}
+    </RichText>
+  </p>
+  <p class="app-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.AppName }}
+    </RichText>
+  </p>
+  <p class="timeout" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DefaultTimeout }}
+    </RichText>
+  </p>
+  <p class="config-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DefaultConfig.Name }}
+    </RichText>
+  </p>
+  <p class="config-enabled" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DefaultConfig.Enabled }}
+    </RichText>
+  </p>
+  <p class="result-value" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.StringResult.Value }}
+    </RichText>
+  </p>
+  <p class="os-args-first" [p-if: (len(os.Args) > 0)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ os.Args[0] }}
+    </RichText>
+  </p>
+  <p class="deep-country-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DeepConfig.Primary.Country.Name }}
+    </RichText>
+  </p>
+  <p class="deep-region-capital" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DeepConfig.Primary.Country.Regions[0].Capital.Name }}
+    </RichText>
+  </p>
+  <p class="deep-region-postcode" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DeepConfig.Primary.Country.Regions[0].Capital.PostCode }}
+    </RichText>
+  </p>
+  <p class="pointer-user-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DefaultUser.Name }}
+    </RichText>
+  </p>
+  <p class="embedded-created" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DefaultArticle.CreatedAt }}
+    </RichText>
+  </p>
+  <p class="embedded-title" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DefaultArticle.Title }}
+    </RichText>
+  </p>
+  <p class="alias-id" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.CurrentUserID }}
+    </RichText>
+  </p>
+  <p class="named-type-id" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.OwnerID }}
+    </RichText>
+  </p>
+  <p class="map-nested-country" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DeepConfig.Lookup["home"].Country.Code }}
+    </RichText>
+  </p>
+  <p class="map-nested-region" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DeepConfig.Lookup["home"].Country.Regions[0].Name }}
+    </RichText>
+  </p>
+  <p class="map-nested-capital" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ domain.DeepConfig.Lookup["home"].Country.Regions[0].Capital.PostCode }}
+    </RichText>
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,99 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Radio"
+            server.current-page="selection/radio">
+
+            <p class="demo-description">Radio buttons allow users to select one option from a set. Use radio groups to manage mutual exclusivity.</p>
+
+            <div class="demo-grid">
+                <!-- Group with Three Options -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Group with Three Options</h3>
+                    <div class="demo-preview">
+                        <m3e-radio-group name="fruits" value="apple">
+                            <m3e-radio name="fruits" value="apple" checked></m3e-radio> Apple
+                            <m3e-radio name="fruits" value="banana"></m3e-radio> Banana
+                            <m3e-radio name="fruits" value="cherry"></m3e-radio> Cherry
+                        </m3e-radio-group>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-radio-group name="fruits" value="apple"&gt;
+  &lt;m3e-radio name="fruits" value="apple" checked&gt;&lt;/m3e-radio&gt; Apple
+  &lt;m3e-radio name="fruits" value="banana"&gt;&lt;/m3e-radio&gt; Banana
+  &lt;m3e-radio name="fruits" value="cherry"&gt;&lt;/m3e-radio&gt; Cherry
+&lt;/m3e-radio-group&gt;</code></pre>
+                </section>
+
+                <!-- Group with Four Options -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Group with Four Options</h3>
+                    <div class="demo-preview">
+                        <m3e-radio-group name="colours" value="green">
+                            <m3e-radio name="colours" value="red"></m3e-radio> Red
+                            <m3e-radio name="colours" value="green" checked></m3e-radio> Green
+                            <m3e-radio name="colours" value="blue"></m3e-radio> Blue
+                            <m3e-radio name="colours" value="yellow"></m3e-radio> Yellow
+                        </m3e-radio-group>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-radio-group name="colours" value="green"&gt;
+  &lt;m3e-radio name="colours" value="red"&gt;&lt;/m3e-radio&gt; Red
+  &lt;m3e-radio name="colours" value="green" checked&gt;&lt;/m3e-radio&gt; Green
+  &lt;m3e-radio name="colours" value="blue"&gt;&lt;/m3e-radio&gt; Blue
+  &lt;m3e-radio name="colours" value="yellow"&gt;&lt;/m3e-radio&gt; Yellow
+&lt;/m3e-radio-group&gt;</code></pre>
+                </section>
+
+                <!-- Standalone -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Standalone</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-radio name="standalone" value="checked" checked></m3e-radio>
+                        <m3e-radio name="standalone2" value="unchecked"></m3e-radio>
+                        <m3e-radio disabled></m3e-radio>
+                        <m3e-radio checked disabled></m3e-radio>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-radio name="solo" value="a" checked&gt;&lt;/m3e-radio&gt;
+&lt;m3e-radio name="solo2" value="b"&gt;&lt;/m3e-radio&gt;
+&lt;m3e-radio disabled&gt;&lt;/m3e-radio&gt;
+&lt;m3e-radio checked disabled&gt;&lt;/m3e-radio&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Radio - M3E Components",
+    }, nil
+}
+</script>

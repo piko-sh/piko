@@ -1,0 +1,12 @@
+[
+  {
+    "action": "checkText",
+    "selector": "nullable-demo >>> p:first-of-type",
+    "expected": "Name: No name"
+  },
+  {
+    "action": "checkText",
+    "selector": "nullable-demo >>> p:last-of-type",
+    "expected": "Count: 0"
+  }
+]

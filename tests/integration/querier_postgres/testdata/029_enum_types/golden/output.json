@@ -1,0 +1,56 @@
+{
+  "acc_1": {
+    "ID": 1,
+    "Status": "active",
+    "Username": "alice"
+  },
+  "acc_2": {
+    "ID": 2,
+    "Status": "inactive",
+    "Username": "bob"
+  },
+  "acc_3": {
+    "ID": 3,
+    "Status": "active",
+    "Username": "charlie"
+  },
+  "acc_4": {
+    "ID": 4,
+    "Status": "suspended",
+    "Username": "diana"
+  },
+  "active_accounts": [
+    {
+      "ID": 1,
+      "Status": "active",
+      "Username": "alice"
+    },
+    {
+      "ID": 3,
+      "Status": "active",
+      "Username": "charlie"
+    }
+  ],
+  "all_accounts": [
+    {
+      "ID": 1,
+      "Status": "active",
+      "Username": "alice"
+    },
+    {
+      "ID": 2,
+      "Status": "inactive",
+      "Username": "bob"
+    },
+    {
+      "ID": 3,
+      "Status": "active",
+      "Username": "charlie"
+    },
+    {
+      "ID": 4,
+      "Status": "suspended",
+      "Username": "diana"
+    }
+  ]
+}

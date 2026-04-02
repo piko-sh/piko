@@ -1,0 +1,122 @@
+{
+  "packages": {
+    "testcase_12_ambiguity": {
+      "file_imports": {
+        "12_ambiguity/src/main.go": {}
+      },
+      "named_types": {
+        "DB": {
+          "name": "DB",
+          "package_path": "testcase_12_ambiguity",
+          "defined_in_file_path": "12_ambiguity/src/main.go",
+          "type_string": "main.DB",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "Log",
+              "type_string": "",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_12_ambiguity",
+              "declaring_type_name": "DB",
+              "definition_file_path": "12_ambiguity/src/main.go",
+              "signature": {
+                "params": null,
+                "results": null
+              },
+              "definition_line": 27,
+              "definition_column": 13,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 25,
+          "definition_column": 6
+        },
+        "Logger": {
+          "name": "Logger",
+          "package_path": "testcase_12_ambiguity",
+          "defined_in_file_path": "12_ambiguity/src/main.go",
+          "type_string": "main.Logger",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "Log",
+              "type_string": "",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_12_ambiguity",
+              "declaring_type_name": "Logger",
+              "definition_file_path": "12_ambiguity/src/main.go",
+              "signature": {
+                "params": null,
+                "results": null
+              },
+              "definition_line": 23,
+              "definition_column": 17,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 21,
+          "definition_column": 6
+        },
+        "Service": {
+          "name": "Service",
+          "package_path": "testcase_12_ambiguity",
+          "defined_in_file_path": "12_ambiguity/src/main.go",
+          "type_string": "main.Service",
+          "underlying_type_string": "struct{main.Logger; main.DB}",
+          "fields": [
+            {
+              "definition_file_path": "12_ambiguity/src/main.go",
+              "declaring_pkg_path": "testcase_12_ambiguity",
+              "pkg_path": "testcase_12_ambiguity",
+              "underlying_type_string": "struct{}",
+              "declaring_type_name": "Service",
+              "name": "Logger",
+              "type_string": "main.Logger",
+              "raw_tag": "",
+              "definition_line": 31,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": true,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "12_ambiguity/src/main.go",
+              "declaring_pkg_path": "testcase_12_ambiguity",
+              "pkg_path": "testcase_12_ambiguity",
+              "underlying_type_string": "struct{}",
+              "declaring_type_name": "Service",
+              "name": "DB",
+              "type_string": "main.DB",
+              "raw_tag": "",
+              "definition_line": 32,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 30,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_12_ambiguity",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "12_ambiguity/src/main.go": "testcase_12_ambiguity"
+  }
+}

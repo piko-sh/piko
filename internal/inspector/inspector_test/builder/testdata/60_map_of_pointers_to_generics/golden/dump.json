@@ -1,0 +1,128 @@
+{
+  "packages": {
+    "testcase_60_map_of_pointers_to_generics": {
+      "file_imports": {
+        "60_map_of_pointers_to_generics/src/main.go": {}
+      },
+      "named_types": {
+        "Box": {
+          "name": "Box",
+          "package_path": "testcase_60_map_of_pointers_to_generics",
+          "defined_in_file_path": "60_map_of_pointers_to_generics/src/main.go",
+          "type_string": "main.Box[T]",
+          "underlying_type_string": "struct{Value T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_60_map_of_pointers_to_generics",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Box",
+              "name": "Value",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 21,
+          "definition_column": 6
+        },
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_60_map_of_pointers_to_generics",
+          "defined_in_file_path": "60_map_of_pointers_to_generics/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{IntBoxes map[string]*main.Box[int]}",
+          "fields": [
+            {
+              "definition_file_path": "60_map_of_pointers_to_generics/src/main.go",
+              "declaring_pkg_path": "testcase_60_map_of_pointers_to_generics",
+              "pkg_path": "testcase_60_map_of_pointers_to_generics",
+              "underlying_type_string": "map[string]*main.Box[int]",
+              "declaring_type_name": "Response",
+              "name": "IntBoxes",
+              "type_string": "map[string]*main.Box[int]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "key",
+                  "type_string": "string",
+                  "role": "key",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "value",
+                  "type_string": "*main.Box[int]",
+                  "role": "value",
+                  "underlying_type_string": "*main.Box[int]",
+                  "pkg_path": "testcase_60_map_of_pointers_to_generics",
+                  "composite_parts": [
+                    {
+                      "type": "element",
+                      "type_string": "main.Box[int]",
+                      "role": "element",
+                      "underlying_type_string": "struct{Value int}",
+                      "pkg_path": "testcase_60_map_of_pointers_to_generics",
+                      "composite_parts": [
+                        {
+                          "type": "generic_arg",
+                          "type_string": "int",
+                          "role": "generic_arg_0",
+                          "underlying_type_string": "int",
+                          "pkg_path": "",
+                          "index": 0,
+                          "is_internal_type": true,
+                          "is_underlying_internal_type": true,
+                          "is_underlying_primitive": true
+                        }
+                      ],
+                      "composite_type": 7,
+                      "index": 0,
+                      "is_internal_type": false,
+                      "is_underlying_internal_type": false
+                    }
+                  ],
+                  "composite_type": 5,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 1,
+              "definition_line": 27,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 25,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_60_map_of_pointers_to_generics",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "60_map_of_pointers_to_generics/src/main.go": "testcase_60_map_of_pointers_to_generics"
+  }
+}

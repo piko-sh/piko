@@ -1,0 +1,54 @@
+--- PACKAGE: testcase_36_type_def_vs_alias_methods ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 36_type_def_vs_alias_methods/src/main.go
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type MyUUID
+    - Defined In:      36_type_def_vs_alias_methods/src/main.go
+    - TypeString:      main.MyUUID
+    - Underlying:      [16]byte
+    - Stringability:   0
+
+  > type alias MyUUIDAlias
+    - Defined In:      36_type_def_vs_alias_methods/src/main.go
+    - TypeString:      uuid.UUID
+    - Underlying:      [16]byte
+    - Stringability:   0
+    - Methods:
+      - func (T) ClockSequence   func() int
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Domain          func() uuid.Domain
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) ID              func() uint32
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) MarshalBinary   func() ([]byte, error)
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) MarshalText     func() ([]byte, error)
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) NodeID          func() []byte
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (*T) Scan            func(interface{}) error
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) String          func() string
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Time            func() uuid.Time
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) URN             func() string
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (*T) UnmarshalBinary func([]byte) error
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (*T) UnmarshalText   func([]byte) error
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Value           func() (driver.Value, error)
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Variant         func() uuid.Variant
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Version         func() uuid.Version
+        (Promoted from: github.com/google/uuid.UUID)
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,16 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-text-dir \u003e\u003e\u003e p",
+    "expected": "Initial message"
+  },
+  {
+    "action": "click",
+    "selector": "p-text-dir \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-text-dir \u003e\u003e\u003e p",
+    "expected": "Updated message with \u003cstrong\u003eHTML\u003c/strong\u003e"
+  }
+]

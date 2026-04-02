@@ -1,0 +1,28 @@
+[
+  {
+    "action": "checkComputedStyle",
+    "selector": "p-show-simple \u003e\u003e\u003e p",
+    "expected": "block",
+    "name": "display"
+  },
+  {
+    "action": "click",
+    "selector": "p-show-simple \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "p-show-simple \u003e\u003e\u003e p",
+    "expected": "none",
+    "name": "display"
+  },
+  {
+    "action": "click",
+    "selector": "p-show-simple \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "p-show-simple \u003e\u003e\u003e p",
+    "expected": "block",
+    "name": "display"
+  }
+]

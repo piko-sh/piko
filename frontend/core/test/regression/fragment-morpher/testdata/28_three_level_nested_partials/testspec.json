@@ -1,0 +1,50 @@
+{
+    "description": "Three-level nested partials morph with scope preservation across outer > nested > inner hierarchy",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".outer-partial",
+            "attributes": {
+                "partial": "partials_outer_796b96dd pages_main_594861c5",
+                "partial_name": "outer",
+                "partial_src": "/_piko/partials/outer",
+                "p-key": "r.0:1"
+            },
+            "description": "Outer partial preserves scope chain and partial attributes"
+        },
+        {
+            "selector": ".outer-text",
+            "attributes": { "partial": "partials_outer_796b96dd pages_main_594861c5" },
+            "description": "Outer text element preserves two-level scope chain"
+        },
+        {
+            "selector": ".inner-partial",
+            "attributes": {
+                "partial": "partials_inner_8c3dbfdd partials_outer_796b96dd pages_main_594861c5",
+                "partial_name": "inner",
+                "partial_src": "/_piko/partials/inner",
+                "p-key": "r.0:1:2:0"
+            },
+            "description": "Inner partial preserves three-level scope chain and partial attributes"
+        },
+        {
+            "selector": ".inner-text",
+            "textContent": "Updated inner content",
+            "description": "Inner text content is updated"
+        },
+        {
+            "selector": ".inner-text",
+            "attributes": { "partial": "partials_inner_8c3dbfdd partials_outer_796b96dd pages_main_594861c5" },
+            "description": "Inner text element preserves three-level scope chain"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": ".outer-partial",
+            "description": "Outer partial container should be preserved (same reference)"
+        }
+    ]
+}

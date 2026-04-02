@@ -1,0 +1,256 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+namespace ast_schema_gen;
+
+enum NodeType : ubyte { ELEMENT = 0, TEXT = 1, COMMENT = 2, FRAGMENT = 3, RAWHTML = 4 }
+
+enum Severity : ubyte { DEBUG = 0, INFO = 1, WARNING = 2, ERROR = 3 }
+
+enum DirectiveType : ushort {
+  IF = 0, ELSEIF = 1, ELSE = 2, FOR = 3, SHOW = 4, BIND = 5,
+  ON = 6, EVENT = 7, MODEL = 8, REF = 9, CLASS = 10, STYLE = 11,
+  TEXT = 12,
+  HTML = 13, KEY = 14, CONTEXT = 15, SCAFFOLD = 16, SLOT = 17
+}
+
+enum UnaryOperatorFB : ubyte { NOT = 0, NEG = 1, ADDR_OF = 2, TRUTHY = 3 }
+
+enum BinaryOperatorFB : ubyte {
+  EQUAL = 0, NOTEQUAL = 1, LOOSEEQUAL = 2, LOOSENOTEQUAL = 3,
+  GREATER = 4, LESS = 5, GTE = 6, LTE = 7, AND = 8, OR = 9,
+  PLUS = 10, MINUS = 11, MULTIPLY = 12, DIVIDE = 13, MODULO = 14,
+  COALESCE = 15
+}
+
+enum WriterPartTypeFB : ubyte {
+  STRING = 0, INT = 1, UINT = 2, FLOAT = 3, BOOL = 4, ANY = 5, ESCAPE_STRING = 6
+}
+
+enum FormatHintFB : byte { AUTO = 0, INLINE = 1, BLOCK = 2 }
+
+table LocationFB { line:int32; column:int32; offset:int32; }
+table RangeFB { start:LocationFB; end:LocationFB; }
+
+table WriterPartFB {
+  type:WriterPartTypeFB;
+  s:string;
+  i:int64;
+  u:uint64;
+  f:float64;
+  b:bool;
+}
+
+table DirectWriterFB {
+  name:string;
+  parts:[WriterPartFB];
+}
+
+table DiagnosticRelatedInfoFB { location:LocationFB; message:string; }
+table DiagnosticDataEntryFB { key:string (key); value:string; }
+
+table DiagnosticFB {
+  message:string;
+  severity:Severity;
+  location:LocationFB;
+  expression:string;
+  source_path:string;
+  code:string;
+  related_info:[DiagnosticRelatedInfoFB];
+  data:[DiagnosticDataEntryFB];
+  source_length:int32;
+}
+
+table IdentifierFB { name:string; relative_location:LocationFB; }
+table StringLiteralFB { value:string; relative_location:LocationFB; }
+table IntegerLiteralFB { value:int64; relative_location:LocationFB; }
+table RuneLiteralFB { value:int32; relative_location:LocationFB; }
+table FloatLiteralFB { value:float64; relative_location:LocationFB; }
+table BooleanLiteralFB { value:bool; relative_location:LocationFB; }
+table NilLiteralFB { relative_location:LocationFB; }
+table BigIntLiteralFB { value:string; relative_location:LocationFB; }
+table DecimalLiteralFB { value:string; relative_location:LocationFB; }
+table DateTimeLiteralFB { value:string; relative_location:LocationFB; }
+table DateLiteralFB { value:string; relative_location:LocationFB; }
+table TimeLiteralFB { value:string; relative_location:LocationFB; }
+table DurationLiteralFB { value:string; relative_location:LocationFB; }
+
+table MemberExprFB { base:ExpressionNodeFB; property:ExpressionNodeFB; optional:bool; computed:bool; relative_location:LocationFB; }
+table IndexExprFB { base:ExpressionNodeFB; index:ExpressionNodeFB; optional:bool; relative_location:LocationFB; }
+table UnaryExprFB { operator:UnaryOperatorFB; right:ExpressionNodeFB; relative_location:LocationFB; }
+table BinaryExprFB { left:ExpressionNodeFB; operator:BinaryOperatorFB; right:ExpressionNodeFB; relative_location:LocationFB; }
+table CallExprFB { callee:ExpressionNodeFB; arguments:[ExpressionNodeFB]; left_parenthesis_location:LocationFB; right_parenthesis_location:LocationFB; relative_location:LocationFB; }
+table ForInExprFB { index_variable:IdentifierFB; item_variable:IdentifierFB; collection:ExpressionNodeFB; relative_location:LocationFB; }
+table ArrayLiteralFB { elements:[ExpressionNodeFB]; relative_location:LocationFB; }
+table ObjectPairFB { key:string (key); value:ExpressionNodeFB; }
+table ObjectLiteralFB { pairs:[ObjectPairFB]; relative_location:LocationFB; }
+table TernaryExprFB { condition:ExpressionNodeFB; consequent:ExpressionNodeFB; alternate:ExpressionNodeFB; relative_location:LocationFB; }
+table TemplateLiteralPartFB { is_literal:bool; literal:string; raw_expression:string; expression:ExpressionNodeFB; location:LocationFB; }
+table TemplateLiteralFB { parts:[TemplateLiteralPartFB]; relative_location:LocationFB; }
+
+union ExpressionPayloadFB {
+  IdentifierFB, StringLiteralFB, IntegerLiteralFB, FloatLiteralFB,
+  BooleanLiteralFB, NilLiteralFB, MemberExprFB, IndexExprFB,
+  UnaryExprFB, BinaryExprFB, CallExprFB, ForInExprFB,
+  ArrayLiteralFB, ObjectLiteralFB, TernaryExprFB, TemplateLiteralFB,
+  DecimalLiteralFB, DateTimeLiteralFB, DateLiteralFB, TimeLiteralFB,
+  DurationLiteralFB, RuneLiteralFB, BigIntLiteralFB
+}
+
+table ExpressionNodeFB {
+  payload:ExpressionPayloadFB;
+  source_length:int32;
+}
+
+table JSAnnotationFB { javascript_type:string; is_client_safe:bool; }
+table RuntimeAnnotationFB { needs_csrf:bool; }
+table ResolvedTypeInfoFB { type_expr_string:string; package_alias:string; canonical_package_path:string; initial_package_path:string; initial_file_path:string; is_synthetic:bool = false; is_exported_package_symbol:bool = false; }
+table ResolvedSymbolFB { name:string; reference_location:LocationFB; declaration_location:LocationFB; }
+table PropDataSourceFB { resolved_type:ResolvedTypeInfoFB; symbol:ResolvedSymbolFB; base_code_gen_var_name:string; }
+table PropValueFB { expression:ExpressionNodeFB; invoker_annotation:GoGeneratorAnnotationFB; location:LocationFB; name_location:LocationFB; go_field_name:string; is_loop_dependent:bool; }
+table PropValueEntryFB { key:string (key); value:PropValueFB; }
+table PartialInvocationInfoFB { invocation_key:string; partial_alias:string; partial_package_name:string; request_overrides:[PropValueEntryFB]; passed_props:[PropValueEntryFB]; invoker_package_alias:string; invoker_invocation_key:string; location:LocationFB; }
+table DynamicAttributeOriginEntryFB { key:string (key); value:string; }
+table ResponsiveVariantMetadataFB { width:int32; height:int32; density:string; variant_key:string; url:string; }
+
+table GoGeneratorAnnotationFB {
+  resolved_type:ResolvedTypeInfoFB;
+  symbol:ResolvedSymbolFB;
+  prop_data_source:PropDataSourceFB;
+  base_code_gen_var_name:string;
+  original_package_alias:string;
+  original_source_path:string;
+  generated_source_path:string;
+  partial_info:PartialInvocationInfoFB;
+  parent_type_name:string;
+  field_tag:string;
+  needs_csrf:bool;
+  is_static:bool;
+  dynamic_attribute_origins:[DynamicAttributeOriginEntryFB];
+  is_structurally_static:bool;
+  stringability:int32;
+  is_pointer_to_stringable:bool;
+  needs_runtime_safety_check:bool;
+  effective_key_expression:ExpressionNodeFB;
+  source_set:[ResponsiveVariantMetadataFB];
+  source_invocation_key:string;
+  is_collection_call:bool = false;
+  is_hybrid_collection:bool = false;
+  is_map_access:bool = false;
+  is_fully_prerenderable:bool = false;
+}
+
+table HTMLAttributeFB { name:string; value:string; location:LocationFB; name_location:LocationFB; attribute_range:RangeFB; }
+
+table DynamicAttributeFB {
+  name:string;
+  raw_expression:string;
+  expression:ExpressionNodeFB;
+  location:LocationFB;
+  name_location:LocationFB;
+  attribute_range:RangeFB;
+  go_annotations:GoGeneratorAnnotationFB;
+}
+
+table DirectiveFB {
+  type:DirectiveType;
+  argument:string;
+  modifier:string;
+  raw_expression:string;
+  expression:ExpressionNodeFB;
+  chain_key:ExpressionNodeFB;
+  location:LocationFB;
+  name_location:LocationFB;
+  attribute_range:RangeFB;
+  go_annotations:GoGeneratorAnnotationFB;
+  event_modifiers:[string];
+  is_static_event:bool;
+}
+
+table TextPartFB {
+  is_literal:bool;
+  literal:string;
+  raw_expression:string;
+  expression:ExpressionNodeFB;
+  location:LocationFB;
+  go_annotations:GoGeneratorAnnotationFB;
+}
+
+table OnEventEntryFB { event_name:string (key); handlers:[DirectiveFB]; }
+table CustomEventEntryFB { event_name:string (key); handlers:[DirectiveFB]; }
+table BindEntryFB { attribute_name:string (key); directive:DirectiveFB; }
+
+table TemplateNodeFB {
+  node_type:NodeType;
+  tag_name:string;
+  location:LocationFB;
+  text_content:string;
+  rich_text:[TextPartFB];
+  inner_html:string;
+  is_content_editable:bool;
+  node_range:RangeFB;
+  opening_tag_range:RangeFB;
+  closing_tag_range:RangeFB;
+  attributes:[HTMLAttributeFB];
+  dynamic_attributes:[DynamicAttributeFB];
+  diagnostics:[DiagnosticFB];
+  children:[TemplateNodeFB];
+  directives:[DirectiveFB];
+  directive_if:DirectiveFB;
+  directive_else_if:DirectiveFB;
+  directive_else:DirectiveFB;
+  directive_for:DirectiveFB;
+  directive_show:DirectiveFB;
+  directive_model:DirectiveFB;
+  directive_ref:DirectiveFB;
+  directive_slot:DirectiveFB;
+  directive_class:DirectiveFB;
+  directive_style:DirectiveFB;
+  directive_text:DirectiveFB;
+  directive_html:DirectiveFB;
+  directive_key:DirectiveFB;
+  directive_context:DirectiveFB;
+  directive_scaffold:DirectiveFB;
+  on_events:[OnEventEntryFB];
+  custom_events:[CustomEventEntryFB];
+  binds:[BindEntryFB];
+  key:ExpressionNodeFB;
+  go_annotations:GoGeneratorAnnotationFB;
+  runtime_annotations:RuntimeAnnotationFB;
+  javascript_annotations:JSAnnotationFB;
+  key_writer:DirectWriterFB;
+  attribute_writers:[DirectWriterFB];
+  text_content_writer:DirectWriterFB;
+  preferred_format:FormatHintFB;
+  attributes_pooled:bool;
+  children_pooled:bool;
+  prerendered_html:[ubyte];
+  preserve_whitespace:bool;
+}
+
+table TemplateASTFB {
+  root_nodes:[TemplateNodeFB];
+  diagnostics:[DiagnosticFB];
+  source_path:string;
+  tidied:bool;
+  expires_at_unix_nano:int64;
+  metadata:string;
+  source_size:int64;
+}
+
+root_type TemplateASTFB;

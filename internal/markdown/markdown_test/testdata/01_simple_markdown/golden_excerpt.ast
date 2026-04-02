@@ -1,0 +1,17 @@
+/*
+--- BEGIN AST DUMP ---
+
+<p>
+  "This is a simple paragraph with"
+  <strong>
+    "bold text"
+  </strong>
+  "and a"
+  <a href="https://piko.sh">
+    "link to the Piko project"
+  </a>
+  "."
+</p>
+
+--- END AST DUMP ---
+*/

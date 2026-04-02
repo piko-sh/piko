@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/dashboard.pk": {
+      "routePatterns": {
+        "en": "/dashboard"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_26_partials/dist/pages/pages_dashboard_f17c0b60",
+      "originalSourcePath": "pages/dashboard.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

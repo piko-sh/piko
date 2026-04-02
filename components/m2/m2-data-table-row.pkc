@@ -1,0 +1,227 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m2-data-table-row">
+    <div class="data-row"
+         role="row"
+         p-class="{
+             'selected': state.selected,
+             'disabled': state.disabled,
+             'selectable': state.selectable
+         }"
+         :aria-selected="state.selectable ? (state.selected ? 'true' : 'false') : null">
+        <div class="checkbox-cell" p-if="state.selectable"
+             role="gridcell"
+             p-on:click="toggleSelection"
+             p-on:keydown="handleCheckboxKeydown"
+             :tabindex="state.disabled ? '-1' : '0'"
+             :aria-checked="state.selected ? 'true' : 'false'"
+             aria-label="Select row">
+            <div class="checkbox-container"
+                 p-class="{ 'checked': state.selected }">
+                <div class="cb-outline"></div>
+                <div class="cb-background"></div>
+                <div class="cb-icon-container">
+                    <span class="cb-check" p-if="state.selected">
+                        <piko:svg src="piko.sh/piko/lib/icons/check.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                    </span>
+                </div>
+            </div>
+            <div class="cb-state-layer"></div>
+        </div>
+        <slot></slot>
+        <div class="state-layer"></div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        selectable: false as boolean,
+        selected: false as boolean,
+        disabled: false as boolean,
+        row_id: '' as string,
+    };
+
+    function toggleSelection(event) {
+        if (state.disabled) return;
+        event.stopPropagation();
+
+        state.selected = !state.selected;
+
+        pkc.dispatchEvent(new CustomEvent('row-select', {
+            detail: { rowId: state.row_id, selected: state.selected },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleCheckboxKeydown(event) {
+        if (event.key === ' ' || event.key === 'Enter') {
+            event.preventDefault();
+            toggleSelection(event);
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline-variant: var(--m3e-outline-variant, #cac4d0);
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_primary-container: var(--m3e-primary-container, #eaddff);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-xs: var(--m3e-shape-xs, 4px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    :host(:last-child) .data-row {
+        border-bottom: none;
+    }
+
+    .data-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 52px;
+        border-bottom: 1px solid var(--_outline-variant);
+
+        &.selected {
+            background: color-mix(in srgb, var(--_primary-container) 40%, transparent);
+        }
+
+        &.disabled {
+            opacity: 0.38;
+            pointer-events: none;
+        }
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        background: var(--_on-surface);
+        opacity: 0;
+        transition: opacity var(--_duration-short) var(--_easing-standard);
+        pointer-events: none;
+    }
+
+    .checkbox-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        flex-shrink: 0;
+        cursor: pointer;
+        position: relative;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+        z-index: 1;
+
+        &:hover .cb-state-layer {
+            opacity: 0.08;
+        }
+
+        &:focus-visible .cb-state-layer {
+            opacity: 0.12;
+        }
+    }
+
+    .checkbox-container {
+        position: relative;
+        width: 18px;
+        height: 18px;
+        border-radius: var(--_shape-xs);
+    }
+
+    .cb-outline {
+        position: absolute;
+        inset: 0;
+        border: 2px solid var(--_on-surface-variant);
+        border-radius: inherit;
+        transition: border-color var(--_duration-short) var(--_easing-standard),
+                    opacity var(--_duration-short) var(--_easing-standard);
+    }
+
+    .cb-background {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--_primary);
+        opacity: 0;
+        transition: opacity var(--_duration-short) var(--_easing-standard);
+    }
+
+    .checked {
+        .cb-outline {
+            border-color: var(--_primary);
+            opacity: 0;
+        }
+
+        .cb-background {
+            opacity: 1;
+        }
+
+        .cb-icon-container {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .cb-icon-container {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--_on-primary);
+        opacity: 0;
+        transform: scale(0.6);
+        transition: opacity var(--_duration-short) var(--_easing-standard),
+                    transform var(--_duration-short) var(--_easing-standard);
+    }
+
+    .cb-check {
+        display: contents;
+    }
+
+    .cb-state-layer {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--_on-surface);
+        opacity: 0;
+        transition: opacity var(--_duration-short) var(--_easing-standard);
+        pointer-events: none;
+    }
+
+    .checked ~ .cb-state-layer,
+    .checkbox-cell:hover .checked ~ .cb-state-layer {
+        background: var(--_primary);
+    }
+</style>

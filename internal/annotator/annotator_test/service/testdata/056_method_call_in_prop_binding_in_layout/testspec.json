@@ -1,0 +1,24 @@
+{
+  "description": "Validates that method calls in prop binding expressions inside a layout's slot correctly resolve against the page's state type and its methods.",
+  "shouldError": false,
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "#child",
+      "description": "The child should correctly resolve method call expressions in prop bindings.",
+      "assert": {
+        "originalPackageAlias": "partials/child.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.GetActiveItems()",
+          "resolvedTypeIs": "[]string"
+        },
+        {
+          "rawExpression": "state.ItemCount()",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    }
+  ]
+}

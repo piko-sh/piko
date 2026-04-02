@@ -1,0 +1,6 @@
+CREATE TABLE sales (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    employee VARCHAR(100) NOT NULL,
+    amount INT NOT NULL,
+    sale_date VARCHAR(10) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

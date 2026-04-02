@@ -1,0 +1,17 @@
+<template>
+    <pml-row background-color="#ffffff" padding="20px 0">
+        <pml-col>
+            <pml-p class="greeting" font-size="18px" padding="10px 25px">Good morning</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f0f0f0" padding="10px 0">
+        <pml-col>
+            <pml-p class="footer-text" font-size="12px" padding="5px 25px">Footer content</pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.greeting { font-weight: bold; }
+.footer-text { color: #999999; }
+</style>

@@ -1,0 +1,9 @@
+<template>
+  <div class="root">
+    <p class="themed">Variables</p>
+  </div>
+</template>
+<style>
+  .root { --main-colour: #336699; --spacing: 20px; }
+  .themed { color: var(--main-colour); padding: var(--spacing); margin: var(--missing, 10px); }
+</style>

@@ -1,0 +1,80 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>FormatBuilder F() and LF() Test</h1>
+
+    <h2>F() in RichText Interpolation</h2>
+    <p id="f-richtext-decimal">{{ F(state.Price) }}</p>
+    <p id="f-richtext-bigint">{{ F(state.Quantity) }}</p>
+    <p id="f-richtext-money">{{ F(state.Total) }}</p>
+
+    <h2>F() in p-text Binding</h2>
+    <p id="f-ptext-decimal" p-text="F(state.Price)"></p>
+    <p id="f-ptext-string" p-text="F(state.Name)"></p>
+
+    <h2>LF() in RichText Interpolation</h2>
+    <p id="lf-richtext-decimal">{{ LF(state.Price) }}</p>
+
+    <h2>LF() in p-text Binding</h2>
+    <p id="lf-ptext-decimal" p-text="LF(state.Price)"></p>
+
+    <h2>F() in Attribute Binding</h2>
+    <p id="f-attr" :data-val="F(state.Price)">attr binding</p>
+
+    <h2>F() in Template Literal</h2>
+    <p id="f-tpl" p-text="`Formatted: ${F(state.Price)}`"></p>
+
+    <h2>LF() in Template Literal</h2>
+    <p id="lf-tpl" p-text="`Locale: ${LF(state.Price)}`"></p>
+
+    <h2>F() Method Chain</h2>
+    <p id="f-precision" p-text="F(state.Price).Precision(2)"></p>
+
+    <h2>LF() Method Chain</h2>
+    <p id="lf-precision" p-text="LF(state.Price).Precision(2)"></p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/maths"
+  )
+
+  type Response struct {
+    Price    maths.Decimal
+    Quantity maths.BigInt
+    Total    maths.Money
+    Name     string
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      Price:    maths.NewDecimalFromFloat(19.99),
+      Quantity: maths.NewBigIntFromString("42"),
+      Total:    maths.NewMoneyFromMinorInt(150000, "USD"),
+      Name:     "hello",
+    }, piko.Metadata{}, nil
+  }
+</script>

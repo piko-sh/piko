@@ -1,0 +1,12 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return { found: false };
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return { found: false };
+    const rect = el.getBoundingClientRect();
+    return {
+        x: rect.x + rect.width / 2,
+        y: rect.y + rect.height / 2,
+        found: true
+    };
+})()

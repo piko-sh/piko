@@ -1,0 +1,5 @@
+{
+    "description": "Overlapping divs with opacity, verifying ExtGState transparency in PDF output.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

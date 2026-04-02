@@ -1,0 +1,29 @@
+{
+  "description": "Per-action rate limiting - the 4th request triggers a 429 Too Many Requests response",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#test-btn[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='result']",
+      "expected": "rate_limited"
+    }
+  ]
+}

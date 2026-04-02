@@ -1,0 +1,38 @@
+{
+  "description": "Verifies error page bubble-up: /app/* uses app-scoped !404.pk, /other/* falls back to root !404.pk",
+  "requestURL": "/app/pancakes/i-go-here",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "App 404"
+    },
+    {
+      "action": "checkText",
+      "selector": "#scope",
+      "expected": "app"
+    },
+    {
+      "action": "navigate",
+      "value": "/other/doesnt-exist"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Root 404"
+    },
+    {
+      "action": "checkText",
+      "selector": "#scope",
+      "expected": "root"
+    }
+  ]
+}

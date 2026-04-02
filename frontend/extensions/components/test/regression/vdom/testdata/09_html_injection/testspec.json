@@ -1,0 +1,43 @@
+{
+    "description": "dom.html() should render raw HTML content and update it correctly",
+    "initialState": {
+        "content": "<strong>Bold</strong>"
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.html(state.content, 'raw')])",
+    "steps": [
+        {
+            "description": "Initial render with bold content",
+            "assertions": [
+                {
+                    "selector": "strong",
+                    "exists": true,
+                    "description": "Strong element should be rendered from raw HTML"
+                },
+                {
+                    "selector": "strong",
+                    "textContent": "Bold",
+                    "description": "Strong element should contain Bold text"
+                }
+            ]
+        },
+        {
+            "description": "Change to italic content",
+            "stateChanges": [
+                { "path": "content", "value": "<em>Italic</em>" }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.html(state.content, 'raw')])",
+            "assertions": [
+                {
+                    "selector": "em",
+                    "exists": true,
+                    "description": "Em element should be rendered from updated raw HTML"
+                },
+                {
+                    "selector": "em",
+                    "textContent": "Italic",
+                    "description": "Em element should contain Italic text"
+                }
+            ]
+        }
+    ]
+}

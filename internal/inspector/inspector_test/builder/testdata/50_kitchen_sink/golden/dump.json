@@ -1,0 +1,318 @@
+{
+  "packages": {
+    "testcase_50_kitchen_sink": {
+      "file_imports": {
+        "50_kitchen_sink/src/main.go": {
+          "context": "context",
+          "io": "io",
+          "models": "testcase_50_kitchen_sink/models",
+          "uuid": "github.com/google/uuid"
+        }
+      },
+      "named_types": {
+        "Event": {
+          "name": "Event",
+          "package_path": "testcase_50_kitchen_sink",
+          "defined_in_file_path": "50_kitchen_sink/src/main.go",
+          "type_string": "main.Event[T]",
+          "underlying_type_string": "struct{Payload T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_50_kitchen_sink",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Event",
+              "name": "Payload",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 31,
+          "definition_column": 6
+        },
+        "Report": {
+          "name": "Report",
+          "package_path": "testcase_50_kitchen_sink",
+          "defined_in_file_path": "50_kitchen_sink/src/main.go",
+          "type_string": "main.Report[T]",
+          "underlying_type_string": "struct{models.Auditable[uuid.UUID]; EventsByTopic map[string][]*main.Event[T]; Output *io.Writer}",
+          "fields": [
+            {
+              "definition_file_path": "50_kitchen_sink/src/main.go",
+              "declaring_pkg_path": "testcase_50_kitchen_sink",
+              "pkg_path": "testcase_50_kitchen_sink/models",
+              "underlying_type_string": "struct{ID uuid.UUID}",
+              "declaring_type_name": "Report",
+              "name": "Auditable",
+              "type_string": "models.Auditable[uuid.UUID]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "generic_arg",
+                  "type_string": "uuid.UUID",
+                  "role": "generic_arg_0",
+                  "underlying_type_string": "[16]byte",
+                  "pkg_path": "github.com/google/uuid",
+                  "composite_parts": [
+                    {
+                      "type": "element",
+                      "type_string": "byte",
+                      "role": "element",
+                      "underlying_type_string": "byte",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_underlying_primitive": true
+                    }
+                  ],
+                  "composite_type": 3,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": true
+                }
+              ],
+              "composite_type": 7,
+              "definition_line": 38,
+              "definition_column": 9,
+              "is_internal_type": false,
+              "is_embedded": true,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "50_kitchen_sink/src/main.go",
+              "declaring_pkg_path": "testcase_50_kitchen_sink",
+              "pkg_path": "testcase_50_kitchen_sink",
+              "underlying_type_string": "map[string][]*main.Event[T]",
+              "declaring_type_name": "Report",
+              "name": "EventsByTopic",
+              "type_string": "map[string][]*main.Event[T]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "key",
+                  "type_string": "string",
+                  "role": "key",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "value",
+                  "type_string": "[]*main.Event[T]",
+                  "role": "value",
+                  "underlying_type_string": "[]*main.Event[T]",
+                  "pkg_path": "testcase_50_kitchen_sink",
+                  "composite_parts": [
+                    {
+                      "type": "element",
+                      "type_string": "*main.Event[T]",
+                      "role": "element",
+                      "underlying_type_string": "*main.Event[T]",
+                      "pkg_path": "testcase_50_kitchen_sink",
+                      "composite_parts": [
+                        {
+                          "type": "element",
+                          "type_string": "main.Event[T]",
+                          "role": "element",
+                          "underlying_type_string": "struct{Payload T}",
+                          "pkg_path": "testcase_50_kitchen_sink",
+                          "composite_parts": [
+                            {
+                              "type": "generic_arg",
+                              "type_string": "T",
+                              "role": "generic_arg_0",
+                              "underlying_type_string": "T",
+                              "pkg_path": "",
+                              "index": 0,
+                              "is_internal_type": false,
+                              "is_underlying_internal_type": false,
+                              "is_generic_placeholder": true
+                            }
+                          ],
+                          "composite_type": 7,
+                          "index": 0,
+                          "is_internal_type": false,
+                          "is_underlying_internal_type": false
+                        }
+                      ],
+                      "composite_type": 5,
+                      "index": 0,
+                      "is_internal_type": false,
+                      "is_underlying_internal_type": false
+                    }
+                  ],
+                  "composite_type": 2,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 1,
+              "definition_line": 41,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "50_kitchen_sink/src/main.go",
+              "declaring_pkg_path": "testcase_50_kitchen_sink",
+              "pkg_path": "io",
+              "underlying_type_string": "*io.Writer",
+              "declaring_type_name": "Report",
+              "name": "Output",
+              "type_string": "*io.Writer",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "io.Writer",
+                  "role": "element",
+                  "underlying_type_string": "interface{Write(p []byte) (int, error)}",
+                  "pkg_path": "io",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 5,
+              "definition_line": 44,
+              "definition_column": 2,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [
+            {
+              "name": "GetID",
+              "type_string": "uuid.UUID",
+              "underlying_type_string": "[16]byte",
+              "declaring_pkg_path": "testcase_50_kitchen_sink/models",
+              "declaring_type_name": "Auditable",
+              "definition_file_path": "50_kitchen_sink/src/models/auditable.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "uuid.UUID"
+                ]
+              },
+              "definition_line": 27,
+              "definition_column": 23,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Summarise",
+              "type_string": "T",
+              "underlying_type_string": "T",
+              "declaring_pkg_path": "testcase_50_kitchen_sink",
+              "declaring_type_name": "Report",
+              "definition_file_path": "50_kitchen_sink/src/main.go",
+              "signature": {
+                "params": [
+                  "context.Context"
+                ],
+                "param_names": [
+                  "ctx"
+                ],
+                "results": [
+                  "T",
+                  "error"
+                ]
+              },
+              "definition_line": 48,
+              "definition_column": 21,
+              "is_pointer_receiver": true
+            }
+          ],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 36,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_50_kitchen_sink",
+      "name": "main"
+    },
+    "testcase_50_kitchen_sink/models": {
+      "file_imports": {
+        "50_kitchen_sink/src/models/auditable.go": {}
+      },
+      "named_types": {
+        "Auditable": {
+          "name": "Auditable",
+          "package_path": "testcase_50_kitchen_sink/models",
+          "defined_in_file_path": "50_kitchen_sink/src/models/auditable.go",
+          "type_string": "models.Auditable[I]",
+          "underlying_type_string": "struct{ID I}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_50_kitchen_sink/models",
+              "pkg_path": "",
+              "underlying_type_string": "I",
+              "declaring_type_name": "Auditable",
+              "name": "ID",
+              "type_string": "I",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [
+            {
+              "name": "GetID",
+              "type_string": "I",
+              "underlying_type_string": "I",
+              "declaring_pkg_path": "testcase_50_kitchen_sink/models",
+              "declaring_type_name": "Auditable",
+              "definition_file_path": "50_kitchen_sink/src/models/auditable.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "I"
+                ]
+              },
+              "definition_line": 27,
+              "definition_column": 23,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [
+            "I"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_50_kitchen_sink/models",
+      "name": "models"
+    }
+  },
+  "file_to_package": {
+    "50_kitchen_sink/src/main.go": "testcase_50_kitchen_sink",
+    "50_kitchen_sink/src/models/auditable.go": "testcase_50_kitchen_sink/models"
+  }
+}

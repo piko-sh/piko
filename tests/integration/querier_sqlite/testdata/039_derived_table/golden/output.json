@@ -1,0 +1,19 @@
+{
+  "summary": [
+    {
+      "Product": "Bravo",
+      "SaleCount": 1,
+      "TotalSales": 200
+    },
+    {
+      "Product": "Alpha",
+      "SaleCount": 2,
+      "TotalSales": 150
+    },
+    {
+      "Product": "Charlie",
+      "SaleCount": 3,
+      "TotalSales": 150
+    }
+  ]
+}

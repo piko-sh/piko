@@ -1,0 +1,204 @@
+{
+  "description": "Tests that HTML attributes are correctly synced to PPC component state - validates boolean, string, and number attribute binding",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "PPC Attribute Binding Test"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-defaults >>> #val-multiple",
+      "expected": "false"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-defaults >>> #val-disabled",
+      "expected": "false"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-defaults >>> #val-required",
+      "expected": "false"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-defaults >>> #val-name",
+      "expected": "(empty)"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-defaults >>> #val-accept",
+      "expected": "*/*"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-defaults >>> #val-max-count",
+      "expected": "10"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#comp-defaults >>> .single-mode"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-bool-present >>> #val-multiple",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-bool-present >>> #val-disabled",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-bool-present >>> #val-required",
+      "expected": "false"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#comp-bool-present >>> .multiple-mode"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-bool-true >>> #val-multiple",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-bool-true >>> #val-required",
+      "expected": "true"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#comp-bool-true >>> .multiple-mode"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-bool-false >>> #val-multiple",
+      "expected": "false"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-bool-false >>> #val-disabled",
+      "expected": "false"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#comp-bool-false >>> .single-mode"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-dynamic-true >>> #val-multiple",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-dynamic-true >>> #val-disabled",
+      "expected": "true"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#comp-dynamic-true >>> .multiple-mode"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-dynamic-false >>> #val-multiple",
+      "expected": "false"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-dynamic-false >>> #val-required",
+      "expected": "false"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#comp-dynamic-false >>> .single-mode"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-strings >>> #val-name",
+      "expected": "test-field"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-strings >>> #val-label",
+      "expected": "Test Label"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-strings >>> #val-accept",
+      "expected": "image/*,application/pdf"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-numbers >>> #val-max-count",
+      "expected": "25"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-dynamic-number >>> #val-max-count",
+      "expected": "50"
+    },
+
+    {
+      "action": "checkText",
+      "selector": "#comp-mixed >>> #val-multiple",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-mixed >>> #val-name",
+      "expected": "file-upload"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-mixed >>> #val-label",
+      "expected": "Upload Files"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-mixed >>> #val-accept",
+      "expected": "image/*"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-mixed >>> #val-max-count",
+      "expected": "5"
+    },
+    {
+      "action": "checkText",
+      "selector": "#comp-mixed >>> #val-required",
+      "expected": "true"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#comp-mixed >>> .multiple-mode"
+    },
+
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "final_state.html"
+    }
+  ]
+}

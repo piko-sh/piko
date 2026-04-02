@@ -1,0 +1,32 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "p-for-wrapping-if >>> li",
+    "expected": "4"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-for-wrapping-if >>> .active",
+    "expected": "2"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-for-wrapping-if >>> .inactive",
+    "expected": "2"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-wrapping-if >>> #active-count",
+    "expected": "Active: 2"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-wrapping-if >>> li:first-child .active",
+    "expected": "Alice (Active)"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-wrapping-if >>> li:nth-child(2) .inactive",
+    "expected": "Bob (Inactive)"
+  }
+]

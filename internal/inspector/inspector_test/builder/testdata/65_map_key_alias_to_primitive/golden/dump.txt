@@ -1,0 +1,25 @@
+--- PACKAGE: testcase_65_map_key_alias_to_primitive ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 65_map_key_alias_to_primitive/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Response
+    - Defined In:      65_map_key_alias_to_primitive/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{Scores map[uint64]int}
+    - Stringability:   0
+    - Fields:
+      - Scores               map[main.UserID]int
+
+  > type alias UserID
+    - Defined In:      65_map_key_alias_to_primitive/src/main.go
+    - TypeString:      uint64
+    - Underlying:      uint64
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)

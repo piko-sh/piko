@@ -1,0 +1,9 @@
+CREATE TABLE orders (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL
+);
+
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL
+);

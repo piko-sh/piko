@@ -1,0 +1,73 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "totals.sql",
+    "SQL": "-- piko.name: GetLineTotals\n-- piko.command: many\nSELECT id, quantity * unit_price AS total FROM line_items;",
+    "Name": "GetLineTotals",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "line_items",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "total",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "float8",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 1
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "description": "Tests safe iteration and IIFE-based safe key access for a map of structs defined in an external package.",
+  "packageName": "main_test",
+  "isPage": true,
+  "shouldError": false
+}

@@ -1,0 +1,14 @@
+/*
+--- BEGIN AST DUMP ---
+
+<form [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button data-pk-action-method="POST" id="btn-delete" [Events: p-on:click.action="action.actions.DeleteUser(state.UserID)" {P: actions.DeleteUser(state.UserID)}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk NeedsCSRF]>
+    "Delete"
+  </button>
+  <button id="btn-invalid" [Events: p-on:click.action="action.nonExistent.Action()" {P: nonExistent.Action()}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Invalid"
+  </button>
+</form>
+
+--- END AST DUMP ---
+*/

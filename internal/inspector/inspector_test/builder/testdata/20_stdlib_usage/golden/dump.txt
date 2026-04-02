@@ -1,0 +1,23 @@
+--- PACKAGE: testcase_20_stdlib_usage ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 20_stdlib_usage/src/main.go
+    - import "http"               -> net/http
+    - import "time"               -> time
+
+[Named Types]
+  > type Server
+    - Defined In:      20_stdlib_usage/src/main.go
+    - TypeString:      main.Server
+    - Underlying:      struct{LastRequest *http.Request; StartedAt time.Time}
+    - Stringability:   0
+    - Fields:
+      - LastRequest          *http.Request
+        (Canonical Package: net/http)
+      - StartedAt            time.Time
+        (Canonical Package: time)
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,29 @@
+--- PACKAGE: testcase_17_generics_external_arg ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 17_generics_external_arg/src/main.go
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Request
+    - Defined In:      17_generics_external_arg/src/main.go
+    - TypeString:      main.Request
+    - Underlying:      struct{IDWrapper main.Wrapper[uuid.UUID]}
+    - Stringability:   0
+    - Fields:
+      - IDWrapper            main.Wrapper[uuid.UUID]
+        (Canonical Package: testcase_17_generics_external_arg)
+
+  > type Wrapper
+    - Defined In:      17_generics_external_arg/src/main.go
+    - TypeString:      main.Wrapper[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+
+[Package-Level Functions]
+  (none)

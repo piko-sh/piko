@@ -1,0 +1,6 @@
+{
+  "description": "Tests p-show directive for conditional visibility",
+  "entryPoints": [
+    { "path": "pages/notifications.pk", "isPage": true }
+  ]
+}

@@ -1,0 +1,5 @@
+CREATE TABLE key_value_stores (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    data MAP(VARCHAR, INTEGER) NOT NULL
+);

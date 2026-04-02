@@ -1,0 +1,16 @@
+[
+  {
+    "action": "checkHTML",
+    "selector": "p-html-dir \u003e\u003e\u003e div:first-child \u003e div",
+    "expected": "\u003cdiv\u003e\u003cem\u003eInitial HTML\u003c/em\u003e\u003c/div\u003e"
+  },
+  {
+    "action": "click",
+    "selector": "p-html-dir \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkHTML",
+    "selector": "p-html-dir \u003e\u003e\u003e div:first-child \u003e div",
+    "expected": "\u003cdiv\u003e\u003cstrong\u003eUpdated HTML\u003c/strong\u003e with a \u003ca href=\"#\"\u003elink\u003c/a\u003e.\u003c/div\u003e"
+  }
+]

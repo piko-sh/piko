@@ -1,0 +1,37 @@
+**Streamline**
+
+Your Subscription Renews Soon
+
+Your Pro plan subscription will automatically renew on 8 April 2026.
+
+**Pro Plan**
+
+Billing period: Annual (1 year)
+
+Next billing date: 8 April 2026
+
+Payment method: Visa ending in 4242
+
+Billing Breakdown
+
+Pro Plan (Annual)
+
+£199.00
+
+VAT (20%)
+
+£39.80
+
+**Total**
+
+**£238.80**
+
+ Manage Subscription (https://streamline.example.com/subscription)
+
+ Update Payment (https://streamline.example.com/payment)
+
+If you wish to cancel, you can do so before the renewal date from your account settings.
+
+Streamline Project Management Ltd.
+
+You are receiving this email because you have an active subscription.

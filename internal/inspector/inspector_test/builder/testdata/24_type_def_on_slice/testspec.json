@@ -1,0 +1,30 @@
+{
+  "description": "Tests methods on a type definition based on a slice.",
+  "moduleName": "testcase_24_type_def_on_slice",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_24_type_def_on_slice"
+  ],
+  "assertions": [
+    {
+      "description": "IntSlice should be a type definition, not an alias.",
+      "select": "packages.testcase_24_type_def_on_slice.named_types.IntSlice.is_alias",
+      "expect": false
+    },
+    {
+      "description": "The underlying type string for IntSlice should be '[]int'.",
+      "select": "packages.testcase_24_type_def_on_slice.named_types.IntSlice.underlying_type_string",
+      "expect": "[]int"
+    },
+    {
+      "description": "IntSlice should have one method named 'Sum'.",
+      "select": "packages.testcase_24_type_def_on_slice.named_types.IntSlice.methods.0.name",
+      "expect": "Sum"
+    },
+    {
+      "description": "The 'Sum' method should return an 'int'.",
+      "select": "packages.testcase_24_type_def_on_slice.named_types.IntSlice.methods.0.signature.results.0",
+      "expect": "int"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "description": "Validates F() and LF() format builder functions: argument count errors, return type resolution, method chain resolution, and unsupported type warnings.",
+  "shouldError": true,
+  "expectedDiagnostics": 5,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "F/LF expects exactly one argument, got 0",
+      "onLine": 53
+    },
+    {
+      "severity": "error",
+      "messageContains": "F/LF expects exactly one argument, got 2",
+      "onLine": 54
+    },
+    {
+      "severity": "error",
+      "messageContains": "F/LF expects exactly one argument, got 0",
+      "onLine": 55
+    },
+    {
+      "severity": "error",
+      "messageContains": "F/LF expects exactly one argument, got 2",
+      "onLine": 56
+    },
+    {
+      "severity": "warning",
+      "messageContains": "may not be formattable",
+      "onLine": 58
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#valid-f-decimal",
+      "description": "F() with Decimal arg resolves to *FormatBuilder return type.",
+      "assertOnInterpolation": {
+        "rawExpression": "F(state.Price)",
+        "resolvedTypeIs": "*i18n_domain.FormatBuilder"
+      }
+    },
+    {
+      "select": "#valid-lf-decimal",
+      "description": "LF() with Decimal arg resolves to *FormatBuilder return type.",
+      "assertOnInterpolation": {
+        "rawExpression": "LF(state.Price)",
+        "resolvedTypeIs": "*i18n_domain.FormatBuilder"
+      }
+    },
+    {
+      "select": "#valid-f-precision",
+      "description": "F().Precision(2) method chain resolves to *FormatBuilder.",
+      "assertOnPText": {
+        "rawExpression": "F(state.Price).Precision(2)",
+        "resolvedTypeIs": "*i18n_domain.FormatBuilder"
+      }
+    },
+    {
+      "select": "#valid-lf-precision",
+      "description": "LF().Precision(2) method chain resolves to *FormatBuilder.",
+      "assertOnPText": {
+        "rawExpression": "LF(state.Price).Precision(2)",
+        "resolvedTypeIs": "*i18n_domain.FormatBuilder"
+      }
+    }
+  ]
+}

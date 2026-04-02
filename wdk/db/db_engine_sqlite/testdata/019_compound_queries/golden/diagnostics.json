@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "all_workers.sql",
+    "Message": "Q001: unknown column \"agency\"",
+    "Code": "Q004",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

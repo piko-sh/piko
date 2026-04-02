@@ -1,0 +1,150 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "products.sql",
+    "SQL": "-- piko.name: GetDoubledPrice\n-- piko.command: one\nSELECT double_price(price) AS doubled FROM products WHERE id = $1;",
+    "Name": "GetDoubledPrice",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "doubled",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "numeric",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 0,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  },
+  {
+    "InsertTable": "",
+    "Filename": "products.sql",
+    "SQL": "-- piko.name: GetCurrentPrice\n-- piko.command: one\nSELECT get_current_price($1::integer) AS price;",
+    "Name": "GetCurrentPrice",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "price",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "numeric",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 5,
+    "IsDynamic": false,
+    "Command": 0,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

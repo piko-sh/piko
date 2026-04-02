@@ -1,0 +1,36 @@
+{
+  "isErrorCase": false,
+  "pikoImportCount": 1,
+  "asserts": {
+    "hasTemplate": true,
+    "hasScript": true,
+    "hasStyle": true,
+    "hasI18n": true
+  },
+  "sourcesContain": {
+    "style": "color: red;"
+  },
+  "expectedTranslations": {
+    "en": {
+      "greeting": "Hello"
+    },
+    "fr": {
+      "greeting": "Bonjour"
+    }
+  },
+  "script": {
+    "goPackageName": "main",
+    "hasMiddleware": true,
+    "middlewaresFuncName": "Middlewares",
+    "hasCachePolicy": true,
+    "cachePolicyFuncName": "CachePolicy",
+    "goImportCount": 1,
+    "expectedGoImportsContain": [
+      "piko.sh/piko/internal/templater/templater_dto"
+    ],
+    "asserts": {
+      "hasPropsTypeExpr": true,
+      "hasRenderReturnTypeExpr": true
+    }
+  }
+}

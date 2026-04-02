@@ -1,0 +1,87 @@
+{
+  "packages": {
+    "testcase_65_map_key_alias_to_primitive": {
+      "file_imports": {
+        "65_map_key_alias_to_primitive/src/main.go": {}
+      },
+      "named_types": {
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_65_map_key_alias_to_primitive",
+          "defined_in_file_path": "65_map_key_alias_to_primitive/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{Scores map[uint64]int}",
+          "fields": [
+            {
+              "definition_file_path": "65_map_key_alias_to_primitive/src/main.go",
+              "declaring_pkg_path": "testcase_65_map_key_alias_to_primitive",
+              "pkg_path": "",
+              "underlying_type_string": "map[main.UserID]int",
+              "declaring_type_name": "Response",
+              "name": "Scores",
+              "type_string": "map[main.UserID]int",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "key",
+                  "type_string": "main.UserID",
+                  "role": "key",
+                  "underlying_type_string": "uint64",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_alias": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "value",
+                  "type_string": "int",
+                  "role": "value",
+                  "underlying_type_string": "int",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 1,
+              "definition_line": 27,
+              "definition_column": 2,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        },
+        "UserID": {
+          "name": "UserID",
+          "package_path": "testcase_65_map_key_alias_to_primitive",
+          "defined_in_file_path": "65_map_key_alias_to_primitive/src/main.go",
+          "type_string": "uint64",
+          "underlying_type_string": "uint64",
+          "fields": [],
+          "methods": [],
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": true,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_65_map_key_alias_to_primitive",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "65_map_key_alias_to_primitive/src/main.go": "testcase_65_map_key_alias_to_primitive"
+  }
+}

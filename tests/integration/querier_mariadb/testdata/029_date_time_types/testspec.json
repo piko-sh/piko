@@ -1,0 +1,3 @@
+{
+  "description": "Date and time types: DATETIME, TIMESTAMP, DATE, TIME with NOW, DATE_FORMAT, DATEDIFF, TIMESTAMPDIFF on MariaDB"
+}

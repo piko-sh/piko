@@ -1,0 +1,5 @@
+{
+  "description": "Generic function exported from helper package, called from main",
+  "modulePath": "testpkg",
+  "expected": "42"
+}

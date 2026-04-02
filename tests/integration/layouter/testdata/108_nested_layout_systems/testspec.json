@@ -1,0 +1,7 @@
+{
+    "description": "Verifies three-level layout nesting (grid > flex > inline-block): constraint propagation, border-width accounting, flex-wrap inside grid cells.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

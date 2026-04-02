@@ -1,0 +1,7 @@
+{
+    "description": "Verifies 3-level percentage-height chains resolve correctly, auto-height intermediates break the chain, and percentage heights in flex items resolve against the flex container.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

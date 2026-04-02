@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "unknown_function.sql",
+    "Message": "Q005: unknown function \"nonexistent_func\"",
+    "Code": "Q004",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

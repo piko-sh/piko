@@ -1,0 +1,6 @@
+{
+  "title": "CSS Inlining",
+  "description": "Tests CSS inlining via premailer",
+  "metadata": {"title": "CSS Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

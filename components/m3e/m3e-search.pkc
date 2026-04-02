@@ -1,0 +1,219 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-search">
+    <div class="search"
+         p-class="{
+             'expanded': state.expanded,
+             'focused': state.focused,
+             'docked': state.variant == 'docked'
+         }">
+        <div class="bar">
+            <span class="leading-icon">
+                <piko:svg src="piko.sh/piko/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </span>
+            <input class="input"
+                   type="text"
+                   p-ref="input"
+                   :placeholder="state.placeholder"
+                   :value="state.value"
+                   p-on:input="handleInput"
+                   p-on:focus="handleFocus"
+                   p-on:blur="handleBlur"
+                   p-on:keydown="handleKeydown"
+                   role="searchbox"
+                   aria-label="Search" />
+            <button class="trailing-icon"
+                    p-if="state.value"
+                    p-on:click="clear"
+                    aria-label="Clear">
+                <piko:svg src="piko.sh/piko/lib/icons/close.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </button>
+            <slot name="trailing"></slot>
+        </div>
+        <div class="suggestions" p-if="state.expanded && state.focused">
+            <slot></slot>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        placeholder: 'Search' as string,
+        value: '' as string,
+        variant: 'bar' as string,
+        expanded: false as boolean,
+        focused: false as boolean,
+    };
+
+    function handleInput(event) {
+        state.value = event.target.value;
+        pkc.dispatchEvent(new CustomEvent('input', {
+            detail: { value: state.value },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleFocus() {
+        state.focused = true;
+    }
+
+    function handleBlur() {
+        setTimeout(() => {
+            state.focused = false;
+        }, 200);
+    }
+
+    function handleKeydown(event) {
+        if (event.key === 'Enter') {
+            pkc.dispatchEvent(new CustomEvent('search', {
+                detail: { value: state.value },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+        if (event.key === 'Escape') {
+            state.value = '';
+            pkc.refs.input.blur();
+        }
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            const firstItem = pkc.querySelector('[data-suggestion]');
+            if (firstItem) firstItem.focus();
+        }
+    }
+
+    function clear() {
+        state.value = '';
+        pkc.refs.input.focus();
+        pkc.dispatchEvent(new CustomEvent('input', {
+            detail: { value: '' },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_surface-container-high: var(--m3e-surface-container-high, #ece6f0);
+        --_surface-container: var(--m3e-surface-container, #f3edf7);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_primary: var(--m3e-primary, #6750a4);
+        --_outline-variant: var(--m3e-outline-variant, #cac4d0);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-full: var(--m3e-shape-full, 9999px);
+        --_shape-xl: var(--m3e-shape-xl, 28px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .search {
+        position: relative;
+
+        &.expanded.focused .bar {
+            border-radius: var(--_shape-xl) var(--_shape-xl) 0 0;
+        }
+
+        &.docked {
+            .bar {
+                border-radius: var(--_shape-xl) var(--_shape-xl) 0 0;
+            }
+
+            .suggestions {
+                position: relative;
+                top: auto;
+                border-radius: 0 0 var(--_shape-xl) var(--_shape-xl);
+                border-top: 1px solid var(--_outline-variant);
+                box-shadow: none;
+            }
+        }
+    }
+
+    .bar {
+        display: flex;
+        align-items: center;
+        height: 56px;
+        padding: 0 16px;
+        background: var(--_surface-container-high);
+        border-radius: var(--_shape-full);
+        gap: 8px;
+        transition: border-radius var(--_duration-short) var(--_easing-standard);
+    }
+
+    .leading-icon {
+        display: flex;
+        align-items: center;
+        color: var(--_on-surface-variant);
+        flex-shrink: 0;
+    }
+
+    .input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 1rem;
+        color: var(--_on-surface);
+        font-family: inherit;
+        caret-color: var(--_primary);
+
+        &::placeholder {
+            color: var(--_on-surface-variant);
+        }
+    }
+
+    .trailing-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_on-surface);
+        cursor: pointer;
+        outline: none;
+        flex-shrink: 0;
+        -webkit-tap-highlight-color: transparent;
+
+        &:hover {
+            background: rgba(28, 27, 31, 0.08);
+        }
+    }
+
+    .suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--_surface-container);
+        border-radius: 0 0 var(--_shape-xl) var(--_shape-xl);
+        box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 2px 6px 2px rgba(0,0,0,0.15);
+        z-index: 100;
+        padding: 8px 0;
+        max-height: 256px;
+        overflow-y: auto;
+    }
+</style>

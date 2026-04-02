@@ -1,0 +1,7 @@
+{
+    "description": "Verifies min-width trumps max-width when min > max (CSS 2.1 ss10.4), min-height overrides explicit height, border-box padding overflow, and min-height in auto-height parent.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2026 PolitePixels Limited
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html>
+<head>
+    <style>
+        p:first-child {
+            color: red;
+            font-weight: bold;
+        }
+        p:last-child {
+            color: blue;
+            font-style: italic;
+        }
+        div:first-of-type {
+            background-color: #f0f0f0;
+            padding: 10px;
+        }
+        span:last-of-type {
+            text-decoration: underline;
+        }
+        a:hover {
+            color: green;
+        }
+        a:active {
+            color: purple;
+        }
+        button:focus {
+            outline: 2px solid blue;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <p>First paragraph (should be red and bold)</p>
+        <p>Middle paragraph (no special styling)</p>
+        <p>Last paragraph (should be blue and italic)</p>
+    </div>
+    <div>
+        <div>First div (should have gray background)</div>
+        <div>Second div (no special styling)</div>
+    </div>
+    <div>
+        <span>First span</span>
+        <span>Second span</span>
+        <span>Last span (should be underlined)</span>
+    </div>
+    <div>
+        <a href="#">Link (hover should be leftover)</a>
+        <button>Button (focus should be leftover)</button>
+    </div>
+</body>
+</html>

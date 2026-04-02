@@ -1,0 +1,260 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Camembert Believe It"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-camembert-believe-it.jpg" alt="Camembert Believe It" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">Camembert Believe It</h1>
+                <p class="recipe-pun">The king of cheeses, baked to molten perfection</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Camembert</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        30 mins
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Easy</m3e-chip>
+                    <m3e-chip variant="outlined">4 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="7" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="4" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>1 whole Camembert (in its wooden box, about 250g)</m3e-list-item>
+                    <m3e-list-item>2 sprigs fresh rosemary</m3e-list-item>
+                    <m3e-list-item>3 cloves garlic, thinly sliced</m3e-list-item>
+                    <m3e-list-item>2 tbsp dry white wine</m3e-list-item>
+                    <m3e-list-item>1 crusty baguette, sliced into soldiers</m3e-list-item>
+                    <m3e-list-item>A handful of cornichons</m3e-list-item>
+                    <m3e-list-item>2 tbsp chutney (onion or fig)</m3e-list-item>
+                    <m3e-list-item>1 tbsp honey</m3e-list-item>
+                    <m3e-list-item>A handful of walnuts</m3e-list-item>
+                    <m3e-list-item>Freshly ground black pepper</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>Preheat the oven to 200&deg;C. Remove any plastic wrapping from the Camembert and place it back in its wooden box (remove the lid). Hold the Camembert for a moment. Feel its weight. This is the king of cheeses. Show some reverence. A small bow is acceptable.</li>
+                    <li>Score the top in a cross-hatch pattern with a sharp knife, about 5mm deep. This is the most important knife work you will ever do. The cross-hatch creates little channels for the melted cheese to bubble through, like tiny rivers of molten gold. You are essentially an architect now.</li>
+                    <li>Stud the cuts with rosemary leaves and thin slices of garlic, pushing them gently into the surface. Your Camembert should now look like a small, fragrant work of art. We recommend taking a photo. Your followers need to see this. The mice will share it.</li>
+                    <li>Drizzle the white wine and honey over the top. Season generously with black pepper. Now slide it into the oven and try to remain calm for the next 20 minutes. This will be difficult. The smell that will start to fill your kitchen in approximately 7 minutes is what the French call &ldquo;magnifique&rdquo; and what we call &ldquo;the reason we got into cooking.&rdquo;</li>
+                    <li>After 20 minutes, open the oven. Behold: the king, in all his molten glory. Golden, bubbling, impossibly gooey. Place the box on a board surrounded by baguette soldiers, cornichons, chutney, and walnuts. Dip a soldier in. Close your eyes. You&rsquo;ve peaked. This is the best moment of your week and you know it. Long live the king.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 340 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 16g</m3e-list-item>
+                    <m3e-list-item>Fat: 24g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 14g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>MoltenMagic</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Camembert believe how easy this is! Five ingredients, twenty minutes, and you've got the most impressive starter going. My guests thought I'd spent hours in the kitchen.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>NormandyNomad</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">The KING of cheeses deserves this treatment. The rosemary and garlic infuse beautifully, and the honey adds just a touch of sweetness. Magnifique!</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>DinnerPartyDiva</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Perfect dinner party starter. I put the board in the centre of the table and everyone gathered round to dip. It's communal, it's fun, and it's absolutely delicious.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>CamembertCultLeader</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I ate the entire Camembert before the guests arrived. Made another one. Ate that too. Guests arrived to find me on my third Camembert, bread scattered across the kitchen like a crime scene, honey on my elbows. They said it was &ldquo;a lot.&rdquo; They are no longer invited.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>PhilosophyOfCheese</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I baked the Camembert and stared into the molten centre for seventeen minutes. I saw the meaning of life. It was cheese. It has always been cheese. I have quit my job and now I just bake Camembert and contemplate existence. I have never been happier.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>HonestMistake</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I forgot to score the top before baking. Opened the oven to a perfectly sealed orb of hot cheese. Tried to cut it at the table. It exploded. Camembert on the ceiling. Camembert on the dog. Camembert in my wine. Still tasted amazing. Minus one star for the redecorating.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>GrinTastedGood</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Behold the King, the King of Kings, on your knees dog. nom nom nom nom</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>Make sure the Camembert is properly ripe - it should give slightly when pressed in the centre. An under-ripe Camembert won't melt to that gorgeous gooey consistency.</m3e-list-item>
+                    <m3e-list-item>Keep it in the wooden box for baking. The box acts as a natural vessel and stops the cheese from spreading out into a flat puddle.</m3e-list-item>
+                    <m3e-list-item>Serve immediately - it sets as it cools. If it does firm up, a quick blast back in the oven for 5 minutes will bring it back to life.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Camembert was first made in Normandy, France, in 1791 by Marie Harel. Legend says she learned the technique from a priest she sheltered during the Revolution.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Camembert Believe It - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

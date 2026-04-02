@@ -1,0 +1,44 @@
+{
+  "description": "Verifies array/slice inputs work correctly with JSON arrays",
+  "requestURL": "/tags-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Submit array of tags via the action builder"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_save.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-name",
+      "expected": "My Article"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-count",
+      "expected": "3"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-tags",
+      "expected": "go, web, piko"
+    }
+  ]
+}

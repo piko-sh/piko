@@ -1,0 +1,34 @@
+{%- package render_templates -%}
+
+{%- func FragmentPageHeader(p *FragmentPageData) -%}
+{%- stripspace -%}
+<head>
+	{%- if p.Title != "" -%}<title>{%s= p.Title -%}</title>{%- else -%}<title>Piko Page</title>{%- endif -%}
+	{%- if p.Description != "" -%}<meta name="description" content="{%s= p.Description -%}">{%- endif -%}
+	{%- if p.CanonicalURL != "" -%}<link rel="canonical" href="{%s= p.CanonicalURL -%}">{%- endif -%}
+  {%- for _, link := range p.AlternateLinks -%}<link rel="alternate" hreflang="{%s= link["hreflang"] -%}" href="{%s= link["href"] -%}">{%- endfor -%}
+	{%- for _, tag := range p.MetaTags -%}<meta name="{%s= tag.Name -%}" content="{%s= tag.Content -%}">{%- endfor -%}
+	{%- for _, og := range p.OGTags -%}<meta property="{%s= og.Property -%}" content="{%s= og.Content -%}">{%- endfor -%}
+	{%- for _, tc := range p.TwitterCards -%}<meta name="{%s= tc.Name -%}" content="{%s= tc.Content -%}">{%- endfor -%}
+	{%- for _, jsonLD := range p.StructuredData -%}<script type="application/ld+json">{%s= jsonLD %}</script>{%- endfor -%}
+	{%- if len(p.CSRFActionToken) > 0 -%}<meta name="csrf-token" content="{%z= p.CSRFActionToken -%}">{%- endif -%}
+	{%- if p.CSRFEphemeralToken != "" -%}<meta name="csrf-ephemeral" content="{%s= p.CSRFEphemeralToken -%}">{%- endif -%}
+	{%- endstripspace -%}{%- if p.Styling != "" -%}<style pk-page>{%s= p.Styling -%}</style>{%- endif -%}{%- stripspace -%}
+</head>
+<body>
+    {%- endstripspace -%}<div id="app" data-pageid="{%s= p.PageID -%}">{%- stripspace -%}
+{%- endstripspace -%}
+{%- endfunc -%}
+
+{%- func FragmentPageFooter(p *FragmentPageData) -%}
+    </div>{%- stripspace -%}
+
+    {%- if p.SvgSpriteSheet != "" -%}
+        {%s= p.SvgSpriteSheet %}
+    {%- endif -%}
+
+    {%- if p.ModuleScripts != "" -%}{%s= p.ModuleScripts -%}{%- endif -%}
+    {%- for _, meta := range p.PKScriptMetas -%}<script type="module" src="{%s= meta.URL -%}"{%- if meta.SRIHash != "" -%}{% space %}integrity="{%s= meta.SRIHash -%}" crossorigin="anonymous"{%- endif -%}></script><meta name="pk-script" content="{%s= meta.URL -%}"{%- if meta.PartialName != "" -%}{% space %}data-partial-name="{%s= meta.PartialName -%}"{%- endif -%}>{%- endfor -%}
+</body>
+{%- endstripspace -%}
+{%- endfunc -%}

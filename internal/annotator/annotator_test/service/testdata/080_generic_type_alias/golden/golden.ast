@@ -1,0 +1,47 @@
+/*
+--- BEGIN AST DUMP ---
+
+<p class="alias-get" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Member.Get().FullName() }}
+  </RichText>
+</p>
+<p class="alias-hasitem" [p-if: props.Data.Member.HasItem()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Has member"
+</p>
+<p class="alias-getid" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Member.GetID() }}
+  </RichText>
+</p>
+<p class="alias-field" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Member.Get().FirstName.String() }}
+  </RichText>
+</p>
+<p class="product-alias" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Product.Get().Description() }}
+  </RichText>
+</p>
+<p class="direct-generic" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.DirectMember.Get().FullName() }}
+  </RichText>
+</p>
+<p class="compare" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    "Alias: "
+    {{ props.Data.Member.Get().LastName.String() }}
+    " | Direct: "
+    {{ props.Data.DirectMember.Get().LastName.String() }}
+  </RichText>
+</p>
+<p class="product-check" [p-if: props.Data.Product.HasItem()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.Product.Get().Name.String() }}
+  </RichText>
+</p>
+
+--- END AST DUMP ---
+*/

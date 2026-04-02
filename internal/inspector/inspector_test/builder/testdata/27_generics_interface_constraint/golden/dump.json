@@ -1,0 +1,49 @@
+{
+  "packages": {
+    "testcase_27_generics_interface_constraint": {
+      "file_imports": {
+        "27_generics_interface_constraint/src/main.go": {
+          "io": "io"
+        }
+      },
+      "named_types": {
+        "ReaderBox": {
+          "name": "ReaderBox",
+          "package_path": "testcase_27_generics_interface_constraint",
+          "defined_in_file_path": "27_generics_interface_constraint/src/main.go",
+          "type_string": "main.ReaderBox[T]",
+          "underlying_type_string": "struct{Source T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_27_generics_interface_constraint",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "ReaderBox",
+              "name": "Source",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_27_generics_interface_constraint",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "27_generics_interface_constraint/src/main.go": "testcase_27_generics_interface_constraint"
+  }
+}

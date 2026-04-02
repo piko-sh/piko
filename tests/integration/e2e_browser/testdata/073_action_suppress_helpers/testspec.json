@@ -1,0 +1,62 @@
+{
+  "description": "Tests suppressHelpers prevents auto-execution of server-sent helpers",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Step 1: Call with suppressHelpers - toast should stay hidden"
+    },
+    {
+      "action": "click",
+      "selector": "#suppress-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#suppress-done",
+      "expected": "true"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "#toast"
+    },
+    {
+      "action": "comment",
+      "value": "Step 2: Call without suppressHelpers - toast should appear"
+    },
+    {
+      "action": "click",
+      "selector": "#normal-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#normal-done",
+      "expected": "true"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#toast"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_suppress.html"
+    }
+  ]
+}

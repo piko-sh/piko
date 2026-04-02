@@ -1,0 +1,7 @@
+{
+  "description": "Tests deeply nested import chain (page → layout → section → widget) with full path resolution at each level.",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

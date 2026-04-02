@@ -1,0 +1,1370 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="piko-dev-widget">
+    <button class="toggle" p-on:click="togglePanel" aria-label="Piko Dev Tools">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 8l-4 4 4 4"/>
+            <path d="M17 8l4 4-4 4"/>
+            <line x1="14" y1="4" x2="10" y2="20"/>
+        </svg>
+    </button>
+
+    <div class="panel" p-class="{ open: state.isOpen }">
+        <div class="panel-header">
+            <nav class="tabs">
+                <button p-class="{ active: state.activeTab == 'overview' }" p-on:click="setTabOverview">Overview</button>
+                <button p-class="{ active: state.activeTab == 'stats' }" p-on:click="setTabStats">System</button>
+                <button p-class="{ active: state.activeTab == 'build' }" p-on:click="setTabBuild">Build</button>
+                <button p-class="{ active: state.activeTab == 'health' }" p-on:click="setTabHealth">Health</button>
+                <button p-class="{ active: state.activeTab == 'resources' }" p-on:click="setTabResources">FDs</button>
+                <button p-class="{ active: state.activeTab == 'providers' }" p-on:click="setTabProviders">Providers</button>
+                <button p-class="{ active: state.activeTab == 'memory' }" p-on:click="setTabMemory">Memory</button>
+                <button p-class="{ active: state.activeTab == 'preview' }" p-on:click="setTabPreview">Preview</button>
+                <button p-class="{ active: state.activeTab == 'about' }" p-on:click="setTabAbout">About</button>
+            </nav>
+            <button class="close-btn" p-on:click="togglePanel" aria-label="Close">&#x2715;</button>
+        </div>
+
+        <div class="content">
+            <div class="tab-panel" p-show="state.activeTab == 'overview'">
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Piko</span>
+                        <span class="stat-value" p-text="state.version"></span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Go</span>
+                        <span class="stat-value" p-text="state.goVersion"></span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Uptime</span>
+                        <span class="stat-value" p-text="state.uptimeFormatted"></span>
+                    </div>
+                    <div class="stat-card stat-card-info" title="Dev interp mode caches all builds in memory for fast rebuilds. Memory usage here is not representative of a production build.">
+                        <span class="stat-label">Memory <span class="info-icon" aria-label="Info">&#9432;</span></span>
+                        <span class="stat-value" p-text="state.heapFormatted"></span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Goroutines</span>
+                        <span class="stat-value" p-text="state.goroutines"></span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">CPU</span>
+                        <span class="stat-value" p-text="state.cpuFormatted"></span>
+                    </div>
+                </div>
+                <div class="connection-status">
+                    <span class="status-dot" p-class="{
+                        connected: state.connectionStatus == 'connected',
+                        reconnecting: state.connectionStatus == 'reconnecting',
+                        disconnected: state.connectionStatus == 'disconnected'
+                    }"></span>
+                    <span p-text="state.connectionStatus"></span>
+                </div>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'stats'">
+                <table class="stats-table">
+                    <tr><td>Heap Alloc</td><td p-text="state.heapFormatted"></td></tr>
+                    <tr><td>Heap Sys</td><td p-text="state.heapSysFormatted"></td></tr>
+                    <tr><td>Goroutines</td><td p-text="state.goroutines"></td></tr>
+                    <tr><td>CPU (millicores)</td><td p-text="state.cpuFormatted"></td></tr>
+                    <tr><td>GC Cycles</td><td p-text="state.numGC"></td></tr>
+                    <tr><td>Last GC Pause</td><td p-text="state.gcPauseFormatted"></td></tr>
+                    <tr><td>Uptime</td><td p-text="state.uptimeFormatted"></td></tr>
+                </table>
+                <p class="hint" p-show="!state.statsLoaded">Waiting for data&hellip;</p>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'build'">
+                <div p-show="state.buildAvailable">
+                    <table class="stats-table">
+                        <tr><td>Status</td><td p-text="state.buildStatus"></td></tr>
+                        <tr><td>Tasks</td><td p-text="state.buildTaskCount"></td></tr>
+                        <tr><td>Last Build</td><td p-text="state.lastBuildFormatted"></td></tr>
+                        <tr><td>Errors</td><td p-text="state.buildErrorCount"></td></tr>
+                    </table>
+                    <div p-show="state.recentTasksText != ''">
+                        <h4>Recent Tasks</h4>
+                        <div class="preformatted" p-text="state.recentTasksText"></div>
+                    </div>
+                </div>
+                <p class="hint" p-show="!state.buildAvailable">No build data available.</p>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'health'">
+                <div p-show="state.healthAvailable">
+                    <h4>Liveness</h4>
+                    <table class="stats-table">
+                        <tr><td>Status</td><td p-text="state.healthLivenessState"></td></tr>
+                        <tr><td>Message</td><td p-text="state.healthLivenessMessage"></td></tr>
+                        <tr><td>Duration</td><td p-text="state.healthLivenessDuration"></td></tr>
+                    </table>
+                    <div class="preformatted" p-show="state.healthLivenessDeps != ''" p-text="state.healthLivenessDeps"></div>
+
+                    <h4>Readiness</h4>
+                    <table class="stats-table">
+                        <tr><td>Status</td><td p-text="state.healthReadinessState"></td></tr>
+                        <tr><td>Message</td><td p-text="state.healthReadinessMessage"></td></tr>
+                        <tr><td>Duration</td><td p-text="state.healthReadinessDuration"></td></tr>
+                    </table>
+                    <div class="preformatted" p-show="state.healthReadinessDeps != ''" p-text="state.healthReadinessDeps"></div>
+                </div>
+                <p class="hint" p-show="!state.healthAvailable">Health probes not available.</p>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'resources'">
+                <div p-show="state.resourcesAvailable">
+                    <table class="stats-table">
+                        <tr><td>Total FDs</td><td p-text="state.resourceTotal"></td></tr>
+                        <tr><td>Limit</td><td p-text="state.resourceLimit"></td></tr>
+                    </table>
+                    <div p-show="state.resourceCategories != ''">
+                        <h4>By Category</h4>
+                        <div class="preformatted" p-text="state.resourceCategories"></div>
+                    </div>
+                    <div p-show="state.resourceEntries != ''">
+                        <h4>Open Descriptors</h4>
+                        <div class="preformatted mono" p-text="state.resourceEntries"></div>
+                    </div>
+                </div>
+                <p class="hint" p-show="!state.resourcesAvailable">Resource data not available.</p>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'providers'">
+                <div class="providers-accordion" p-show="state.providersAvailable"></div>
+                <p class="hint" p-show="!state.providersAvailable">Provider info not available.</p>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'memory'">
+                <div p-show="state.memoryAvailable">
+                    <h4>Heap</h4>
+                    <table class="stats-table">
+                        <tr><td>Alloc</td><td p-text="state.memHeapAlloc"></td></tr>
+                        <tr><td>Sys</td><td p-text="state.memHeapSys"></td></tr>
+                        <tr><td>Idle</td><td p-text="state.memHeapIdle"></td></tr>
+                        <tr><td>In-Use</td><td p-text="state.memHeapInuse"></td></tr>
+                        <tr><td>Released</td><td p-text="state.memHeapReleased"></td></tr>
+                        <tr><td>Objects</td><td p-text="state.memHeapObjects"></td></tr>
+                    </table>
+                    <h4>Stack</h4>
+                    <table class="stats-table">
+                        <tr><td>In-Use</td><td p-text="state.memStackInuse"></td></tr>
+                        <tr><td>Sys</td><td p-text="state.memStackSys"></td></tr>
+                    </table>
+                    <h4>Totals</h4>
+                    <table class="stats-table">
+                        <tr><td>Total Alloc</td><td p-text="state.memTotalAlloc"></td></tr>
+                        <tr><td>Sys</td><td p-text="state.memSys"></td></tr>
+                        <tr><td>Mallocs</td><td p-text="state.memMallocs"></td></tr>
+                        <tr><td>Frees</td><td p-text="state.memFrees"></td></tr>
+                    </table>
+                    <h4>GC</h4>
+                    <table class="stats-table">
+                        <tr><td>Cycles</td><td p-text="state.memGcCycles"></td></tr>
+                        <tr><td>Forced</td><td p-text="state.memGcForced"></td></tr>
+                        <tr><td>Last Pause</td><td p-text="state.memGcLastPause"></td></tr>
+                        <tr><td>Total Pause</td><td p-text="state.memGcTotalPause"></td></tr>
+                        <tr><td>GC CPU %</td><td p-text="state.memGcCpuFraction"></td></tr>
+                    </table>
+                    <h4>Process</h4>
+                    <table class="stats-table">
+                        <tr><td>PID</td><td p-text="state.memPid"></td></tr>
+                        <tr><td>Goroutines</td><td p-text="state.memGoroutines"></td></tr>
+                        <tr><td>Threads</td><td p-text="state.memThreads"></td></tr>
+                        <tr><td>CPU (millicores)</td><td p-text="state.memCpu"></td></tr>
+                    </table>
+                    <h4>Runtime</h4>
+                    <table class="stats-table">
+                        <tr><td>GOARCH</td><td p-text="state.memGoarch"></td></tr>
+                        <tr><td>GOOS</td><td p-text="state.memGoos"></td></tr>
+                        <tr><td>Compiler</td><td p-text="state.memCompiler"></td></tr>
+                        <tr><td>GOMAXPROCS</td><td p-text="state.memGomaxprocs"></td></tr>
+                    </table>
+                    <h4>Build</h4>
+                    <table class="stats-table">
+                        <tr><td>Version</td><td p-text="state.memBuildVersion"></td></tr>
+                        <tr><td>Go Version</td><td p-text="state.memBuildGoVersion"></td></tr>
+                        <tr><td>Commit</td><td p-text="state.memBuildCommit"></td></tr>
+                    </table>
+                </div>
+                <p class="hint" p-show="!state.memoryAvailable">Memory data not available.</p>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'preview'">
+                <div class="preview-toolbar">
+                    <input class="preview-filter" type="text" placeholder="Filter templates..." p-model="state.previewFilter" p-on:input="onPreviewFilterChange">
+                </div>
+                <div class="preview-list" p-show="state.previewLoaded"></div>
+                <p class="hint" p-show="state.previewLoading">Loading previews...</p>
+                <p class="hint" p-show="state.previewLoaded && state.previewEmpty">No templates with Preview() found.</p>
+            </div>
+
+            <div class="tab-panel" p-show="state.activeTab == 'about'">
+                <div class="about-content">
+                    <p class="about-intro">Piko is an open-source website development kit for building fast, server-rendered web applications with Go. Built by PolitePixels Limited.</p>
+                    <div class="about-divider"></div>
+                    <pre class="about-license">Copyright 2026 PolitePixels Limited
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</pre>
+                    <div class="about-divider"></div>
+                    <p class="about-statement">This project stands against fascism, authoritarianism, and all forms of oppression. We built this to empower people, not to enable those who would strip others of their rights and dignity.</p>
+                    <div class="about-divider"></div>
+                    <p class="about-link"><a href="https://piko.sh" target="_blank" rel="noopener">piko.sh</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        isOpen: false as boolean,
+        activeTab: 'overview' as string,
+
+        connectionStatus: 'connecting' as string,
+
+        version: '-' as string,
+        goVersion: '-' as string,
+        uptimeFormatted: '-' as string,
+        heapFormatted: '-' as string,
+        heapSysFormatted: '-' as string,
+        goroutines: '-' as string,
+        cpuFormatted: '-' as string,
+        numGC: '-' as string,
+        gcPauseFormatted: '-' as string,
+        statsLoaded: false as boolean,
+
+        buildAvailable: false as boolean,
+        buildStatus: '-' as string,
+        buildTaskCount: '-' as string,
+        lastBuildFormatted: '-' as string,
+        buildErrorCount: '-' as string,
+        recentTasksText: '' as string,
+
+        healthAvailable: false as boolean,
+        healthLivenessState: '-' as string,
+        healthLivenessMessage: '-' as string,
+        healthLivenessDuration: '-' as string,
+        healthLivenessDeps: '' as string,
+        healthReadinessState: '-' as string,
+        healthReadinessMessage: '-' as string,
+        healthReadinessDuration: '-' as string,
+        healthReadinessDeps: '' as string,
+
+        resourcesAvailable: false as boolean,
+        resourceTotal: '-' as string,
+        resourceLimit: '-' as string,
+        resourceCategories: '' as string,
+        resourceEntries: '' as string,
+
+        providersAvailable: false as boolean,
+
+        memoryAvailable: false as boolean,
+        memHeapAlloc: '-' as string,
+        memHeapSys: '-' as string,
+        memHeapIdle: '-' as string,
+        memHeapInuse: '-' as string,
+        memHeapReleased: '-' as string,
+        memHeapObjects: '-' as string,
+        memStackInuse: '-' as string,
+        memStackSys: '-' as string,
+        memTotalAlloc: '-' as string,
+        memSys: '-' as string,
+        memMallocs: '-' as string,
+        memFrees: '-' as string,
+        memGcCycles: '-' as string,
+        memGcForced: '-' as string,
+        memGcLastPause: '-' as string,
+        memGcTotalPause: '-' as string,
+        memGcCpuFraction: '-' as string,
+        memPid: '-' as string,
+        memGoroutines: '-' as string,
+        memThreads: '-' as string,
+        memCpu: '-' as string,
+        memGoarch: '-' as string,
+        memGoos: '-' as string,
+        memCompiler: '-' as string,
+        memGomaxprocs: '-' as string,
+        memBuildVersion: '-' as string,
+        memBuildGoVersion: '-' as string,
+        memBuildCommit: '-' as string,
+
+        previewLoaded: false as boolean,
+        previewLoading: false as boolean,
+        previewEmpty: false as boolean,
+        previewFilter: '' as string,
+    };
+
+    let eventSource = null;
+    let reconnectAttempts = 0;
+    let reconnectTimer = null;
+    let disconnectDebounce = null;
+    let providerData = null;
+    const expandedProviders = new Set();
+    let previewData = null;
+    const expandedPreviewGroups = new Set(['email', 'pdf', 'page', 'partial']);
+
+    pkc.onConnected(() => {
+        connectSSE();
+        window.addEventListener('beforeunload', cleanupSSE);
+    });
+
+    pkc.onDisconnected(() => {
+        window.removeEventListener('beforeunload', cleanupSSE);
+        cleanupSSE();
+    });
+
+    function cleanupSSE() {
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        if (disconnectDebounce) { clearTimeout(disconnectDebounce); disconnectDebounce = null; }
+        if (eventSource) { eventSource.close(); eventSource = null; }
+    }
+
+    function togglePanel() { state.isOpen = !state.isOpen; }
+    function setTabOverview() { state.activeTab = 'overview'; }
+    function setTabStats() { state.activeTab = 'stats'; }
+    function setTabBuild() { state.activeTab = 'build'; }
+    function setTabHealth() { state.activeTab = 'health'; }
+    function setTabResources() { state.activeTab = 'resources'; }
+    function setTabProviders() { state.activeTab = 'providers'; requestAnimationFrame(() => renderProviders()); }
+    function setTabMemory() { state.activeTab = 'memory'; }
+    function setTabPreview() {
+        state.activeTab = 'preview';
+        if (!state.previewLoaded && !state.previewLoading) {
+            fetchPreviews();
+        }
+    }
+    function setTabAbout() { state.activeTab = 'about'; }
+
+    function connectSSE() {
+        if (eventSource) { eventSource.close(); eventSource = null; }
+        state.connectionStatus = 'connecting';
+        eventSource = new EventSource('/_piko/dev/events');
+
+        eventSource.addEventListener('connected', () => {
+            reconnectAttempts = 0;
+            if (disconnectDebounce) { clearTimeout(disconnectDebounce); disconnectDebounce = null; }
+            state.connectionStatus = 'connected';
+        });
+
+        eventSource.addEventListener('system-stats', (e) => {
+            applyStats(JSON.parse(e.data));
+        });
+
+        eventSource.addEventListener('build-summary', (e) => {
+            const d = JSON.parse(e.data);
+            state.buildAvailable = true;
+            state.buildTaskCount = String(d.componentCount || 0);
+            state.lastBuildFormatted = d.durationMs ? d.durationMs + 'ms' : '-';
+            state.buildErrorCount = String(d.errorCount || 0);
+            state.buildStatus = d.errorCount > 0 ? 'errors' : 'ok';
+        });
+
+        eventSource.addEventListener('rebuild-complete', () => {});
+
+        eventSource.addEventListener('build-update', (e) => {
+            const d = JSON.parse(e.data);
+            state.buildAvailable = true;
+            if (d.taskSummary) applyTaskSummary(d.taskSummary);
+            if (d.recentTasks) applyRecentTasks(d.recentTasks);
+        });
+
+        eventSource.addEventListener('health-update', (e) => {
+            applyHealth(JSON.parse(e.data));
+        });
+
+        eventSource.addEventListener('resources-update', (e) => {
+            applyResources(JSON.parse(e.data));
+        });
+
+        eventSource.addEventListener('providers-update', (e) => {
+            applyProviders(JSON.parse(e.data));
+        });
+
+        eventSource.addEventListener('memory-detail', (e) => {
+            applyMemoryDetail(JSON.parse(e.data));
+        });
+
+        eventSource.addEventListener('ping', () => {
+            if (disconnectDebounce) { clearTimeout(disconnectDebounce); disconnectDebounce = null; }
+            if (state.connectionStatus !== 'connected') {
+                state.connectionStatus = 'connected';
+                reconnectAttempts = 0;
+            }
+        });
+
+        eventSource.onerror = () => {
+            if (eventSource && eventSource.readyState === 2) {
+                scheduleReconnect();
+                return;
+            }
+            if (!disconnectDebounce) {
+                disconnectDebounce = setTimeout(() => {
+                    disconnectDebounce = null;
+                    if (eventSource && eventSource.readyState !== 1) {
+                        state.connectionStatus = 'reconnecting';
+                    }
+                }, 2000);
+            }
+        };
+    }
+
+    function scheduleReconnect() {
+        if (reconnectTimer) return;
+        reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 15000);
+        state.connectionStatus = 'reconnecting';
+        reconnectTimer = setTimeout(() => { reconnectTimer = null; connectSSE(); }, delay);
+    }
+
+    function applyStats(d) {
+        state.statsLoaded = true;
+        if (d.heapAlloc !== undefined) state.heapFormatted = formatBytes(d.heapAlloc);
+        if (d.heapSys !== undefined) state.heapSysFormatted = formatBytes(d.heapSys);
+        if (d.goroutines !== undefined) state.goroutines = String(d.goroutines);
+        if (d.cpuMillicores !== undefined) state.cpuFormatted = d.cpuMillicores.toFixed(0) + 'm';
+        if (d.uptimeMs !== undefined) state.uptimeFormatted = formatUptime(d.uptimeMs);
+        if (d.gcPauseNs !== undefined) state.gcPauseFormatted = (d.gcPauseNs / 1e6).toFixed(2) + 'ms';
+        if (d.numGC !== undefined) state.numGC = String(d.numGC);
+    }
+
+    function applyTaskSummary(summary) {
+        state.buildAvailable = true;
+        let total = 0;
+        let errors = 0;
+        let statusText = 'ok';
+        if (summary && Array.isArray(summary)) {
+            for (const entry of summary) {
+                total += entry.Count || 0;
+                const st = (entry.Status || '').toLowerCase();
+                if (st === 'failed' || st === 'error') {
+                    errors += entry.Count || 0;
+                }
+            }
+            if (errors > 0) statusText = 'errors';
+        }
+        state.buildTaskCount = String(total);
+        state.buildErrorCount = String(errors);
+        state.buildStatus = statusText;
+    }
+
+    function applyRecentTasks(tasks) {
+        if (!tasks || tasks.length === 0) { state.recentTasksText = ''; return; }
+        const lines = [];
+        for (const task of tasks) {
+            const executor = task.Executor || task.ID || '-';
+            const status = task.Status || '-';
+            lines.push(padRight(executor, 28) + status);
+        }
+        state.recentTasksText = lines.join('\n');
+    }
+
+    function applyHealth(d) {
+        state.healthAvailable = true;
+        if (d.liveness) {
+            state.healthLivenessState = d.liveness.State || d.liveness.status || '-';
+            state.healthLivenessMessage = d.liveness.Message || d.liveness.message || '-';
+            state.healthLivenessDuration = d.liveness.Duration || d.liveness.duration || '-';
+            state.healthLivenessDeps = formatDeps(d.liveness.Dependencies || d.liveness.checks || []);
+        }
+        if (d.readiness) {
+            state.healthReadinessState = d.readiness.State || d.readiness.status || '-';
+            state.healthReadinessMessage = d.readiness.Message || d.readiness.message || '-';
+            state.healthReadinessDuration = d.readiness.Duration || d.readiness.duration || '-';
+            state.healthReadinessDeps = formatDeps(d.readiness.Dependencies || d.readiness.checks || []);
+        }
+    }
+
+    function formatDeps(deps) {
+        if (!deps || deps.length === 0) return '';
+        const lines = [];
+        for (const dep of deps) {
+            const name = dep.Name || dep.name || '-';
+            const st = dep.State || dep.status || '-';
+            const dur = dep.Duration || dep.duration || '';
+            lines.push(padRight(name, 28) + padRight(st, 12) + dur);
+        }
+        return lines.join('\n');
+    }
+
+    function applyResources(d) {
+        state.resourcesAvailable = true;
+        state.resourceTotal = d.Total !== undefined ? String(d.Total) : '-';
+        state.resourceLimit = '-';
+
+        const allResources = [];
+        if (d.Categories && d.Categories.length > 0) {
+            const lines = [];
+            for (const cat of d.Categories) {
+                lines.push(padRight(cat.Category || '-', 20) + String(cat.Count || 0));
+                if (cat.Resources) {
+                    for (const r of cat.Resources) { allResources.push(r); }
+                }
+            }
+            state.resourceCategories = lines.join('\n');
+        } else {
+            state.resourceCategories = '';
+        }
+
+        if (allResources.length > 0) {
+            const lines = [];
+            const max = Math.min(allResources.length, 50);
+            for (let i = 0; i < max; i++) {
+                const entry = allResources[i];
+                lines.push(padRight(entry.Category || '-', 12) + (entry.Target || '-'));
+            }
+            if (allResources.length > 50) {
+                lines.push('... ' + (allResources.length - 50) + ' more');
+            }
+            state.resourceEntries = lines.join('\n');
+        } else {
+            state.resourceEntries = '';
+        }
+    }
+
+    function applyProviders(d) {
+        if (!d.resourceTypes || d.resourceTypes.length === 0) return;
+        state.providersAvailable = true;
+        providerData = d;
+        if (state.activeTab === 'providers') {
+            requestAnimationFrame(() => renderProviders());
+        }
+    }
+
+    function getAccordionContainer() {
+        const host = document.querySelector('piko-dev-widget');
+        if (!host || !host.shadowRoot) return null;
+        return host.shadowRoot.querySelector('.providers-accordion');
+    }
+
+    function renderProviders() {
+        const container = getAccordionContainer();
+        if (!container || !providerData) return;
+        const d = providerData;
+        let html = '';
+        for (const rt of d.resourceTypes) {
+            const group = d.providers && d.providers[rt];
+            const rows = group && group.Rows;
+            if (!rows || rows.length == 0) {
+                continue;
+            }
+            html += '<h4 class="provider-type-header">' + esc(rt) + '</h4>';
+            for (const row of rows) {
+                const name = row.Name || '-';
+                const key = rt + '/' + name;
+                const expanded = expandedProviders.has(key);
+                html += '<div class="acc-item">';
+                html += '<button class="acc-header" data-key="' + esc(key) + '">';
+                html += '<span class="acc-arrow' + (expanded ? ' expanded' : '') + '">&#9656;</span>';
+                html += '<span class="acc-name">' + esc(name) + '</span>';
+                if (row.IsDefault) html += '<span class="acc-badge">default</span>';
+                if (row.Values) {
+                    for (const v of Object.values(row.Values)) {
+                        html += '<span class="acc-meta">' + esc(v) + '</span>';
+                    }
+                }
+                html += '</button>';
+                if (expanded) {
+                    html += '<div class="acc-body">';
+                    const detail = group.details && group.details[name];
+                    if (detail && detail.Sections && detail.Sections.length > 0) {
+                        for (const section of detail.Sections) {
+                            html += '<h5 class="acc-section-title">' + esc(section.Title) + '</h5>';
+                            html += '<table class="stats-table">';
+                            for (const entry of section.Entries) {
+                                html += '<tr><td>' + esc(entry.Key) + '</td><td>' + esc(entry.Value) + '</td></tr>';
+                            }
+                            html += '</table>';
+                        }
+                    } else {
+                        html += '<p class="hint">No detail available.</p>';
+                    }
+                    const sub = group.subResources && group.subResources[name];
+                    if (sub && sub.Rows && sub.Rows.length > 0) {
+                        html += '<h5 class="acc-section-title">' + esc(sub.SubResourceName || 'Sub-Resources') + '</h5>';
+                        html += '<table class="stats-table">';
+                        for (const sr of sub.Rows) {
+                            const vals = sr.Values ? Object.values(sr.Values).join(', ') : '';
+                            html += '<tr><td>' + esc(sr.Name || '-') + '</td><td>' + esc(vals) + '</td></tr>';
+                        }
+                        html += '</table>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+        }
+        if (!html) {
+            html = '<p class="hint">No providers registered.</p>';
+        }
+        container.innerHTML = html;
+        container.onclick = handleAccordionClick;
+    }
+
+    function handleAccordionClick(e) {
+        const header = e.target.closest('.acc-header');
+        if (!header) return;
+        const key = header.dataset.key;
+        if (expandedProviders.has(key)) {
+            expandedProviders.delete(key);
+        } else {
+            expandedProviders.add(key);
+        }
+        renderProviders();
+    }
+
+    function fetchPreviews() {
+        state.previewLoading = true;
+        fetch('/_piko/dev/api/previews')
+            .then((r) => r.json())
+            .then((data) => {
+                previewData = data;
+                state.previewLoaded = true;
+                state.previewLoading = false;
+                state.previewEmpty = !data.groups || data.groups.length == 0;
+                requestAnimationFrame(() => renderPreviewList());
+            })
+            .catch(() => {
+                state.previewLoading = false;
+                state.previewEmpty = true;
+                state.previewLoaded = true;
+            });
+    }
+
+    function getPreviewListContainer() {
+        const host = document.querySelector('piko-dev-widget');
+        if (!host || !host.shadowRoot) return null;
+        return host.shadowRoot.querySelector('.preview-list');
+    }
+
+    function renderPreviewList() {
+        const container = getPreviewListContainer();
+        if (!container || !previewData) return;
+
+        const filter = (state.previewFilter || '').toLowerCase();
+        const typeLabels = { page: 'Pages', partial: 'Partials', email: 'Emails', pdf: 'PDFs' };
+        let html = '';
+
+        for (const group of (previewData.groups || [])) {
+            const templates = group.templates.filter((t) =>
+                !filter || t.sourcePath.toLowerCase().indexOf(filter) != -1
+            );
+            if (templates.length == 0) continue;
+
+            const expanded = expandedPreviewGroups.has(group.type);
+            const label = typeLabels[group.type] || group.type;
+
+            html += '<div class="preview-group">';
+            html += '<button class="preview-group-header" data-preview-group="' + esc(group.type) + '">';
+            html += '<span class="acc-arrow' + (expanded ? ' expanded' : '') + '">&#9656;</span>';
+            html += '<span>' + esc(label) + '</span>';
+            html += '<span class="preview-count">' + templates.length + '</span>';
+            html += '</button>';
+
+            if (expanded) {
+                html += '<div class="preview-group-body">';
+                for (const tmpl of templates) {
+                    const shortPath = tmpl.sourcePath.replace(/\.pk$/, '');
+                    html += '<div class="preview-template">';
+                    html += '<span class="preview-template-name">' + esc(shortPath) + '</span>';
+                    html += '<span class="preview-scenarios">';
+                    for (const scenario of tmpl.scenarios) {
+                        const typePath = group.type;
+                        const urlPath = shortPath.replace(/^(pages|partials|emails|pdfs)\//, '');
+                        const href = '/_piko/dev/preview/' + typePath + '/' + urlPath + '?scenario=' + encodeURIComponent(scenario.name);
+                        html += '<a class="preview-pill" href="' + esc(href) + '" target="_blank"';
+                        if (scenario.description) {
+                            html += ' title="' + esc(scenario.description) + '"';
+                        }
+                        html += '>' + esc(scenario.name) + '</a>';
+                    }
+                    html += '</span>';
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+        }
+
+        if (!html) {
+            html = '<p class="hint">No matching templates.</p>';
+        }
+        container.innerHTML = html;
+        container.onclick = handlePreviewGroupClick;
+    }
+
+    function onPreviewFilterChange() {
+        requestAnimationFrame(() => renderPreviewList());
+    }
+
+    function handlePreviewGroupClick(e) {
+        const header = e.target.closest('.preview-group-header');
+        if (!header) return;
+        const group = header.dataset.previewGroup;
+        if (expandedPreviewGroups.has(group)) {
+            expandedPreviewGroups.delete(group);
+        } else {
+            expandedPreviewGroups.add(group);
+        }
+        renderPreviewList();
+    }
+
+    function esc(s) {
+        if (!s) return '';
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function applyMemoryDetail(d) {
+        state.memoryAvailable = true;
+        if (d.memory) {
+            state.memHeapAlloc = formatBytes(d.memory.HeapAlloc);
+            state.memHeapSys = formatBytes(d.memory.HeapSys);
+            state.memHeapIdle = formatBytes(d.memory.HeapIdle);
+            state.memHeapInuse = formatBytes(d.memory.HeapInuse);
+            state.memHeapReleased = formatBytes(d.memory.HeapReleased);
+            state.memHeapObjects = fmt(d.memory.HeapObjects);
+            state.memStackInuse = formatBytes(d.memory.StackInuse);
+            state.memStackSys = formatBytes(d.memory.StackSys);
+            state.memTotalAlloc = formatBytes(d.memory.TotalAlloc);
+            state.memSys = formatBytes(d.memory.Sys);
+            state.memMallocs = fmt(d.memory.Mallocs);
+            state.memFrees = fmt(d.memory.Frees);
+        }
+        if (d.gc) {
+            state.memGcCycles = fmt(d.gc.NumGC);
+            state.memGcForced = fmt(d.gc.NumForcedGC);
+            state.memGcLastPause = d.gc.LastPauseNs !== undefined ? (d.gc.LastPauseNs / 1e6).toFixed(2) + 'ms' : '-';
+            state.memGcTotalPause = d.gc.PauseTotalNs !== undefined ? (d.gc.PauseTotalNs / 1e6).toFixed(1) + 'ms' : '-';
+            state.memGcCpuFraction = d.gc.GCCPUFraction !== undefined ? (d.gc.GCCPUFraction * 100).toFixed(3) + '%' : '-';
+        }
+        if (d.process) {
+            state.memPid = fmt(d.process.PID);
+            state.memThreads = fmt(d.process.ThreadCount);
+        }
+        state.memGoroutines = fmt(d.NumGoroutines);
+        state.memCpu = d.CPUMillicores !== undefined ? d.CPUMillicores.toFixed(0) + 'm' : '-';
+        if (d.runtime) {
+            state.memCompiler = d.runtime.Compiler || '-';
+        }
+        state.memGomaxprocs = fmt(d.GOMAXPROCS);
+        if (d.build) {
+            state.memGoarch = d.build.Arch || '-';
+            state.memGoos = d.build.OS || '-';
+            state.memBuildVersion = d.build.Version || '-';
+            state.memBuildGoVersion = d.build.GoVersion || '-';
+            state.version = d.build.Version || '-';
+            state.goVersion = d.build.GoVersion || '-';
+            state.memBuildCommit = d.build.Commit || '-';
+        }
+    }
+
+    function formatBytes(bytes) {
+        if (bytes === 0 || bytes === undefined) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let i = 0;
+        let val = bytes;
+        while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
+        return val.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    }
+
+    function formatUptime(ms) {
+        const totalSec = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSec / 3600);
+        const minutes = Math.floor((totalSec % 3600) / 60);
+        const seconds = totalSec % 60;
+        if (hours > 0) return hours + 'h ' + minutes + 'm';
+        if (minutes > 0) return minutes + 'm ' + seconds + 's';
+        return seconds + 's';
+    }
+
+    function fmt(v) {
+        return v !== undefined && v !== null ? String(v) : '-';
+    }
+
+    function padRight(str, len) {
+        if (!str) str = '-';
+        while (str.length < len) str += ' ';
+        return str;
+    }
+</script>
+
+<style>
+    :host {
+        --colour-text: #e4e4e7;
+        --colour-text-bright: #fafafa;
+        --colour-text-muted: #a1a1aa;
+        --colour-text-dim: #71717a;
+        --colour-text-hint: #52525b;
+        --colour-accent: #a78bfa;
+        --colour-accent-15: rgba(167, 139, 250, 0.15);
+
+        --background-toggle: rgba(24, 24, 27, 0.92);
+        --background-toggle-hover: rgba(39, 39, 42, 0.95);
+        --background-panel: rgba(24, 24, 27, 0.95);
+        --background-card: rgba(39, 39, 42, 0.6);
+        --background-accordion-header: rgba(39, 39, 42, 0.4);
+        --background-accordion-header-hover: rgba(39, 39, 42, 0.7);
+        --background-accordion-body: rgba(24, 24, 27, 0.5);
+        --background-close-hover: rgba(113, 113, 122, 0.15);
+
+        --border-strong: rgba(113, 113, 122, 0.3);
+        --border-medium: rgba(113, 113, 122, 0.25);
+        --border-soft: rgba(113, 113, 122, 0.2);
+        --border-faint: rgba(113, 113, 122, 0.12);
+        --border-subtle: rgba(113, 113, 122, 0.1);
+
+        --shadow-toggle: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+        --colour-ok: #22c55e;
+        --colour-warn: #f59e0b;
+        --colour-error: #ef4444;
+
+        --radius-lg: 12px;
+        --radius-md: 8px;
+        --radius-sm: 6px;
+        --radius-xs: 4px;
+        --transition-fast: 0.15s;
+
+        position: fixed;
+        bottom: 16px;
+        right: 16px;
+        z-index: 99999;
+        font-family: ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--colour-text);
+    }
+
+    .toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-strong);
+        background: var(--background-toggle);
+        color: var(--colour-accent);
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+        box-shadow: var(--shadow-toggle);
+        position: absolute;
+        bottom: 0;
+        right: 0;
+
+        &:hover {
+            background: var(--background-toggle-hover);
+            border-color: var(--colour-accent);
+            transform: scale(1.05);
+        }
+    }
+
+    .panel {
+        position: absolute;
+        bottom: 56px;
+        right: 0;
+        width: 740px;
+        max-height: 520px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-medium);
+        background: var(--background-panel);
+        backdrop-filter: blur(16px);
+        box-shadow: var(--shadow-panel);
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        overflow: hidden;
+
+        &.open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+    }
+
+    .panel-header {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid var(--border-soft);
+        padding: 0 4px 0 0;
+        flex-shrink: 0;
+    }
+
+    .tabs {
+        display: flex;
+        flex: 1;
+        gap: 0;
+
+        & button {
+            flex: 1;
+            padding: 10px 4px;
+            border: none;
+            background: transparent;
+            color: var(--colour-text-muted);
+            font-size: 11px;
+            font-family: inherit;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color var(--transition-fast), border-color var(--transition-fast);
+            white-space: nowrap;
+
+            &:hover {
+                color: var(--colour-text);
+            }
+
+            &.active {
+                color: var(--colour-accent);
+                border-bottom-color: var(--colour-accent);
+            }
+        }
+    }
+
+    .close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--colour-text-dim);
+        cursor: pointer;
+        font-size: 14px;
+        flex-shrink: 0;
+        transition: background var(--transition-fast), color var(--transition-fast);
+
+        &:hover {
+            background: var(--background-close-hover);
+            color: var(--colour-text);
+        }
+    }
+
+    .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+
+        &::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: var(--border-strong);
+            border-radius: 2px;
+        }
+    }
+
+    .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        border-radius: var(--radius-md);
+        background: var(--background-card);
+        border: 1px solid var(--border-faint);
+    }
+
+    .stat-card-info {
+        cursor: help;
+    }
+
+    .stat-label {
+        font-size: 11px;
+        color: var(--colour-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+    }
+
+    .stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--colour-text-bright);
+    }
+
+    .info-icon {
+        font-size: 13px;
+        color: var(--colour-text-dim);
+        cursor: help;
+        vertical-align: middle;
+    }
+
+    .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--colour-text-dim);
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--colour-warn);
+
+        &.connected {
+            background: var(--colour-ok);
+        }
+
+        &.reconnecting {
+            background: var(--colour-warn);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        &.disconnected {
+            background: var(--colour-error);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+
+        & td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border-subtle);
+
+            &:first-child {
+                color: var(--colour-text-muted);
+                white-space: nowrap;
+                width: 45%;
+            }
+
+            &:last-child {
+                color: var(--colour-text-bright);
+                text-align: right;
+                font-variant-numeric: tabular-nums;
+            }
+        }
+    }
+
+    .preformatted {
+        white-space: pre-wrap;
+        font-size: 12px;
+        color: var(--colour-text-muted);
+        padding: 6px 8px;
+        line-height: 1.5;
+
+        &.mono {
+            font-size: 11px;
+            color: var(--colour-text-dim);
+        }
+    }
+
+    h4 {
+        margin: 12px 0 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--colour-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .hint {
+        color: var(--colour-text-hint);
+        font-size: 12px;
+        text-align: center;
+        padding: 20px 0;
+        margin: 0;
+    }
+
+    .provider-type-header {
+        margin: 8px 0 4px;
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    .acc-item {
+        border: 1px solid var(--border-faint);
+        border-radius: var(--radius-sm);
+        margin-bottom: 4px;
+        overflow: hidden;
+    }
+
+    .acc-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 10px;
+        border: none;
+        background: var(--background-accordion-header);
+        color: var(--colour-text);
+        font-family: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        text-align: left;
+        transition: background var(--transition-fast);
+
+        &:hover {
+            background: var(--background-accordion-header-hover);
+        }
+    }
+
+    .acc-arrow {
+        display: inline-block;
+        font-size: 11px;
+        color: var(--colour-text-dim);
+        transition: transform var(--transition-fast);
+        flex-shrink: 0;
+
+        &.expanded {
+            transform: rotate(90deg);
+        }
+    }
+
+    .acc-name {
+        font-weight: 600;
+        color: var(--colour-text-bright);
+    }
+
+    .acc-badge {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: var(--radius-xs);
+        background: var(--colour-accent-15);
+        color: var(--colour-accent);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .acc-meta {
+        font-size: 11px;
+        color: var(--colour-text-dim);
+        margin-left: auto;
+
+        & + & {
+            margin-left: 8px;
+        }
+    }
+
+    .acc-body {
+        padding: 8px 12px 10px;
+        border-top: 1px solid var(--border-subtle);
+        background: var(--background-accordion-body);
+
+        & .stats-table td {
+            padding: 3px 8px;
+            font-size: 12px;
+        }
+    }
+
+    .acc-section-title {
+        margin: 8px 0 4px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--colour-accent);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .about-content {
+        padding: 4px 0;
+    }
+
+    .about-intro {
+        font-size: 13px;
+        color: var(--colour-text-muted);
+        line-height: 1.6;
+        margin: 0 0 12px;
+    }
+
+    .about-divider {
+        height: 1px;
+        background: var(--border-soft);
+        margin: 12px 0;
+    }
+
+    .about-license {
+        font-size: 11px;
+        color: var(--colour-text-dim);
+        line-height: 1.5;
+        white-space: pre-wrap;
+        margin: 0;
+        font-family: inherit;
+    }
+
+    .about-statement {
+        font-size: 12px;
+        color: var(--colour-text-muted);
+        line-height: 1.6;
+        margin: 0;
+        font-style: italic;
+    }
+
+    .about-link {
+        margin: 0;
+        font-size: 13px;
+        text-align: center;
+
+        & a {
+            color: var(--colour-accent);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+
+            &:hover {
+                color: var(--colour-text-bright);
+            }
+        }
+    }
+
+    .preview-toolbar {
+        margin-bottom: 10px;
+    }
+
+    .preview-filter {
+        width: 100%;
+        padding: 6px 10px;
+        background: var(--background-card);
+        border: 1px solid var(--border-medium);
+        border-radius: var(--radius-sm);
+        color: var(--colour-text);
+        font-family: inherit;
+        font-size: 12px;
+        outline: none;
+        box-sizing: border-box;
+
+        &:focus {
+            border-color: var(--colour-accent);
+        }
+
+        &::placeholder {
+            color: var(--colour-text-hint);
+        }
+    }
+
+    .preview-group {
+        margin-bottom: 4px;
+    }
+
+    .preview-group-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 6px 10px;
+        background: var(--background-accordion-header);
+        border: 1px solid var(--border-faint);
+        border-radius: var(--radius-sm);
+        color: var(--colour-text);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+        transition: background var(--transition-fast);
+
+        &:hover {
+            background: var(--background-accordion-header-hover);
+        }
+    }
+
+    .preview-count {
+        margin-left: auto;
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--colour-text-dim);
+    }
+
+    .preview-group-body {
+        padding: 4px 0 4px 18px;
+    }
+
+    .preview-template {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        flex-wrap: wrap;
+    }
+
+    .preview-template-name {
+        font-size: 12px;
+        color: var(--colour-text-muted);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .preview-scenarios {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-left: auto;
+    }
+
+    .preview-pill {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 10px;
+        border-radius: var(--radius-xs);
+        background: var(--colour-accent-15);
+        color: var(--colour-accent);
+        text-decoration: none;
+        cursor: pointer;
+        transition: background var(--transition-fast);
+        white-space: nowrap;
+
+        &:hover {
+            background: rgba(167, 139, 250, 0.3);
+            color: var(--colour-text-bright);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .panel {
+            width: calc(100vw - 32px);
+            max-height: 400px;
+        }
+    }
+</style>

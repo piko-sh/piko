@@ -1,0 +1,76 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package profile
+
+import "piko.sh/piko"
+
+type Response struct {
+	UserID    string
+	Username  string
+	Section   string
+	HasUserID bool
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	userID := r.PathParam("id")
+	username := r.PathParam("username")
+	section := r.PathParam("section")
+
+	if section == "" {
+		section = "overview"
+	}
+
+	return Response{
+		UserID:    userID,
+		Username:  username,
+		Section:   section,
+		HasUserID: userID != "",
+	}, piko.Metadata{
+		Title: "User Profile",
+	}, nil
+}
+</script>
+<template>
+	<div class="profile-page">
+		<h1>User Profile</h1>
+		<section class="user-info">
+			<div p-if="state.HasUserID" class="user-details">
+				<p class="user-id">User ID: <span class="id-value">{{ state.UserID }}</span></p>
+				<p p-if="state.Username != ''" class="username">Username: <span class="username-value">{{ state.Username }}</span></p>
+			</div>
+			<div p-else class="no-user">
+				<p class="no-user-message">No user specified</p>
+			</div>
+		</section>
+		<section class="section-info">
+			<p class="current-section">Current Section: <span class="section-value">{{ state.Section }}</span></p>
+			<nav class="section-nav">
+				<span p-if="state.Section == 'overview'" class="nav-item active">Overview</span>
+				<span p-else class="nav-item">Overview</span>
+				<span p-if="state.Section == 'posts'" class="nav-item active">Posts</span>
+				<span p-else class="nav-item">Posts</span>
+				<span p-if="state.Section == 'settings'" class="nav-item active">Settings</span>
+				<span p-else class="nav-item">Settings</span>
+			</nav>
+		</section>
+	</div>
+</template>

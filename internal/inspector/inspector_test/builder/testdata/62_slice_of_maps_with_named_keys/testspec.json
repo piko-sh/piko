@@ -1,0 +1,21 @@
+{
+  "description": "Tests that the validator correctly handles a complex slice type ([]map[<named>]<primitive>) without producing a false positive error.",
+  "moduleName": "testcase_62_slice_of_maps_with_named_keys",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_62_slice_of_maps_with_named_keys",
+    "testcase_62_slice_of_maps_with_named_keys/keys"
+  ],
+  "assertions": [
+    {
+      "description": "The 'History' field's TypeString should be correct for the slice of maps.",
+      "select": "packages.testcase_62_slice_of_maps_with_named_keys.named_types.Response.fields.0.type_string",
+      "expect": "[]map[keys.RequestKey]int"
+    },
+    {
+      "description": "The field's PackagePath must be populated from the map key's package.",
+      "select": "packages.testcase_62_slice_of_maps_with_named_keys.named_types.Response.fields.0.pkg_path",
+      "expect": "testcase_62_slice_of_maps_with_named_keys/keys"
+    }
+  ]
+}

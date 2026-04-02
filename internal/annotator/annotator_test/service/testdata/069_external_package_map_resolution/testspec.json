@@ -1,0 +1,223 @@
+{
+  "description": "Validates that package-level variables, constants, maps, slices, and generic types can be resolved and accessed correctly.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'domain.DefaultUser.Name' on potentially nil pointer 'domain.DefaultUser'",
+      "onLine": 69
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "p.parish-name",
+      "description": "Map indexing on external package variable should resolve to the value type (string).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.ParishMap[props.Parish]",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.status-code",
+      "description": "Slice indexing on external package variable should resolve to the element type (int).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.StatusCodes[props.Index]",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    },
+    {
+      "select": "p.max-retries",
+      "description": "Direct reference to a typed int constant should resolve to int.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.MaxRetries",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    },
+    {
+      "select": "p.app-version",
+      "description": "Direct reference to a typed string constant should resolve to string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.AppVersion",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.app-name",
+      "description": "Direct reference to a string variable should resolve to string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.AppName",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.timeout",
+      "description": "Direct reference to a time.Duration variable should resolve correctly.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DefaultTimeout",
+          "resolvedTypeIs": "time.Duration"
+        }
+      ]
+    },
+    {
+      "select": "p.config-name",
+      "description": "Field access on struct variable should resolve to the field type (string).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DefaultConfig.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.config-enabled",
+      "description": "Field access on struct variable should resolve to the field type (bool).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DefaultConfig.Enabled",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.result-value",
+      "description": "Field access on generic type variable should resolve to the concrete type parameter (string).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.StringResult.Value",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.os-args-first",
+      "description": "Standard library variable (os.Args) slice indexing should resolve to string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "os.Args[0]",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.deep-country-name",
+      "description": "Deeply nested struct field access should resolve correctly.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DeepConfig.Primary.Country.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.deep-region-capital",
+      "description": "Struct chain with slice indexing should resolve to the nested field type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DeepConfig.Primary.Country.Regions[0].Capital.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.deep-region-postcode",
+      "description": "Struct chain with slice indexing and final field access should resolve correctly.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DeepConfig.Primary.Country.Regions[0].Capital.PostCode",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.pointer-user-name",
+      "description": "Pointer variable field access should auto-dereference and resolve to field type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DefaultUser.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.embedded-created",
+      "description": "Embedded field access (field promotion) should resolve to the promoted field type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DefaultArticle.CreatedAt",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.embedded-title",
+      "description": "Direct field access on struct with embedded type should work normally.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DefaultArticle.Title",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.alias-id",
+      "description": "Type alias variable resolves to the alias name (Go preserves alias names in type info).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.CurrentUserID",
+          "resolvedTypeIs": "domain.ID"
+        }
+      ]
+    },
+    {
+      "select": "p.named-type-id",
+      "description": "Named type variable should resolve to the named type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.OwnerID",
+          "resolvedTypeIs": "domain.UserID"
+        }
+      ]
+    },
+    {
+      "select": "p.map-nested-country",
+      "description": "Map indexing followed by nested struct access should resolve correctly.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DeepConfig.Lookup[\"home\"].Country.Code",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.map-nested-region",
+      "description": "Map indexing followed by struct and slice access should resolve correctly.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DeepConfig.Lookup[\"home\"].Country.Regions[0].Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.map-nested-capital",
+      "description": "Complex chain: map index -> struct -> struct -> slice index -> struct -> field.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "domain.DeepConfig.Lookup[\"home\"].Country.Regions[0].Capital.PostCode",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

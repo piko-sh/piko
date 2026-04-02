@@ -1,0 +1,7 @@
+{
+    "description": "Verifies em and rem units resolve correctly based on font sizes against browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

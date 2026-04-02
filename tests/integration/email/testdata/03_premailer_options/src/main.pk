@@ -1,0 +1,11 @@
+<template>
+    <div id="wrapper" class="container">
+        <a href="https://example.com/page">Click here</a>
+        <p class="text">Styled text</p>
+    </div>
+</template>
+
+<style>
+.container { padding: 20px; }
+.text { color: #333333; font-size: 14px; }
+</style>

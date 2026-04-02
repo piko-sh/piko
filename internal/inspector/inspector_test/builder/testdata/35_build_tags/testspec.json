@@ -1,0 +1,20 @@
+{
+  "description": "Tests that the builder correctly handles build tags, only including the types from files that match the current build environment (assumed to be linux/darwin).",
+  "moduleName": "testcase_35_build_tags",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_35_build_tags"
+  ],
+  "assertions": [
+    {
+      "description": "The 'MyConfig' type should be found.",
+      "select": "packages.testcase_35_build_tags.named_types.MyConfig.name",
+      "expect": "MyConfig"
+    },
+    {
+      "description": "The 'MyConfig' type should have the 'Path' field (from the linux file), not 'RegistryKey'.",
+      "select": "packages.testcase_35_build_tags.named_types.MyConfig.fields.0.name",
+      "expect": "Path"
+    }
+  ]
+}

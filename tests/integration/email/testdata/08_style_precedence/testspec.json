@@ -1,0 +1,6 @@
+{
+  "title": "Style Precedence",
+  "description": "CSS specificity and precedence through full pipeline",
+  "metadata": {"title": "Precedence Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true, "keepBangImportant": true}
+}

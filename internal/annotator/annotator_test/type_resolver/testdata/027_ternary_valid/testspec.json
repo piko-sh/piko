@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that a ternary expression correctly resolves to the type of its branches.",
+  "expression": "state.IsAdmin ? state.Name : 'Guest'",
+  "expectedType": "string",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

@@ -1,0 +1,21 @@
+[
+  {
+    "action": "checkText",
+    "selector": "css-variables >>> #status",
+    "expected": "Theme: Light"
+  },
+  {
+    "action": "checkText",
+    "selector": "css-variables >>> #box",
+    "expected": "Themed Box"
+  },
+  {
+    "action": "click",
+    "selector": "css-variables >>> #toggle"
+  },
+  {
+    "action": "checkText",
+    "selector": "css-variables >>> #status",
+    "expected": "Theme: Dark"
+  }
+]

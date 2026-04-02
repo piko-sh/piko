@@ -1,0 +1,26 @@
+{
+  "after_commit": [
+    {
+      "Balance": 50,
+      "ID": 1,
+      "Name": "Alice"
+    },
+    {
+      "Balance": 250,
+      "ID": 2,
+      "Name": "Bob"
+    }
+  ],
+  "after_rollback": [
+    {
+      "Balance": 50,
+      "ID": 1,
+      "Name": "Alice"
+    },
+    {
+      "Balance": 250,
+      "ID": 2,
+      "Name": "Bob"
+    }
+  ]
+}

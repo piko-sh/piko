@@ -1,0 +1,7 @@
+{
+    "description": "Verifies multi-column layout with column-count distributes blocks correctly against browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

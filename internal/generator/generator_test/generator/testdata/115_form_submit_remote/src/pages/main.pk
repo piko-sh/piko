@@ -1,0 +1,51 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Form Submit Action Test</h1>
+    <p>
+      This page tests that p-on:submit with the action. prefix properly
+      encodes the action payload as base64 JSON, not as a raw string.
+    </p>
+
+    <form id="static-form" p-on:submit="action.static_action()">
+      <input type="text" name="email" placeholder="Enter email" />
+      <button type="submit">Submit Static</button>
+    </form>
+
+    <piko:partial is="boxed_form" server.show_form="true">
+      <input type="text" name="name" placeholder="Enter name" />
+    </piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    boxed_form "testcase_115_form_submit_remote/partials/boxed_form.pk"
+  )
+
+  func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+  }
+</script>

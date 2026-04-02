@@ -1,0 +1,79 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package dashboard
+
+import (
+	"piko.sh/piko"
+	header "testcase_26_partials/partials/header.pk"
+	card "testcase_26_partials/partials/card.pk"
+	footer "testcase_26_partials/partials/footer.pk"
+)
+
+type Response struct {
+	Username    string
+	TotalUsers  string
+	TotalOrders string
+	Revenue     string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Username:    "Admin",
+		TotalUsers:  "1,250",
+		TotalOrders: "847",
+		Revenue:     "$45,230",
+	}, piko.Metadata{
+		Title: "Dashboard",
+	}, nil
+}
+</script>
+<template>
+	<div class="dashboard-page">
+		<div is="header" :title="'Admin Dashboard'" :subtitle="'Welcome back, ' + state.Username"></div>
+
+		<main class="dashboard-main">
+			<h2 class="section-title">Overview</h2>
+			<div class="cards-grid">
+				<div is="card" :title="'Total Users'" :content="state.TotalUsers" :type="'users'">
+					<button class="btn-view">View All Users</button>
+				</div>
+				<div is="card" :title="'Total Orders'" :content="state.TotalOrders" :type="'orders'">
+					<button class="btn-view">View All Orders</button>
+				</div>
+				<div is="card" :title="'Revenue'" :content="state.Revenue" :type="'revenue'">
+					<button class="btn-view">View Report</button>
+				</div>
+			</div>
+
+			<section class="recent-activity">
+				<h3 class="activity-title">Recent Activity</h3>
+				<ul class="activity-list">
+					<li class="activity-item">New user registered</li>
+					<li class="activity-item">Order #1234 completed</li>
+					<li class="activity-item">Payment received</li>
+				</ul>
+			</section>
+		</main>
+
+		<div is="footer" :year="2024" :company="'Acme Corp'"></div>
+	</div>
+</template>

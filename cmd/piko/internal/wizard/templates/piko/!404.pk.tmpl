@@ -1,0 +1,106 @@
+<template>
+  <piko:partial is="layout" :server.page_title="state.Title">
+    <section class="error-page">
+      <div class="error-code" p-text="state.StatusCode"></div>
+      <h1 class="error-title" p-text="state.Title"></h1>
+      <p class="error-message" p-text="state.Message"></p>
+      <a href="/" class="error-link">Go home</a>
+    </section>
+  </piko:partial>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "fmt"
+
+    "piko.sh/piko"
+    layout "{{ .ModuleName }}/partials/layout.pk"
+)
+
+type Response struct {
+    StatusCode string
+    Title      string
+    Message    string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    statusCode := 404
+    message := "The page you are looking for does not exist."
+
+    if errCtx := piko.GetErrorContext(r); errCtx != nil {
+        statusCode = errCtx.StatusCode
+        if errCtx.Message != "" {
+            message = errCtx.Message
+        }
+    }
+
+    title := fmt.Sprintf("%d - Page Not Found", statusCode)
+
+    return Response{
+        StatusCode: fmt.Sprintf("%d", statusCode),
+        Title:      title,
+        Message:    message,
+    }, piko.Metadata{Title: title}, nil
+}
+</script>
+
+<style>
+.error-page {
+  text-align: center;
+  padding: 6rem 2rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.error-code {
+  font-size: 6rem;
+  font-weight: 800;
+  color: var(--g-colour-grey-200);
+  line-height: 1;
+  margin: 0 0 1rem;
+  letter-spacing: -0.025em;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--g-colour-grey-900);
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.015em;
+}
+
+.error-message {
+  font-size: 1rem;
+  color: var(--g-colour-grey-500);
+  line-height: 1.6;
+  margin: 0 0 2rem;
+}
+
+.error-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  background: var(--g-colour-primary);
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.error-link:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 16px rgba(111, 71, 235, 0.25);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .error-page { padding: 4rem 1rem; }
+  .error-code { font-size: 4rem; }
+  .error-title { font-size: 1.25rem; }
+}
+</style>

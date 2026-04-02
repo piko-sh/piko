@@ -1,0 +1,7 @@
+{
+    "description": "Verifies table colspan cells with explicit widths distribute correctly across spanned columns, and border-spacing is respected.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

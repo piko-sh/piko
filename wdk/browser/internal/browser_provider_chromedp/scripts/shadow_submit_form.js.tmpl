@@ -1,0 +1,16 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return false;
+    if (el.tagName === 'FORM') {
+        el.submit();
+        return true;
+    }
+    const form = el.closest('form');
+    if (form) {
+        form.submit();
+        return true;
+    }
+    return false;
+})()

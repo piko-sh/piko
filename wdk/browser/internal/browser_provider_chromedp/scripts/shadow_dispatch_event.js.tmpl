@@ -1,0 +1,6 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (el) el.dispatchEvent(new CustomEvent({{jsStr .EventName}}, { detail: {{jsRaw .DetailJSON}}, bubbles: true, composed: true }));
+})()

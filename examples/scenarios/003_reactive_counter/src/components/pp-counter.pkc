@@ -1,0 +1,86 @@
+<!-- A PKC (client-side Web Component). The name="pp-counter" attribute sets
+     the custom element tag. Reactive state triggers re-renders automatically.
+     See https://piko.sh/docs/guide/client-components -->
+<template name="pp-counter">
+    <div class="counter">
+        <h2>Reactive Counter</h2>
+        <p id="count" p-class="{ negative: state.count < 0 }" p-text="state.count"></p>
+        <div class="buttons">
+            <button id="decrement-btn" p-on:click="decrement">-</button>
+            <button id="increment-btn" p-on:click="increment">+</button>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    // Reactive state: mutating any property re-renders dependent template expressions.
+    const state = {
+        count: 0 as number,
+    };
+
+    function increment() {
+        state.count++;
+    }
+
+    function decrement() {
+        state.count--;
+    }
+</script>
+
+<style>
+    .counter {
+        max-width: 280px;
+        margin: 0 auto;
+        padding: 1.5rem;
+        text-align: center;
+        font-family: system-ui, -apple-system, sans-serif;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        background: #ffffff;
+    }
+
+    h2 {
+        margin: 0 0 1rem;
+        font-size: 1.25rem;
+        color: #1f2937;
+    }
+
+    #count {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #2563eb;
+        margin: 1rem 0;
+        transition: color 0.2s ease;
+    }
+
+    #count.negative {
+        color: #dc2626;
+    }
+
+    .buttons {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+
+    button {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 0.375rem;
+        background-color: #2563eb;
+        color: #ffffff;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    button:hover {
+        background-color: #1d4ed8;
+    }
+
+    button:active {
+        background-color: #1e40af;
+    }
+</style>

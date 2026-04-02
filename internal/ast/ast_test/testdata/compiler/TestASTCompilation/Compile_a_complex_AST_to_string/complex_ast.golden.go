@@ -1,0 +1,384 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+package testgolden
+
+import (
+	goast "go/ast"
+	"go/parser"
+)
+
+var GeneratedAST = func() *ast.TemplateAST {
+	stringPtr := func(s string) *string {
+		return &s
+	}
+	typeExprFromString := func(s string) goast.Expr {
+		expr, err := parser.ParseExpr(s)
+		if err != nil {
+			return nil
+		}
+		return expr
+	}
+	_ = stringPtr
+	_ = typeExprFromString
+	return &ast.TemplateAST{
+		RootNodes: []*ast.TemplateNode{
+			&ast.TemplateNode{
+				NodeType: ast.NodeElement,
+				Location: ast.Location{
+					Line:   1,
+					Column: 1,
+				},
+				TagName: "div",
+				GoAnnotations: &ast.GoGeneratorAnnotation{
+					ResolvedType: &ast.ResolvedTypeInfo{
+						TypeExpression: typeExprFromString("map[string]int"),
+						PackageAlias:   "models",
+					},
+					Symbol: &ast.ResolvedSymbol{
+						Name: "MyComponent",
+						DefinitionLocation: ast.Location{
+							Line:   10,
+							Column: 1,
+						},
+					},
+					OriginalPackageAlias: stringPtr("main"),
+					OriginalSourcePath:   stringPtr("/path/to/source.pkc"),
+					PartialInfo: &ast.PartialInvocationInfo{
+						InvocationKey:       "key123",
+						PartialAlias:        "",
+						PartialPackageName:  "",
+						InvokerPackageAlias: "",
+						Location: ast.Location{
+							Line:   0,
+							Column: 0,
+						},
+						PassedProps: map[string]ast.PropValue{
+							"title": ast.PropValue{
+								Expression: &ast.StringLiteral{
+									Value: "Dynamic Title",
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+								},
+								Location: ast.Location{
+									Line:   1,
+									Column: 1,
+								},
+								GoFieldName: "",
+							},
+						},
+					},
+					NeedsCSRF: true,
+					DynamicAttributeOrigins: map[string]string{
+						"class": "parent",
+					},
+				},
+				DirIf: &ast.Directive{
+					Type: ast.DirectiveIf,
+					Location: ast.Location{
+						Line:   3,
+						Column: 5,
+					},
+					NameLocation: ast.Location{
+						Line:   0,
+						Column: 0,
+					},
+					RawExpression: "user.isActive",
+					Expression: &ast.MemberExpr{
+						Base: &ast.Identifier{
+							Name: "user",
+							RelativeLocation: ast.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Property: &ast.Identifier{
+							Name: "isActive",
+							RelativeLocation: ast.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Optional: false,
+						Computed: false,
+						RelativeLocation: ast.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				Attributes: []ast.HTMLAttribute{
+					ast.HTMLAttribute{
+						Name:  "id",
+						Value: "main-container",
+						Location: ast.Location{
+							Line:   1,
+							Column: 6,
+						},
+						NameLocation: ast.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				DynamicAttributes: []ast.DynamicAttribute{
+					ast.DynamicAttribute{
+						Name:          "class",
+						RawExpression: "`card ${theme}`",
+						Expression: &ast.TemplateLiteral{
+							Parts: []ast.TemplateLiteralPart{
+								ast.TemplateLiteralPart{
+									IsLiteral: true,
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+									Literal:       "card ",
+								},
+								ast.TemplateLiteralPart{
+									IsLiteral: false,
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+									Expression: &ast.Identifier{
+										Name: "theme",
+										RelativeLocation: ast.Location{
+											Line:   0,
+											Column: 0,
+										},
+									},
+								},
+							},
+							RelativeLocation: ast.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Location: ast.Location{
+							Line:   2,
+							Column: 5,
+						},
+						NameLocation: ast.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				Binds: map[string]*ast.Directive{
+					"prop": &ast.Directive{
+						Type: ast.DirectiveBind,
+						Location: ast.Location{
+							Line:   5,
+							Column: 5,
+						},
+						NameLocation: ast.Location{
+							Line:   0,
+							Column: 0,
+						},
+						Arg:           "prop",
+						RawExpression: "propValue",
+						Expression: &ast.Identifier{
+							Name: "propValue",
+							RelativeLocation: ast.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+					},
+				},
+				OnEvents: map[string][]ast.Directive{
+					"click": []ast.Directive{
+						ast.Directive{
+							Type: ast.DirectiveOn,
+							Location: ast.Location{
+								Line:   4,
+								Column: 5,
+							},
+							NameLocation: ast.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Arg:           "click",
+							Modifier:      "prevent",
+							RawExpression: "doSomething(event)",
+							Expression: &ast.CallExpr{
+								Callee: &ast.Identifier{
+									Name: "doSomething",
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Args: []ast.Expression{
+									&ast.Identifier{
+										Name: "event",
+										RelativeLocation: ast.Location{
+											Line:   0,
+											Column: 0,
+										},
+									},
+								},
+								RelativeLocation: ast.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+				},
+				Children: []*ast.TemplateNode{
+					&ast.TemplateNode{
+						NodeType: ast.NodeText,
+						Location: ast.Location{
+							Line:   6,
+							Column: 7,
+						},
+						RichText: []ast.TextPart{
+							ast.TextPart{
+								IsLiteral: true,
+								Location: ast.Location{
+									Line:   0,
+									Column: 0,
+								},
+								Literal: "Hello, ",
+							},
+							ast.TextPart{
+								IsLiteral: false,
+								Location: ast.Location{
+									Line:   6,
+									Column: 16,
+								},
+								RawExpression: "user.name",
+								Expression: &ast.MemberExpr{
+									Base: &ast.Identifier{
+										Name: "user",
+										RelativeLocation: ast.Location{
+											Line:   0,
+											Column: 0,
+										},
+									},
+									Property: &ast.Identifier{
+										Name: "name",
+										RelativeLocation: ast.Location{
+											Line:   0,
+											Column: 0,
+										},
+									},
+									Optional: false,
+									Computed: false,
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+							},
+						},
+					},
+					&ast.TemplateNode{
+						NodeType: ast.NodeElement,
+						Location: ast.Location{
+							Line:   7,
+							Column: 7,
+						},
+						TagName: "ul",
+						DirFor: &ast.Directive{
+							Type: ast.DirectiveFor,
+							Location: ast.Location{
+								Line:   7,
+								Column: 11,
+							},
+							NameLocation: ast.Location{
+								Line:   0,
+								Column: 0,
+							},
+							RawExpression: "(i, item) in items",
+							Expression: &ast.ForInExpr{
+								IndexVariable: &ast.Identifier{
+									Name: "i",
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								ItemVariable: &ast.Identifier{
+									Name: "item",
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Collection: &ast.Identifier{
+									Name: "items",
+									RelativeLocation: ast.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								RelativeLocation: ast.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+						},
+						Key: &ast.MemberExpr{
+							Base: &ast.Identifier{
+								Name: "item",
+								RelativeLocation: ast.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Property: &ast.Identifier{
+								Name: "id",
+								RelativeLocation: ast.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Optional: false,
+							Computed: false,
+							RelativeLocation: ast.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+					},
+				},
+			},
+		},
+		Diagnostics: []*ast.Diagnostic{
+			&ast.Diagnostic{
+				Message:  "This is a test warning",
+				Severity: ast.Warning,
+				Location: ast.Location{
+					Line:   1,
+					Column: 1,
+				},
+				Expression: "someExpr",
+				SourcePath: "test.pkc",
+			},
+		},
+	}
+}()

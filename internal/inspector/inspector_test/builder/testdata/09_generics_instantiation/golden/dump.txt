@@ -1,0 +1,43 @@
+--- PACKAGE: testcase_09_generics_instantiation ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 09_generics_instantiation/src/main.go
+    - import "models"             -> testcase_09_generics_instantiation/models
+
+[Named Types]
+  > type Container
+    - Defined In:      09_generics_instantiation/src/main.go
+    - TypeString:      main.Container
+    - Underlying:      struct{StringBox models.Box[string]; BoxOfIntBox models.Box[models.Box[int]]}
+    - Stringability:   0
+    - Fields:
+      - StringBox            models.Box[string]
+        (Canonical Package: testcase_09_generics_instantiation/models)
+      - BoxOfIntBox          models.Box[models.Box[int]]
+        (Canonical Package: testcase_09_generics_instantiation/models)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_09_generics_instantiation/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 09_generics_instantiation/src/models/box.go
+    (no imports in this file)
+
+[Named Types]
+  > type Box
+    - Defined In:      09_generics_instantiation/src/models/box.go
+    - TypeString:      models.Box[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-model-checkbox \u003e\u003e\u003e p",
+    "expected": "Status: Not Checked"
+  },
+  {
+    "action": "click",
+    "selector": "p-model-checkbox \u003e\u003e\u003e input"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-checkbox \u003e\u003e\u003e p",
+    "expected": "Status: Checked"
+  },
+  {
+    "action": "click",
+    "selector": "p-model-checkbox \u003e\u003e\u003e input"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-checkbox \u003e\u003e\u003e p",
+    "expected": "Status: Not Checked"
+  }
+]

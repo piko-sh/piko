@@ -1,0 +1,91 @@
+{
+  "packages": {
+    "testcase_08_generics_definition": {
+      "file_imports": {
+        "08_generics_definition/src/main.go": {}
+      },
+      "named_types": {
+        "Box": {
+          "name": "Box",
+          "package_path": "testcase_08_generics_definition",
+          "defined_in_file_path": "08_generics_definition/src/main.go",
+          "type_string": "main.Box[T]",
+          "underlying_type_string": "struct{Value T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_08_generics_definition",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Box",
+              "name": "Value",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        },
+        "Pair": {
+          "name": "Pair",
+          "package_path": "testcase_08_generics_definition",
+          "defined_in_file_path": "08_generics_definition/src/main.go",
+          "type_string": "main.Pair[K, V]",
+          "underlying_type_string": "struct{Key K; Value V}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_08_generics_definition",
+              "pkg_path": "",
+              "underlying_type_string": "K",
+              "declaring_type_name": "Pair",
+              "name": "Key",
+              "type_string": "K",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            },
+            {
+              "declaring_pkg_path": "testcase_08_generics_definition",
+              "pkg_path": "",
+              "underlying_type_string": "V",
+              "declaring_type_name": "Pair",
+              "name": "Value",
+              "type_string": "V",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "K",
+            "V"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 27,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_08_generics_definition",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "08_generics_definition/src/main.go": "testcase_08_generics_definition"
+  }
+}

@@ -1,0 +1,90 @@
+[
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "First Steps",
+          "Slug": "first-steps",
+          "Level": 1
+        }
+      ],
+      "Title": "First Steps",
+      "WordCount": 8
+    },
+    "id": "first-steps",
+    "slug": "first-steps",
+    "locale": "en",
+    "translationKey": "docs/getting-started/basics/first-steps",
+    "url": "/docs/getting-started/basics/first-steps",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Documentation",
+          "Slug": "documentation",
+          "Level": 1
+        }
+      ],
+      "Title": "Documentation Home",
+      "WordCount": 5
+    },
+    "id": "index",
+    "slug": "index",
+    "locale": "en",
+    "translationKey": "docs/index",
+    "url": "/docs/",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Installation Guide",
+          "Slug": "installation-guide",
+          "Level": 1
+        }
+      ],
+      "Title": "Installation Guide",
+      "WordCount": 5
+    },
+    "id": "install",
+    "slug": "install",
+    "locale": "en",
+    "translationKey": "docs/getting-started/basics/install",
+    "url": "/docs/getting-started/basics/install",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "API Reference",
+          "Slug": "api-reference",
+          "Level": 1
+        }
+      ],
+      "Title": "API Reference",
+      "WordCount": 6
+    },
+    "id": "reference",
+    "slug": "reference",
+    "locale": "en",
+    "translationKey": "docs/api/reference",
+    "url": "/docs/api/reference",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

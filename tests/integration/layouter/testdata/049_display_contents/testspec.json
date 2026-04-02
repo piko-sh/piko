@@ -1,0 +1,7 @@
+{
+    "description": "Verifies display: contents removes the box but keeps children in flow.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

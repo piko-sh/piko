@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2026 PolitePixels Limited
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html>
+<head>
+    <style>
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .button {
+            background-color: #ff6600;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Link Query Parameter Appending Test</h1>
+
+        <p>
+            <a href="https://example.com/product">Product Page</a>
+            <a href="http://example.com/about">About Page</a>
+            <a href="https://example.com/search?q=test">Search with existing params</a>
+        </p>
+
+        <p>
+            <a href="/products">Products</a>
+            <a href="/contact?ref=footer">Contact</a>
+            <a href="../index.html">Parent Index</a>
+        </p>
+
+        <p>
+            <a href="mailto:support@example.com">Email Support</a>
+            <a href="tel:+1234567890">Call Us</a>
+            <a href="#top">Back to Top</a>
+            <a href="javascript:void(0)">JS Link</a>
+        </p>
+
+        <p>
+            <a href="https://example.com/signup" class="button">Sign Up Now</a>
+        </p>
+    </div>
+</body>
+</html>

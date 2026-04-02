@@ -1,0 +1,3 @@
+{
+  "description": "Common table expression column resolution. Tests that CTE output columns are resolved from the CTE body scope and accessible in the main query via CTE name."
+}

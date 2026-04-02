@@ -1,0 +1,26 @@
+{
+  "description": "Tests a map where the key is a named type from an external go.mod dependency and the value is a primitive.",
+  "moduleName": "testcase_57_map_external_key_primitive_value",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_57_map_external_key_primitive_value",
+    "github.com/google/uuid"
+  ],
+  "assertions": [
+    {
+      "description": "The field's TypeString should correctly show the imported type in the key.",
+      "select": "packages.testcase_57_map_external_key_primitive_value.named_types.Response.fields.0.type_string",
+      "expect": "map[uuid.UUID]int"
+    },
+    {
+      "description": "The field's PackagePath MUST be populated from the external key's package.",
+      "select": "packages.testcase_57_map_external_key_primitive_value.named_types.Response.fields.0.pkg_path",
+      "expect": "github.com/google/uuid"
+    },
+    {
+      "description": "The external dependency (google/uuid) must be included in the serialised output.",
+      "select": "packages.github.com/google/uuid.name",
+      "expect": "uuid"
+    }
+  ]
+}

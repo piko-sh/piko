@@ -1,0 +1,4 @@
+{
+  "description": "Benchmark: a simple, fully static page. This measures the baseline overhead of the rendering pipeline.",
+  "targetPage": "pages/main.pk"
+}

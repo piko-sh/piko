@@ -1,0 +1,20 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Articles"
+  </h1>
+  <a :article="article" {P: article, OriginPackage: main_aaf9a2e0} :href="`/articles/${props.Article.Slug}`" {P: `/articles/${props.Article.Slug}`} [p-for: article in state.Articles] [p-key: article.Slug] [ANNOTATIONS: OriginPackage: partials_article_card_48687e83 OriginPath: partials/article_card.pk PARTIAL InvKey: article_card_article_article_2d70a8c0 Package: partials_article_card_48687e83 InvPackage: main_aaf9a2e0]>
+    <article class="article-card" [ANNOTATIONS: OriginPackage: partials_article_card_48687e83 OriginPath: partials/article_card.pk]>
+      <h2 [ANNOTATIONS: OriginPackage: partials_article_card_48687e83 OriginPath: partials/article_card.pk]>
+        <RichText>
+          {{ props.Article.Title }}
+        </RichText>
+      </h2>
+    </article>
+  </a>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,30 @@
+[
+  {
+    "action": "checkAttribute",
+    "selector": "bool-attr \u003e\u003e\u003e button:first-of-type",
+    "expected": "",
+    "name": "disabled"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "bool-attr \u003e\u003e\u003e input",
+    "expected": "",
+    "name": "readonly"
+  },
+  {
+    "action": "click",
+    "selector": "bool-attr \u003e\u003e\u003e button:last-of-type"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "bool-attr \u003e\u003e\u003e button:first-of-type",
+    "expected": "null",
+    "name": "disabled"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "bool-attr \u003e\u003e\u003e input",
+    "expected": "null",
+    "name": "readonly"
+  }
+]

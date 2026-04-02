@@ -1,0 +1,149 @@
+{
+  "description": "Validates that self-referential generic types work correctly. Node[T] has Children []*Node[T], so traversing the tree should maintain type information.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "p.node-value",
+      "description": "Node[Category].GetValue() returns Category.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.CategoryTree.GetValue()",
+          "resolvedTypeIs": "dto.Category"
+        },
+        {
+          "rawExpression": "props.Data.CategoryTree.GetValue().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.node-haschildren",
+      "description": "Node.HasChildren() returns bool.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.CategoryTree.HasChildren()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.node-firstchild",
+      "description": "CRITICAL: FirstChild() returns *Node[Category], GetValue() on it returns Category.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.CategoryTree.FirstChild()",
+          "resolvedTypeIs": "*fields.Node[dto.Category]"
+        },
+        {
+          "rawExpression": "props.Data.CategoryTree.FirstChild().GetValue()",
+          "resolvedTypeIs": "dto.Category"
+        },
+        {
+          "rawExpression": "props.Data.CategoryTree.FirstChild().GetValue().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.node-children-value",
+      "description": "Accessing Children[0] returns *Node[Category].",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.CategoryTree.Children[0]",
+          "resolvedTypeIs": "*fields.Node[dto.Category]"
+        },
+        {
+          "rawExpression": "props.Data.CategoryTree.Children[0].GetValue().Name.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.node-parent",
+      "description": "Child's HasParent() returns bool (self-reference to parent).",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.CategoryTree.Children[0].HasParent()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.list-value",
+      "description": "LinkedList[Task].GetValue() returns Task.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.TaskList.GetValue()",
+          "resolvedTypeIs": "dto.Task"
+        },
+        {
+          "rawExpression": "props.Data.TaskList.GetValue().Display()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.list-hasnext",
+      "description": "LinkedList.HasNext() returns bool.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.TaskList.HasNext()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.list-next",
+      "description": "CRITICAL: GetNext() returns *LinkedList[Task], GetValue() on it returns Task.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.TaskList.GetNext()",
+          "resolvedTypeIs": "*fields.LinkedList[dto.Task]"
+        },
+        {
+          "rawExpression": "props.Data.TaskList.GetNext().GetValue().Title.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.list-chain",
+      "description": "Chaining GetNext().GetNext() maintains type through self-reference.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.TaskList.GetNext().GetNext()",
+          "resolvedTypeIs": "*fields.LinkedList[dto.Task]"
+        },
+        {
+          "rawExpression": "props.Data.TaskList.GetNext().GetNext().GetValue()",
+          "resolvedTypeIs": "dto.Task"
+        },
+        {
+          "rawExpression": "props.Data.TaskList.GetNext().GetNext().GetValue().Display()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "ul.children-loop",
+      "description": "Loop over self-referential Children slice.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.CategoryTree.Children",
+          "resolvedTypeIs": "[]*fields.Node[dto.Category]"
+        },
+        {
+          "rawExpression": "child",
+          "resolvedTypeIs": "*fields.Node[dto.Category]"
+        },
+        {
+          "rawExpression": "child.GetValue().Name.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

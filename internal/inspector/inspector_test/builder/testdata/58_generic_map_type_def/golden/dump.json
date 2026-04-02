@@ -1,0 +1,58 @@
+{
+  "packages": {
+    "testcase_58_generic_map_type_def": {
+      "file_imports": {
+        "58_generic_map_type_def/src/main.go": {}
+      },
+      "named_types": {
+        "MyMap": {
+          "name": "MyMap",
+          "package_path": "testcase_58_generic_map_type_def",
+          "defined_in_file_path": "58_generic_map_type_def/src/main.go",
+          "type_string": "main.MyMap[K, V]",
+          "underlying_type_string": "map[K]V",
+          "fields": null,
+          "methods": [
+            {
+              "name": "Get",
+              "type_string": "V",
+              "underlying_type_string": "V",
+              "declaring_pkg_path": "testcase_58_generic_map_type_def",
+              "declaring_type_name": "MyMap",
+              "definition_file_path": "58_generic_map_type_def/src/main.go",
+              "signature": {
+                "params": [
+                  "K"
+                ],
+                "param_names": [
+                  "key"
+                ],
+                "results": [
+                  "V",
+                  "bool"
+                ]
+              },
+              "definition_line": 25,
+              "definition_column": 22,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [
+            "K",
+            "V"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_58_generic_map_type_def",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "58_generic_map_type_def/src/main.go": "testcase_58_generic_map_type_def"
+  }
+}

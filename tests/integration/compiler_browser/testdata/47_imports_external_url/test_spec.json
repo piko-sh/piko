@@ -1,0 +1,6 @@
+[
+  {
+    "action": "checkConsoleMessage",
+    "expected": "Confetti function called"
+  }
+]

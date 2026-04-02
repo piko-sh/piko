@@ -1,0 +1,43 @@
+{
+    "description": "Custom element tag (add-to-cart) inside partial morphs correctly with text update and attribute preservation",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "add-to-cart",
+            "exists": true,
+            "description": "add-to-cart custom element still exists after morph"
+        },
+        {
+            "selector": "add-to-cart",
+            "attributes": {
+                "partial": "pages_main_594861c5",
+                "p-key": "r.0:1",
+                "product-id": "123"
+            },
+            "description": "add-to-cart preserves partial attributes and product-id"
+        },
+        {
+            "selector": "add-to-cart span.btn-text",
+            "textContent": "Added",
+            "description": "Span text inside custom element updates to Added"
+        },
+        {
+            "selector": ".cart-summary",
+            "attributes": {
+                "partial": "partials_cart_c7a8b33f pages_main_594861c5",
+                "partial_name": "cart",
+                "partial_src": "/_piko/partials/cart"
+            },
+            "description": "Cart summary partial preserves scope chain and partial attributes"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "add-to-cart",
+            "description": "add-to-cart custom element should be preserved (same reference)"
+        }
+    ]
+}

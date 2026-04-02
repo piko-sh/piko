@@ -1,0 +1,14 @@
+{
+  "description": "Test environment variable overrides taking precedence over config file values",
+  "expectError": false,
+  "configFiles": ["config.json"],
+  "environment": {
+    "PIKO_PORT": "8080",
+    "PIKO_WATCH_MODE": "true"
+  },
+  "expectedDefaults": false,
+  "validateFields": {
+    "Network.Port": "8080",
+    "Network.PublicDomain": "localhost:3000"
+  }
+}

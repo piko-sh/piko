@@ -1,0 +1,18 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0" id="app">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">File Upload with Sibling Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests p-for with a sibling element (Add more button) - mirrors pp-file-uploader structure</p>
+    <file-uploader partial="pages_index_032f49b1" p-key="r.0:2" next-id="1">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.uploader-container{max-width: 600px;margin: 0 auto;padding: 20px;font-family: sans-serif}.hidden-file-input{position: absolute;width: 1px;height: 1px;opacity: 0;overflow: hidden}.upload-area{display: flex;flex-direction: column;align-items: center;justify-content: center;padding: 40px;border: 2px dashed #ccc;border-radius: 8px;cursor: pointer;background: #f9f9f9}.upload-area:hover{border-color: #666;background: #f0f0f0}.upload-placeholder{text-align: center}.upload-prompt{font-weight: bold;margin-bottom: 5px}.upload-hint{color: #666;font-size: 0.9em}.upload-preview{margin-top: 0}.file-list{display: grid;grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));gap: 10px}.file-item{position: relative;padding: 10px;border: 1px solid #ddd;border-radius: 8px;background: white}.file-item:hover{background: #f5f5f5}.thumbnail{width: 100%;height: 100px;object-fit: cover;border-radius: 4px}.thumbnail.document{display: flex;align-items: center;justify-content: center;background: #e0e0e0}.filetype{font-size: 1.5em;color: #666}.filename{margin-top: 8px;font-size: 0.85em;word-break: break-word}.remove-btn{position: absolute;top: 5px;right: 5px;width: 24px;height: 24px;border: none;border-radius: 50%;background: rgba(0, 0, 0, 0.5);color: white;cursor: pointer;font-size: 12px}.remove-btn:hover{background: #e00}.add-more-btn{display: flex;align-items: center;justify-content: center;padding: 20px;border: 2px dashed #ccc;border-radius: 8px;cursor: pointer;background: #fafafa;min-height: 100px}.add-more-btn:hover{border-color: #666;background: #f0f0f0}.hint-text{margin-top: 15px;color: #666}</style>
+        <div class="uploader-container"><label for="file-input" class="upload-area"><input accept="image/*" id="file-input" multiple type="file" class="hidden-file-input" />
+            <div class="upload-placeholder">
+              <p class="upload-prompt">Upload files</p>
+              <p class="upload-hint">Click to browse</p>
+            </div>
+</label>        </div>
+      </template>
+    </file-uploader>
+  </div>
+</div>

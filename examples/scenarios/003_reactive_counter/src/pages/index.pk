@@ -1,0 +1,41 @@
+<template>
+  <div id="app">
+    <h1>Reactive Counter</h1>
+    <p>A client-side counter component built with PKC.</p>
+    <pp-counter></pp-counter>
+  </div>
+</template>
+
+<!-- No server-side data needed; the counter runs entirely in the browser.
+     See https://piko.sh/docs/guide/client-components -->
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Reactive Counter - Piko Example",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    text-align: center;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: #6b7280;
+    margin-bottom: 2rem;
+  }
+</style>

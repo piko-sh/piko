@@ -1,0 +1,19 @@
+{
+  "description": "Tests if the bug is specific to p-for or affects ALL directives on slotted content. Uses p-text directive instead of p-for. If this passes, the bug is p-for specific. If it fails, the bug affects all directives.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "div.message-box",
+      "description": "The div with p-text directive should resolve state.Message from the page's Response, not the layout's Response.",
+      "assertOnDirective": [
+        {
+          "name": "p-text",
+          "rawExpression": "state.Message",
+          "resolvedTypeIs": "string",
+          "description": "state.Message must resolve to the page's Response.Message field."
+        }
+      ]
+    }
+  ]
+}

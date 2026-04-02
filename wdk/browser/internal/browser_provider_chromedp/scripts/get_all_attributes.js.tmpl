@@ -1,0 +1,9 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return null;
+    const attrs = {};
+    for (const attr of el.attributes) {
+        attrs[attr.name] = attr.value;
+    }
+    return attrs;
+})()

@@ -1,0 +1,55 @@
+{
+  "description": "Tests that nested object literal args in p-event are correctly bound to nested Go structs",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for DOMBinder to bind the p-event handler"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#target[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Click the button to dispatch the do-update custom event"
+    },
+    {
+      "action": "click",
+      "selector": "#trigger-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify the action received the nested object literal values"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-name",
+      "expected": "Alice"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-city",
+      "expected": "London"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-postcode",
+      "expected": "SW1A1AA"
+    }
+  ]
+}

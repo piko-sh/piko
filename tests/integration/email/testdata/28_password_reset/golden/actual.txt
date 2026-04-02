@@ -1,0 +1,13 @@
+Vaultkey
+
+🔒
+
+Password Reset Request
+
+We received a request to reset your password. Click the button below to choose a new one.
+
+ Reset Password (https://example.com/reset-password)
+
+If you didn't request this, you can safely ignore this email. The link expires in 24 hours.
+
+This is an automated message from Vaultkey.

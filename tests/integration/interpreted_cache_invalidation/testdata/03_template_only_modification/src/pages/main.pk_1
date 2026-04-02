@@ -1,0 +1,26 @@
+<template>
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Template Only Test</title>
+</head>
+<body>
+	<h1>Stage 1: Template Changed</h1>
+	<p>This template content has been modified.</p>
+	<p>But the script block is IDENTICAL - Title: Template Only Test</p>
+	<p>This should trigger Tier 1 cache HIT (fast path)!</p>
+</body>
+</html>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

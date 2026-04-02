@@ -1,0 +1,5 @@
+{
+  "description": "Tests CSS scoping for runtime-added classes like .modal-wrapper.open where .open is added via JavaScript classList.add()",
+  "packageName": "testcase_086_css_scoping_runtime_class",
+  "isPage": true
+}

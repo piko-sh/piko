@@ -1,0 +1,12 @@
+{
+  "description": "Tests that the linker produces a diagnostic error for duplicate prop tag names in a Props struct.",
+  "shouldError": false,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Duplicate prop name 'title' defined in Props struct"
+    }
+  ],
+  "expectedUniqueInvocations": 1
+}

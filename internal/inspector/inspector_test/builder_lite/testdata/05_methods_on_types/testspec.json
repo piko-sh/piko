@@ -1,0 +1,27 @@
+{
+  "description": "Types with methods defined on them",
+  "moduleName": "testcase_lite_05",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "User type has methods",
+      "select": "packages.testcase_lite_05.named_types.User.methods.0.name",
+      "expect": "FullName"
+    },
+    {
+      "description": "User has String method",
+      "select": "packages.testcase_lite_05.named_types.User.methods.1.name",
+      "expect": "String"
+    },
+    {
+      "description": "User has SetEmail method",
+      "select": "packages.testcase_lite_05.named_types.User.methods.2.name",
+      "expect": "SetEmail"
+    },
+    {
+      "description": "Counter type has methods",
+      "select": "packages.testcase_lite_05.named_types.Counter.methods.0.name",
+      "expect": "Increment"
+    }
+  ]
+}

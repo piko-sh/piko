@@ -1,0 +1,90 @@
+{
+  "description": "Validates type analysis of a third-party type (uuid.UUID) in both interpolation and prop-passing scenarios.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#direct-implicit",
+      "description": "Interpolation: A directly used uuid.UUID should be resolved and stringable.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.DirectUUID",
+        "resolvedTypeIs": "uuid.UUID",
+        "stringabilityIs": 2
+      }
+    },
+    {
+      "select": "#direct-explicit",
+      "description": "Interpolation: Calling .String() on a uuid.UUID should resolve to a primitive string.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.DirectUUID.String()",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#model-implicit",
+      "description": "Interpolation: A nested uuid.UUID should be resolved and stringable.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.ModelData.UserID",
+        "resolvedTypeIs": "uuid.UUID",
+        "stringabilityIs": 2
+      }
+    },
+    {
+      "select": "#model-explicit",
+      "description": "Interpolation: Calling .String() on a nested uuid.UUID should resolve to string.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.ModelData.UserID.String()",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#aliased-implicit",
+      "description": "Interpolation: A type alias of uuid.UUID should be resolved and stringable.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.AliasedUUID",
+        "resolvedTypeIs": "uuid.UUID"
+      }
+    },
+    {
+      "select": "#aliased-explicit",
+      "description": "Interpolation: Calling .String() on a type alias of uuid.UUID should resolve to string.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.AliasedUUID.String()",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#prop-implicit-string",
+      "description": "Prop Passing: Passing a stringable type (uuid.UUID) to a string prop should be allowed implicitly.",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "title",
+          "expressionIs": "state.DirectUUID",
+          "resolvedTypeIs": "uuid.UUID"
+        }
+      }
+    },
+    {
+      "select": "#prop-exact-match",
+      "description": "Prop Passing: Passing uuid.UUID to a uuid.UUID prop should be a valid exact match.",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "id",
+          "expressionIs": "state.DirectUUID",
+          "resolvedTypeIs": "uuid.UUID"
+        }
+      }
+    },
+    {
+      "select": "#prop-explicit-string",
+      "description": "Prop Passing: Passing an explicitly converted string should be valid.",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "title",
+          "expressionIs": "state.DirectUUID.String()",
+          "resolvedTypeIs": "string"
+        }
+      }
+    }
+  ]
+}

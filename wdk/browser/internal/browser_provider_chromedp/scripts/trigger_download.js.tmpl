@@ -1,0 +1,8 @@
+(() => {
+    const a = document.createElement('a');
+    a.href = {{jsStr .URL}};
+    a.download = {{jsStr .Filename}};
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+})()

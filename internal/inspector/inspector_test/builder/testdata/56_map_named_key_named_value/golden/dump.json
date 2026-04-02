@@ -1,0 +1,157 @@
+{
+  "packages": {
+    "testcase_56_map_named_key_named_value": {
+      "file_imports": {
+        "56_map_named_key_named_value/src/main.go": {
+          "keys": "testcase_56_map_named_key_named_value/keys",
+          "values": "testcase_56_map_named_key_named_value/values"
+        }
+      },
+      "named_types": {
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_56_map_named_key_named_value",
+          "defined_in_file_path": "56_map_named_key_named_value/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{Lookup map[keys.Key]values.Value}",
+          "fields": [
+            {
+              "definition_file_path": "56_map_named_key_named_value/src/main.go",
+              "declaring_pkg_path": "testcase_56_map_named_key_named_value",
+              "pkg_path": "testcase_56_map_named_key_named_value/values",
+              "underlying_type_string": "map[keys.Key]values.Value",
+              "declaring_type_name": "Response",
+              "name": "Lookup",
+              "type_string": "map[keys.Key]values.Value",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "key",
+                  "type_string": "keys.Key",
+                  "role": "key",
+                  "underlying_type_string": "struct{ID string}",
+                  "pkg_path": "testcase_56_map_named_key_named_value/keys",
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                },
+                {
+                  "type": "value",
+                  "type_string": "values.Value",
+                  "role": "value",
+                  "underlying_type_string": "struct{Data string}",
+                  "pkg_path": "testcase_56_map_named_key_named_value/values",
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 1,
+              "definition_line": 29,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 26,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_56_map_named_key_named_value",
+      "name": "main"
+    },
+    "testcase_56_map_named_key_named_value/keys": {
+      "file_imports": {
+        "56_map_named_key_named_value/src/keys/key.go": {}
+      },
+      "named_types": {
+        "Key": {
+          "name": "Key",
+          "package_path": "testcase_56_map_named_key_named_value/keys",
+          "defined_in_file_path": "56_map_named_key_named_value/src/keys/key.go",
+          "type_string": "keys.Key",
+          "underlying_type_string": "struct{ID string}",
+          "fields": [
+            {
+              "definition_file_path": "56_map_named_key_named_value/src/keys/key.go",
+              "declaring_pkg_path": "testcase_56_map_named_key_named_value/keys",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "declaring_type_name": "Key",
+              "name": "ID",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 22,
+              "definition_column": 18,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_56_map_named_key_named_value/keys",
+      "name": "keys"
+    },
+    "testcase_56_map_named_key_named_value/values": {
+      "file_imports": {
+        "56_map_named_key_named_value/src/values/value.go": {}
+      },
+      "named_types": {
+        "Value": {
+          "name": "Value",
+          "package_path": "testcase_56_map_named_key_named_value/values",
+          "defined_in_file_path": "56_map_named_key_named_value/src/values/value.go",
+          "type_string": "values.Value",
+          "underlying_type_string": "struct{Data string}",
+          "fields": [
+            {
+              "definition_file_path": "56_map_named_key_named_value/src/values/value.go",
+              "declaring_pkg_path": "testcase_56_map_named_key_named_value/values",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "declaring_type_name": "Value",
+              "name": "Data",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 22,
+              "definition_column": 20,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_56_map_named_key_named_value/values",
+      "name": "values"
+    }
+  },
+  "file_to_package": {
+    "56_map_named_key_named_value/src/keys/key.go": "testcase_56_map_named_key_named_value/keys",
+    "56_map_named_key_named_value/src/main.go": "testcase_56_map_named_key_named_value",
+    "56_map_named_key_named_value/src/values/value.go": "testcase_56_map_named_key_named_value/values"
+  }
+}

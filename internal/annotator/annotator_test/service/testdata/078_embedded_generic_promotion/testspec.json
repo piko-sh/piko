@@ -1,0 +1,99 @@
+{
+  "description": "Validates that methods are correctly promoted from embedded generic types. RefWrapper[T] embeds Ref[T], so RefWrapper[TeamMember].Get() should return TeamMember via promotion.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "p.promoted-get",
+      "description": "CRITICAL: Get() promoted from embedded Ref[T] should return TeamMember.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.WrappedMember.Get()",
+          "resolvedTypeIs": "dto.TeamMember"
+        },
+        {
+          "rawExpression": "props.Data.WrappedMember.Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.promoted-hasitem",
+      "description": "HasItem() promoted from embedded Ref[T] should return bool.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.WrappedMember.HasItem()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.promoted-getid",
+      "description": "GetID() promoted from embedded Ref[T] should return string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.WrappedMember.GetID()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.own-method",
+      "description": "GetLabel() is RefWrapper's own method, should return string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.WrappedMember.GetLabel()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.promoted-field",
+      "description": "Field access on result of promoted Get() should work.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.WrappedMember.Get().FirstName",
+          "resolvedTypeIs": "fields.Text"
+        },
+        {
+          "rawExpression": "props.Data.WrappedMember.Get().FirstName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.explicit-embedded",
+      "description": "Explicit access through embedded field should also work.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.WrappedMember.Ref.Get().LastName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.named-field",
+      "description": "Named field access for comparison (not promotion).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.NamedMember.TheRef.Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.combined",
+      "description": "Both own and promoted methods work together.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.WrappedMember.GetLabel()",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "props.Data.WrappedMember.Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

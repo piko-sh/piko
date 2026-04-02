@@ -1,0 +1,54 @@
+{
+  "description": "Tests that pk/actions.gen.ts is valid ES module and can be dynamically imported",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#module-loaded",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-action",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-demo",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-hello",
+      "expected": "true"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-greeting",
+      "expected": "Hello, Module Test!"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_import.html"
+    }
+  ]
+}

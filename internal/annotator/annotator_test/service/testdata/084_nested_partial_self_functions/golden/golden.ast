@@ -1,0 +1,35 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="outer" [ANNOTATIONS: OriginPackage: partials_outer_796b96dd OriginPath: partials/outer.pk PARTIAL InvKey: outer_value_42_669718d0 Package: partials_outer_796b96dd InvPackage: main_aaf9a2e0]>
+  <span class="prefix" [ANNOTATIONS: OriginPackage: partials_outer_796b96dd OriginPath: partials/outer.pk]>
+    <RichText>
+      {{ OuterPrefix }}
+    </RichText>
+  </span>
+  <span id="outer-span" [ANNOTATIONS: OriginPackage: partials_outer_796b96dd OriginPath: partials/outer.pk]>
+    <RichText>
+      {{ FormatOuter(props.Value) }}
+    </RichText>
+  </span>
+  <div class="inner" [ANNOTATIONS: OriginPackage: partials_inner_8c3dbfdd OriginPath: partials/inner.pk PARTIAL InvKey: inner_outer_value_42_669718d0_value_props_value_aefe5006 Package: partials_inner_8c3dbfdd InvPackage: partials_outer_796b96dd]>
+    <span class="prefix" [ANNOTATIONS: OriginPackage: partials_inner_8c3dbfdd OriginPath: partials/inner.pk]>
+      <RichText>
+        {{ InnerPrefix }}
+      </RichText>
+    </span>
+    <span class="value" [ANNOTATIONS: OriginPackage: partials_inner_8c3dbfdd OriginPath: partials/inner.pk]>
+      <RichText>
+        {{ FormatInner(props.Value) }}
+      </RichText>
+    </span>
+    <span class="suffix" [ANNOTATIONS: OriginPackage: partials_inner_8c3dbfdd OriginPath: partials/inner.pk]>
+      <RichText>
+        {{ InnerSuffix }}
+      </RichText>
+    </span>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

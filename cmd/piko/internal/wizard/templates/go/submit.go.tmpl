@@ -1,0 +1,34 @@
+package greeting
+
+import "piko.sh/piko"
+
+// SubmitAction handles POST requests with a name input.
+//
+// Call from a template: action.greeting.Submit({name: "Alice"})
+//
+// The json tags map form field names to struct fields. When the action
+// is called, Piko deserialises the input using these tags.
+//
+// The validate tags are processed automatically before Call is invoked.
+// If validation fails, Piko returns an error response to the client and
+// Call is never executed.
+type SubmitAction struct {
+	piko.ActionMetadata
+}
+
+// SubmitInput defines the data the action expects to receive.
+type SubmitInput struct {
+	Name string `json:"name" validate:"required"`
+}
+
+// SubmitResponse defines the data returned by the action.
+type SubmitResponse struct {
+	Greeting string `json:"greeting"`
+}
+
+// Call returns a personalised greeting for the given name.
+func (a SubmitAction) Call(input SubmitInput) (SubmitResponse, error) {
+	return SubmitResponse{
+		Greeting: "Hello, " + input.Name + "!",
+	}, nil
+}

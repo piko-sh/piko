@@ -1,0 +1,74 @@
+{
+  "packages": {
+    "testcase_33_pkg_name_mismatch": {
+      "file_imports": {
+        "33_pkg_name_mismatch/src/main.go": {
+          "api": "testcase_33_pkg_name_mismatch/api/v1"
+        }
+      },
+      "named_types": {
+        "Request": {
+          "name": "Request",
+          "package_path": "testcase_33_pkg_name_mismatch",
+          "defined_in_file_path": "33_pkg_name_mismatch/src/main.go",
+          "type_string": "main.Request",
+          "underlying_type_string": "struct{APIResponse api.Response}",
+          "fields": [
+            {
+              "definition_file_path": "33_pkg_name_mismatch/src/main.go",
+              "declaring_pkg_path": "testcase_33_pkg_name_mismatch",
+              "pkg_path": "testcase_33_pkg_name_mismatch/api/v1",
+              "underlying_type_string": "struct{}",
+              "declaring_type_name": "Request",
+              "name": "APIResponse",
+              "type_string": "api.Response",
+              "raw_tag": "",
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_33_pkg_name_mismatch",
+      "name": "main"
+    },
+    "testcase_33_pkg_name_mismatch/api/v1": {
+      "file_imports": {
+        "33_pkg_name_mismatch/src/api/v1/handler.go": {}
+      },
+      "named_types": {
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_33_pkg_name_mismatch/api/v1",
+          "defined_in_file_path": "33_pkg_name_mismatch/src/api/v1/handler.go",
+          "type_string": "api.Response",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_33_pkg_name_mismatch/api/v1",
+      "name": "api"
+    }
+  },
+  "file_to_package": {
+    "33_pkg_name_mismatch/src/api/v1/handler.go": "testcase_33_pkg_name_mismatch/api/v1",
+    "33_pkg_name_mismatch/src/main.go": "testcase_33_pkg_name_mismatch"
+  }
+}

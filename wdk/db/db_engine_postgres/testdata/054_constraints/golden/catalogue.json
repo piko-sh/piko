@@ -1,0 +1,245 @@
+{
+  "Schemas": {
+    "public": {
+      "Tables": {
+        "categories": {
+          "Name": "categories",
+          "Schema": "public",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "int4",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "name",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "text",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        },
+        "products": {
+          "Name": "products",
+          "Schema": "public",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "int4",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "name",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "text",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "category_id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "int4",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "price",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": 10,
+                "Scale": 2,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "numeric",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 2
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": [
+            {
+              "Name": "fk_category",
+              "ForeignTable": "categories",
+              "Columns": [
+                "category_id"
+              ],
+              "ForeignColumns": [
+                "id"
+              ],
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "Kind": 1
+            },
+            {
+              "Name": "uq_product_name",
+              "ForeignTable": "",
+              "Columns": [
+                "name"
+              ],
+              "ForeignColumns": null,
+              "Origin": {
+                "Filename": "002_add_constraint.up.sql",
+                "Index": 1
+              },
+              "Kind": 2
+            }
+          ],
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": "public"
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": "public"
+}

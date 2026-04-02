@@ -1,0 +1,47 @@
+--- PACKAGE: testcase_10_generics_promoted_method ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 10_generics_promoted_method/src/main.go
+    - import "models"             -> testcase_10_generics_promoted_method/models
+
+[Named Types]
+  > type StringBox
+    - Defined In:      10_generics_promoted_method/src/main.go
+    - TypeString:      main.StringBox
+    - Underlying:      struct{models.Box[string]}
+    - Stringability:   0
+    - Fields:
+      - Box                  models.Box[string] (embedded)
+        (Canonical Package: testcase_10_generics_promoted_method/models)
+    - Methods:
+      - func (T) Get             func() string
+        (Promoted from: testcase_10_generics_promoted_method/models.Box)
+      - func (*T) Set             func(string) 
+        (Promoted from: testcase_10_generics_promoted_method/models.Box)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_10_generics_promoted_method/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 10_generics_promoted_method/src/models/box.go
+    (no imports in this file)
+
+[Named Types]
+  > type Box
+    - Defined In:      10_generics_promoted_method/src/models/box.go
+    - TypeString:      models.Box[T]
+    - Underlying:      struct{value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Methods:
+      - func (T) Get             func() T
+      - func (*T) Set             func(T) 
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,55 @@
+{
+  "description": "Batch operations: verify multiple artefact retrieval and listing",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/image1.jpg",
+      "expectedArtefactID": "testmodule/lib/images/image1.jpg"
+    },
+    {
+      "sourcePath": "src/lib/images/image2.jpg",
+      "expectedArtefactID": "testmodule/lib/images/image2.jpg"
+    },
+    {
+      "sourcePath": "src/lib/images/image3.bmp",
+      "expectedArtefactID": "testmodule/lib/images/image3.bmp"
+    }
+  ],
+  "batchChecks": [
+    {
+      "operation": "listAll",
+      "expectCount": 3,
+      "expectIDs": [
+        "testmodule/lib/images/image1.jpg",
+        "testmodule/lib/images/image2.jpg",
+        "testmodule/lib/images/image3.bmp"
+      ],
+      "description": "List all should return all 3 stored artefacts"
+    },
+    {
+      "operation": "getMultiple",
+      "artefactIDs": [
+        "testmodule/lib/images/image1.jpg",
+        "testmodule/lib/images/image2.jpg"
+      ],
+      "expectCount": 2,
+      "expectIDs": [
+        "testmodule/lib/images/image1.jpg",
+        "testmodule/lib/images/image2.jpg"
+      ],
+      "description": "Get multiple should return requested artefacts"
+    },
+    {
+      "operation": "getMultiple",
+      "artefactIDs": [
+        "testmodule/lib/images/image1.jpg",
+        "nonexistent/artefact.jpg"
+      ],
+      "expectCount": 1,
+      "expectIDs": [
+        "testmodule/lib/images/image1.jpg"
+      ],
+      "description": "Get multiple with non-existent ID should return partial results"
+    }
+  ]
+}

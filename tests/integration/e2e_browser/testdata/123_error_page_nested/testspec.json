@@ -1,0 +1,38 @@
+{
+  "description": "Verifies hierarchical error page resolution: app-scoped 404 for /app/* and root 404 for other paths",
+  "requestURL": "/app/nonexistent",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "App 404"
+    },
+    {
+      "action": "checkText",
+      "selector": "#scope",
+      "expected": "app"
+    },
+    {
+      "action": "navigate",
+      "value": "/other/nonexistent"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Root 404"
+    },
+    {
+      "action": "checkText",
+      "selector": "#scope",
+      "expected": "root"
+    }
+  ]
+}

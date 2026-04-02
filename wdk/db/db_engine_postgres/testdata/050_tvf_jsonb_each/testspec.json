@@ -1,0 +1,3 @@
+{
+  "description": "Table-valued functions (jsonb_each, jsonb_array_elements) in FROM clauses with correct output column types and nullability."
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "employees.sql",
+    "Message": "unknown table or view \"hierarchy\" in schema \"main\"",
+    "Code": "Q003",
+    "Suggestion": "",
+    "Line": 8,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

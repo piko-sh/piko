@@ -1,0 +1,45 @@
+{
+  "description": "Validates that a partial with multiple root nodes is correctly wrapped in a fragment, and that invoker attributes/directives are applied to that wrapper.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "_fragment",
+      "description": "The fragment wrapper should be created and should receive the attributes and directives from the invoker.",
+      "assert": {
+        "attr": {
+          "id": "my-block"
+        },
+        "childElementCount": 2,
+        "hasPartialInfo": true
+      },
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "true",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "h2[p-fragment]",
+      "description": "The h2 inside the fragment should NOT have the invoker's id but should have the p-fragment attribute.",
+      "assert": {
+        "attr": {
+          "id": "null",
+          "p-fragment-id": "0"
+        }
+      }
+    },
+    {
+      "select": "p[p-fragment]",
+      "description": "The p inside the fragment should NOT have the invoker's id but should have the p-fragment attribute.",
+      "assert": {
+        "attr": {
+          "id": "null",
+          "p-fragment-id": "1"
+        }
+      }
+    }
+  ]
+}

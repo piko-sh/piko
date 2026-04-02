@@ -1,0 +1,6 @@
+{
+  "description": "Tests edge cases: empty lists, NotExists, boundary conditions",
+  "entryPoints": [
+    { "path": "pages/empty.pk", "isPage": true }
+  ]
+}

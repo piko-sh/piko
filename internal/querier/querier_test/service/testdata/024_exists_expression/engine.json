@@ -1,0 +1,63 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" },
+    "boolean": { "category": "boolean", "engineName": "boolean" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id int4 PRIMARY KEY, name text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE orders ( id int4 PRIMARY KEY, user_id int4 NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "orders",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "user_id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, name, EXISTS(SELECT 1 FROM orders WHERE orders.user_id = users.id) as has_orders FROM users",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "users",
+            "columnName": "id"
+          },
+          {
+            "name": "name",
+            "tableAlias": "users",
+            "columnName": "name"
+          },
+          {
+            "name": "has_orders",
+            "expression": {
+              "kind": "exists"
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "users" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

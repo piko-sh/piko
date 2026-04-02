@@ -1,0 +1,106 @@
+{
+  "description": "Tests modal-like overlay toggle using p-if for showing/hiding content",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Modal Toggle Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "modal-demo"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "modal-demo >>> #status",
+      "expected": "Status: Modal Closed"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "modal-demo >>> #open-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "modal-demo >>> #status",
+      "expected": "Status: Modal Open"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "modal-demo >>> .overlay"
+    },
+    {
+      "action": "checkText",
+      "selector": "modal-demo >>> #modal-message",
+      "expected": "Welcome to the modal!"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_open.html"
+    },
+    {
+      "action": "fill",
+      "selector": "modal-demo >>> #modal-input",
+      "value": "Hello World"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "click",
+      "selector": "modal-demo >>> #update-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "modal-demo >>> #modal-message",
+      "expected": "You typed: Hello World"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_update.html"
+    },
+    {
+      "action": "click",
+      "selector": "modal-demo >>> #close-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "modal-demo >>> #status",
+      "expected": "Status: Modal Closed"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_close.html"
+    }
+  ]
+}

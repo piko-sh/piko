@@ -1,0 +1,54 @@
+{
+  "groups": {
+    "sidebar": {
+      "sections": [
+        {
+          "children": [
+            {
+              "id": "advanced",
+              "title": "Advanced Configuration",
+              "section": "advanced",
+              "url": "/docs/advanced",
+              "icon": "code",
+              "level": 1,
+              "order": 1
+            }
+          ],
+          "id": "advanced",
+          "title": "Advanced",
+          "section": "advanced",
+          "level": 0,
+          "order": 999
+        },
+        {
+          "children": [
+            {
+              "id": "intro",
+              "title": "Intro",
+              "section": "getting-started",
+              "url": "/docs/intro",
+              "icon": "book",
+              "level": 1,
+              "order": 1
+            },
+            {
+              "id": "setup",
+              "title": "Environment Setup",
+              "section": "getting-started",
+              "url": "/docs/setup",
+              "icon": "settings",
+              "level": 1,
+              "order": 2
+            }
+          ],
+          "id": "getting-started",
+          "title": "Getting Started",
+          "section": "getting-started",
+          "level": 0,
+          "order": 999
+        }
+      ],
+      "locale": "en"
+    }
+  }
+}

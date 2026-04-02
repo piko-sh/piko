@@ -1,0 +1,100 @@
+[
+  {
+    "InsertTable": "tokens",
+    "Filename": "create_token.sql",
+    "SQL": "-- piko.name: CreateToken\n-- piko.command: one\nINSERT INTO tokens (value) VALUES ($1) RETURNING id, value;",
+    "Name": "CreateToken",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "tokens",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "uuid",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 8
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "value",
+        "SourceTable": "tokens",
+        "SourceColumn": "value",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": [
+      "value"
+    ],
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 0,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  }
+]

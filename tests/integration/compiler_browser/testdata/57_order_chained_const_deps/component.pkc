@@ -1,0 +1,48 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="chained-const-deps">
+    <div>
+        <p>Total: {{ state.total }}</p>
+        <p>Sum: {{ state.sum }}</p>
+    </div>
+</template>
+
+<script lang="ts">
+    const A = 1;
+    const B = A + 1;           // B = 2
+    const C = B * 2;           // C = 4
+    const D = A + B + C;       // D = 7
+    const E = D * D;           // E = 49
+
+    const BASE_RATE = 0.1;
+    const MULTIPLIER = 100;
+    const ADJUSTED_RATE = BASE_RATE * MULTIPLIER;  // 10
+    const FINAL_RATE = ADJUSTED_RATE + D;          // 17
+
+    const state = {
+        total: E as number,
+        sum: FINAL_RATE as number
+    };
+
+    function recalculate() {
+        state.total = A + B + C + D + E;
+    }
+</script>

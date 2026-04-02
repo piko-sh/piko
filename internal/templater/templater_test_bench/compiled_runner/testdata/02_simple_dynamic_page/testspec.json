@@ -1,0 +1,4 @@
+{
+  "description": "Benchmark: a dynamic page with a Render function that returns a slice, rendered with a p-for loop. This measures the performance of dynamic data binding and loops.",
+  "targetPage": "pages/main.pk"
+}

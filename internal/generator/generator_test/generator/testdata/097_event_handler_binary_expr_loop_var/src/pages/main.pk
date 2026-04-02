@@ -1,0 +1,126 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Event Handler Expression Type Checking</h1>
+    <p>
+      This test validates that the generator correctly handles various event handler
+      expressions with proper type annotations from the annotator.
+    </p>
+
+    <div class="scenario-1">
+      <img
+        class="photo-item"
+        p-for="(index, img) in state.ThumbnailImages"
+        p-key="img"
+        p-on:click="openLightbox($event, index + 1)"
+        :src="img"
+      />
+    </div>
+
+    <div class="scenario-2">
+      <button p-on:click="handleClick($event)">Click Me</button>
+    </div>
+
+    <div class="scenario-3">
+      <button p-on:click="handleCounter(state.Counter)">Counter: {{ state.Counter }}</button>
+    </div>
+
+    <div class="scenario-4">
+      <button p-on:click="handleMultiple($event, state.Counter, state.Counter * 2)">
+        Multiple Args
+      </button>
+    </div>
+
+    <div class="scenario-5">
+      <div p-for="(i, category) in state.Categories" p-key="category.Name">
+        <h3>{{ category.Name }}</h3>
+        <button
+          p-for="(j, item) in category.Items"
+          p-key="item"
+          p-on:click="handleNested(i, j, item)"
+        >
+          {{ item }}
+        </button>
+      </div>
+    </div>
+
+    <div class="scenario-6">
+      <button p-on:click="action.deleteItem(state.SelectedID)">Delete</button>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Category struct {
+    Name  string
+    Items []string
+  }
+
+  type Response struct {
+    ThumbnailImages []string
+    Counter         int
+    Categories      []Category
+    SelectedID      int
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      ThumbnailImages: []string{
+        "/img/photo1.jpg",
+        "/img/photo2.jpg",
+        "/img/photo3.jpg",
+      },
+      Counter: 42,
+      Categories: []Category{
+        {Name: "Fruits", Items: []string{"Apple", "Banana"}},
+        {Name: "Vegetables", Items: []string{"Carrot", "Broccoli"}},
+      },
+      SelectedID: 123,
+    }, piko.Metadata{}, nil
+  }
+</script>
+
+<script type="application/javascript">
+function openLightbox(e, slideIndex) {
+    console.log('Opening lightbox at slide', slideIndex);
+}
+
+function handleClick(e) {
+    console.log('Clicked:', e);
+}
+
+function handleCounter(count) {
+    console.log('Counter:', count);
+}
+
+function handleMultiple(e, counter, doubled) {
+    console.log('Event:', e, 'Counter:', counter, 'Doubled:', doubled);
+}
+
+function handleNested(categoryIndex, itemIndex, itemName) {
+    console.log('Category:', categoryIndex, 'Item:', itemIndex, 'Name:', itemName);
+}
+</script>

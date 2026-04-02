@@ -1,0 +1,125 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="pp-dynamic-list">
+  <div class="dynamic-list-wrapper">
+    <slot name="list"></slot>
+
+    <div class="controls">
+      <slot name="add-button"></slot>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        partial_src: '' as string,
+        action_prefix: '' as string,
+    };
+
+  const getForm = () => {
+    return this.closest('form');
+  }
+
+  const render = async (action, index) => {
+    console.log('pp-dynamic-list render called:', action, index, 'partial_src:', state.partial_src);
+    if (!state.partial_src) {
+      console.error("pp-dynamic-list: `partial_src` attribute is not set. Cannot re-render.");
+      return;
+    }
+
+    const formData = new FormData(getForm());
+    const actionKey = `_action_${state.action_prefix}_${action}`;
+    formData.set(actionKey, index !== undefined ? String(index) : 'true');
+
+    const data = {};
+    const keys = new Set(formData.keys());
+    for (const key of keys) {
+      data[key] = formData.getAll(key);
+    }
+
+    console.log('pp-dynamic-list calling remoteRender with:', state.partial_src, data);
+
+    await piko.partials.render({
+      src: state.partial_src,
+      formData: data,
+      querySelector: '[slot=list]',
+      patchLocation: this.querySelector("[slot=list]"),
+      patchMethod: 'morph',
+      preservePartialScopes: true,
+    });
+
+    console.log('pp-dynamic-list remoteRender complete');
+  }
+
+  const addItem = () => {
+    console.log('pp-dynamic-list addItem called');
+    render('add');
+  }
+
+  const handleClick = (event) => {
+    console.log('pp-dynamic-list handleClick triggered, target:', event.target, 'target class:', event.target.className);
+
+    const removeButton = event.target.closest('[p-action="remove-item"]');
+    if (removeButton) {
+      console.log('pp-dynamic-list remove button found');
+      const indexToRemove = removeButton.dataset.index;
+      if (indexToRemove !== undefined) {
+        render('remove', indexToRemove);
+      }
+      return;
+    }
+
+    const addButton = event.target.closest('[slot="add-button"] button, [slot="add-button"]');
+    console.log('pp-dynamic-list checking add button, found:', addButton, 'contains:', addButton ? this.contains(addButton) : 'n/a');
+    if (addButton && this.contains(addButton)) {
+      console.log('pp-dynamic-list calling addItem');
+      addItem();
+    }
+  }
+
+  pkc.onConnected(() => {
+    console.log('pp-dynamic-list onConnected called');
+    this.addEventListener('click', handleClick);
+  });
+
+  pkc.onDisconnected(() => {
+    console.log('pp-dynamic-list onDisconnected called');
+    this.removeEventListener('click', handleClick);
+  });
+
+</script>
+
+<style>
+  :host {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .dynamic-list-wrapper {
+    width: 100%;
+    display: contents;
+  }
+
+  .controls {
+    display: flex;
+  }
+</style>

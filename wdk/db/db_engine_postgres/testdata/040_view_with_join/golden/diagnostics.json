@@ -1,0 +1,46 @@
+[
+  {
+    "Filename": "list_books.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"id\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "list_books.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"title\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "list_books.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"author_name\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "list_books.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "query \"ListBooks\" uses command \"many\" but produces no output columns",
+    "Severity": 1,
+    "Code": "Q009",
+    "Suggestion": ""
+  }
+]

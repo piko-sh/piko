@@ -1,0 +1,144 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "events.sql",
+    "SQL": "-- piko.name: ListEvents\n-- piko.command: many\nSELECT id, name, payload FROM events;",
+    "Name": "ListEvents",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "events",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "name",
+        "SourceTable": "events",
+        "SourceColumn": "name",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "varchar",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "payload",
+        "SourceTable": "events",
+        "SourceColumn": "payload",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "union",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": [
+            {
+              "Tag": "text_value",
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "varchar",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              }
+            },
+            {
+              "Tag": "int_value",
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "int4",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              }
+            },
+            {
+              "Tag": "bool_value",
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "bool",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 3
+              }
+            }
+          ],
+          "Category": 17
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

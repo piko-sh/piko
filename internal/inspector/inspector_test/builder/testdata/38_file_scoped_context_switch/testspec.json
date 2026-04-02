@@ -1,0 +1,20 @@
+{
+  "description": "Tests that the serialiser correctly uses the import context of the file where a type is defined, not the context of a different file that happens to be in the build.",
+  "moduleName": "testcase_38_file_scoped_context_switch",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_38_file_scoped_context_switch/services"
+  ],
+  "assertions": [
+    {
+      "description": "The 'GetUser' method is in the 'services' package.",
+      "select": "packages.testcase_38_file_scoped_context_switch/services.named_types.UserService.methods.0.name",
+      "expect": "GetUser"
+    },
+    {
+      "description": "The return type of 'GetUser' must be 'models.User', using the import context from 'service.go', NOT 'dbmodels.User'.",
+      "select": "packages.testcase_38_file_scoped_context_switch/services.named_types.UserService.methods.0.signature.results.0",
+      "expect": "*models.User"
+    }
+  ]
+}

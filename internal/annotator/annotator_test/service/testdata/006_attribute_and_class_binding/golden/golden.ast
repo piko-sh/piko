@@ -1,0 +1,9 @@
+/*
+--- BEGIN AST DUMP ---
+
+<a id="my-link" :class="state.ExtraClasses" {P: state.ExtraClasses} :href="state.URL" {P: state.URL} [p-class: {"active": state.IsActive, "inactive": !state.IsActive}] [p-style: {"color": state.Color, "font-weight": "bold"}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Click Me"
+</a>
+
+--- END AST DUMP ---
+*/

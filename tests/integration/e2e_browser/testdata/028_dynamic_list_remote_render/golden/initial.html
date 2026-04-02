@@ -1,0 +1,33 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0" class="page">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">Dynamic List Test</h1>
+    <form partial="pages_main_594861c5" p-key="r.0:1" id="test_form" class="form" data-pk-tracked="true">
+      <input partial="pages_main_594861c5" p-key="r.0:1:0" type="hidden" name="form_id" value="test123" />
+      <h2 partial="pages_main_594861c5" p-key="r.0:1:1">Items</h2>
+      <pp-dynamic-list
+        partial="partials_items_487aa89f"
+        partial_name="items"
+        partial_src="/_piko/partials/items"
+        p-key="r.0:1:2"
+        action_prefix="items"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: flex;flex-direction: column;gap: 15px}.dynamic-list-wrapper{width: 100%;display: contents}.controls{display: flex}</style>
+          <div class="dynamic-list-wrapper">
+            <slot name="list"></slot>
+            <div class="controls">
+              <slot name="add-button"></slot>
+            </div>
+          </div>
+        </template>
+        <div partial="partials_items_487aa89f" p-key="r.0:1:2:0" slot="list" class="list"></div>
+        <div partial="partials_items_487aa89f" p-key="r.0:1:2:1" slot="add-button"><button partial="partials_items_487aa89f" p-key="r.0:1:2:1:0" type="button" class="add-btn">Add item</button></div>
+      </pp-dynamic-list>
+    </form>
+    <div partial="pages_main_594861c5" p-key="r.0:2" class="debug">
+      <h3 partial="pages_main_594861c5" p-key="r.0:2:0">Form Data Debug</h3>
+      <pre partial="pages_main_594861c5" p-key="r.0:2:1" id="form-debug"></pre>
+    </div>
+  </div>
+</div>

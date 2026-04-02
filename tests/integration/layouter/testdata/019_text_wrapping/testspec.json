@@ -1,0 +1,7 @@
+{
+    "description": "Verifies word-break positions and multi-line text height with real font metrics.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

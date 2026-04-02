@@ -1,0 +1,6 @@
+{
+  "title": "Team Invitation",
+  "description": "Team workspace invitation with member info and permissions",
+  "metadata": {"title": "You've Been Invited to Join a Team"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

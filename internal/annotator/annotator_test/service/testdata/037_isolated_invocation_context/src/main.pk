@@ -1,0 +1,65 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	templater_dto "piko.sh/piko/internal/templater/templater_dto"
+	"testcase_37_isolated_invocation_context/models"
+	card "testcase_37_isolated_invocation_context/partials/card.pk"
+)
+
+type Response struct {
+	FirstCardTitle  string
+	SecondCardTitle string
+	Users           []models.User
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		FirstCardTitle:  "First Static Card",
+		SecondCardTitle: "Second Static Card",
+		Users: []models.User{
+			{Name: "Alice"},
+			{Name: "Bob"},
+		},
+	}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+    <div>
+        <div id="test-1">
+            <h2>Static Invocations</h2>
+            <piko:partial is="card" :title="state.FirstCardTitle"></piko:partial>
+            <piko:partial is="card" :title="state.SecondCardTitle"></piko:partial>
+        </div>
+
+        <div id="test-2">
+            <h2>Looped Invocations</h2>
+            <ul>
+                <li p-for="user in state.Users">
+                    <piko:partial is="card" :title="user.Name"></piko:partial>
+                </li>
+            </ul>
+        </div>
+    </div>
+</template>

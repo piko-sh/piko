@@ -1,0 +1,25 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return '';
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return '';
+
+    function getFlatText(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return node.textContent;
+        }
+        if (node.nodeName === 'SLOT') {
+            const assigned = node.assignedNodes({flatten: true});
+            if (assigned.length > 0) {
+                return assigned.map(n => getFlatText(n)).join('');
+            }
+        }
+        let text = '';
+        for (const child of node.childNodes) {
+            text += getFlatText(child);
+        }
+        return text;
+    }
+
+    return getFlatText(el);
+})()

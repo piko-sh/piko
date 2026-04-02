@@ -1,0 +1,58 @@
+{
+    "description": "SVG elements should be created with correct SVG namespace and render children properly",
+    "initialState": {
+        "progress": 50
+    },
+    "initialVDOM": "dom.el('div', 'root', { class: 'container' }, [dom.el('svg', 'svg1', { viewBox: '0 0 48 48', class: 'track' }, [dom.el('circle', 'bg', { cx: '24', cy: '24', r: '20', fill: 'none', 'stroke-width': '4' }), dom.el('circle', 'ind', { cx: '24', cy: '24', r: '20', fill: 'none', 'stroke-width': '4', 'stroke-linecap': 'round' })]), dom.el('span', 'label', {}, [dom.txt(String(state.progress) + '%', 'pct')])])",
+    "steps": [
+        {
+            "description": "Initial render with SVG containing two circles",
+            "assertions": [
+                {
+                    "selector": "svg",
+                    "exists": true,
+                    "description": "SVG element should exist"
+                },
+                {
+                    "selector": "svg",
+                    "attributes": { "viewBox": "0 0 48 48" },
+                    "description": "SVG should have viewBox attribute"
+                },
+                {
+                    "selector": "circle",
+                    "count": 2,
+                    "description": "Should have two circle elements"
+                },
+                {
+                    "selector": "span",
+                    "textContent": "50%",
+                    "description": "Label should show 50%"
+                }
+            ]
+        },
+        {
+            "description": "Update progress value and re-render",
+            "stateChanges": [
+                { "path": "progress", "value": 75 }
+            ],
+            "newVDOM": "dom.el('div', 'root', { class: 'container' }, [dom.el('svg', 'svg1', { viewBox: '0 0 48 48', class: 'track' }, [dom.el('circle', 'bg', { cx: '24', cy: '24', r: '20', fill: 'none', 'stroke-width': '4' }), dom.el('circle', 'ind', { cx: '24', cy: '24', r: '20', fill: 'none', 'stroke-width': '4', 'stroke-linecap': 'round' })]), dom.el('span', 'label', {}, [dom.txt(String(state.progress) + '%', 'pct')])])",
+            "assertions": [
+                {
+                    "selector": "svg",
+                    "exists": true,
+                    "description": "SVG element should still exist after update"
+                },
+                {
+                    "selector": "circle",
+                    "count": 2,
+                    "description": "Should still have two circle elements"
+                },
+                {
+                    "selector": "span",
+                    "textContent": "75%",
+                    "description": "Label should show 75%"
+                }
+            ]
+        }
+    ]
+}

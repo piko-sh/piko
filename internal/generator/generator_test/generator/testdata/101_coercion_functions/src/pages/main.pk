@@ -1,0 +1,107 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Coercion Functions Code Generation Test</h1>
+
+    <h2>String Coercion (optimised with strconv)</h2>
+    <p id="string-from-int" p-text="string(state.IntVal)"></p>
+    <p id="string-from-int64" p-text="string(state.Int64Val)"></p>
+    <p id="string-from-float64" p-text="string(state.Float64Val)"></p>
+    <p id="string-from-bool" p-text="string(state.BoolVal)"></p>
+    <p id="string-from-decimal" p-text="string(state.DecimalVal)"></p>
+    <p id="string-from-bigint" p-text="string(state.BigIntVal)"></p>
+
+    <h2>Int Coercion</h2>
+    <p id="int-from-string" p-text="int(state.StringVal)"></p>
+    <p id="int-from-float64" p-text="int(state.Float64Val)"></p>
+    <p id="int-from-bool" p-text="int(state.BoolVal)"></p>
+    <p id="int-from-decimal" p-text="int(state.DecimalVal)"></p>
+
+    <h2>Int64/Int32/Int16 Coercion</h2>
+    <p id="int64-from-string" p-text="int64(state.StringVal)"></p>
+    <p id="int32-from-int" p-text="int32(state.IntVal)"></p>
+    <p id="int16-from-int" p-text="int16(state.IntVal)"></p>
+
+    <h2>Float64/Float32 Coercion</h2>
+    <p id="float64-from-int" p-text="float64(state.IntVal)"></p>
+    <p id="float64-from-string" p-text="float64(state.StringVal)"></p>
+    <p id="float32-from-int" p-text="float32(state.IntVal)"></p>
+    <p id="float-alias" p-text="float(state.IntVal)"></p>
+
+    <h2>Bool Coercion</h2>
+    <p id="bool-from-string" p-text="bool(state.StringVal)"></p>
+    <p id="bool-from-int" p-text="bool(state.IntVal)"></p>
+    <p id="bool-from-float64" p-text="bool(state.Float64Val)"></p>
+
+    <h2>Decimal Coercion</h2>
+    <p id="decimal-from-int" p-text="decimal(state.IntVal)"></p>
+    <p id="decimal-from-float64" p-text="decimal(state.Float64Val)"></p>
+    <p id="decimal-from-string" p-text="decimal(state.StringVal)"></p>
+    <p id="decimal-from-bigint" p-text="decimal(state.BigIntVal)"></p>
+
+    <h2>BigInt Coercion</h2>
+    <p id="bigint-from-int" p-text="bigint(state.IntVal)"></p>
+    <p id="bigint-from-int64" p-text="bigint(state.Int64Val)"></p>
+    <p id="bigint-from-string" p-text="bigint(state.StringVal)"></p>
+    <p id="bigint-from-decimal" p-text="bigint(state.DecimalVal)"></p>
+
+    <h2>Coercion in Ternary</h2>
+    <p id="ternary-coerced" p-text="state.BoolVal ? string(state.IntVal) : state.StringVal"></p>
+
+    <h2>Any Type Fallback</h2>
+    <p id="string-from-any" p-text="string(state.AnyVal)"></p>
+    <p id="int-from-any" p-text="int(state.AnyVal)"></p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/maths"
+  )
+
+  type Response struct {
+    IntVal     int
+    Int64Val   int64
+    Float64Val float64
+    BoolVal    bool
+    StringVal  string
+    DecimalVal maths.Decimal
+    BigIntVal  maths.BigInt
+    AnyVal     any
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      IntVal:     42,
+      Int64Val:   int64(42),
+      Float64Val: 3.14,
+      BoolVal:    true,
+      StringVal:  "123",
+      DecimalVal: maths.NewDecimalFromInt(100),
+      BigIntVal:  maths.NewBigIntFromInt(999),
+      AnyVal:     "dynamic",
+    }, piko.Metadata{}, nil
+  }
+</script>

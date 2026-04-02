@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/tasks.pk": {
+      "routePatterns": {
+        "en": "/tasks"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_08_ast_filtering/dist/pages/pages_tasks_7938d96c",
+      "originalSourcePath": "pages/tasks.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

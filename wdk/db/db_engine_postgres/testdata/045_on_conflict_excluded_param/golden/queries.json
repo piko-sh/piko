@@ -1,0 +1,172 @@
+[
+  {
+    "InsertTable": "counters",
+    "Filename": "upsert_counter.sql",
+    "SQL": "-- piko.name: UpsertCounter\n-- piko.command: one\nINSERT INTO counters (key, count, label) VALUES ($1, $2, $3)\nON CONFLICT (key) DO UPDATE SET count = counters.count + EXCLUDED.count, label = $3\nRETURNING key, count, label;",
+    "Name": "UpsertCounter",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p2",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Number": 2,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p3",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Number": 3,
+        "Nullable": true,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "key",
+        "SourceTable": "counters",
+        "SourceColumn": "key",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "count",
+        "SourceTable": "counters",
+        "SourceColumn": "count",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "label",
+        "SourceTable": "counters",
+        "SourceColumn": "label",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": [
+      "key",
+      "count",
+      "label"
+    ],
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 0,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  }
+]

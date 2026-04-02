@@ -1,0 +1,85 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Suppress Helpers Test</h1>
+
+    <button id="suppress-btn" p-on:click="callWithSuppression()">Call Suppressed</button>
+    <button id="normal-btn" p-on:click="callWithoutSuppression()">Call Normal</button>
+
+    <div id="toast" style="display:none"></div>
+    <div id="result-container" style="display:none">
+      <p>Suppressed call done: <span id="suppress-done">false</span></p>
+      <p>Normal call done: <span id="normal-done">false</span></p>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Suppress Helpers Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+piko.registerHelper('showToast', (el, ev, message, variant) => {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.style.display = 'block';
+        toast.dataset.variant = variant;
+    }
+});
+
+piko.registerHelper('updateBadge', (el, ev, count) => {
+});
+
+export async function callWithSuppression(): Promise<void> {
+    try {
+        await action.notify.Send({ title: 'Test' })
+            .suppressHelpers()
+            .call();
+        document.getElementById('suppress-done')!.textContent = 'true';
+        document.getElementById('result-container')!.style.display = 'block';
+    } catch (e: unknown) {
+        document.getElementById('suppress-done')!.textContent = 'error';
+        document.getElementById('result-container')!.style.display = 'block';
+    }
+}
+
+export async function callWithoutSuppression(): Promise<void> {
+    try {
+        await action.notify.Send({ title: 'Test' })
+            .call();
+        document.getElementById('normal-done')!.textContent = 'true';
+    } catch (e: unknown) {
+        document.getElementById('normal-done')!.textContent = 'error';
+    }
+}
+</script>

@@ -1,0 +1,20 @@
+{
+  "description": "Tests a generic type definition where the type parameter is constrained by an interface.",
+  "moduleName": "testcase_27_generics_interface_constraint",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_27_generics_interface_constraint"
+  ],
+  "assertions": [
+    {
+      "description": "The TypeString for ReaderBox should show its generic parameter.",
+      "select": "packages.testcase_27_generics_interface_constraint.named_types.ReaderBox.type_string",
+      "expect": "main.ReaderBox[T]"
+    },
+    {
+      "description": "The underlying type string should correctly show the field and its type parameter.",
+      "select": "packages.testcase_27_generics_interface_constraint.named_types.ReaderBox.underlying_type_string",
+      "expect": "struct{Source T}"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/layout.pk": {
+      "routePatterns": {
+        "en": "/layout"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_21_advanced_selectors/dist/pages/pages_layout_23f64ed0",
+      "originalSourcePath": "pages/layout.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

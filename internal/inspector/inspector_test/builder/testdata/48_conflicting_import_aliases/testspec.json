@@ -1,0 +1,40 @@
+{
+  "description": "Tests that the serialiser respects file-scoped import aliases when two files in the same package import a third package with conflicting aliases.",
+  "moduleName": "testcase_48_conflicting_import_aliases",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_48_conflicting_import_aliases/service"
+  ],
+  "assertions": [
+    {
+      "description": "The 'UserResponse' type is defined in 'user_service.go'.",
+      "select": "packages.testcase_48_conflicting_import_aliases/service.named_types.UserResponse.name",
+      "expect": "UserResponse"
+    },
+    {
+      "description": "Its 'User' field must use the alias 'm' from its defining file.",
+      "select": "packages.testcase_48_conflicting_import_aliases/service.named_types.UserResponse.fields.0.type_string",
+      "expect": "m.User"
+    },
+    {
+      "description": "The PackagePath for the 'User' field must be the canonical models path.",
+      "select": "packages.testcase_48_conflicting_import_aliases/service.named_types.UserResponse.fields.0.pkg_path",
+      "expect": "testcase_48_conflicting_import_aliases/models"
+    },
+    {
+      "description": "The 'ProductResponse' type is defined in 'product_service.go'.",
+      "select": "packages.testcase_48_conflicting_import_aliases/service.named_types.ProductResponse.name",
+      "expect": "ProductResponse"
+    },
+    {
+      "description": "Its 'Product' field must use the alias 'db' from its defining file.",
+      "select": "packages.testcase_48_conflicting_import_aliases/service.named_types.ProductResponse.fields.0.type_string",
+      "expect": "db.Product"
+    },
+    {
+      "description": "The PackagePath for the 'Product' field must be the canonical models path.",
+      "select": "packages.testcase_48_conflicting_import_aliases/service.named_types.ProductResponse.fields.0.pkg_path",
+      "expect": "testcase_48_conflicting_import_aliases/models"
+    }
+  ]
+}

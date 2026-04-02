@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text-indent offsets the first line of text.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

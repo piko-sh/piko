@@ -1,0 +1,146 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="pp-calculator">
+    <div class="calculator-component">
+        <h3>Calculator Component</h3>
+        <p>Tests @/ JavaScript import functionality</p>
+
+        <div class="inputs">
+            <label>
+                Number A:
+                <input id="input-a" type="number" p-model="state.numA" />
+            </label>
+            <label>
+                Number B:
+                <input id="input-b" type="number" p-model="state.numB" />
+            </label>
+        </div>
+
+        <div class="operations">
+            <button id="btn-add" p-on:click="calculateSum">Add</button>
+            <button id="btn-multiply" p-on:click="calculateProduct">Multiply</button>
+        </div>
+
+        <div class="results">
+            <p id="result-sum" p-text="state.sumResult"></p>
+            <p id="result-product" p-text="state.productResult"></p>
+        </div>
+
+        <div class="string-section">
+            <h4>String Utils Test</h4>
+            <label>
+                Text:
+                <input id="input-text" type="text" p-model="state.textInput" />
+            </label>
+            <div class="string-operations">
+                <button id="btn-upper" p-on:click="convertUpper">Upper</button>
+                <button id="btn-lower" p-on:click="convertLower">Lower</button>
+                <button id="btn-cap" p-on:click="convertCap">Capitalize</button>
+            </div>
+            <p id="result-text" p-text="state.textResult"></p>
+        </div>
+    </div>
+</template>
+
+<style>
+    .calculator-component {
+        border: 2px solid #2196f3;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 8px;
+    }
+    .inputs {
+        margin: 1rem 0;
+    }
+    .inputs label {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    .inputs input {
+        padding: 0.25rem;
+        width: 80px;
+        margin-left: 0.5rem;
+    }
+    .operations {
+        margin: 1rem 0;
+    }
+    button {
+        padding: 0.5rem 1rem;
+        background: #2196f3;
+        color: white;
+        border: none;
+        cursor: pointer;
+        margin-right: 0.5rem;
+        border-radius: 4px;
+    }
+    button:hover {
+        background: #1976d2;
+    }
+    .results {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        background: #f5f5f5;
+        border-radius: 4px;
+    }
+    .results p {
+        margin: 0.25rem 0;
+    }
+</style>
+
+<script lang="ts">
+    import { add as addNumbers, multiply, formatWithPrefix } from '@/lib/math-utils.js';
+    import {
+        toUpperCase,
+        toLowerCase,
+        capitalize as capitalizeText
+    } from '@/lib/string-utils.js';
+
+    const state = {
+        numA: 5 as number,
+        numB: 3 as number,
+        sumResult: 'Sum: (click Add)' as string,
+        productResult: 'Product: (click Multiply)' as string,
+        textInput: 'Hello World' as string,
+        textResult: 'Result: (click a button)' as string
+    };
+
+    function calculateSum() {
+        const result = addNumbers(Number(state.numA), Number(state.numB));
+        state.sumResult = formatWithPrefix('Sum', result);
+    }
+
+    function calculateProduct() {
+        const result = multiply(Number(state.numA), Number(state.numB));
+        state.productResult = formatWithPrefix('Product', result);
+    }
+
+    function convertUpper() {
+        state.textResult = 'Result: ' + toUpperCase(state.textInput);
+    }
+
+    function convertLower() {
+        state.textResult = 'Result: ' + toLowerCase(state.textInput);
+    }
+
+    function convertCap() {
+        state.textResult = 'Result: ' + capitalizeText(state.textInput);
+    }
+</script>

@@ -1,0 +1,34 @@
+<template>
+  <div class="key-handler-partial">
+    <p>Last key: <span id="last-key">none</span></p>
+    <p>Press count: <span id="press-count">0</span></p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+let pressCount = 0;
+
+function handleKeydown(e: KeyboardEvent): void {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    const keyEl = document.getElementById('last-key');
+    const countEl = document.getElementById('press-count');
+    if (keyEl) keyEl.textContent = e.key;
+    pressCount++;
+    if (countEl) countEl.textContent = String(pressCount);
+}
+
+pk.onConnected(() => {
+    document.addEventListener('keydown', handleKeydown);
+    pk.onCleanup(() => document.removeEventListener('keydown', handleKeydown));
+});
+</script>

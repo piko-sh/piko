@@ -1,0 +1,10 @@
+(async () => {
+    const { partial } = await import('/_piko/dist/ppframework.core.es.js');
+    const p = partial({{jsStr .PartialName}});
+    if (!p) return null;
+    return {
+        name: {{jsStr .PartialName}},
+        isLoading: p.isLoading || false,
+        exists: true
+    };
+})()

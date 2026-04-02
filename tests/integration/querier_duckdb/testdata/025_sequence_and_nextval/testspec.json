@@ -1,0 +1,3 @@
+{
+  "description": "Sequences with nextval: auto-generated IDs via CREATE SEQUENCE and DEFAULT nextval"
+}

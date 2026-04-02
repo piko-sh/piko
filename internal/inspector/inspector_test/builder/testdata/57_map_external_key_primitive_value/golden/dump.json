@@ -1,0 +1,1512 @@
+{
+  "packages": {
+    "github.com/google/uuid": {
+      "file_imports": {},
+      "named_types": {
+        "Domain": {
+          "name": "Domain",
+          "package_path": "github.com/google/uuid",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+          "type_string": "uuid.Domain",
+          "underlying_type_string": "byte",
+          "fields": null,
+          "methods": [
+            {
+              "name": "String",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "Domain",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 70,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 2,
+          "is_alias": false,
+          "definition_line": 14,
+          "definition_column": 1
+        },
+        "NullUUID": {
+          "name": "NullUUID",
+          "package_path": "github.com/google/uuid",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+          "type_string": "uuid.NullUUID",
+          "underlying_type_string": "struct{UUID uuid.UUID; Valid bool}",
+          "fields": [
+            {
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "pkg_path": "github.com/google/uuid",
+              "underlying_type_string": "[16]byte",
+              "declaring_type_name": "NullUUID",
+              "name": "UUID",
+              "type_string": "uuid.UUID",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "byte",
+                  "role": "element",
+                  "underlying_type_string": "byte",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 3,
+              "definition_line": 30,
+              "definition_column": 1,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            },
+            {
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "pkg_path": "",
+              "underlying_type_string": "bool",
+              "declaring_type_name": "NullUUID",
+              "name": "Valid",
+              "type_string": "bool",
+              "raw_tag": "",
+              "definition_line": 31,
+              "definition_column": 1,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [
+            {
+              "name": "MarshalBinary",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte",
+                  "error"
+                ]
+              },
+              "definition_line": 61,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "MarshalJSON",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte",
+                  "error"
+                ]
+              },
+              "definition_line": 101,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "MarshalText",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte",
+                  "error"
+                ]
+              },
+              "definition_line": 80,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Scan",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": [
+                  "interface{}"
+                ],
+                "param_names": [
+                  "value"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 35,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "UnmarshalBinary",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "data"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 70,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "UnmarshalJSON",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "data"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 110,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "UnmarshalText",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "data"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 89,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "Value",
+              "type_string": "driver.Value",
+              "underlying_type_string": "interface{}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "NullUUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/null.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "driver.Value",
+                  "error"
+                ]
+              },
+              "definition_line": 52,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 3,
+          "is_alias": false,
+          "definition_line": 29,
+          "definition_column": 1
+        },
+        "Time": {
+          "name": "Time",
+          "package_path": "github.com/google/uuid",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/time.go",
+          "type_string": "uuid.Time",
+          "underlying_type_string": "int64",
+          "fields": null,
+          "methods": [
+            {
+              "name": "UnixTime",
+              "type_string": "int64",
+              "underlying_type_string": "int64",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "Time",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/time.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "int64",
+                  "int64"
+                ]
+              },
+              "definition_line": 35,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 15,
+          "definition_column": 1
+        },
+        "UUID": {
+          "name": "UUID",
+          "package_path": "github.com/google/uuid",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "[16]byte",
+          "fields": null,
+          "methods": [
+            {
+              "name": "ClockSequence",
+              "type_string": "int",
+              "underlying_type_string": "int",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/time.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "int"
+                ]
+              },
+              "definition_line": 132,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Domain",
+              "type_string": "uuid.Domain",
+              "underlying_type_string": "byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "uuid.Domain"
+                ]
+              },
+              "definition_line": 60,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "ID",
+              "type_string": "uint32",
+              "underlying_type_string": "uint32",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "uint32"
+                ]
+              },
+              "definition_line": 66,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "MarshalBinary",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/marshal.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte",
+                  "error"
+                ]
+              },
+              "definition_line": 27,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "MarshalText",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/marshal.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte",
+                  "error"
+                ]
+              },
+              "definition_line": 10,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "NodeID",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/node.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte"
+                ]
+              },
+              "definition_line": 86,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Scan",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/sql.go",
+              "signature": {
+                "params": [
+                  "interface{}"
+                ],
+                "param_names": [
+                  "src"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 15,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "String",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 244,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Time",
+              "type_string": "uuid.Time",
+              "underlying_type_string": "int64",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/time.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "uuid.Time"
+                ]
+              },
+              "definition_line": 112,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "URN",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 252,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "UnmarshalBinary",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/marshal.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "data"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 32,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "UnmarshalText",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/marshal.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "data"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 17,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "Value",
+              "type_string": "driver.Value",
+              "underlying_type_string": "interface{}",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/sql.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "driver.Value",
+                  "error"
+                ]
+              },
+              "definition_line": 57,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Variant",
+              "type_string": "uuid.Variant",
+              "underlying_type_string": "byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "uuid.Variant"
+                ]
+              },
+              "definition_line": 272,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Version",
+              "type_string": "uuid.Version",
+              "underlying_type_string": "byte",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUID",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "uuid.Version"
+                ]
+              },
+              "definition_line": 286,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 2,
+          "is_alias": false,
+          "definition_line": 20,
+          "definition_column": 1
+        },
+        "UUIDs": {
+          "name": "UUIDs",
+          "package_path": "github.com/google/uuid",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "type_string": "uuid.UUIDs",
+          "underlying_type_string": "[]uuid.UUID",
+          "fields": null,
+          "methods": [
+            {
+              "name": "Strings",
+              "type_string": "[]string",
+              "underlying_type_string": "[]string",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "UUIDs",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]string"
+                ]
+              },
+              "definition_line": 359,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 356,
+          "definition_column": 1
+        },
+        "Variant": {
+          "name": "Variant",
+          "package_path": "github.com/google/uuid",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "type_string": "uuid.Variant",
+          "underlying_type_string": "byte",
+          "fields": null,
+          "methods": [
+            {
+              "name": "String",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "Variant",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 297,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 2,
+          "is_alias": false,
+          "definition_line": 26,
+          "definition_column": 1
+        },
+        "Version": {
+          "name": "Version",
+          "package_path": "github.com/google/uuid",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "type_string": "uuid.Version",
+          "underlying_type_string": "byte",
+          "fields": null,
+          "methods": [
+            {
+              "name": "String",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/google/uuid",
+              "declaring_type_name": "Version",
+              "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 290,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 2,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 1
+        }
+      },
+      "funcs": {
+        "ClockSequence": {
+          "name": "ClockSequence",
+          "type_string": "func() int",
+          "underlying_type_string": "func() int",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/time.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "int"
+            ]
+          },
+          "definition_line": 76,
+          "definition_column": 1
+        },
+        "DisableRandPool": {
+          "name": "DisableRandPool",
+          "type_string": "func()",
+          "underlying_type_string": "func()",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": null,
+            "results": null
+          },
+          "definition_line": 348,
+          "definition_column": 1
+        },
+        "EnableRandPool": {
+          "name": "EnableRandPool",
+          "type_string": "func()",
+          "underlying_type_string": "func()",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": null,
+            "results": null
+          },
+          "definition_line": 338,
+          "definition_column": 1
+        },
+        "FromBytes": {
+          "name": "FromBytes",
+          "type_string": "func(b []byte) (uuid.UUID, error)",
+          "underlying_type_string": "func(b []byte) (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "[]byte"
+            ],
+            "param_names": [
+              "b"
+            ],
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 176,
+          "definition_column": 1
+        },
+        "GetTime": {
+          "name": "GetTime",
+          "type_string": "func() (uuid.Time, uint16, error)",
+          "underlying_type_string": "func() (uuid.Time, uint16, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/time.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.Time",
+              "uint16",
+              "error"
+            ]
+          },
+          "definition_line": 45,
+          "definition_column": 1
+        },
+        "IsInvalidLengthError": {
+          "name": "IsInvalidLengthError",
+          "type_string": "func(err error) bool",
+          "underlying_type_string": "func(err error) bool",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "error"
+            ],
+            "param_names": [
+              "err"
+            ],
+            "results": [
+              "bool"
+            ]
+          },
+          "definition_line": 54,
+          "definition_column": 1
+        },
+        "Must": {
+          "name": "Must",
+          "type_string": "func(uuid uuid.UUID, err error) uuid.UUID",
+          "underlying_type_string": "func(uuid uuid.UUID, err error) uuid.UUID",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "uuid.UUID",
+              "error"
+            ],
+            "param_names": [
+              "uuid",
+              "err"
+            ],
+            "results": [
+              "uuid.UUID"
+            ]
+          },
+          "definition_line": 182,
+          "definition_column": 1
+        },
+        "MustParse": {
+          "name": "MustParse",
+          "type_string": "func(s string) uuid.UUID",
+          "underlying_type_string": "func(s string) uuid.UUID",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "string"
+            ],
+            "param_names": [
+              "s"
+            ],
+            "results": [
+              "uuid.UUID"
+            ]
+          },
+          "definition_line": 166,
+          "definition_column": 1
+        },
+        "New": {
+          "name": "New",
+          "type_string": "func() uuid.UUID",
+          "underlying_type_string": "func() uuid.UUID",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version4.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.UUID"
+            ]
+          },
+          "definition_line": 13,
+          "definition_column": 1
+        },
+        "NewDCEGroup": {
+          "name": "NewDCEGroup",
+          "type_string": "func() (uuid.UUID, error)",
+          "underlying_type_string": "func() (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 54,
+          "definition_column": 1
+        },
+        "NewDCEPerson": {
+          "name": "NewDCEPerson",
+          "type_string": "func() (uuid.UUID, error)",
+          "underlying_type_string": "func() (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 46,
+          "definition_column": 1
+        },
+        "NewDCESecurity": {
+          "name": "NewDCESecurity",
+          "type_string": "func(domain uuid.Domain, id uint32) (uuid.UUID, error)",
+          "underlying_type_string": "func(domain uuid.Domain, id uint32) (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+          "signature": {
+            "params": [
+              "uuid.Domain",
+              "uint32"
+            ],
+            "param_names": [
+              "domain",
+              "id"
+            ],
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 32,
+          "definition_column": 1
+        },
+        "NewHash": {
+          "name": "NewHash",
+          "type_string": "func(h hash.Hash, space uuid.UUID, data []byte, version int) uuid.UUID",
+          "underlying_type_string": "func(h hash.Hash, space uuid.UUID, data []byte, version int) uuid.UUID",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "signature": {
+            "params": [
+              "hash.Hash",
+              "uuid.UUID",
+              "[]byte",
+              "int"
+            ],
+            "param_names": [
+              "h",
+              "space",
+              "data",
+              "version"
+            ],
+            "results": [
+              "uuid.UUID"
+            ]
+          },
+          "definition_line": 33,
+          "definition_column": 1
+        },
+        "NewMD5": {
+          "name": "NewMD5",
+          "type_string": "func(space uuid.UUID, data []byte) uuid.UUID",
+          "underlying_type_string": "func(space uuid.UUID, data []byte) uuid.UUID",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "signature": {
+            "params": [
+              "uuid.UUID",
+              "[]byte"
+            ],
+            "param_names": [
+              "space",
+              "data"
+            ],
+            "results": [
+              "uuid.UUID"
+            ]
+          },
+          "definition_line": 49,
+          "definition_column": 1
+        },
+        "NewRandom": {
+          "name": "NewRandom",
+          "type_string": "func() (uuid.UUID, error)",
+          "underlying_type_string": "func() (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version4.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 39,
+          "definition_column": 1
+        },
+        "NewRandomFromReader": {
+          "name": "NewRandomFromReader",
+          "type_string": "func(r io.Reader) (uuid.UUID, error)",
+          "underlying_type_string": "func(r io.Reader) (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version4.go",
+          "signature": {
+            "params": [
+              "io.Reader"
+            ],
+            "param_names": [
+              "r"
+            ],
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 47,
+          "definition_column": 1
+        },
+        "NewSHA1": {
+          "name": "NewSHA1",
+          "type_string": "func(space uuid.UUID, data []byte) uuid.UUID",
+          "underlying_type_string": "func(space uuid.UUID, data []byte) uuid.UUID",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "signature": {
+            "params": [
+              "uuid.UUID",
+              "[]byte"
+            ],
+            "param_names": [
+              "space",
+              "data"
+            ],
+            "results": [
+              "uuid.UUID"
+            ]
+          },
+          "definition_line": 57,
+          "definition_column": 1
+        },
+        "NewString": {
+          "name": "NewString",
+          "type_string": "func() string",
+          "underlying_type_string": "func() string",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version4.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "string"
+            ]
+          },
+          "definition_line": 21,
+          "definition_column": 1
+        },
+        "NewUUID": {
+          "name": "NewUUID",
+          "type_string": "func() (uuid.UUID, error)",
+          "underlying_type_string": "func() (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version1.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 19,
+          "definition_column": 1
+        },
+        "NewV6": {
+          "name": "NewV6",
+          "type_string": "func() (uuid.UUID, error)",
+          "underlying_type_string": "func() (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version6.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 21,
+          "definition_column": 1
+        },
+        "NewV7": {
+          "name": "NewV7",
+          "type_string": "func() (uuid.UUID, error)",
+          "underlying_type_string": "func() (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version7.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 23,
+          "definition_column": 1
+        },
+        "NewV7FromReader": {
+          "name": "NewV7FromReader",
+          "type_string": "func(r io.Reader) (uuid.UUID, error)",
+          "underlying_type_string": "func(r io.Reader) (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/version7.go",
+          "signature": {
+            "params": [
+              "io.Reader"
+            ],
+            "param_names": [
+              "r"
+            ],
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 35,
+          "definition_column": 1
+        },
+        "NodeID": {
+          "name": "NodeID",
+          "type_string": "func() []byte",
+          "underlying_type_string": "func() []byte",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/node.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "[]byte"
+            ]
+          },
+          "definition_line": 60,
+          "definition_column": 1
+        },
+        "NodeInterface": {
+          "name": "NodeInterface",
+          "type_string": "func() string",
+          "underlying_type_string": "func() string",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/node.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "string"
+            ]
+          },
+          "definition_line": 21,
+          "definition_column": 1
+        },
+        "Parse": {
+          "name": "Parse",
+          "type_string": "func(s string) (uuid.UUID, error)",
+          "underlying_type_string": "func(s string) (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "string"
+            ],
+            "param_names": [
+              "s"
+            ],
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 68,
+          "definition_column": 1
+        },
+        "ParseBytes": {
+          "name": "ParseBytes",
+          "type_string": "func(b []byte) (uuid.UUID, error)",
+          "underlying_type_string": "func(b []byte) (uuid.UUID, error)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "[]byte"
+            ],
+            "param_names": [
+              "b"
+            ],
+            "results": [
+              "uuid.UUID",
+              "error"
+            ]
+          },
+          "definition_line": 120,
+          "definition_column": 1
+        },
+        "SetClockSequence": {
+          "name": "SetClockSequence",
+          "type_string": "func(seq int)",
+          "underlying_type_string": "func(seq int)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/time.go",
+          "signature": {
+            "params": [
+              "int"
+            ],
+            "param_names": [
+              "seq"
+            ],
+            "results": null
+          },
+          "definition_line": 91,
+          "definition_column": 1
+        },
+        "SetNodeID": {
+          "name": "SetNodeID",
+          "type_string": "func(id []byte) bool",
+          "underlying_type_string": "func(id []byte) bool",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/node.go",
+          "signature": {
+            "params": [
+              "[]byte"
+            ],
+            "param_names": [
+              "id"
+            ],
+            "results": [
+              "bool"
+            ]
+          },
+          "definition_line": 73,
+          "definition_column": 1
+        },
+        "SetNodeInterface": {
+          "name": "SetNodeInterface",
+          "type_string": "func(name string) bool",
+          "underlying_type_string": "func(name string) bool",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/node.go",
+          "signature": {
+            "params": [
+              "string"
+            ],
+            "param_names": [
+              "name"
+            ],
+            "results": [
+              "bool"
+            ]
+          },
+          "definition_line": 33,
+          "definition_column": 1
+        },
+        "SetRand": {
+          "name": "SetRand",
+          "type_string": "func(r io.Reader)",
+          "underlying_type_string": "func(r io.Reader)",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "io.Reader"
+            ],
+            "param_names": [
+              "r"
+            ],
+            "results": null
+          },
+          "definition_line": 319,
+          "definition_column": 1
+        },
+        "Validate": {
+          "name": "Validate",
+          "type_string": "func(s string) error",
+          "underlying_type_string": "func(s string) error",
+          "definition_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "signature": {
+            "params": [
+              "string"
+            ],
+            "param_names": [
+              "s"
+            ],
+            "results": [
+              "error"
+            ]
+          },
+          "definition_line": 195,
+          "definition_column": 1
+        }
+      },
+      "variables": {
+        "Future": {
+          "name": "Future",
+          "type_string": "uuid.Variant",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "definition_line": 34,
+          "definition_column": 1,
+          "is_const": true
+        },
+        "Group": {
+          "name": "Group",
+          "type_string": "uuid.Domain",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+          "definition_line": 19,
+          "definition_column": 1,
+          "is_const": true
+        },
+        "Invalid": {
+          "name": "Invalid",
+          "type_string": "uuid.Variant",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "definition_line": 30,
+          "definition_column": 1,
+          "is_const": true
+        },
+        "Max": {
+          "name": "Max",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "[16]byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "composite_parts": [
+            {
+              "type": "element",
+              "type_string": "byte",
+              "role": "element",
+              "underlying_type_string": "byte",
+              "pkg_path": "",
+              "index": 0,
+              "is_internal_type": true,
+              "is_underlying_internal_type": true,
+              "is_underlying_primitive": true
+            }
+          ],
+          "definition_line": 22,
+          "definition_column": 1,
+          "composite_type": 3
+        },
+        "Microsoft": {
+          "name": "Microsoft",
+          "type_string": "uuid.Variant",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "definition_line": 33,
+          "definition_column": 1,
+          "is_const": true
+        },
+        "NameSpaceDNS": {
+          "name": "NameSpaceDNS",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "[16]byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "composite_parts": [
+            {
+              "type": "element",
+              "type_string": "byte",
+              "role": "element",
+              "underlying_type_string": "byte",
+              "pkg_path": "",
+              "index": 0,
+              "is_internal_type": true,
+              "is_underlying_internal_type": true,
+              "is_underlying_primitive": true
+            }
+          ],
+          "definition_line": 15,
+          "definition_column": 1,
+          "composite_type": 3
+        },
+        "NameSpaceOID": {
+          "name": "NameSpaceOID",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "[16]byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "composite_parts": [
+            {
+              "type": "element",
+              "type_string": "byte",
+              "role": "element",
+              "underlying_type_string": "byte",
+              "pkg_path": "",
+              "index": 0,
+              "is_internal_type": true,
+              "is_underlying_internal_type": true,
+              "is_underlying_primitive": true
+            }
+          ],
+          "definition_line": 17,
+          "definition_column": 1,
+          "composite_type": 3
+        },
+        "NameSpaceURL": {
+          "name": "NameSpaceURL",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "[16]byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "composite_parts": [
+            {
+              "type": "element",
+              "type_string": "byte",
+              "role": "element",
+              "underlying_type_string": "byte",
+              "pkg_path": "",
+              "index": 0,
+              "is_internal_type": true,
+              "is_underlying_internal_type": true,
+              "is_underlying_primitive": true
+            }
+          ],
+          "definition_line": 16,
+          "definition_column": 1,
+          "composite_type": 3
+        },
+        "NameSpaceX500": {
+          "name": "NameSpaceX500",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "[16]byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "composite_parts": [
+            {
+              "type": "element",
+              "type_string": "byte",
+              "role": "element",
+              "underlying_type_string": "byte",
+              "pkg_path": "",
+              "index": 0,
+              "is_internal_type": true,
+              "is_underlying_internal_type": true,
+              "is_underlying_primitive": true
+            }
+          ],
+          "definition_line": 18,
+          "definition_column": 1,
+          "composite_type": 3
+        },
+        "Nil": {
+          "name": "Nil",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "[16]byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/hash.go",
+          "composite_parts": [
+            {
+              "type": "element",
+              "type_string": "byte",
+              "role": "element",
+              "underlying_type_string": "byte",
+              "pkg_path": "",
+              "index": 0,
+              "is_internal_type": true,
+              "is_underlying_internal_type": true,
+              "is_underlying_primitive": true
+            }
+          ],
+          "definition_line": 19,
+          "definition_column": 1,
+          "composite_type": 3
+        },
+        "Org": {
+          "name": "Org",
+          "type_string": "uuid.Domain",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+          "definition_line": 20,
+          "definition_column": 1,
+          "is_const": true
+        },
+        "Person": {
+          "name": "Person",
+          "type_string": "uuid.Domain",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go",
+          "definition_line": 18,
+          "definition_column": 1,
+          "is_const": true
+        },
+        "RFC4122": {
+          "name": "RFC4122",
+          "type_string": "uuid.Variant",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "definition_line": 31,
+          "definition_column": 1,
+          "is_const": true
+        },
+        "Reserved": {
+          "name": "Reserved",
+          "type_string": "uuid.Variant",
+          "underlying_type_string": "byte",
+          "defined_in_file_path": "$GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go",
+          "definition_line": 32,
+          "definition_column": 1,
+          "is_const": true
+        }
+      },
+      "path": "github.com/google/uuid",
+      "name": "uuid",
+      "version": "v1.6.0"
+    },
+    "testcase_57_map_external_key_primitive_value": {
+      "file_imports": {
+        "57_map_external_key_primitive_value/src/main.go": {
+          "uuid": "github.com/google/uuid"
+        }
+      },
+      "named_types": {
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_57_map_external_key_primitive_value",
+          "defined_in_file_path": "57_map_external_key_primitive_value/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{ScoresByUUID map[uuid.UUID]int}",
+          "fields": [
+            {
+              "definition_file_path": "57_map_external_key_primitive_value/src/main.go",
+              "declaring_pkg_path": "testcase_57_map_external_key_primitive_value",
+              "pkg_path": "github.com/google/uuid",
+              "underlying_type_string": "map[uuid.UUID]int",
+              "declaring_type_name": "Response",
+              "name": "ScoresByUUID",
+              "type_string": "map[uuid.UUID]int",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "key",
+                  "type_string": "uuid.UUID",
+                  "role": "key",
+                  "underlying_type_string": "[16]byte",
+                  "pkg_path": "github.com/google/uuid",
+                  "composite_parts": [
+                    {
+                      "type": "element",
+                      "type_string": "byte",
+                      "role": "element",
+                      "underlying_type_string": "byte",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_underlying_primitive": true
+                    }
+                  ],
+                  "composite_type": 3,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": true
+                },
+                {
+                  "type": "value",
+                  "type_string": "int",
+                  "role": "value",
+                  "underlying_type_string": "int",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 1,
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_57_map_external_key_primitive_value",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "57_map_external_key_primitive_value/src/main.go": "testcase_57_map_external_key_primitive_value"
+  }
+}

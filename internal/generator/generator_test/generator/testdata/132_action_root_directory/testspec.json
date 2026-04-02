@@ -1,0 +1,5 @@
+{
+    "description": "Tests that an action in the root actions directory is discovered correctly",
+    "packageName": "action_root_directory_test",
+    "isPage": true
+}

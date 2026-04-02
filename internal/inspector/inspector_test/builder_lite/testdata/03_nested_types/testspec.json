@@ -1,0 +1,42 @@
+{
+  "description": "Tests extraction of structs with nested types (slices, maps, pointers).",
+  "moduleName": "testcase_lite_03",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "The 'Container' type should be present",
+      "select": "packages.testcase_lite_03.named_types.Container.name",
+      "expect": "Container"
+    },
+    {
+      "description": "The 'Items' field should be a slice",
+      "select": "packages.testcase_lite_03.named_types.Container.fields.0.name",
+      "expect": "Items"
+    },
+    {
+      "description": "The 'Items' field type should be '[]string'",
+      "select": "packages.testcase_lite_03.named_types.Container.fields.0.type_string",
+      "expect": "[]string"
+    },
+    {
+      "description": "The 'Metadata' field should be a map",
+      "select": "packages.testcase_lite_03.named_types.Container.fields.1.name",
+      "expect": "Metadata"
+    },
+    {
+      "description": "The 'Metadata' field type should be 'map[string]int'",
+      "select": "packages.testcase_lite_03.named_types.Container.fields.1.type_string",
+      "expect": "map[string]int"
+    },
+    {
+      "description": "The 'Ref' field should be a pointer",
+      "select": "packages.testcase_lite_03.named_types.Container.fields.2.name",
+      "expect": "Ref"
+    },
+    {
+      "description": "The 'Ref' field type should be '*Item'",
+      "select": "packages.testcase_lite_03.named_types.Container.fields.2.type_string",
+      "expect": "*Item"
+    }
+  ]
+}

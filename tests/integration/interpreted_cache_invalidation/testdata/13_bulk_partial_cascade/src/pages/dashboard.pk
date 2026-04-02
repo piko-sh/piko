@@ -1,0 +1,19 @@
+<template>
+<div class="page">
+  <h1>Dashboard Page</h1>
+  <footer is="footer"></footer>
+</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	footer "testcase_cache_bulk_cascade_13/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

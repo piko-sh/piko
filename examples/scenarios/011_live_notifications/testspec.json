@@ -1,0 +1,51 @@
+{
+  "description": "SSE instant messaging - join chat, send a message, verify it appears in the feed",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "fill",
+      "selector": "[p-ref='username_input']",
+      "value": "TestUser"
+    },
+    {
+      "action": "click",
+      "selector": ".login-row button"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='connection_state']",
+      "expected": "connected"
+    },
+    {
+      "action": "fill",
+      "selector": "[p-ref='message_input']",
+      "value": "Hello from the test!"
+    },
+    {
+      "action": "click",
+      "selector": "[p-ref='send_btn']"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "checkText",
+      "selector": ".msg-text",
+      "expected": "Hello from the test!"
+    }
+  ]
+}

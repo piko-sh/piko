@@ -1,0 +1,139 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "get_windowed.sql",
+    "SQL": "-- piko.name: GetWindowedSales\n-- piko.command: many\nSELECT\n  id,\n  region,\n  amount,\n  SUM(amount) OVER (PARTITION BY region) as region_total,\n  ROW_NUMBER() OVER (ORDER BY amount DESC) as rank\nFROM sales",
+    "Name": "GetWindowedSales",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "sales",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "region",
+        "SourceTable": "sales",
+        "SourceColumn": "region",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "amount",
+        "SourceTable": "sales",
+        "SourceColumn": "amount",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "numeric",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "region_total",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "numeric",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "rank",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int8",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  }
+]

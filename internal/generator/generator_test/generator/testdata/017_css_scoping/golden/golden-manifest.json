@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".main-text[partial~=pages_main_594861c5]{color:red}\n.card[partial~=partials_scoped_card_2b8ef7a6]{border:1px solid #ccc;padding:1rem;border-radius:8px;background-color:#f9f9f9}p[partial~=partials_scoped_card_2b8ef7a6]{color:#00f;margin:0}",
+      "packagePath": "testcase_017_css_scoping/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

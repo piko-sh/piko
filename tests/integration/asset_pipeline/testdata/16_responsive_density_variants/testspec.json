@@ -1,0 +1,64 @@
+{
+  "description": "Responsive image variants: generate x1, x2, x3 density variants from single source",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/mercury.bmp",
+      "expectedArtefactID": "testmodule/lib/images/mercury.bmp"
+    }
+  ],
+  "responsiveChecks": [
+    {
+      "description": "Generate 3 density variants (x1, x2, x3) at base width 200px",
+      "sourceAssetIndex": 0,
+      "baseWidth": 200,
+      "densities": ["x1", "x2", "x3"],
+      "format": "webp",
+      "quality": 85,
+      "expectedVariants": [
+        {
+          "density": "x1",
+          "expectedWidth": 200,
+          "expectedHeight": 142,
+          "minSizeBytes": 1000
+        },
+        {
+          "density": "x2",
+          "expectedWidth": 400,
+          "expectedHeight": 284,
+          "minSizeBytes": 2000
+        },
+        {
+          "density": "x3",
+          "expectedWidth": 600,
+          "expectedHeight": 426,
+          "minSizeBytes": 3000
+        }
+      ],
+      "goldenPrefix": "hero"
+    },
+    {
+      "description": "Generate 2 density variants (x1, x2) at base width 400px with fixed height",
+      "sourceAssetIndex": 0,
+      "baseWidth": 400,
+      "densities": ["x1", "x2"],
+      "format": "jpeg",
+      "quality": 80,
+      "expectedVariants": [
+        {
+          "density": "x1",
+          "expectedWidth": 400,
+          "expectedHeight": 284,
+          "minSizeBytes": 5000
+        },
+        {
+          "density": "x2",
+          "expectedWidth": 800,
+          "expectedHeight": 568,
+          "minSizeBytes": 15000
+        }
+      ],
+      "goldenPrefix": "banner"
+    }
+  ]
+}

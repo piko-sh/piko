@@ -1,0 +1,42 @@
+{
+  "groups": {
+    "sidebar": {
+      "sections": [
+        {
+          "children": [
+            {
+              "id": "advanced-tips",
+              "title": "Advanced Tips",
+              "section": "",
+              "url": "/blog/advanced-tips",
+              "level": 1,
+              "order": 999
+            },
+            {
+              "id": "getting-started",
+              "title": "Getting Started with Piko",
+              "section": "",
+              "url": "/blog/getting-started",
+              "level": 1,
+              "order": 999
+            },
+            {
+              "id": "hello-world",
+              "title": "Hello World",
+              "section": "",
+              "url": "/blog/hello-world",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "",
+          "title": "",
+          "section": "",
+          "level": 0,
+          "order": 999
+        }
+      ],
+      "locale": "en"
+    }
+  }
+}

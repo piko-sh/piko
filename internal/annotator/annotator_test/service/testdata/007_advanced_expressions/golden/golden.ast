@@ -1,0 +1,23 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div id="grade-check" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    "\n        Grade: "
+    {{ ((state.Score > 50) ? ((state.Score > 90) ? "A" : "B") : "C") }}
+    "\n    "
+  </RichText>
+</div>
+<div id="admin-check" [p-if: (state.IsAdmin && IsAdmin(state.CurrentUser))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Welcome, Admin!"
+</div>
+<div id="address-check" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    "\n        Street: "
+    {{ state.CurrentUser?.Address?.Street }}
+    "\n    "
+  </RichText>
+</div>
+
+--- END AST DUMP ---
+*/

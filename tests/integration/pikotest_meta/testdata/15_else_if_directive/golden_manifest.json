@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/rating.pk": {
+      "routePatterns": {
+        "en": "/rating"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_15_else_if_directive/dist/pages/pages_rating_5dec39de",
+      "originalSourcePath": "pages/rating.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies a table nested inside a table cell renders correctly against browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

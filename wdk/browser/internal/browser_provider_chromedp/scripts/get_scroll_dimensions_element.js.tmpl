@@ -1,0 +1,5 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return { scrollHeight: 0, clientHeight: 0 };
+    return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight };
+})()

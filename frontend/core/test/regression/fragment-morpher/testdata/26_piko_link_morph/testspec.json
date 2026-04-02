@@ -1,0 +1,19 @@
+{
+    "description": "Navigation links with piko:a attribute survive morph and class changes apply correctly",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "a[href=\"/home\"]",
+            "attributes": { "piko:a": "", "class": "nav-link" },
+            "description": "Home link still has piko:a attribute and loses active class"
+        },
+        {
+            "selector": "a[href=\"/about\"]",
+            "attributes": { "piko:a": "", "class": "nav-link active" },
+            "description": "About link still has piko:a attribute and gains active class"
+        }
+    ]
+}

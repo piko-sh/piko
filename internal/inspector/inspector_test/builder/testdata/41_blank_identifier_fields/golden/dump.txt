@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_41_blank_identifier_fields ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 41_blank_identifier_fields/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Aligned
+    - Defined In:      41_blank_identifier_fields/src/main.go
+    - TypeString:      main.Aligned
+    - Underlying:      struct{A int64; _ [0]byte; B int32; _ [4]byte}
+    - Stringability:   0
+    - Fields:
+      - A                    int64
+      - B                    int32
+
+[Package-Level Functions]
+  (none)

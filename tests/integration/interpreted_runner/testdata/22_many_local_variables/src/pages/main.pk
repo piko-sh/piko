@@ -1,0 +1,138 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Register Pressure Test</h1>
+    <p>Sum: {{ state.Sum }}</p>
+    <p>Count: {{ state.Count }}</p>
+    <p>First: {{ state.First }}</p>
+    <p>Last: {{ state.Last }}</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+	Sum   int
+	Count int
+	First string
+	Last  string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	v0 := 1
+	v1 := 2
+	v2 := 3
+	v3 := 4
+	v4 := 5
+	v5 := 6
+	v6 := 7
+	v7 := 8
+	v8 := 9
+	v9 := 10
+	v10 := 11
+	v11 := 12
+	v12 := 13
+	v13 := 14
+	v14 := 15
+	v15 := 16
+	v16 := 17
+	v17 := 18
+	v18 := 19
+	v19 := 20
+	v20 := 21
+	v21 := 22
+	v22 := 23
+	v23 := 24
+	v24 := 25
+	v25 := 26
+	v26 := 27
+	v27 := 28
+	v28 := 29
+	v29 := 30
+
+	items := make([]string, 0, 60)
+	items = append(items, "item0")
+	items = append(items, "item1")
+	items = append(items, "item2")
+	items = append(items, "item3")
+	items = append(items, "item4")
+	items = append(items, "item5")
+	items = append(items, "item6")
+	items = append(items, "item7")
+	items = append(items, "item8")
+	items = append(items, "item9")
+	items = append(items, "item10")
+	items = append(items, "item11")
+	items = append(items, "item12")
+	items = append(items, "item13")
+	items = append(items, "item14")
+	items = append(items, "item15")
+	items = append(items, "item16")
+	items = append(items, "item17")
+	items = append(items, "item18")
+	items = append(items, "item19")
+	items = append(items, "item20")
+	items = append(items, "item21")
+	items = append(items, "item22")
+	items = append(items, "item23")
+	items = append(items, "item24")
+	items = append(items, "item25")
+	items = append(items, "item26")
+	items = append(items, "item27")
+	items = append(items, "item28")
+	items = append(items, "item29")
+	items = append(items, "item30")
+	items = append(items, "item31")
+	items = append(items, "item32")
+	items = append(items, "item33")
+	items = append(items, "item34")
+	items = append(items, "item35")
+	items = append(items, "item36")
+	items = append(items, "item37")
+	items = append(items, "item38")
+	items = append(items, "item39")
+	items = append(items, "item40")
+	items = append(items, "item41")
+	items = append(items, "item42")
+	items = append(items, "item43")
+	items = append(items, "item44")
+	items = append(items, "item45")
+	items = append(items, "item46")
+	items = append(items, "item47")
+	items = append(items, "item48")
+	items = append(items, "item49")
+
+	sum := v0 + v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9 +
+		v10 + v11 + v12 + v13 + v14 + v15 + v16 + v17 + v18 + v19 +
+		v20 + v21 + v22 + v23 + v24 + v25 + v26 + v27 + v28 + v29
+
+	return Response{
+		Sum:   sum,
+		Count: len(items),
+		First: items[0],
+		Last:  items[len(items)-1],
+	}, piko.Metadata{}, nil
+}
+</script>

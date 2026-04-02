@@ -1,0 +1,57 @@
+[
+  {
+    "Filename": "unknown_table.sql",
+    "Message": "unknown table or view \"nonexistent\" in schema \"main\"",
+    "Code": "Q003",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "unknown_table.sql",
+    "Message": "Q001: unknown column \"id\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "unknown_table.sql",
+    "Message": "Q001: unknown column \"name\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "unknown_table.sql",
+    "Message": "Q001: unknown column \"id\"",
+    "Code": "Q004",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "unknown_table.sql",
+    "Message": "query \"GetFromNonexistent\" uses command \"many\" but produces no output columns",
+    "Code": "Q009",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

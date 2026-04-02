@@ -1,0 +1,7 @@
+{
+    "description": "Verifies inline-block elements participate in text flow: sized as block internally, placed as inline atoms with line wrapping.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

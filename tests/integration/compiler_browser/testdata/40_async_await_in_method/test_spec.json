@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "async-method \u003e\u003e\u003e p",
+    "expected": "Idle"
+  },
+  {
+    "action": "click",
+    "selector": "async-method \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "async-method \u003e\u003e\u003e p",
+    "expected": "Loading..."
+  },
+  {
+    "action": "wait",
+    "value": "600"
+  },
+  {
+    "action": "checkText",
+    "selector": "async-method \u003e\u003e\u003e p",
+    "expected": "Loaded!"
+  }
+]

@@ -1,0 +1,96 @@
+{
+  "leaves": [
+    {
+      "ID": 4,
+      "Name": "Laptops"
+    },
+    {
+      "ID": 5,
+      "Name": "Shirts"
+    },
+    {
+      "ID": 6,
+      "Name": "Android"
+    },
+    {
+      "ID": 7,
+      "Name": "iOS"
+    }
+  ],
+  "subtree": [
+    {
+      "Depth": 0,
+      "ID": 1,
+      "Name": "Electronics",
+      "ParentID": null
+    },
+    {
+      "Depth": 1,
+      "ID": 3,
+      "Name": "Phones",
+      "ParentID": 1
+    },
+    {
+      "Depth": 1,
+      "ID": 4,
+      "Name": "Laptops",
+      "ParentID": 1
+    },
+    {
+      "Depth": 2,
+      "ID": 6,
+      "Name": "Android",
+      "ParentID": 3
+    },
+    {
+      "Depth": 2,
+      "ID": 7,
+      "Name": "iOS",
+      "ParentID": 3
+    }
+  ],
+  "tree": [
+    {
+      "Depth": 0,
+      "ID": 1,
+      "Name": "Electronics",
+      "ParentID": null
+    },
+    {
+      "Depth": 0,
+      "ID": 2,
+      "Name": "Clothing",
+      "ParentID": null
+    },
+    {
+      "Depth": 1,
+      "ID": 3,
+      "Name": "Phones",
+      "ParentID": 1
+    },
+    {
+      "Depth": 1,
+      "ID": 4,
+      "Name": "Laptops",
+      "ParentID": 1
+    },
+    {
+      "Depth": 1,
+      "ID": 5,
+      "Name": "Shirts",
+      "ParentID": 2
+    },
+    {
+      "Depth": 2,
+      "ID": 6,
+      "Name": "Android",
+      "ParentID": 3
+    },
+    {
+      "Depth": 2,
+      "ID": 7,
+      "Name": "iOS",
+      "ParentID": 3
+    }
+  ]
+}

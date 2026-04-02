@@ -1,0 +1,27 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "localTranslations": {
+        "en": {
+          "local.greeting": "Hello from the component!"
+        },
+        "fr": {
+          "local.greeting": "Bonjour du composant !",
+          "specific.greeting": "Bonjour du Français !"
+        }
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_049_i18n_basic_translation_and_fallback/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

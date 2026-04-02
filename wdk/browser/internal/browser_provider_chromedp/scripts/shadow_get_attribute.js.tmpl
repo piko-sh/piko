@@ -1,0 +1,7 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return null;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return null;
+    return el.getAttribute({{jsStr .AttrName}});
+})()

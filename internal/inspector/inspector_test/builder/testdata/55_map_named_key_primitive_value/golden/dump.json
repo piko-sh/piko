@@ -1,0 +1,115 @@
+{
+  "packages": {
+    "testcase_55_map_named_key_primitive_value": {
+      "file_imports": {
+        "55_map_named_key_primitive_value/src/main.go": {
+          "models": "testcase_55_map_named_key_primitive_value/models"
+        }
+      },
+      "named_types": {
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_55_map_named_key_primitive_value",
+          "defined_in_file_path": "55_map_named_key_primitive_value/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{UserScores map[models.UserKey]int}",
+          "fields": [
+            {
+              "definition_file_path": "55_map_named_key_primitive_value/src/main.go",
+              "declaring_pkg_path": "testcase_55_map_named_key_primitive_value",
+              "pkg_path": "testcase_55_map_named_key_primitive_value/models",
+              "underlying_type_string": "map[models.UserKey]int",
+              "declaring_type_name": "Response",
+              "name": "UserScores",
+              "type_string": "map[models.UserKey]int",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "key",
+                  "type_string": "models.UserKey",
+                  "role": "key",
+                  "underlying_type_string": "struct{ID int}",
+                  "pkg_path": "testcase_55_map_named_key_primitive_value/models",
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                },
+                {
+                  "type": "value",
+                  "type_string": "int",
+                  "role": "value",
+                  "underlying_type_string": "int",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 1,
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_55_map_named_key_primitive_value",
+      "name": "main"
+    },
+    "testcase_55_map_named_key_primitive_value/models": {
+      "file_imports": {
+        "55_map_named_key_primitive_value/src/models/key.go": {}
+      },
+      "named_types": {
+        "UserKey": {
+          "name": "UserKey",
+          "package_path": "testcase_55_map_named_key_primitive_value/models",
+          "defined_in_file_path": "55_map_named_key_primitive_value/src/models/key.go",
+          "type_string": "models.UserKey",
+          "underlying_type_string": "struct{ID int}",
+          "fields": [
+            {
+              "definition_file_path": "55_map_named_key_primitive_value/src/models/key.go",
+              "declaring_pkg_path": "testcase_55_map_named_key_primitive_value/models",
+              "pkg_path": "",
+              "underlying_type_string": "int",
+              "declaring_type_name": "UserKey",
+              "name": "ID",
+              "type_string": "int",
+              "raw_tag": "",
+              "definition_line": 23,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_55_map_named_key_primitive_value/models",
+      "name": "models"
+    }
+  },
+  "file_to_package": {
+    "55_map_named_key_primitive_value/src/main.go": "testcase_55_map_named_key_primitive_value",
+    "55_map_named_key_primitive_value/src/models/key.go": "testcase_55_map_named_key_primitive_value/models"
+  }
+}

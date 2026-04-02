@@ -1,0 +1,11 @@
+func() *ast_domain.TemplateNode {
+	typeExprFromString := func(s string) goast.Expr {
+		expr, err := parser.ParseExpr(s)
+		if err != nil {
+			return nil
+		}
+		return expr
+	}
+	_ = typeExprFromString
+	return &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, Location: ast_domain.Location{Line: 0, Column: 0}, TagName: "p", DirShow: &ast_domain.Directive{Type: ast_domain.DirectiveShow, Location: ast_domain.Location{Line: 0, Column: 0}, NameLocation: ast_domain.Location{Line: 0, Column: 0}, Expression: &ast_domain.Identifier{Name: "isVisible", RelativeLocation: ast_domain.Location{Line: 0, Column: 0}}}, Attributes: []ast_domain.HTMLAttribute{ast_domain.HTMLAttribute{Name: "class", Value: "simple", Location: ast_domain.Location{Line: 0, Column: 0}, NameLocation: ast_domain.Location{Line: 0, Column: 0}}}}
+}()

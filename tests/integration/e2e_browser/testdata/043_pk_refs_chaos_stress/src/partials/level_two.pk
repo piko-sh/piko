@@ -1,0 +1,141 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+    <div class="level-two">
+        <h3>Level 2 Partial</h3>
+        <p>L2 Status: <span id="l2-status" p-ref="l2Status">active</span></p>
+        <button id="l2-action" p-ref="l2ActionBtn" p-on:click="l2Action()">L2 Action</button>
+
+        <chaos-card id="l2-chaos-card" p-ref="l2ChaosCard">
+            <div class="placeholder">Click "Load L3" to load level 3</div>
+        </chaos-card>
+        <button id="l2-load-l3" p-ref="l2LoadL3Btn" p-on:click="loadL3IntoCard()">Load L3</button>
+
+        <div id="l2-remote-container" class="remote-container" p-ref="l2RemoteContainer">
+            <p class="placeholder">Remote content not loaded</p>
+        </div>
+        <button id="l2-load-remote" p-ref="l2LoadRemote" p-on:click="loadRemoteIntoL2()">Load Remote into L2</button>
+    </div>
+</template>
+
+<style>
+.level-two {
+    background: #dbeafe;
+    border: 2px solid #3b82f6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+.level-two h3 {
+    margin: 0 0 0.5rem;
+    color: #1d4ed8;
+}
+.remote-container {
+    border: 2px dashed #93c5fd;
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin: 1rem 0;
+    min-height: 50px;
+}
+.placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    text-align: center;
+}
+button {
+    padding: 0.5rem 1rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+/**
+ * Level 2 - Middle partial that embeds level_three via RemoteRender into chaos-card,
+ * and can load remote content dynamically.
+ */
+let l2ActionCount = 0;
+
+export async function loadL3IntoCard() {
+    const card = pk.refs.l2ChaosCard;
+    if (!card) {
+        console.warn('l2ChaosCard ref not found');
+        return;
+    }
+
+    card.innerHTML = '';
+
+    await piko.partials.render({
+        src: '/_piko/partials/level_three',
+        patchLocation: card,
+        patchMethod: 'replace',
+        childrenOnly: false
+    });
+
+    if (pk.refs.l2LoadL3Btn) {
+        pk.refs.l2LoadL3Btn.textContent = 'L3 Loaded!';
+    }
+}
+
+export function l2Action() {
+    l2ActionCount++;
+    if (pk.refs.l2Status) {
+        pk.refs.l2Status.textContent = `action ${l2ActionCount}x`;
+    }
+    if (pk.refs.l2ActionBtn) {
+        pk.refs.l2ActionBtn.textContent = `L2 Action (${l2ActionCount})`;
+    }
+}
+
+export async function loadRemoteIntoL2() {
+    const container = pk.refs.l2RemoteContainer;
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = '';
+
+    await piko.partials.render({
+        src: '/_piko/partials/remote_inject',
+        patchLocation: container,
+        patchMethod: 'replace',
+        childrenOnly: false
+    });
+
+    if (pk.refs.l2LoadRemote) {
+        pk.refs.l2LoadRemote.textContent = 'Loaded!';
+    }
+}
+</script>

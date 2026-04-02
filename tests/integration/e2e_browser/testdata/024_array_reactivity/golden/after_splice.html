@@ -1,0 +1,23 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">Array Reactivity Test</h1>
+    <array-list partial="pages_main_594861c5" p-key="r.0:1" counter="2">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.container{padding: 1rem}.controls{display: flex;flex-wrap: wrap;gap: 0.5rem;margin-bottom: 1rem}button{padding: 0.5rem 1rem;background: #e91e63;color: white;border: none;cursor: pointer}.list-section{padding: 1rem;border: 1px solid #eee}.list-item{padding: 0.5rem;border-bottom: 1px solid #eee}.list-item:last-child{border-bottom: none}</style>
+        <div class="container">
+          <div class="controls"><button id="push-btn">Push (add end)</button><button id="pop-btn">Pop (remove end)</button><button id="shift-btn">Shift (remove first)</button><button id="unshift-btn">Unshift (add first)</button><button id="splice-btn">Splice (insert middle)</button></div>
+          <div class="list-section">
+            <p id="count">Count: 4</p>
+            <ul id="item-list">
+              <li class="list-item">B</li>
+              <li class="list-item">Splice-2</li>
+              <li class="list-item">C</li>
+              <li class="list-item">Push-1</li>
+            </ul>
+          </div>
+        </div>
+      </template>
+    </array-list>
+  </div>
+</div>

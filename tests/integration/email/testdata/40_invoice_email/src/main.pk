@@ -1,0 +1,197 @@
+<template>
+    <pml-row background-color="#2c3e50" padding="20px 0">
+        <pml-col width="50%">
+            <pml-p font-size="24px" color="#ffffff" padding="10px 25px" font-weight="bold">Pixel &amp; Code</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="28px" color="#bdc3c7" align="right" padding="10px 25px" font-weight="bold">INVOICE</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#ffffff" padding="20px 0">
+        <pml-row padding="10px 0">
+            <pml-col width="50%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px" font-weight="bold">From</pml-p>
+                <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">Pixel &amp; Code Ltd</pml-p>
+                <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">14 Clerkenwell Close</pml-p>
+                <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">London, EC1R 0DU</pml-p>
+                <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">VAT: GB 987 6543 21</pml-p>
+            </pml-col>
+            <pml-col width="50%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px" font-weight="bold">To</pml-p>
+                <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">Greenfield Organics Ltd</pml-p>
+                <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">8 Borough High Street</pml-p>
+                <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">London, SE1 9QQ</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="40%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Invoice Number:</pml-p>
+            </pml-col>
+            <pml-col width="60%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">#INV-2026-0342</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="40%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Issue Date:</pml-p>
+            </pml-col>
+            <pml-col width="60%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">1 April 2026</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="40%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Due Date:</pml-p>
+            </pml-col>
+            <pml-col width="60%">
+                <pml-p font-size="13px" color="#e74c3c" padding="5px 25px" font-weight="bold">15 April 2026</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#2c3e50" border-width="3px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="10px 0">
+        <pml-col width="70%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Website Redesign - Homepage</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£2,400.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#ffffff" padding="10px 0">
+        <pml-col width="70%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Website Redesign - Product Pages (×3)</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£3,600.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="10px 0">
+        <pml-col width="70%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Mobile Responsive Development</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£1,800.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#ffffff" padding="10px 0">
+        <pml-col width="70%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">SEO Optimisation Package</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£600.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="10px 0">
+        <pml-col width="70%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Content Migration</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£450.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#dddddd" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="70%">
+            <pml-p font-size="14px" color="#666666" align="right" padding="5px 25px">Subtotal</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£8,850.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="70%">
+            <pml-p font-size="14px" color="#666666" align="right" padding="5px 25px">VAT (20%)</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£1,770.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#2c3e50" border-width="3px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col width="70%">
+            <pml-p font-size="18px" color="#2c3e50" align="right" padding="5px 25px" font-weight="bold">Amount Due</pml-p>
+        </pml-col>
+        <pml-col width="30%">
+            <pml-p font-size="18px" color="#2c3e50" align="right" padding="5px 25px" font-weight="bold">£10,620.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-br></pml-br>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px" font-weight="bold">Payment Details</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#f8f9fa" padding="10px 0">
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Bank:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Barclays Business</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Sort Code:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">20-00-00</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Account:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">12345678</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Reference:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">INV-2026-0342</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://pay.pixelandcode.example.com/INV-2026-0342" background-color="#27ae60" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 40px">Pay Online</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-p font-size="12px" color="#999999" align="center" line-height="1.5" padding="5px 25px">
+                Payment is due within 14 days. Late payments may incur a 2% monthly charge.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#2c3e50" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#bdc3c7" align="center" padding="5px 25px">
+                Pixel &amp; Code Ltd - Registered in England #12345678
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.line-item-alt { background-color: #f8f9fa; }
+</style>

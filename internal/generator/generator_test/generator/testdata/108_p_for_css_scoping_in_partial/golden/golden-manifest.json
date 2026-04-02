@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".list-container[partial~=partials_item_list_1ec6225d]{padding:20px}.list-header[partial~=partials_item_list_1ec6225d]{margin-bottom:10px}.items-list[partial~=partials_item_list_1ec6225d]{display:flex;flex-direction:column;gap:8px}.item-entry[partial~=partials_item_list_1ec6225d]{padding:5px;background:#f0f0f0}",
+      "packagePath": "testcase_108_p_for_css_scoping_in_partial/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

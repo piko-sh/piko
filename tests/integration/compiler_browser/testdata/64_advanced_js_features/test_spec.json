@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "advanced-js-test \u003e\u003e\u003e .result",
+    "expected": "Ready"
+  },
+  {
+    "action": "click",
+    "selector": "advanced-js-test \u003e\u003e\u003e .test-dowhile"
+  },
+  {
+    "action": "checkText",
+    "selector": "advanced-js-test \u003e\u003e\u003e .result",
+    "expected": "Do-While: 3"
+  },
+  {
+    "action": "click",
+    "selector": "advanced-js-test \u003e\u003e\u003e .test-sparse"
+  },
+  {
+    "action": "checkText",
+    "selector": "advanced-js-test \u003e\u003e\u003e .result",
+    "expected": "Sparse Array Length: 5"
+  }
+]

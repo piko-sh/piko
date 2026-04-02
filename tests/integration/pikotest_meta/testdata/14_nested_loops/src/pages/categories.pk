@@ -1,0 +1,85 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package categories
+
+import "piko.sh/piko"
+
+type Product struct {
+	Name  string
+	Price string
+}
+
+type Category struct {
+	Name     string
+	Products []Product
+}
+
+type Response struct {
+	Categories []Category
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Categories: []Category{
+			{
+				Name: "Electronics",
+				Products: []Product{
+					{Name: "Laptop", Price: "$999"},
+					{Name: "Phone", Price: "$599"},
+				},
+			},
+			{
+				Name: "Books",
+				Products: []Product{
+					{Name: "Go Programming", Price: "$39"},
+					{Name: "Clean Code", Price: "$45"},
+					{Name: "Design Patterns", Price: "$55"},
+				},
+			},
+			{
+				Name: "Clothing",
+				Products: []Product{
+					{Name: "T-Shirt", Price: "$25"},
+				},
+			},
+		},
+	}, piko.Metadata{
+		Title: "Product Categories",
+	}, nil
+}
+</script>
+<template>
+	<div class="catalogue">
+		<h1>Product Catalogue</h1>
+		<div class="categories">
+			<section p-for="category in state.Categories" class="category">
+				<h2 class="category-name">{{ category.Name }}</h2>
+				<ul class="product-list">
+					<li p-for="product in category.Products" class="product">
+						<span class="product-name">{{ product.Name }}</span>
+						<span class="product-price">{{ product.Price }}</span>
+					</li>
+				</ul>
+			</section>
+		</div>
+	</div>
+</template>

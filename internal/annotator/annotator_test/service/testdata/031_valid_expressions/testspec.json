@@ -1,0 +1,31 @@
+{
+  "description": "Validates that a wide range of complex but valid expressions are type-checked correctly without producing diagnostics.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "p:nth-of-type(4)",
+      "description": "Valid money math operations should resolve to the correct types.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.MoneyField + state.DecimalField",
+          "resolvedTypeIs": "maths.Money"
+        },
+        {
+          "rawExpression": "state.MoneyField * 2",
+          "resolvedTypeIs": "maths.Money"
+        }
+      ]
+    },
+    {
+      "select": "p:nth-of-type(11)",
+      "description": "A method call on a struct should resolve to its string return type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.CurrentUser.Greet()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

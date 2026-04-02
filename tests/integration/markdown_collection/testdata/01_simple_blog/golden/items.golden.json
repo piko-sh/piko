@@ -1,0 +1,103 @@
+[
+  {
+    "metadata": {
+      "Description": "Tips for power users",
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Advanced Tips",
+          "Slug": "advanced-tips",
+          "Level": 1
+        }
+      ],
+      "Tags": [
+        "advanced"
+      ],
+      "Title": "Advanced Tips",
+      "WordCount": 18,
+      "date": "2024-03-10"
+    },
+    "id": "advanced-tips",
+    "slug": "advanced-tips",
+    "locale": "en",
+    "translationKey": "blog/advanced-tips",
+    "url": "/blog/advanced-tips",
+    "publishedAt": "2024-03-10T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Description": "A guide to getting started",
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Getting Started",
+          "Slug": "getting-started",
+          "Level": 1
+        },
+        {
+          "Title": "Installation",
+          "Slug": "installation",
+          "Level": 2
+        },
+        {
+          "Title": "Configuration",
+          "Slug": "configuration",
+          "Level": 2
+        }
+      ],
+      "Tags": [
+        "guide",
+        "tutorial"
+      ],
+      "Title": "Getting Started with Piko",
+      "WordCount": 34,
+      "date": "2024-02-20"
+    },
+    "id": "getting-started",
+    "slug": "getting-started",
+    "locale": "en",
+    "translationKey": "blog/getting-started",
+    "url": "/blog/getting-started",
+    "publishedAt": "2024-02-20T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Description": "My first blog post",
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Welcome",
+          "Slug": "welcome",
+          "Level": 1
+        },
+        {
+          "Title": "Getting Started",
+          "Slug": "getting-started",
+          "Level": 2
+        }
+      ],
+      "Tags": [
+        "introduction",
+        "test"
+      ],
+      "Title": "Hello World",
+      "WordCount": 53,
+      "date": "2024-01-15"
+    },
+    "id": "hello-world",
+    "slug": "hello-world",
+    "locale": "en",
+    "translationKey": "blog/hello-world",
+    "url": "/blog/hello-world",
+    "publishedAt": "2024-01-15T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

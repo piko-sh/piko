@@ -1,0 +1,9 @@
+<template>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p padding="10px 25px">Above divider</pml-p>
+            <pml-hr border-color="#e74c3c" border-width="3px" border-style="solid" width="80%" padding="10px 25px"></pml-hr>
+            <pml-p padding="10px 25px">Below divider</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

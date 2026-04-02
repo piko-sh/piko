@@ -1,0 +1,16 @@
+{
+    "description": "Verifies content overflowing one page is correctly placed on the second page.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 300,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "block-a": {"pageIndex": 0, "x": 0, "y": 0, "width": 400, "height": 100},
+        "block-b": {"pageIndex": 0, "x": 0, "y": 100, "width": 400, "height": 100},
+        "block-c": {"pageIndex": 0, "x": 0, "y": 200, "width": 400, "height": 100},
+        "block-d": {"pageIndex": 1, "x": 0, "y": 0, "width": 400, "height": 100}
+    }
+}

@@ -1,0 +1,8 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return null;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return null;
+    if (el.type !== 'checkbox' && el.type !== 'radio') return null;
+    return el.checked;
+})()

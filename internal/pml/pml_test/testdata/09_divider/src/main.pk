@@ -1,0 +1,8 @@
+<template>
+    <pml-row>
+        <pml-col>
+            <pml-hr border-color="#cccccc" border-width="2px" border-style="solid" padding="15px 25px">
+            </pml-hr>
+        </pml-col>
+    </pml-row>
+</template>

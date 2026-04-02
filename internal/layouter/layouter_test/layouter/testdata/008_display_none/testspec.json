@@ -1,0 +1,3 @@
+{
+  "description": "A hidden element with display none. Verifies that display:none elements are pruned from the box tree."
+}

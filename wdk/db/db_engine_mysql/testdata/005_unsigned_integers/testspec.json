@@ -1,0 +1,3 @@
+{
+  "description": "UNSIGNED integer type modifier for MySQL integer columns. Tests that INT UNSIGNED, BIGINT UNSIGNED, and other unsigned variants are correctly normalised in the type catalogue."
+}

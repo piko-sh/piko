@@ -1,0 +1,174 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Top App Bar"
+            server.current-page="navigation/top-app-bar">
+
+            <p class="demo-description">Top app bars display information and actions at the top of a screen. They come in four size variants.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- Centre-aligned -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Centre-aligned</h3>
+                    <div class="demo-preview">
+                        <m3e-top-app-bar variant="center-aligned" headline="Page Title">
+                            <m3e-icon-button variant="standard" slot="leading">
+                                <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard" slot="trailing">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-top-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-top-app-bar variant="center-aligned" headline="Page Title"&gt;
+  &lt;m3e-icon-button variant="standard" slot="leading"&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard" slot="trailing"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-top-app-bar&gt;</code></pre>
+                </section>
+
+                <!-- Small -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Small</h3>
+                    <div class="demo-preview">
+                        <m3e-top-app-bar variant="small" headline="Small Title">
+                            <m3e-icon-button variant="standard" slot="leading">
+                                <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard" slot="trailing">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-top-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-top-app-bar variant="small" headline="Small Title"&gt;
+  &lt;m3e-icon-button variant="standard" slot="leading"&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard" slot="trailing"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-top-app-bar&gt;</code></pre>
+                </section>
+
+                <!-- Medium -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Medium</h3>
+                    <div class="demo-preview">
+                        <m3e-top-app-bar variant="medium" headline="Medium Title">
+                            <m3e-icon-button variant="standard" slot="leading">
+                                <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard" slot="trailing">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-top-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-top-app-bar variant="medium" headline="Medium Title"&gt;
+  &lt;m3e-icon-button variant="standard" slot="leading"&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard" slot="trailing"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-top-app-bar&gt;</code></pre>
+                </section>
+
+                <!-- Large -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Large</h3>
+                    <div class="demo-preview">
+                        <m3e-top-app-bar variant="large" headline="Large Title">
+                            <m3e-icon-button variant="standard" slot="leading">
+                                <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard" slot="trailing">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-top-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-top-app-bar variant="large" headline="Large Title"&gt;
+  &lt;m3e-icon-button variant="standard" slot="leading"&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard" slot="trailing"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-top-app-bar&gt;</code></pre>
+                </section>
+
+                <!-- Without Trailing -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Without Trailing</h3>
+                    <div class="demo-preview">
+                        <m3e-top-app-bar variant="small" headline="Leading Only">
+                            <m3e-icon-button variant="standard" slot="leading">
+                                <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-top-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-top-app-bar variant="small" headline="Leading Only"&gt;
+  &lt;m3e-icon-button variant="standard" slot="leading"&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-top-app-bar&gt;</code></pre>
+                </section>
+
+                <!-- Without Leading -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Without Leading</h3>
+                    <div class="demo-preview">
+                        <m3e-top-app-bar variant="small" headline="Trailing Only">
+                            <m3e-icon-button variant="standard" slot="trailing">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-top-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-top-app-bar variant="small" headline="Trailing Only"&gt;
+  &lt;m3e-icon-button variant="standard" slot="trailing"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-top-app-bar&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Top App Bar - M3E Components",
+    }, nil
+}
+</script>

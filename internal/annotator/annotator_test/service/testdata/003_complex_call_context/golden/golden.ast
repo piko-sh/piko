@@ -1,0 +1,17 @@
+/*
+--- BEGIN AST DUMP ---
+
+<main [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div class="card" :greeting="state.Greeting" {P: state.Greeting, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_greeting_state_greeting_95d632c8 Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+    <p [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+      <RichText>
+        "\n            "
+        {{ Hello(state.Message, props.Greeting) }}
+        "\n        "
+      </RichText>
+    </p>
+  </div>
+</main>
+
+--- END AST DUMP ---
+*/

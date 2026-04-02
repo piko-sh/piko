@@ -1,0 +1,4 @@
+{
+  "description": "Tests the truthy operator (~) which converts any value to its boolean truthiness. This operator is used for explicit truthiness checks without needing to compare against specific values.",
+  "tags": ["expression", "truthy", "unary-operator"]
+}

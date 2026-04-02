@@ -1,0 +1,24 @@
+{
+  "description": "Nested partials should each be able to reference their own exported functions, with proper isolation.",
+  "shouldError": false,
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#outer-span",
+      "description": "The outer partial should resolve its own FormatOuter function.",
+      "assertOnInterpolation": {
+        "rawExpression": "FormatOuter(props.Value)",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "div.inner",
+      "description": "The inner partial should resolve its own FormatInner function.",
+      "assertOnInterpolation": {
+        "rawExpression": "FormatInner(props.Value)",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

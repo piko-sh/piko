@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "multi_statement.sql",
+    "Message": "query \"GetUsers\" contains 2 statements; analysing last statement only",
+    "Code": "Q012",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 2
+  }
+]

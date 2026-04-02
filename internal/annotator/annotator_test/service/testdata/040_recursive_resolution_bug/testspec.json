@@ -1,0 +1,58 @@
+{
+  "description": "Isolates a bug where the TypeInspector fails to resolve a deeply nested field because it loses the correct file-scoped import context during recursive searches. A correct implementation must switch to the context of a type's defining file when resolving its members.",
+  "expectedDiagnostics": 0,
+  "shouldError": false,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#deep-path",
+      "description": "The deepest path should resolve through three layers of structs.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.L1Data.L2Data.L3Data.FinalItem.Name",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.L1Data",
+          "description": "Step 1: L1Data should resolve to the layer1 type.",
+          "resolvedTypeIs": "layer1.Layer1Response"
+        },
+        {
+          "rawExpression": "state.L1Data.L2Data",
+          "description": "Step 2: L2Data should resolve to the layer2 type.",
+          "resolvedTypeIs": "layer2.Layer2Response"
+        },
+        {
+          "rawExpression": "state.L1Data.L2Data.L3Data",
+          "description": "Step 3: L3Data should resolve to the layer3 type.",
+          "resolvedTypeIs": "layer3.Layer3Response"
+        },
+        {
+          "rawExpression": "state.L1Data.L2Data.L3Data.FinalItem",
+          "description": "Step 4: FinalItem should resolve to the models data type.",
+          "resolvedTypeIs": "models.Data"
+        }
+      ]
+    },
+    {
+      "select": "#alias-path",
+      "description": "The alias path should resolve through a type alias in an intermediate package.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.L2Alias.FinalItem.Name",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.L2Alias",
+          "description": "Step 1: L2Alias should resolve through the alias to the layer3 type.",
+          "resolvedTypeIs": "layer3.Layer3Response"
+        },
+        {
+          "rawExpression": "state.L2Alias.FinalItem",
+          "description": "Step 2: FinalItem should resolve to the models data type.",
+          "resolvedTypeIs": "models.Data"
+        }
+      ]
+    }
+  ]
+}

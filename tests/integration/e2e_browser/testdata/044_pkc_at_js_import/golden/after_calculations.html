@@ -1,0 +1,42 @@
+<div id="app">
+  <meta partial="pages_main_594861c5" p-key="r.0" charset="UTF-8" />
+  <title partial="pages_main_594861c5" p-key="r.1">PPC @/ JS Import Test</title>
+  <div partial="pages_main_594861c5" p-key="r.2" id="app">
+    <h1 partial="pages_main_594861c5" p-key="r.2:0">PPC JavaScript Import Test</h1>
+    <p partial="pages_main_594861c5" p-key="r.2:1">This test verifies that PPC components can import JavaScript files using the @/ alias.</p>
+    <pp-calculator
+      partial="pages_main_594861c5"
+      p-key="r.2:2"
+      num-a="10"
+      num-b="7"
+      sum-result="Sum: 17"
+      product-result="Product: 70"
+      text-input="Hello World"
+      text-result="Result: Hello world"
+    >
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.calculator-component{border: 2px solid #2196f3;padding: 1rem;margin: 1rem 0;border-radius: 8px}.inputs{margin: 1rem 0}.inputs label{display: block;margin-bottom: 0.5rem}.inputs input{padding: 0.25rem;width: 80px;margin-left: 0.5rem}.operations{margin: 1rem 0}button{padding: 0.5rem 1rem;background: #2196f3;color: white;border: none;cursor: pointer;margin-right: 0.5rem;border-radius: 4px}button:hover{background: #1976d2}.results{margin-top: 1rem;padding: 0.5rem;background: #f5f5f5;border-radius: 4px}.results p{margin: 0.25rem 0}</style>
+        <div class="calculator-component">
+          <h3>Calculator Component</h3>
+          <p>Tests @/ JavaScript import functionality</p>
+          <div class="inputs"><label> Number A: <input id="input-a" type="number" />
+</label>            <label> Number B: <input id="input-b" type="number" />
+</label>          </div>
+          <div class="operations"><button id="btn-add">Add</button><button id="btn-multiply">Multiply</button></div>
+          <div class="results">
+            <p id="result-sum">Sum: 17</p>
+            <p id="result-product">Product: 70</p>
+          </div>
+          <div class="string-section">
+            <h4>String Utils Test</h4>
+            <label> Text: <input id="input-text" type="text" />
+            </label>
+            <div class="string-operations"><button id="btn-upper">Upper</button><button id="btn-lower">Lower</button><button id="btn-cap">Capitalize</button></div>
+            <p id="result-text">Result: Hello world</p>
+          </div>
+        </div>
+      </template>
+    </pp-calculator>
+  </div>
+</div>

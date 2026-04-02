@@ -1,0 +1,29 @@
+{
+    "description": "Basic scope preservation via RemoteRenderer - parent scopes preserved when morphing",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/partial",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#content",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".item",
+            "attributes": { "partial": "item_new parent_scope grandparent_scope" },
+            "description": "Item should preserve parent scopes"
+        },
+        {
+            "selector": ".item",
+            "textContent": "Updated Content",
+            "description": "Content should be updated"
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+  "description": "Tests that transitive dependencies (main -> lib -> uuid) are correctly resolved and serialised.",
+  "moduleName": "testcase_16_transitive_dependency",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_16_transitive_dependency",
+    "testcase_16_transitive_dependency/lib"
+  ],
+  "assertions": [
+    {
+      "description": "The transitive dependency 'google/uuid' should be present in the serialised packages.",
+      "select": "packages.github.com/google/uuid.name",
+      "expect": "uuid"
+    },
+    {
+      "description": "The field in the intermediate 'lib' package should correctly reference the uuid type.",
+      "select": "packages.testcase_16_transitive_dependency/lib.named_types.Item.fields.0.pkg_path",
+      "expect": "github.com/google/uuid"
+    }
+  ]
+}

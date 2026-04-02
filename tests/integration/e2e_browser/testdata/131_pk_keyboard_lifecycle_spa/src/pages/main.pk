@@ -1,0 +1,24 @@
+<template>
+  <div>
+    <h1>Keyboard Lifecycle Test</h1>
+    <nav>
+      <a href="/other" id="nav-other">Go to Other Page</a>
+    </nav>
+    <piko:partial is="key_handler"></piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    key_handler "testmodule/partials/key-handler.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Keyboard Lifecycle Test",
+    }, nil
+}
+</script>

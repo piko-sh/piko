@@ -1,0 +1,3 @@
+{
+  "description": "Tests that sibling elements within a custom element maintain proper indentation when the first sibling is block-formatted. This was a regression where the second sibling would have no indentation for its opening tag but its attributes would be indented."
+}

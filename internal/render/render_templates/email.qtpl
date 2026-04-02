@@ -1,0 +1,62 @@
+{%- package render_templates -%}
+
+{%- func EmailPageHeader(p *EmailPageData) -%}
+{%- stripspace -%}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="{%s= p.Lang %}" dir="{%s= p.Dir %}" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <title>{%s= p.Title %}</title>
+    <!--[if !mso]><!-->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!--<![endif]-->
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <style type="text/css">
+        {%s= p.BaseStyling %}
+        {%s= p.Styling %}
+    </style>
+
+    <!--[if mso]>
+    <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:AllowPNG/>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+    </noscript>
+    <![endif]-->
+
+    <!--[if lte mso 11]>
+    <style type="text/css">
+      .pml-col-group { width:100% !important; }
+    </style>
+    <![endif]-->
+
+    {%- for _, block := range p.PreservedHeadBlocks -%}
+        {%s= block %}
+    {%- endfor -%}
+</head>
+<body style="word-spacing:normal;{%- if p.BodyInlineStyles != "" -%}{%s= p.BodyInlineStyles %}{%- endif -%}{%- if p.BackgroundColor != "" -%}background-color:{%s= p.BackgroundColor %};{%- endif -%}">
+    <div aria-roledescription="email" role="article" lang="{%s= p.Lang %}" dir="{%s= p.Dir %}" style="{%- if p.BackgroundColor != "" -%}background-color:{%s= p.BackgroundColor %};{%- endif -%}">
+    <!--[if mso | IE]>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">
+        <tr>
+            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">
+    <![endif]-->
+{%- endstripspace -%}
+{%- endfunc -%}
+
+{%- func EmailPageFooter(p *EmailPageData) -%}
+{%- stripspace -%}
+    <!--[if mso | IE]>
+            </td>
+        </tr>
+    </table>
+    <![endif]-->
+    </div>
+</body>
+</html>
+{%- endstripspace -%}
+{%- endfunc -%}

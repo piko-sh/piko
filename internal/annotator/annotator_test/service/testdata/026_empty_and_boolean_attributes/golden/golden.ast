@@ -1,0 +1,12 @@
+/*
+--- BEGIN AST DUMP ---
+
+<form [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <input disabled="" id="input1" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <input id="input2" :disabled="state.IsDisabled" {P: state.IsDisabled} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <input id="input3" value="" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <input id="input4" :value="state.EmptyVal" {P: state.EmptyVal} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+</form>
+
+--- END AST DUMP ---
+*/

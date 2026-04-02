@@ -1,0 +1,23 @@
+[
+  {
+    "action": "eval",
+    "selector": "#test-harness",
+    "value": "() => this.innerHTML = `<div class='theme-dark'><css-advanced><p class='slotted-item'>Slotted Content</p></css-advanced></div>`"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-advanced >>> .inside",
+    "expected": "rgb(255, 255, 255)",
+    "name": "color"
+  },
+  {
+    "action": "checkComputedStyleSlotted",
+    "selector": ".slotted-item",
+    "expected": "italic",
+    "name": "font-style"
+  }
+]

@@ -1,0 +1,63 @@
+Ember & Oak
+
+Thank you for your order!
+
+Order #ORD-7842 has been confirmed.
+
+Item 1
+
+Ceramic Vase - Sunset
+
+Qty: 1
+
+£45.00
+
+Item 2
+
+Linen Throw - Sage
+
+Qty: 2
+
+£68.00
+
+Item 3
+
+Oak Candle Holder
+
+Qty: 1
+
+£32.00
+
+Subtotal
+
+£145.00
+
+Shipping
+
+£5.99
+
+**Total**
+
+**£150.99**
+
+**Shipping Address**
+
+Jane Doe
+
+42 Elm Street
+
+Bristol, BS1 4DJ
+
+**Billing Address**
+
+Jane Doe
+
+42 Elm Street
+
+Bristol, BS1 4DJ
+
+ View Order (https://shop.emberandoak.example.com/orders/ORD-7842)
+
+Need help? Contact us at support@emberandoak.example.com
+
+Ember & Oak Ltd, 10 High Street, London, EC1A 1BB

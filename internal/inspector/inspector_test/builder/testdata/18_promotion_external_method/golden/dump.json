@@ -1,0 +1,526 @@
+{
+  "packages": {
+    "testcase_18_promotion_external_method": {
+      "file_imports": {
+        "18_promotion_external_method/src/main.go": {
+          "currency": "github.com/bojanz/currency"
+        }
+      },
+      "named_types": {
+        "Price": {
+          "name": "Price",
+          "package_path": "testcase_18_promotion_external_method",
+          "defined_in_file_path": "18_promotion_external_method/src/main.go",
+          "type_string": "main.Price",
+          "underlying_type_string": "struct{currency.Amount; Locale string}",
+          "fields": [
+            {
+              "definition_file_path": "18_promotion_external_method/src/main.go",
+              "declaring_pkg_path": "testcase_18_promotion_external_method",
+              "pkg_path": "github.com/bojanz/currency",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_type_name": "Price",
+              "name": "Amount",
+              "type_string": "currency.Amount",
+              "raw_tag": "",
+              "definition_line": 25,
+              "definition_column": 11,
+              "is_internal_type": false,
+              "is_embedded": true,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "18_promotion_external_method/src/main.go",
+              "declaring_pkg_path": "testcase_18_promotion_external_method",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "declaring_type_name": "Price",
+              "name": "Locale",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [
+            {
+              "name": "Add",
+              "type_string": "currency.Amount",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "currency.Amount"
+                ],
+                "param_names": [
+                  "b"
+                ],
+                "results": [
+                  "currency.Amount",
+                  "error"
+                ]
+              },
+              "definition_line": 160,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "BigInt",
+              "type_string": "*big.Int",
+              "underlying_type_string": "*big.Int",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "*big.Int"
+                ]
+              },
+              "definition_line": 124,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Cmp",
+              "type_string": "int",
+              "underlying_type_string": "int",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "currency.Amount"
+                ],
+                "param_names": [
+                  "b"
+                ],
+                "results": [
+                  "int",
+                  "error"
+                ]
+              },
+              "definition_line": 249,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Convert",
+              "type_string": "currency.Amount",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "string",
+                  "string"
+                ],
+                "param_names": [
+                  "currencyCode",
+                  "rate"
+                ],
+                "results": [
+                  "currency.Amount",
+                  "error"
+                ]
+              },
+              "definition_line": 145,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "CurrencyCode",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 114,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Div",
+              "type_string": "currency.Amount",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "string"
+                ],
+                "param_names": [
+                  "n"
+                ],
+                "results": [
+                  "currency.Amount",
+                  "error"
+                ]
+              },
+              "definition_line": 211,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Equal",
+              "type_string": "bool",
+              "underlying_type_string": "bool",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "currency.Amount"
+                ],
+                "param_names": [
+                  "b"
+                ],
+                "results": [
+                  "bool"
+                ]
+              },
+              "definition_line": 257,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Int64",
+              "type_string": "int64",
+              "underlying_type_string": "int64",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "int64",
+                  "error"
+                ]
+              },
+              "definition_line": 137,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "IsNegative",
+              "type_string": "bool",
+              "underlying_type_string": "bool",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "bool"
+                ]
+              },
+              "definition_line": 271,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "IsPositive",
+              "type_string": "bool",
+              "underlying_type_string": "bool",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "bool"
+                ]
+              },
+              "definition_line": 265,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "IsZero",
+              "type_string": "bool",
+              "underlying_type_string": "bool",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "bool"
+                ]
+              },
+              "definition_line": 277,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "MarshalBinary",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte",
+                  "error"
+                ]
+              },
+              "definition_line": 283,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "MarshalJSON",
+              "type_string": "[]byte",
+              "underlying_type_string": "[]byte",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "[]byte",
+                  "error"
+                ]
+              },
+              "definition_line": 312,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Mul",
+              "type_string": "currency.Amount",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "string"
+                ],
+                "param_names": [
+                  "n"
+                ],
+                "results": [
+                  "currency.Amount",
+                  "error"
+                ]
+              },
+              "definition_line": 199,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Number",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 109,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Round",
+              "type_string": "currency.Amount",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "currency.Amount"
+                ]
+              },
+              "definition_line": 227,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "RoundTo",
+              "type_string": "currency.Amount",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "uint8",
+                  "currency.RoundingMode"
+                ],
+                "param_names": [
+                  "digits",
+                  "mode"
+                ],
+                "results": [
+                  "currency.Amount"
+                ]
+              },
+              "definition_line": 232,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Scan",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "interface{}"
+                ],
+                "param_names": [
+                  "src"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 361,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "String",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 119,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Sub",
+              "type_string": "currency.Amount",
+              "underlying_type_string": "struct{number apd.Decimal; currencyCode string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "currency.Amount"
+                ],
+                "param_names": [
+                  "b"
+                ],
+                "results": [
+                  "currency.Amount",
+                  "error"
+                ]
+              },
+              "definition_line": 178,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "UnmarshalBinary",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "data"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 292,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "UnmarshalJSON",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "data"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 323,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "Value",
+              "type_string": "driver.Value",
+              "underlying_type_string": "interface{}",
+              "declaring_pkg_path": "github.com/bojanz/currency",
+              "declaring_type_name": "Amount",
+              "definition_file_path": "$GOMODCACHE/github.com/bojanz/currency@v1.4.2/amount.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "driver.Value",
+                  "error"
+                ]
+              },
+              "definition_line": 354,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 2,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_18_promotion_external_method",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "18_promotion_external_method/src/main.go": "testcase_18_promotion_external_method"
+  }
+}

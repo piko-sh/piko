@@ -1,0 +1,77 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-chip-set">
+    <div class="chip-set" role="listbox">
+        <slot></slot>
+    </div>
+</template>
+
+<script lang="ts">
+    pkc.onConnected(() => {
+        pkc.addEventListener('keydown', handleKeydown);
+    });
+
+    pkc.onDisconnected(() => {
+        pkc.removeEventListener('keydown', handleKeydown);
+    });
+
+    const handleKeydown = function(event) {
+        const isLeft = event.key === 'ArrowLeft';
+        const isRight = event.key === 'ArrowRight';
+        const isHome = event.key === 'Home';
+        const isEnd = event.key === 'End';
+
+        if (!isLeft && !isRight && !isHome && !isEnd) return;
+
+        event.preventDefault();
+        const chips = Array.from(pkc.querySelectorAll('m3e-chip:not([disabled])'));
+        if (chips.length < 2) return;
+
+        const focused = document.activeElement;
+        let index = chips.indexOf(focused);
+        if (index < 0) index = 0;
+
+        let nextIndex;
+        if (isHome) {
+            nextIndex = 0;
+        } else if (isEnd) {
+            nextIndex = chips.length - 1;
+        } else if (isRight) {
+            nextIndex = index < chips.length - 1 ? index + 1 : 0;
+        } else {
+            nextIndex = index > 0 ? index - 1 : chips.length - 1;
+        }
+
+        chips[nextIndex].focus();
+    };
+</script>
+
+<style>
+    :host {
+        display: block;
+    }
+
+    .chip-set {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+</style>

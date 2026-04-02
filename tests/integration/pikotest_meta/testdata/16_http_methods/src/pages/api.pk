@@ -1,0 +1,99 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package api
+
+import "piko.sh/piko"
+
+type Response struct {
+	Method      string
+	IsGet       bool
+	IsPost      bool
+	IsPut       bool
+	IsDelete    bool
+	IsPatch     bool
+	Description string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	method := r.Method()
+
+	description := "Unknown operation"
+	switch method {
+	case "GET":
+		description = "Fetching data"
+	case "POST":
+		description = "Creating resource"
+	case "PUT":
+		description = "Updating resource"
+	case "DELETE":
+		description = "Removing resource"
+	case "PATCH":
+		description = "Partial update"
+	}
+
+	return Response{
+		Method:      method,
+		IsGet:       method == "GET",
+		IsPost:      method == "POST",
+		IsPut:       method == "PUT",
+		IsDelete:    method == "DELETE",
+		IsPatch:     method == "PATCH",
+		Description: description,
+	}, piko.Metadata{
+		Title: "API Method Display",
+	}, nil
+}
+</script>
+<template>
+	<div class="api-page">
+		<h1>HTTP Method Handler</h1>
+		<section class="method-info">
+			<p class="method-display">Method: <span class="method-value">{{ state.Method }}</span></p>
+			<p class="description">{{ state.Description }}</p>
+		</section>
+		<section class="method-indicators">
+			<span p-if="state.IsGet" class="indicator get-indicator">GET Request</span>
+			<span p-if="state.IsPost" class="indicator post-indicator">POST Request</span>
+			<span p-if="state.IsPut" class="indicator put-indicator">PUT Request</span>
+			<span p-if="state.IsDelete" class="indicator delete-indicator">DELETE Request</span>
+			<span p-if="state.IsPatch" class="indicator patch-indicator">PATCH Request</span>
+		</section>
+		<section class="method-actions">
+			<div p-if="state.IsGet" class="action read-action">
+				<h2>Read Operation</h2>
+				<p>Retrieving data from the server</p>
+			</div>
+			<div p-if="state.IsPost" class="action create-action">
+				<h2>Create Operation</h2>
+				<p>Submitting new data to the server</p>
+			</div>
+			<div p-if="state.IsPut || state.IsPatch" class="action update-action">
+				<h2>Update Operation</h2>
+				<p>Modifying existing data on the server</p>
+			</div>
+			<div p-if="state.IsDelete" class="action delete-action">
+				<h2>Delete Operation</h2>
+				<p>Removing data from the server</p>
+			</div>
+		</section>
+	</div>
+</template>

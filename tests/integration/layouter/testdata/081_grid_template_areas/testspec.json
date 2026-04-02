@@ -1,0 +1,7 @@
+{
+    "description": "Verifies named CSS grid areas with grid-template-areas and grid-area.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

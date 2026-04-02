@@ -1,0 +1,63 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <!-- LTR container with mixed LTR and RTL text -->
+  <div data-layout-id="ltr-mixed" style="box-sizing: content-box; direction: ltr; width: 600px; margin: 0; padding: 10px; font-size: 16px;">
+    Hello &#1513;&#1500;&#1493;&#1501; World
+  </div>
+
+  <!-- RTL container with mixed RTL and LTR text -->
+  <div data-layout-id="rtl-mixed" style="box-sizing: content-box; direction: rtl; width: 600px; margin: 0; padding: 10px; font-size: 16px;">
+    &#1513;&#1500;&#1493;&#1501; Hello &#1513;&#1500;&#1493;&#1501;
+  </div>
+
+  <!-- Pure RTL text in RTL container -->
+  <div data-layout-id="rtl-pure" style="box-sizing: content-box; direction: rtl; width: 600px; margin: 0; padding: 10px; font-size: 16px;">
+    &#1513;&#1500;&#1493;&#1501; &#1506;&#1493;&#1500;&#1501;
+  </div>
+
+  <!-- LTR container with unicode-bidi: bidi-override forcing RTL -->
+  <div data-layout-id="bidi-override" style="box-sizing: content-box; direction: rtl; unicode-bidi: bidi-override; width: 600px; margin: 0; padding: 10px; font-size: 16px;">
+    Hello World
+  </div>
+
+  <!-- RTL text-align: start should align right -->
+  <div data-layout-id="rtl-align-start" style="box-sizing: content-box; direction: rtl; text-align: start; width: 600px; margin: 0; padding: 10px; font-size: 0;">
+    <span data-layout-id="rtl-align-start-text" style="display: inline-block; width: 100px; height: 20px;"></span>
+  </div>
+
+  <!-- LTR text-align: end should align right -->
+  <div data-layout-id="ltr-align-end" style="box-sizing: content-box; direction: ltr; text-align: end; width: 600px; margin: 0; padding: 10px; font-size: 0;">
+    <span data-layout-id="ltr-align-end-text" style="display: inline-block; width: 100px; height: 20px;"></span>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Bidi Mixed Text Test"}, nil
+}
+</script>

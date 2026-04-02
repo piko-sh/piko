@@ -1,0 +1,3 @@
+{
+  "description": "Subqueries in FROM clause. Verifies that (SELECT ...) sub is parsed as a derived table, inner columns are resolved, and the alias is registered in scope for outer column resolution."
+}

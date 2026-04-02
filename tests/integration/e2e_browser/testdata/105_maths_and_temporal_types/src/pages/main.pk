@@ -1,0 +1,380 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Maths and Temporal Types Test</h1>
+
+    <!-- Section 1: Raw Decimal rendering (tests MustString path) -->
+    <section id="sec-decimal-raw">
+      <h2>Decimal Raw</h2>
+      <ul>
+        <li id="dec-raw">{{ state.Price }}</li>
+        <li id="dec-ptext" p-text="state.Price"></li>
+      </ul>
+    </section>
+
+    <!-- Section 2: Pre-computed Decimal string (control group) -->
+    <section id="sec-decimal-str">
+      <h2>Decimal String Control</h2>
+      <ul>
+        <li id="dec-str">{{ state.PriceStr }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 3: Float precision proof - 0.1 + 0.2 must equal 0.3, not 0.30000000000000004 -->
+    <section id="sec-float-proof">
+      <h2>Float Precision Proof</h2>
+      <ul>
+        <li id="float-raw">{{ state.FloatProof }}</li>
+        <li id="float-str">{{ state.FloatProofStr }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 4: Decimal arithmetic (computed in Go) -->
+    <section id="sec-decimal-arith">
+      <h2>Decimal Arithmetic</h2>
+      <ul>
+        <li id="dec-sum-str">{{ state.DecSumStr }}</li>
+        <li id="dec-diff-str">{{ state.DecDiffStr }}</li>
+        <li id="dec-prod-str">{{ state.DecProdStr }}</li>
+        <li id="dec-div-str">{{ state.DecDivStr }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 5: Raw BigInt rendering -->
+    <section id="sec-bigint-raw">
+      <h2>BigInt Raw</h2>
+      <ul>
+        <li id="big-raw">{{ state.Quantity }}</li>
+        <li id="big-str">{{ state.QuantityStr }}</li>
+        <li id="big-overflow">{{ state.BigOverflowStr }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 6: BigInt arithmetic -->
+    <section id="sec-bigint-arith">
+      <h2>BigInt Arithmetic</h2>
+      <ul>
+        <li id="big-sum-str">{{ state.BigSumStr }}</li>
+        <li id="big-prod-str">{{ state.BigProdStr }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 7: Money rendering -->
+    <section id="sec-money">
+      <h2>Money</h2>
+      <ul>
+        <li id="money-raw">{{ state.Total }}</li>
+        <li id="money-str">{{ state.TotalStr }}</li>
+        <li id="money-gb">{{ state.MoneyFormatGB }}</li>
+        <li id="money-us">{{ state.MoneyFormatUS }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 8: Temporal types (pre-formatted strings) -->
+    <section id="sec-temporal">
+      <h2>Temporal</h2>
+      <ul>
+        <li id="temporal-date">{{ state.EventDate }}</li>
+        <li id="temporal-datetime">{{ state.EventDateTime }}</li>
+        <li id="temporal-time">{{ state.MeetingTime }}</li>
+        <li id="temporal-duration">{{ state.TaskDuration }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 9: Comparison results -->
+    <section id="sec-comparisons">
+      <h2>Comparisons</h2>
+      <ul>
+        <li id="cmp-dec-gt">{{ state.DecGT }}</li>
+        <li id="cmp-dec-eq">{{ state.DecEQ }}</li>
+        <li id="cmp-big-lt">{{ state.BigLT }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 10: Ternary with maths types -->
+    <section id="sec-ternary">
+      <h2>Ternary</h2>
+      <ul>
+        <li id="ternary-result" p-text="state.IsExpensive ? state.PriceStr : 'free'"></li>
+      </ul>
+    </section>
+
+    <!-- Section 11: Template literal interpolation -->
+    <section id="sec-template-literal">
+      <h2>Template Literals</h2>
+      <ul>
+        <li id="tpl-price" p-text="`Price: ${state.PriceStr}`"></li>
+        <li id="tpl-bigint" p-text="`Items: ${state.QuantityStr}`"></li>
+      </ul>
+    </section>
+
+    <!-- Section 12: Attribute bindings -->
+    <section id="sec-attr-binding">
+      <h2>Attribute Binding</h2>
+      <ul>
+        <li id="attr-dec" :data-value="state.PriceStr">Decimal attr</li>
+        <li id="attr-big" :data-value="state.QuantityStr">BigInt attr</li>
+      </ul>
+    </section>
+
+    <!-- Section 13: Inline literal expressions (using EvaluateBinary runtime helper) -->
+    <section id="sec-inline-literals">
+      <h2>Inline Literal Expressions</h2>
+      <ul>
+        <!-- Decimal arithmetic -->
+        <li id="inline-dec-add" p-text="0.1d + 0.2d">decimal add</li>
+        <li id="inline-dec-sub" p-text="100d - 33.33d">decimal sub</li>
+        <li id="inline-dec-mul" p-text="7.5d * 3d">decimal mul</li>
+        <li id="inline-dec-div" p-text="10d / 4d">decimal div</li>
+
+        <!-- BigInt arithmetic -->
+        <li id="inline-big-add" p-text="999n + 1n">bigint add</li>
+        <li id="inline-big-mul" p-text="123n * 456n">bigint mul</li>
+
+        <!-- Decimal comparisons -->
+        <li id="inline-dec-gt" p-text="10.5d > 5d">decimal gt</li>
+        <li id="inline-dec-lt" p-text="3d < 7d">decimal lt</li>
+        <li id="inline-dec-eq-cmp" p-text="1d + 2d == 3d">decimal eq</li>
+
+        <!-- Ternary with inline literals -->
+        <li id="inline-ternary-dec" p-text="1d + 2d == 3d ? 'comparable' : 'not-comparable'">ternary</li>
+        <li id="inline-ternary-price" p-text="state.Price > 10d ? 'expensive' : 'cheap'">ternary price</li>
+
+        <!-- Template literal with inline expression -->
+        <li id="inline-tpl-sum" p-text="`Sum: ${10.5d + 20.3d}`">tpl sum</li>
+      </ul>
+    </section>
+
+    <!-- Section 14: Partial with props -->
+    <piko:partial is="type_card" price-val="19.99" quantity-val="42" currency-code="GBP" date-val="2026-01-15" :dec-direct="0.1d + 0.2d" :big-direct="999n + 1n"></piko:partial>
+
+    <!-- Section 15: PKC component -->
+    <maths-viewer decimal-val="19.99" bigint-val="9223372036854775808"></maths-viewer>
+
+    <!-- Section 16: F() format builder -->
+    <section id="sec-format-builder">
+      <h2>F() Format Builder</h2>
+      <ul>
+        <li id="f-dec">{{ F(state.Price) }}</li>
+        <li id="f-big">{{ F(state.Quantity) }}</li>
+        <li id="f-money">{{ F(state.Total) }}</li>
+        <li id="f-string">{{ F(state.PriceStr) }}</li>
+        <li id="f-int" p-text="F(state.IntVal)"></li>
+        <li id="f-float" p-text="F(state.FloatVal)"></li>
+        <li id="f-float-prec" p-text="F(state.FloatVal).Precision(2)"></li>
+        <li id="f-dec-prec0" p-text="F(state.Price).Precision(0)"></li>
+      </ul>
+    </section>
+
+    <!-- Section 17: F() in attribute binding and template literal -->
+    <section id="sec-format-contexts">
+      <h2>F() Contexts</h2>
+      <ul>
+        <li id="f-attr" :data-price="F(state.PriceStr)">attr binding</li>
+        <li id="f-tpl" p-text="`Price: ${F(state.PriceStr)}`"></li>
+      </ul>
+    </section>
+
+    <!-- Section 18: Locale detection -->
+    <section id="sec-locale">
+      <h2>Locale</h2>
+      <ul>
+        <li id="locale-current">{{ request.Locale() }}</li>
+        <li id="locale-label">{{ T("currency_label") }}</li>
+      </ul>
+    </section>
+
+    <!-- Section 19: LF() locale-aware formatting -->
+    <section id="sec-lf-format">
+      <h2>LF() Locale Format</h2>
+      <ul>
+        <li id="lf-dec" p-text="LF(state.Price)"></li>
+        <li id="lf-big" p-text="LF(state.Quantity)"></li>
+        <li id="lf-large" p-text="LF(state.LargeNumber)"></li>
+        <li id="lf-dec-prec" p-text="LF(state.FloatVal).Precision(2)"></li>
+        <li id="lf-tpl" p-text="`Formatted: ${LF(state.LargeNumber)}`"></li>
+      </ul>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "time"
+
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/maths"
+    type_card "testmodule/partials/type_card.pk"
+)
+
+var _ = type_card.Props{}
+
+func SupportedLocales() []string {
+    return []string{"en", "fr"}
+}
+
+type Response struct {
+    // Raw maths types (testing ValueToString path)
+    Price    maths.Decimal
+    Quantity maths.BigInt
+    Total    maths.Money
+
+    // Float precision proof
+    FloatProof maths.Decimal
+
+    // Pre-computed string controls (guaranteed correct)
+    PriceStr       string
+    QuantityStr    string
+    TotalStr       string
+    FloatProofStr  string
+    BigOverflowStr string
+
+    // Decimal arithmetic (pre-computed strings)
+    DecSumStr  string
+    DecDiffStr string
+    DecProdStr string
+    DecDivStr  string
+
+    // BigInt arithmetic (pre-computed strings)
+    BigSumStr  string
+    BigProdStr string
+
+    // Money formatting (pre-computed)
+    MoneyFormatGB string
+    MoneyFormatUS string
+
+    // Temporal (pre-formatted strings)
+    EventDate     string
+    EventDateTime string
+    MeetingTime   string
+    TaskDuration  string
+
+    // Comparison results
+    DecGT bool
+    DecEQ bool
+    BigLT bool
+
+    // Ternary support
+    IsExpensive bool
+
+    // F() format builder fields
+    FloatVal float64
+    IntVal   int
+
+    // LF() locale-aware formatting
+    LargeNumber maths.Decimal
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    // Basic maths types
+    price := maths.NewDecimalFromString("19.99")
+    quantity := maths.NewBigIntFromInt(42)
+    total := maths.NewMoneyFromString("1500.00", "USD")
+
+    // Float precision proof: 0.1 + 0.2 = 0.3 (not 0.30000000000000004)
+    floatProof := maths.NewDecimalFromString("0.1").Add(maths.NewDecimalFromString("0.2"))
+
+    // BigInt overflow: beyond int64 max
+    bigOverflow := maths.NewBigIntFromString("9223372036854775808")
+
+    // Decimal arithmetic
+    decSum := maths.NewDecimalFromString("10.5").Add(maths.NewDecimalFromString("20.3"))
+    decDiff := maths.NewDecimalFromString("100").Subtract(maths.NewDecimalFromString("33.33"))
+    decProd := maths.NewDecimalFromString("7.5").Multiply(maths.NewDecimalFromString("3"))
+    decDiv := maths.NewDecimalFromString("100").Divide(maths.NewDecimalFromString("3"))
+
+    // BigInt arithmetic
+    bigSum := maths.NewBigIntFromInt(999).Add(maths.NewBigIntFromInt(1))
+    bigProd := maths.NewBigIntFromInt(123).Multiply(maths.NewBigIntFromInt(456))
+
+    // Temporal types
+    eventDate := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+    eventDateTime := time.Date(2026, 1, 15, 10, 30, 0, 0, time.UTC)
+    meetingTime, _ := time.Parse("15:04:05", "14:30:45")
+    duration := 1*time.Hour + 30*time.Minute
+
+    // Comparisons (using Check* variants which return bool directly)
+    decGT := maths.NewDecimalFromString("10.5").CheckGreaterThan(maths.NewDecimalFromString("5.0"))
+    decEQ := maths.NewDecimalFromString("1.0").CheckEquals(maths.NewDecimalFromString("1.0"))
+    bigLT := maths.NewBigIntFromInt(50).CheckLessThan(maths.NewBigIntFromInt(100))
+
+    // Money formatting
+    moneyGB, _ := total.Format("en-GB")
+    moneyUS, _ := total.Format("en-US")
+
+    return Response{
+        Price:    price,
+        Quantity: quantity,
+        Total:    total,
+
+        FloatProof: floatProof,
+
+        PriceStr:       price.MustString(),
+        QuantityStr:    quantity.MustString(),
+        TotalStr:       total.MustString(),
+        FloatProofStr:  floatProof.MustString(),
+        BigOverflowStr: bigOverflow.MustString(),
+
+        DecSumStr:  decSum.MustString(),
+        DecDiffStr: decDiff.MustString(),
+        DecProdStr: decProd.MustString(),
+        DecDivStr:  decDiv.MustString(),
+
+        BigSumStr:  bigSum.MustString(),
+        BigProdStr: bigProd.MustString(),
+
+        MoneyFormatGB: moneyGB,
+        MoneyFormatUS: moneyUS,
+
+        EventDate:     eventDate.Format("2006-01-02"),
+        EventDateTime: eventDateTime.Format(time.RFC3339),
+        MeetingTime:   meetingTime.Format("15:04:05"),
+        TaskDuration:  duration.String(),
+
+        DecGT: decGT,
+        DecEQ: decEQ,
+        BigLT: bigLT,
+
+        IsExpensive: true,
+
+        FloatVal: 3.14159,
+        IntVal:   42,
+
+        LargeNumber: maths.NewDecimalFromString("1234567.89"),
+    }, piko.Metadata{
+        Title: "Maths and Temporal Types Test",
+    }, nil
+}
+</script>
+
+<i18n lang="json">
+{
+  "en": {
+    "currency_label": "Currency"
+  },
+  "fr": {
+    "currency_label": "Devise"
+  }
+}
+</i18n>

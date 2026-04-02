@@ -1,0 +1,32 @@
+{
+    "description": "Render with args query parameters patches search results into DOM",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/search",
+        "args": {
+            "q": "hello",
+            "page": 1
+        },
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#results"
+    },
+    "assertions": [
+        {
+            "selector": ".result",
+            "count": 2,
+            "description": "Should have two result items"
+        },
+        {
+            "selector": ".result",
+            "textContains": "Result 1",
+            "description": "First result should contain expected text"
+        }
+    ]
+}

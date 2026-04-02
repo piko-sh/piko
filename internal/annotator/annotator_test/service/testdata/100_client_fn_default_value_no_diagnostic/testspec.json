@@ -1,0 +1,4 @@
+{
+  "description": "Validates that calling a client-side function with default parameter values and fewer arguments produces no diagnostic.",
+  "expectedDiagnostics": 0
+}

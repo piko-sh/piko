@@ -1,0 +1,3 @@
+{
+  "description": "LEFT JOIN nullability propagation. Tests that columns from the right side of a LEFT JOIN become nullable while left-side columns retain their base nullability."
+}

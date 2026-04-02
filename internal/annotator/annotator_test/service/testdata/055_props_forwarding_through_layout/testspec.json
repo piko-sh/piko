@@ -1,0 +1,24 @@
+{
+  "description": "Validates that a page's props (not just state) can be forwarded to child components inside a layout's slot. The page receives Props { InheritedID string } and forwards it via :inherited_id=\"props.InheritedID\".",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#child",
+      "description": "The child should correctly resolve prop bindings using both props and state from the page.",
+      "assert": {
+        "originalPackageAlias": "partials/child.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.InheritedID",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "state.PageData",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

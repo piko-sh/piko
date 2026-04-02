@@ -1,0 +1,104 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "tokens.sql",
+    "SQL": "-- piko.name: GenerateToken\n-- piko.command: one\nSELECT UUID() AS token_value;",
+    "Name": "GenerateToken",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "Name": "token_value",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 0,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  },
+  {
+    "InsertTable": "tokens",
+    "Filename": "tokens.sql",
+    "SQL": "-- piko.name: InsertToken\n-- piko.command: exec\nINSERT INTO tokens (token) VALUES (?);",
+    "Name": "InsertToken",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": 36,
+          "ElementType": null,
+          "EngineName": "varchar",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [],
+    "GroupByKey": null,
+    "InsertColumns": [
+      "token"
+    ],
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 5,
+    "IsDynamic": false,
+    "Command": 2,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  }
+]

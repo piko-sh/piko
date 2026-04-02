@@ -1,0 +1,58 @@
+{
+    "description": "Element attributes should update when state changes",
+    "initialState": {
+        "className": "primary",
+        "disabled": false
+    },
+    "initialVDOM": "dom.el('button', 'btn', { class: state.className, '?disabled': state.disabled }, [dom.txt('Click me', 'txt')])",
+    "steps": [
+        {
+            "description": "Initial render with primary class",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "exists": true,
+                    "description": "Button should exist"
+                },
+                {
+                    "selector": "button",
+                    "attributes": { "class": "primary" },
+                    "description": "Should have primary class"
+                },
+                {
+                    "selector": "button",
+                    "attributes": { "disabled": null },
+                    "description": "Should not be disabled"
+                }
+            ]
+        },
+        {
+            "description": "Change class to secondary",
+            "stateChanges": [
+                { "path": "className", "value": "secondary" }
+            ],
+            "newVDOM": "dom.el('button', 'btn', { class: state.className, '?disabled': state.disabled }, [dom.txt('Click me', 'txt')])",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "attributes": { "class": "secondary" },
+                    "description": "Should have secondary class"
+                }
+            ]
+        },
+        {
+            "description": "Set disabled to true",
+            "stateChanges": [
+                { "path": "disabled", "value": true }
+            ],
+            "newVDOM": "dom.el('button', 'btn', { class: state.className, '?disabled': state.disabled }, [dom.txt('Click me', 'txt')])",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "attributes": { "disabled": "" },
+                    "description": "Should be disabled"
+                }
+            ]
+        }
+    ]
+}

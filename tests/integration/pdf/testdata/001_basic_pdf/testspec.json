@@ -1,0 +1,5 @@
+{
+    "description": "Basic PDF with a coloured div and text, verifying end-to-end pk-to-PDF pipeline.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

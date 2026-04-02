@@ -1,0 +1,66 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package products
+
+import "piko.sh/piko"
+
+type Product struct {
+	Name    string
+	InStock bool
+}
+
+type Response struct {
+	Products []Product
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Products: []Product{
+			{Name: "Wireless Mouse", InStock: true},
+			{Name: "USB Cable", InStock: true},
+			{Name: "Desk Lamp", InStock: false},
+		},
+	}, piko.Metadata{
+		Title: "Product Catalogue",
+	}, nil
+}
+</script>
+<template>
+	<div class="product-catalogue" data-version="1.0" data-env="production" data-feature-flag="new-layout">
+		<h1 id="page-title" class="title main-heading">Products</h1>
+		<div class="product-grid" role="list" aria-label="Product listing">
+			<article
+				p-for="product in state.Products"
+				class="product-card item"
+				role="listitem"
+				tabindex="0"
+			>
+				<h2 class="product-name heading-2">{{ product.Name }}</h2>
+				<span p-if="product.InStock" class="stock-badge in-stock available" data-status="available">In Stock</span>
+				<span p-if="!product.InStock" class="stock-badge out-of-stock unavailable" data-status="unavailable">Out of Stock</span>
+			</article>
+		</div>
+		<footer class="catalogue-footer" data-copyright="2024" hidden>
+			<p>End of catalogue</p>
+		</footer>
+	</div>
+</template>

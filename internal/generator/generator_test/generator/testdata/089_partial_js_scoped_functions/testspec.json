@@ -1,0 +1,5 @@
+{
+  "description": "Tests that multiple partials with same-named exported functions are scoped correctly, preventing naming collisions. Also tests cross-partial @partial-name.fn() syntax.",
+  "packageName": "testcase_089_partial_js_scoped_functions",
+  "isPage": true
+}

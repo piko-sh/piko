@@ -1,0 +1,30 @@
+--- PACKAGE: testcase_08_generics_definition ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 08_generics_definition/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Box
+    - Defined In:      08_generics_definition/src/main.go
+    - TypeString:      main.Box[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+
+  > type Pair
+    - Defined In:      08_generics_definition/src/main.go
+    - TypeString:      main.Pair[K, V]
+    - Underlying:      struct{Key K; Value V}
+    - Stringability:   0
+    - Type Params:     [K, V]
+    - Fields:
+      - Key                  K
+      - Value                V
+
+[Package-Level Functions]
+  (none)

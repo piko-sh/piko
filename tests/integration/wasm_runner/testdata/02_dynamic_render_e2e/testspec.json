@@ -1,0 +1,6 @@
+{
+  "description": "Dynamic rendering: generate + interpret + render via WASM",
+  "moduleName": "testmodule",
+  "requestURL": "/profile",
+  "useDynamicRender": true
+}

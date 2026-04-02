@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of types from aliased and dot-imported packages.",
+  "moduleName": "testcase_07_aliased_and_dot_imports",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_07_aliased_and_dot_imports"
+  ],
+  "assertions": [
+    {
+      "description": "The TypeString for the aliased import field should use the alias.",
+      "select": "packages.testcase_07_aliased_and_dot_imports.named_types.Event.fields.0.type_string",
+      "expect": "u.UUID"
+    },
+    {
+      "description": "The PackagePath for the aliased import should be the canonical path.",
+      "select": "packages.testcase_07_aliased_and_dot_imports.named_types.Event.fields.0.pkg_path",
+      "expect": "testcase_07_aliased_and_dot_imports/uuid"
+    },
+    {
+      "description": "The TypeString for the dot import field must be re-qualified with the package's actual name.",
+      "select": "packages.testcase_07_aliased_and_dot_imports.named_types.Event.fields.1.type_string",
+      "expect": "timestamp.Time"
+    },
+    {
+      "description": "The PackagePath for the dot import should be the canonical path.",
+      "select": "packages.testcase_07_aliased_and_dot_imports.named_types.Event.fields.1.pkg_path",
+      "expect": "testcase_07_aliased_and_dot_imports/timestamp"
+    }
+  ]
+}

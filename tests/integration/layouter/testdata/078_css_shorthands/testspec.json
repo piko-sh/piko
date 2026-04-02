@@ -1,0 +1,7 @@
+{
+    "description": "Verifies CSS shorthand expansions for margin, padding, border, border-style, border-color, border-radius, flex, and flex-flow.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

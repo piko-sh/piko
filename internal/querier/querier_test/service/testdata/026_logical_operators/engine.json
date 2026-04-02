@@ -1,0 +1,70 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "boolean": { "category": "boolean", "engineName": "boolean" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE flags ( id int4 PRIMARY KEY, active boolean NOT NULL, verified boolean )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "flags",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "active", "sqlType": { "category": "boolean", "engineName": "boolean" }, "nullable": false },
+          { "name": "verified", "sqlType": { "category": "boolean", "engineName": "boolean" }, "nullable": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, NOT active as is_inactive, active AND verified as both_true, active OR verified as either_true FROM flags",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "flags",
+            "columnName": "id"
+          },
+          {
+            "name": "is_inactive",
+            "expression": {
+              "kind": "unary_op",
+              "operator": "NOT",
+              "operand": { "kind": "column_ref", "tableAlias": "flags", "columnName": "active" }
+            }
+          },
+          {
+            "name": "both_true",
+            "expression": {
+              "kind": "logical_op",
+              "operator": "AND",
+              "operands": [
+                { "kind": "column_ref", "tableAlias": "flags", "columnName": "active" },
+                { "kind": "column_ref", "tableAlias": "flags", "columnName": "verified" }
+              ]
+            }
+          },
+          {
+            "name": "either_true",
+            "expression": {
+              "kind": "logical_op",
+              "operator": "OR",
+              "operands": [
+                { "kind": "column_ref", "tableAlias": "flags", "columnName": "active" },
+                { "kind": "column_ref", "tableAlias": "flags", "columnName": "verified" }
+              ]
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "flags" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

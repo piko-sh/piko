@@ -1,0 +1,5 @@
+{
+  "description": "Tests that p-on:click handlers in embedded partials work correctly when partials are embedded directly in pages rather than rendered as fragments",
+  "packageName": "testcase_088_embedded_partial_with_client_script",
+  "isPage": true
+}

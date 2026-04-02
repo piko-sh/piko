@@ -1,0 +1,24 @@
+{
+  "description": "Static asset @ alias expansion: piko:svg and piko:img src attributes with @ alias are expanded to module-absolute paths during annotation",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "piko:svg",
+      "description": "piko:svg src attribute should be expanded from @/lib/icons/arrow.svg to testmodule/lib/icons/arrow.svg",
+      "assert": {
+        "attr": {
+          "src": "testmodule/lib/icons/arrow.svg"
+        }
+      }
+    },
+    {
+      "select": "piko:img",
+      "description": "piko:img src attribute should be expanded from @/lib/images/logo.png to testmodule/lib/images/logo.png",
+      "assert": {
+        "attr": {
+          "src": "testmodule/lib/images/logo.png"
+        }
+      }
+    }
+  ]
+}

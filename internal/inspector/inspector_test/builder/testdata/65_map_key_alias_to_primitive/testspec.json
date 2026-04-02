@@ -1,0 +1,25 @@
+{
+  "description": "Tests that a map key which is a type alias to a primitive does not trigger a false positive in the validator.",
+  "moduleName": "testcase_65_map_key_alias_to_primitive",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_65_map_key_alias_to_primitive"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Scores' field should have the correct TypeString, preserving the alias name.",
+      "select": "packages.testcase_65_map_key_alias_to_primitive.named_types.Response.fields.0.type_string",
+      "expect": "map[main.UserID]int"
+    },
+    {
+      "description": "The overall PackagePath for the map should be empty, as both key and value resolve to primitives.",
+      "select": "packages.testcase_65_map_key_alias_to_primitive.named_types.Response.fields.0.pkg_path",
+      "expect": ""
+    },
+    {
+      "description": "CRITICAL: The composite part for the key ('UserID') MUST have an empty PackagePath.",
+      "select": "packages.testcase_65_map_key_alias_to_primitive.named_types.Response.fields.0.composite_parts.0.pkg_path",
+      "expect": ""
+    }
+  ]
+}

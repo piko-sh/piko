@@ -1,0 +1,10 @@
+{
+  "description": "Tests that client-side TypeScript script blocks in PK files are correctly transpiled to JavaScript and included in the final HTML output.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false,
+  "additionalGoldenFiles": {
+    "/_piko/assets/pk-js/pages/main.js": "main.js"
+  }
+}

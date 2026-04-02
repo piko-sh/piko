@@ -1,0 +1,7 @@
+{
+  "description": "Tests rendering a simple page with dynamic data from an interpreted Go Render function.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

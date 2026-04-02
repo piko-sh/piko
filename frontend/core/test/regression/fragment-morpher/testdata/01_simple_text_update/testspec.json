@@ -1,0 +1,21 @@
+{
+    "description": "Simple text content update should morph correctly without replacing the container element",
+    "assertions": [
+        {
+            "selector": "#container",
+            "exists": true,
+            "description": "Container should still exist"
+        },
+        {
+            "selector": "#container",
+            "textContent": "Updated text content",
+            "description": "Text content should be updated"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "#container",
+            "description": "Container element should be preserved (same reference)"
+        }
+    ]
+}

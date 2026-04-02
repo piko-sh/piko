@@ -1,0 +1,22 @@
+{
+  "description": "Verifies that a Piko server correctly serves pages over TLS/HTTPS with a self-signed certificate",
+  "tls": true,
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Secure Connection"
+    },
+    {
+      "action": "checkText",
+      "selector": "p",
+      "expected": "This page was served over HTTPS using a self-signed TLS certificate."
+    }
+  ]
+}

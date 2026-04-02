@@ -1,0 +1,6 @@
+{
+  "title": "Grouped Columns",
+  "description": "Non-stacking grouped columns via pml-no-stack",
+  "metadata": {"title": "Grouped Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

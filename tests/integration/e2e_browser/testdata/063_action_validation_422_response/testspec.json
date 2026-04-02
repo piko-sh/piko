@@ -1,0 +1,30 @@
+{
+  "description": "Tests 422 validation error response when sending invalid data",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#error-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-status",
+      "expected": "422"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_validation_error.html"
+    }
+  ]
+}

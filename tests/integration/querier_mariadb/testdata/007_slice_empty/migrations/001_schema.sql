@@ -1,0 +1,7 @@
+CREATE TABLE tasks (
+    id VARCHAR(10) PRIMARY KEY,
+    status VARCHAR(20) NOT NULL,
+    priority INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    active INT NOT NULL DEFAULT 1
+) ENGINE=InnoDB;

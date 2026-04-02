@@ -1,0 +1,4 @@
+{
+  "greeting": "Hello",
+  "missing_quote: "This is invalid JSON"
+}

@@ -1,0 +1,7 @@
+{
+  "description": "Basic sanity test for interpreted mode - ensures simple templates work correctly.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

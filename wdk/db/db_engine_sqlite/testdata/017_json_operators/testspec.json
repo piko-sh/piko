@@ -1,0 +1,3 @@
+{
+  "description": "JSON access operators -> (returns JSON) and ->> (extracts text). Verifies tokenisation, parsing as BinaryOpExpression, and type resolution (-> returns nullable json, ->> returns nullable text)."
+}

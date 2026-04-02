@@ -1,0 +1,34 @@
+[
+  {
+    "action": "checkText",
+    "selector": "regex-literals-test \u003e\u003e\u003e .result",
+    "expected": "Ready"
+  },
+  {
+    "action": "click",
+    "selector": "regex-literals-test \u003e\u003e\u003e .test-integer"
+  },
+  {
+    "action": "checkText",
+    "selector": "regex-literals-test \u003e\u003e\u003e .result",
+    "expected": "Integer: Valid"
+  },
+  {
+    "action": "click",
+    "selector": "regex-literals-test \u003e\u003e\u003e .test-double"
+  },
+  {
+    "action": "checkText",
+    "selector": "regex-literals-test \u003e\u003e\u003e .result",
+    "expected": "Double: Valid"
+  },
+  {
+    "action": "click",
+    "selector": "regex-literals-test \u003e\u003e\u003e .test-email"
+  },
+  {
+    "action": "checkText",
+    "selector": "regex-literals-test \u003e\u003e\u003e .result",
+    "expected": "Email: Valid"
+  }
+]

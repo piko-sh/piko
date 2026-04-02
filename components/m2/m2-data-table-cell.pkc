@@ -1,0 +1,177 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m2-data-table-cell">
+    <div class="cell"
+         p-class="{
+             'header-cell': state.header,
+             'data-cell': !state.header,
+             'numeric': state.numeric,
+             'sortable': state.sortable,
+             'sort-asc': state.sort_direction == 'asc',
+             'sort-desc': state.sort_direction == 'desc',
+             'sort-active': state.sort_direction == 'asc' || state.sort_direction == 'desc'
+         }"
+         :role="state.header ? 'columnheader' : 'gridcell'"
+         :aria-sort="state.sortable ? (state.sort_direction == 'asc' ? 'ascending' : (state.sort_direction == 'desc' ? 'descending' : 'none')) : null"
+         :tabindex="state.sortable && state.header ? '0' : null"
+         :style="state.min_width ? 'min-width:' + state.min_width : null"
+         p-on:click="handleClick"
+         p-on:keydown="handleKeydown">
+        <span class="cell-content"><slot></slot></span>
+        <span class="sort-icon" p-if="state.sortable && state.header">
+            <span class="sort-arrow-asc" p-if="state.sort_direction == 'asc'">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-upward.svg" fill="currentColor" width="18" height="18"></piko:svg>
+            </span>
+            <span class="sort-arrow-desc" p-if="state.sort_direction == 'desc'">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-downward.svg" fill="currentColor" width="18" height="18"></piko:svg>
+            </span>
+            <span class="sort-arrow-inactive" p-if="state.sort_direction != 'asc' && state.sort_direction != 'desc'">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-upward.svg" fill="currentColor" width="18" height="18"></piko:svg>
+            </span>
+        </span>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        header: false as boolean,
+        numeric: false as boolean,
+        sortable: false as boolean,
+        sort_direction: '' as string,
+        column: '' as string,
+        min_width: '' as string,
+    };
+
+    function handleClick() {
+        if (!state.sortable || !state.header) return;
+
+        if (state.sort_direction === 'asc') {
+            state.sort_direction = 'desc';
+        } else {
+            state.sort_direction = 'asc';
+        }
+
+        pkc.dispatchEvent(new CustomEvent('sort-request', {
+            detail: { column: state.column, direction: state.sort_direction },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleKeydown(event) {
+        if (!state.sortable || !state.header) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleClick();
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_primary: var(--m3e-primary, #6750a4);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .cell {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: 100%;
+        padding: 6px 16px;
+        color: var(--_on-surface);
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1.43;
+    }
+
+    .header-cell {
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        color: var(--_on-surface-variant);
+        padding: 0 16px;
+        height: 100%;
+        cursor: default;
+        user-select: none;
+
+        &.sortable {
+            cursor: pointer;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+
+            &:focus-visible {
+                outline: 2px solid var(--_primary);
+                outline-offset: -2px;
+                border-radius: 2px;
+            }
+
+            &:hover .sort-arrow-inactive {
+                opacity: 0.38;
+            }
+        }
+    }
+
+    .numeric {
+        justify-content: flex-end;
+        text-align: right;
+    }
+
+    .cell-content {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+    }
+
+    .sort-icon {
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+        color: var(--_on-surface-variant);
+        transition: opacity var(--_duration-short) var(--_easing-standard);
+    }
+
+    .sort-arrow-inactive {
+        display: inline-flex;
+        opacity: 0;
+        transition: opacity var(--_duration-short) var(--_easing-standard);
+    }
+
+    .sort-arrow-asc,
+    .sort-arrow-desc {
+        display: inline-flex;
+        color: var(--_on-surface);
+    }
+
+    .sort-active {
+        .sort-icon {
+            color: var(--_on-surface);
+        }
+    }
+</style>

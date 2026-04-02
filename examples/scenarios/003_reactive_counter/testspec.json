@@ -1,0 +1,22 @@
+{
+  "description": "Reactive counter component with increment/decrement and conditional styling",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "pkcComponents": [
+    { "tagName": "pp-counter" }
+  ],
+  "browserSteps": [
+    { "action": "waitForSelector", "selector": "pp-counter" },
+    { "action": "wait", "value": "1000" },
+    { "action": "checkText", "selector": "pp-counter >>> #count", "expected": "0" },
+    { "action": "click", "selector": "pp-counter >>> #increment-btn" },
+    { "action": "wait", "value": "500" },
+    { "action": "checkText", "selector": "pp-counter >>> #count", "expected": "1" },
+    { "action": "click", "selector": "pp-counter >>> #increment-btn" },
+    { "action": "wait", "value": "500" },
+    { "action": "checkText", "selector": "pp-counter >>> #count", "expected": "2" },
+    { "action": "click", "selector": "pp-counter >>> #decrement-btn" },
+    { "action": "wait", "value": "500" },
+    { "action": "checkText", "selector": "pp-counter >>> #count", "expected": "1" }
+  ]
+}

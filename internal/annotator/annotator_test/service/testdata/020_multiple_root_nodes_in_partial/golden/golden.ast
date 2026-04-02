@@ -1,0 +1,16 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <Fragment [ANNOTATIONS: OriginPackage: main_aaf9a2e0 PARTIAL InvKey: content_6c5b191a Package: partials_content_block_592b4725 InvPackage: main_aaf9a2e0]>
+    <h2 p-fragment="content_id_my_block_1e7eb5e6" p-fragment-id="0" [ANNOTATIONS: OriginPackage: partials_content_block_592b4725 OriginPath: partials/content_block.pk]>
+      "This is a Title"
+    </h2>
+    <p p-fragment="content_id_my_block_1e7eb5e6" p-fragment-id="1" [ANNOTATIONS: OriginPackage: partials_content_block_592b4725 OriginPath: partials/content_block.pk]>
+      "This is a paragraph of content."
+    </p>
+  </Fragment>
+</div>
+
+--- END AST DUMP ---
+*/

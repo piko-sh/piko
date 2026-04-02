@@ -1,0 +1,6 @@
+{
+  "title": "Edge Cases",
+  "description": "Empty content, minimal markup, and edge case handling",
+  "metadata": {"title": "Edge Cases Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

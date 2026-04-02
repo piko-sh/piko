@@ -1,0 +1,3 @@
+Full width background
+
+Normal width row

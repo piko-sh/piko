@@ -1,0 +1,13 @@
+module testproject_complex
+
+go 1.25.0
+
+require (
+	github.com/go-chi/chi/v5 v5.2.5
+	go.opentelemetry.io/otel/trace v1.42.0
+)
+
+require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	go.opentelemetry.io/otel v1.42.0 // indirect
+)

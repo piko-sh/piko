@@ -1,0 +1,99 @@
+name: Bug Report
+description: Report a bug in Piko
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug. Please fill in as much detail as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behaviour.
+      placeholder: |
+        1. Create a file with...
+        2. Run `piko ...`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+      description: What actually happened.
+    validations:
+      required: true
+
+  - type: input
+    id: piko-version
+    attributes:
+      label: Piko Version
+      description: Output of `piko version`
+      placeholder: "0.1.0-alpha"
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go Version
+      description: Output of `go version`
+      placeholder: "go1.26.0 linux/amd64"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS / Architecture
+      options:
+        - Linux / amd64
+        - Linux / arm64
+        - macOS / amd64 (Intel)
+        - macOS / arm64 (Apple Silicon)
+        - Windows / amd64
+        - Windows / arm64
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ide
+    attributes:
+      label: IDE (if relevant)
+      options:
+        - N/A
+        - VSCode
+        - GoLand / IntelliJ
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: Paste any relevant log output here. This will be automatically formatted as a code block.
+      render: shell
+    validations:
+      required: false

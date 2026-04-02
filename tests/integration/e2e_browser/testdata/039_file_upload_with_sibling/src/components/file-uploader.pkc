@@ -1,0 +1,309 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="file-uploader">
+  <div class="uploader-container" p-class="{ 'has-files': state.selectedFiles.length > 0 }">
+    <label
+        p-if="state.selectedFiles.length == 0"
+        class="upload-area"
+        for="file-input"
+    >
+      <input
+          type="file"
+          id="file-input"
+          class="hidden-file-input"
+          multiple
+          accept="image/*"
+      />
+      <div class="upload-placeholder">
+        <p class="upload-prompt">Upload files</p>
+        <p class="upload-hint">Click to browse</p>
+      </div>
+    </label>
+
+    <div class="upload-preview" p-if="state.selectedFiles.length > 0">
+      <div class="file-list">
+        <div
+            p-for="file in state.selectedFiles"
+            p-key="file.id"
+            class="file-item"
+            :data-file-id="file.id"
+        >
+          <img
+              p-if="file.isImage"
+              class="thumbnail"
+              :src="file.previewUrl"
+              :alt="file.name"
+          />
+          <div p-if="!file.isImage" class="thumbnail document">
+            <p class="filetype" p-text="file.extension"></p>
+          </div>
+          <p class="filename" p-text="file.name"></p>
+          <button class="remove-btn" type="button" p-on:click="removeFile(file.id)">X</button>
+        </div>
+
+        <label class="add-more-btn" for="file-input">
+          <span>+ Add more</span>
+        </label>
+      </div>
+      <p class="hint-text">
+        <span id="file-count" p-text="state.selectedFiles.length"></span>
+        <span> file(s) selected</span>
+      </p>
+    </div>
+
+    <input
+        p-if="state.selectedFiles.length > 0"
+        type="file"
+        id="file-input"
+        class="hidden-file-input"
+        multiple
+        accept="image/*"
+    />
+  </div>
+</template>
+
+<script lang="ts">
+    interface FileInfo {
+        id: string;
+        name: string;
+        file: File;
+        previewUrl: string;
+        extension: string;
+        isImage: boolean;
+    }
+
+    const state = {
+        selectedFiles: [] as FileInfo[],
+        nextId: 1 as number,
+    };
+
+    const generateId = (): string => {
+        const id = 'file-' + state.nextId;
+        state.nextId = state.nextId + 1;
+        return id;
+    };
+
+    const getFileExtension = (filename: string): string => {
+        const ext = filename.split('.').pop();
+        return ext ? ext.toUpperCase() : 'FILE';
+    };
+
+    const isImageFile = (file: File): boolean => {
+        return file.type.startsWith('image/');
+    };
+
+    function handleFileSelect(event: Event) {
+        console.log('[file-uploader] handleFileSelect called');
+        const input = event.target as HTMLInputElement;
+        const files = input.files;
+
+        if (!files || files.length === 0) {
+            console.log('[file-uploader] No files');
+            return;
+        }
+
+        console.log('[file-uploader] Processing', files.length, 'files');
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fileName = file.name;
+            const isImage = isImageFile(file);
+
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const dataUrl = e.target?.result as string;
+                    const newFile: FileInfo = {
+                        id: generateId(),
+                        name: fileName,
+                        file: file,
+                        previewUrl: dataUrl,
+                        extension: getFileExtension(fileName),
+                        isImage: true,
+                    };
+                    console.log('[file-uploader] Adding file:', newFile.name, 'state.selectedFiles.length before:', state.selectedFiles.length);
+                    state.selectedFiles = [...state.selectedFiles, newFile];
+                    console.log('[file-uploader] state.selectedFiles.length after:', state.selectedFiles.length);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const newFile: FileInfo = {
+                    id: generateId(),
+                    name: fileName,
+                    file: file,
+                    previewUrl: '',
+                    extension: getFileExtension(fileName),
+                    isImage: false,
+                };
+                state.selectedFiles = [...state.selectedFiles, newFile];
+            }
+        }
+
+        input.value = '';
+    }
+
+    function removeFile(fileId: string) {
+        state.selectedFiles = state.selectedFiles.filter(f => f.id !== fileId);
+    }
+
+    function clearAll() {
+        state.selectedFiles = [];
+    }
+
+    (window as any).__processUploadedFiles = (input: HTMLInputElement) => {
+        handleFileSelect({ target: input } as unknown as Event);
+    };
+</script>
+
+<style>
+.uploader-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: sans-serif;
+}
+
+.hidden-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #f9f9f9;
+}
+
+.upload-area:hover {
+    border-color: #666;
+    background: #f0f0f0;
+}
+
+.upload-placeholder {
+    text-align: center;
+}
+
+.upload-prompt {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.upload-hint {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.upload-preview {
+    margin-top: 0;
+}
+
+.file-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.file-item {
+    position: relative;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+}
+
+.file-item:hover {
+    background: #f5f5f5;
+}
+
+.thumbnail {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.thumbnail.document {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0e0e0;
+}
+
+.filetype {
+    font-size: 1.5em;
+    color: #666;
+}
+
+.filename {
+    margin-top: 8px;
+    font-size: 0.85em;
+    word-break: break-word;
+}
+
+.remove-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.remove-btn:hover {
+    background: #e00;
+}
+
+.add-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fafafa;
+    min-height: 100px;
+}
+
+.add-more-btn:hover {
+    border-color: #666;
+    background: #f0f0f0;
+}
+
+.hint-text {
+    margin-top: 15px;
+    color: #666;
+}
+</style>

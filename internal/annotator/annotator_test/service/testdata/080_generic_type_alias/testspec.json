@@ -1,0 +1,114 @@
+{
+  "description": "Validates that type aliases to generic instantiations work correctly. MemberRef = Ref[TeamMember], so MemberRef.Get() should return TeamMember.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "p.alias-get",
+      "description": "CRITICAL: Get() through type alias MemberRef should return TeamMember.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Get()",
+          "resolvedTypeIs": "dto.TeamMember"
+        },
+        {
+          "rawExpression": "props.Data.Member.Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.alias-hasitem",
+      "description": "HasItem() through type alias should return bool.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.Member.HasItem()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.alias-getid",
+      "description": "GetID() through type alias should return string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.GetID()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.alias-field",
+      "description": "Field access on result of Get() through alias.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Get().FirstName",
+          "resolvedTypeIs": "fields.Text"
+        },
+        {
+          "rawExpression": "props.Data.Member.Get().FirstName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.product-alias",
+      "description": "ProductRef alias: Get() should return Product.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Product.Get()",
+          "resolvedTypeIs": "dto.Product"
+        },
+        {
+          "rawExpression": "props.Data.Product.Get().Description()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.direct-generic",
+      "description": "Direct generic for comparison - should work the same as alias.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.DirectMember.Get()",
+          "resolvedTypeIs": "dto.TeamMember"
+        },
+        {
+          "rawExpression": "props.Data.DirectMember.Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.compare",
+      "description": "Both alias and direct should resolve to same types.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Get().LastName.String()",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "props.Data.DirectMember.Get().LastName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.product-check",
+      "description": "HasItem and Get on product alias.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.Product.HasItem()",
+          "resolvedTypeIs": "bool"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Product.Get().Name.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

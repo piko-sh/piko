@@ -1,0 +1,80 @@
+{
+  "description": "Validates the behaviour of built-in functions (len, cap, append), including correct type resolution, argument validation, and shadowing by local variables.",
+  "shouldError": true,
+  "expectedDiagnostics": 6,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates",
+      "onLine": 54
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Loop variable 'len' shadows a global built-in function",
+      "onLine": 54
+    },
+    {
+      "severity": "error",
+      "messageContains": "Built-in function 'len' expects exactly one argument",
+      "onLine": 59
+    },
+    {
+      "severity": "error",
+      "messageContains": "Invalid argument for 'len': type 'int' is not an array, slice, map, or string",
+      "onLine": 60
+    },
+    {
+      "severity": "error",
+      "messageContains": "Invalid first argument for 'append': type 'int' is not a slice",
+      "onLine": 62
+    },
+    {
+      "severity": "error",
+      "messageContains": "Cannot use type 'string' as a value of type 'int' in argument to 'append'",
+      "onLine": 63
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#valid-len",
+      "description": "Valid call to len() on a slice should resolve to int.",
+      "assertOnInterpolation": {
+        "rawExpression": "len(state.StringSlice)",
+        "resolvedTypeIs": "int"
+      }
+    },
+    {
+      "select": "#valid-cap",
+      "description": "Valid call to cap() on a slice should resolve to int.",
+      "assertOnInterpolation": {
+        "rawExpression": "cap(state.StringSlice)",
+        "resolvedTypeIs": "int"
+      }
+    },
+    {
+      "select": "#valid-append",
+      "description": "Valid call to append() should resolve to the original slice type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "append(state.IntSlice, 4)",
+          "resolvedTypeIs": "[]int"
+        }
+      ]
+    },
+    {
+      "select": "#shadowed-len",
+      "description": "A loop variable named 'len' should shadow the built-in function.",
+      "assertOnInterpolation": {
+        "rawExpression": "len",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "len",
+          "resolvedTypeIs": "string",
+          "baseCodeGenVarName": "len"
+        }
+      ]
+    }
+  ]
+}

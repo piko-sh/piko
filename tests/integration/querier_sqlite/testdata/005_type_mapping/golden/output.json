@@ -1,0 +1,25 @@
+{
+  "get_item": {
+    "Active": true,
+    "ID": 1,
+    "Name": "Widget",
+    "Price": 9.99,
+    "Quantity": 100
+  },
+  "list_items": [
+    {
+      "Active": true,
+      "ID": 1,
+      "Name": "Widget",
+      "Price": 9.99,
+      "Quantity": 100
+    },
+    {
+      "Active": false,
+      "ID": 2,
+      "Name": "Gadget",
+      "Price": 24.5,
+      "Quantity": 50
+    }
+  ]
+}

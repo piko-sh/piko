@@ -1,0 +1,7 @@
+{
+    "description": "Verifies grid-auto-flow: dense fills gaps in the grid.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

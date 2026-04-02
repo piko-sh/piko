@@ -1,0 +1,15 @@
+Logo
+
+Main Headline
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+ Take Action (https://example.com/action)
+
+ Feature
+
+Column A
+
+Column B
+
+Column C

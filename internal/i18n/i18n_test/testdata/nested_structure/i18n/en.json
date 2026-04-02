@@ -1,0 +1,23 @@
+{
+  "auth": {
+    "login": {
+      "title": "Login",
+      "button": "Sign In"
+    },
+    "logout": {
+      "title": "Logout",
+      "button": "Sign Out"
+    }
+  },
+  "errors": {
+    "network": "Network error",
+    "validation": {
+      "required": "This field is required",
+      "invalid": "Invalid input"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel"
+  }
+}

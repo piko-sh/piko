@@ -1,0 +1,10 @@
+{
+  "description": "Validates that passing a string argument where a boolean is expected in an arrow function emits a warning diagnostic.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Type mismatch for parameter 'active' in function 'toggle': got 'string', expected 'boolean'"
+    }
+  ]
+}

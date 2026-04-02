@@ -1,0 +1,22 @@
+{
+    "description": "Response without X-PP-Response-Support header skips patching and leaves DOM unchanged",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/no-header",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#content"
+    },
+    "assertions": [
+        {
+            "selector": "#content p",
+            "textContent": "Original",
+            "description": "Original content should remain since response lacks fragment-patch header"
+        }
+    ]
+}

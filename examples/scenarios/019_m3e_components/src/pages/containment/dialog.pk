@@ -1,0 +1,154 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Dialog"
+            server.current-page="containment/dialog">
+
+            <p class="demo-description">Dialogs provide important prompts in a user flow. They can contain a title, description, icon, and action buttons.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- Standard -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Standard</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="openStandard()">Open Dialog</m3e-button>
+                        <m3e-dialog p-ref="standard_dialog" headline="Discard draft?">
+                            <p>Your changes will be lost.</p>
+                            <div slot="actions">
+                                <m3e-button variant="text" p-on:click="closeStandard()">Cancel</m3e-button>
+                                <m3e-button variant="filled" p-on:click="closeStandard()">Discard</m3e-button>
+                            </div>
+                        </m3e-dialog>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-dialog id="my-dialog" headline="Discard draft?"&gt;
+  &lt;p&gt;Your changes will be lost.&lt;/p&gt;
+  &lt;div slot="actions"&gt;
+    &lt;m3e-button variant="text"&gt;Cancel&lt;/m3e-button&gt;
+    &lt;m3e-button variant="filled"&gt;Discard&lt;/m3e-button&gt;
+  &lt;/div&gt;
+&lt;/m3e-dialog&gt;
+
+&lt;script&gt;
+  document.getElementById('my-dialog').show();  // open
+  document.getElementById('my-dialog').close(); // close
+  // Also closes on backdrop click or Escape key
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- With Icon -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Icon</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="openIcon()">Open Dialog</m3e-button>
+                        <m3e-dialog p-ref="icon_dialog" headline="Delete file?">
+                            <piko:svg src="@/lib/icons/close.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                            <p>This action cannot be undone.</p>
+                            <div slot="actions">
+                                <m3e-button variant="text" p-on:click="closeIcon()">Cancel</m3e-button>
+                                <m3e-button variant="filled" p-on:click="closeIcon()">Delete</m3e-button>
+                            </div>
+                        </m3e-dialog>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-dialog id="my-dialog" headline="Delete file?"&gt;
+  &lt;piko:svg src="@/lib/icons/close.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  &lt;p&gt;This action cannot be undone.&lt;/p&gt;
+  &lt;div slot="actions"&gt;
+    &lt;m3e-button variant="text"&gt;Cancel&lt;/m3e-button&gt;
+    &lt;m3e-button variant="filled"&gt;Delete&lt;/m3e-button&gt;
+  &lt;/div&gt;
+&lt;/m3e-dialog&gt;
+
+&lt;script&gt;
+  document.getElementById('my-dialog').show();
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- Fullscreen -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Fullscreen</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="openFullscreen()">Open Fullscreen</m3e-button>
+                        <m3e-dialog p-ref="fullscreen_dialog" headline="New message" fullscreen>
+                            <p>Compose your message here. The fullscreen dialog takes up the entire viewport on smaller screens.</p>
+                            <div slot="actions">
+                                <m3e-button variant="filled" p-on:click="closeFullscreen()">Send</m3e-button>
+                            </div>
+                        </m3e-dialog>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-dialog id="my-dialog" headline="New message" fullscreen&gt;
+  &lt;p&gt;Compose your message here.&lt;/p&gt;
+  &lt;div slot="actions"&gt;
+    &lt;m3e-button variant="filled"&gt;Send&lt;/m3e-button&gt;
+  &lt;/div&gt;
+&lt;/m3e-dialog&gt;
+
+&lt;script&gt;
+  document.getElementById('my-dialog').show();
+&lt;/script&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Dialog - M3E Components",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export function openStandard(): void {
+    (pk.refs.standard_dialog as any).show();
+}
+
+export function closeStandard(): void {
+    (pk.refs.standard_dialog as any).close();
+}
+
+export function openIcon(): void {
+    (pk.refs.icon_dialog as any).show();
+}
+
+export function closeIcon(): void {
+    (pk.refs.icon_dialog as any).close();
+}
+
+export function openFullscreen(): void {
+    (pk.refs.fullscreen_dialog as any).show();
+}
+
+export function closeFullscreen(): void {
+    (pk.refs.fullscreen_dialog as any).close();
+}
+</script>

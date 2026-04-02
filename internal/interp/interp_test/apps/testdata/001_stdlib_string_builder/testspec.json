@@ -1,0 +1,5 @@
+{
+  "description": "String building with strings.Builder via stdlib symbols",
+  "shouldError": false,
+  "expected": "<ul><li>a</li><li>b</li><li>c</li></ul>"
+}

@@ -1,0 +1,3 @@
+{
+  "description": "JOIN operations (INNER, LEFT, RIGHT, CROSS) with correct nullability inference. Tests that LEFT JOIN makes right-side columns nullable and RIGHT JOIN makes left-side columns nullable."
+}

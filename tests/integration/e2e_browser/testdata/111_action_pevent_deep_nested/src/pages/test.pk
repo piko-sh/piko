@@ -1,0 +1,83 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Action p-event Deep Nested Test</h1>
+
+    <div id="target"
+         p-event:do-create="action.org.Create({name: state.OrgName, department: {name: state.DeptName, team: {name: state.TeamName, size: state.TeamSize}}})">
+      <button id="trigger-btn" p-on:click="triggerCreate()">Trigger Create</button>
+    </div>
+
+    <div id="results">
+      <span id="result-org">pending</span>
+      <span id="result-dept">pending</span>
+      <span id="result-team">pending</span>
+      <span id="result-size">pending</span>
+    </div>
+
+    <div id="error-output" style="display:none"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+    OrgName  string
+    DeptName string
+    TeamName string
+    TeamSize int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        OrgName:  "Acme Corp",
+        DeptName: "Engineering",
+        TeamName: "Platform",
+        TeamSize: 7,
+    }, piko.Metadata{
+        Title: "Action p-event Deep Nested Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+piko.registerHelper('showResult', (el, ev, orgName, deptName, teamName, teamSize) => {
+    const rOrg = document.getElementById('result-org');
+    const rDept = document.getElementById('result-dept');
+    const rTeam = document.getElementById('result-team');
+    const rSize = document.getElementById('result-size');
+    if (rOrg) rOrg.textContent = String(orgName);
+    if (rDept) rDept.textContent = String(deptName);
+    if (rTeam) rTeam.textContent = String(teamName);
+    if (rSize) rSize.textContent = String(teamSize);
+});
+
+export function triggerCreate(): void {
+    const target = document.getElementById('target');
+    if (target) {
+        target.dispatchEvent(new CustomEvent('do-create', { bubbles: true }));
+    }
+}
+</script>

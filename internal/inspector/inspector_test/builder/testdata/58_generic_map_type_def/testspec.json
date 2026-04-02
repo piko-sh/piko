@@ -1,0 +1,35 @@
+{
+  "description": "Tests serialisation of a named type definition that is a generic map with its own methods.",
+  "moduleName": "testcase_58_generic_map_type_def",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_58_generic_map_type_def"
+  ],
+  "assertions": [
+    {
+      "description": "The 'MyMap' type should be a type definition, not an alias.",
+      "select": "packages.testcase_58_generic_map_type_def.named_types.MyMap.is_alias",
+      "expect": false
+    },
+    {
+      "description": "The underlying type string for 'MyMap' should be the generic map.",
+      "select": "packages.testcase_58_generic_map_type_def.named_types.MyMap.underlying_type_string",
+      "expect": "map[K]V"
+    },
+    {
+      "description": "The 'MyMap' type should have its generic type parameters K and V serialised.",
+      "select": "packages.testcase_58_generic_map_type_def.named_types.MyMap.type_params",
+      "expect": ["K", "V"]
+    },
+    {
+      "description": "The 'Get' method must be present on the 'MyMap' type.",
+      "select": "packages.testcase_58_generic_map_type_def.named_types.MyMap.methods.0.name",
+      "expect": "Get"
+    },
+    {
+      "description": "The 'Get' method's signature must correctly use the generic type parameters.",
+      "select": "packages.testcase_58_generic_map_type_def.named_types.MyMap.methods.0.signature.results.0",
+      "expect": "V"
+    }
+  ]
+}

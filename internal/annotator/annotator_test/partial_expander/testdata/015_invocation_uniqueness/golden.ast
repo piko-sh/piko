@@ -1,0 +1,46 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <span id="c1" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_id_c1_1e2685fd Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span id="c2" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_id_c2_c0cc5cb7 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span color="blue" id="s1" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_color_blue_id_s1_0dd4e0fc Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span color="red" id="s2" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_color_red_id_s2_b63795e7 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span color="blue" id="s3" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_color_blue_id_s3_41b88ec4 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span id="d1" :count="state.PrimaryCount" {P: state.PrimaryCount, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_count_state_primarycount_id_d1_b64c1729 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span id="d2" :count="state.SecondaryCount" {P: state.SecondaryCount, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_count_state_secondarycount_id_d2_7c7abf84 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span id="d3" :count="state.PrimaryCount" {P: state.PrimaryCount, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_count_state_primarycount_id_d3_a4ab395c Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span id="n1" :label="state.Label" {P: state.Label, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_id_n1_label_state_label_2b8c5031 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span id="r1" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_req_method_post_id_r1_88512b59 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <span class="mt-4" id="x1" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_id_x1_ef36f947 Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+    "Badge"
+  </span>
+  <div [p-if: true] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="x2" [ANNOTATIONS: OriginPackage: partials_badge_63370d86 OriginPath: partials/badge.pk PARTIAL InvKey: badge_id_x2_20c7e59d Package: partials_badge_63370d86 InvPackage: main_aaf9a2e0]>
+      "Badge"
+    </span>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

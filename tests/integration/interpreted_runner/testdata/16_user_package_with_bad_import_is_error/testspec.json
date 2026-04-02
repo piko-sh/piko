@@ -1,0 +1,7 @@
+{
+  "description": "Tests that a user package with an unresolvable import that IS imported by generated code correctly produces a compilation error.",
+  "requestURL": "/main",
+  "shouldGenerateError": true,
+  "errorContains": "crypto/sha256",
+  "isFragment": false
+}

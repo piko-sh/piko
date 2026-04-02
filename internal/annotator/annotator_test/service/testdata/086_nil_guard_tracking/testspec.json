@@ -1,0 +1,144 @@
+{
+  "description": "Validates nil-guard tracking: expressions inside p-if guards should not need runtime safety checks, while unguarded access should.",
+  "expectedDiagnostics": 3,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.Team.Members' on potentially nil pointer 'props.Team'",
+      "onLine": 45
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.User.Profile.Bio' on potentially nil pointer 'props.User.Profile'",
+      "onLine": 34
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.Unguarded.Name' on potentially nil pointer 'props.Unguarded'",
+      "onLine": 37
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#guarded-same-element",
+      "description": "Basic guard: :src on same element as p-if='props.Image != nil' should NOT need runtime safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Image.URL",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#guarded-child-name",
+      "description": "Guard applies to children: interpolation inside p-if guarded block should NOT need runtime safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.User.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#nested-outer-field",
+      "description": "Nested guard outer: props.User is guarded by outer p-if",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.User.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#nested-inner-field",
+      "description": "Nested guard inner: props.User.Profile is guarded by inner p-if",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.User.Profile.Bio",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#nested-unguarded-inner",
+      "description": "Nested unguarded: props.User.Profile is NOT guarded (only props.User is), should NEED runtime safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.User.Profile.Bio",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    },
+    {
+      "select": "#unguarded",
+      "description": "Completely unguarded access should NEED runtime safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Unguarded.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    },
+    {
+      "select": "#combined-user",
+      "description": "Combined guard with &&: props.User is guarded",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.User.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#combined-image",
+      "description": "Combined guard with &&: props.Image is also guarded",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Image.URL",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#loop-member-name",
+      "description": "p-for inside guard: loop item field access (member is not a pointer)",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "member.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#alternate-guarded",
+      "description": "Alternate syntax: props.MaybeUser != nil guards the expression",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.MaybeUser.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#negated-guarded",
+      "description": "Negated nil check guard: !(expr == nil) should guard the expression",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Other.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    }
+  ]
+}

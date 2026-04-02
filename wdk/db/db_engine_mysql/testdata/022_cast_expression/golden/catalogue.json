@@ -1,0 +1,116 @@
+{
+  "Schemas": {
+    "": {
+      "Tables": {
+        "measurements": {
+          "Name": "measurements",
+          "Schema": "",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "int",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "raw_value",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": 50,
+                "ElementType": null,
+                "EngineName": "varchar",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "label",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": 100,
+                "ElementType": null,
+                "EngineName": "varchar",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": ""
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": ""
+}

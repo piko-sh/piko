@@ -1,0 +1,3 @@
+{
+  "description": "Common Table Expressions (WITH clause) in MySQL 8.0+. Tests CTE declaration, column resolution through CTEs, and CTE usage in the main query."
+}

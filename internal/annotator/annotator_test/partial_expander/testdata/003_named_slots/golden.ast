@@ -1,0 +1,23 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="page-layout" [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk PARTIAL InvKey: layout_1745aa65 Package: partials_layout_ee037d9a InvPackage: main_aaf9a2e0]>
+  <header [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Main Page Header"
+    </h1>
+  </header>
+  <main [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "This is default slot content."
+    </p>
+  </main>
+  <footer [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Copyright 2025"
+    </p>
+  </footer>
+</div>
+
+--- END AST DUMP ---
+*/

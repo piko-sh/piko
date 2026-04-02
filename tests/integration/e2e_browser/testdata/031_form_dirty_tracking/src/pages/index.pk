@@ -1,0 +1,91 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Form Dirty Tracking Test</h1>
+
+    <form id="test-form">
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" value="initial-value" />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="test@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="agree" name="agree" />
+          I agree to terms
+        </label>
+      </div>
+    </form>
+
+    <form id="no-track-form" pk-no-track>
+      <div class="form-group">
+        <label for="other-input">Other Input (not tracked):</label>
+        <input type="text" id="other-input" name="other" value="initial" />
+      </div>
+    </form>
+
+    <p class="info">Forms without pk-no-track are automatically tracked by Piko's FormStateManager.</p>
+  </div>
+</template>
+
+<style>
+  form {
+    padding: 1rem;
+    background: #fafafa;
+    margin-bottom: 1rem;
+    border: 1px solid #eee;
+  }
+  .form-group {
+    margin-bottom: 0.5rem;
+  }
+  label {
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  input[type="text"], input[type="email"] {
+    padding: 0.5rem;
+    width: 250px;
+  }
+  .info {
+    font-size: 0.9rem;
+    color: #666;
+    padding: 0.5rem;
+    background: #e3f2fd;
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Form Dirty Tracking Test",
+    }, nil
+}
+</script>

@@ -1,0 +1,19 @@
+{
+  "specs": [
+    {
+      "description": "The deepest div (level-b) should exist",
+      "select": "div.level-b",
+      "assert": {
+        "originalPackageAlias": "partials/level_b.pk"
+      }
+    },
+    {
+      "description": "The slotted content from main should be inside the deepest partial",
+      "select": "div.level-b p",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Content from main"
+      }
+    }
+  ]
+}

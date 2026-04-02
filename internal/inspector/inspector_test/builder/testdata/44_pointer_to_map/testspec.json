@@ -1,0 +1,15 @@
+{
+  "description": "Tests serialisation of a pointer to a map.",
+  "moduleName": "testcase_44_pointer_to_map",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_44_pointer_to_map"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Headers' field should have a TypeString that starts with a pointer '*'.",
+      "select": "packages.testcase_44_pointer_to_map.named_types.Response.fields.0.type_string",
+      "expect": "*map[string][]string"
+    }
+  ]
+}

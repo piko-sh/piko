@@ -1,0 +1,75 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <img id="guarded-same-element" :src="props.Image.URL" {P: props.Image.URL} [p-if: (props.Image != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <div id="guarded-children" [p-if: (props.User != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="guarded-child-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.User.Name }}
+      </RichText>
+    </span>
+  </div>
+  <div id="nested-guard-outer" [p-if: (props.User != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="nested-outer-field" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.User.Name }}
+      </RichText>
+    </span>
+    <div id="nested-guard-inner" [p-if: (props.User.Profile != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <span id="nested-inner-field" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ props.User.Profile.Bio }}
+        </RichText>
+      </span>
+    </div>
+    <span id="nested-unguarded-inner" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.User.Profile.Bio }}
+      </RichText>
+    </span>
+  </div>
+  <span id="unguarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ props.Unguarded.Name }}
+    </RichText>
+  </span>
+  <div id="combined-guard" [p-if: ((props.User != nil) && (props.Image != nil))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="combined-user" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.User.Name }}
+      </RichText>
+    </span>
+    <span id="combined-image" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Image.URL }}
+      </RichText>
+    </span>
+  </div>
+  <div id="loop-guard-outer" [p-if: (props.Team != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div [p-for: (idx, member) in props.Team.Members] [p-key: idx] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <span id="loop-member-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ member.Name }}
+        </RichText>
+      </span>
+    </div>
+  </div>
+  <div id="alternate-guard" [p-if: (props.MaybeUser != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="alternate-guarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.MaybeUser.Name }}
+      </RichText>
+    </span>
+  </div>
+  <div id="negated-guard" [p-if: !((props.Other == nil))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="negated-guarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Other.Value }}
+      </RichText>
+    </span>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

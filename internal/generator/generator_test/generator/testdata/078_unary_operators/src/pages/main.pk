@@ -1,0 +1,93 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Unary Operators Test</h1>
+
+    <h2>Logical NOT (!)</h2>
+    <p id="not-true" p-if="!state.IsFalse">!false = true</p>
+    <p id="not-false" p-if="!state.IsTrue">!true = false (hidden)</p>
+    <p id="double-not" p-if="!!state.IsTrue">!!true = true</p>
+    <p id="not-in-attr" :data-inverted="!state.IsTrue">Inverted boolean in attr</p>
+
+    <h2>NOT in Complex Expressions</h2>
+    <p id="not-and" p-if="!state.IsFalse && state.IsTrue">!false && true = true</p>
+    <p id="not-or" p-if="!state.IsTrue || state.IsTrue">!true || true = true</p>
+    <p id="not-comparison" p-if="!(state.PositiveNum > 100)">!(42 > 100) = true</p>
+
+    <h2>Unary Minus (-)</h2>
+    <p id="neg-positive" p-text="-state.PositiveNum">-42 = -42</p>
+    <p id="neg-negative" p-text="-state.NegativeNum">-(-10) = 10</p>
+    <p id="neg-zero" p-text="-state.ZeroNum">-0 = 0</p>
+    <p id="neg-float" p-text="-state.FloatNum">-3.14 = -3.14</p>
+
+    <h2>Unary Minus in Expressions</h2>
+    <p id="neg-in-add" p-text="state.PositiveNum + -state.SmallNum">42 + -5 = 37</p>
+    <p id="neg-in-mul" p-text="-state.PositiveNum * 2">-42 * 2 = -84</p>
+    <p id="neg-comparison" p-if="-state.PositiveNum < 0">-42 < 0: true</p>
+
+    <h2>Unary Minus in Ternary</h2>
+    <p id="neg-ternary" :data-value="state.IsNegative ? -state.PositiveNum : state.PositiveNum">Conditional negation</p>
+
+    <h2>Unary Minus with Grouping</h2>
+    <p id="neg-grouped" p-text="-(state.PositiveNum + state.SmallNum)">-(42 + 5) = -47</p>
+    <p id="neg-mul-grouped" p-text="-(state.PositiveNum * 2)">-(42 * 2) = -84</p>
+
+    <h2>Combined Unary Operators</h2>
+    <p id="not-neg-comparison" p-if="!(-state.PositiveNum > 0)">!(-42 > 0) = true</p>
+
+    <h2>Edge Cases</h2>
+    <p id="neg-literal" p-text="-100">Negative literal: -100</p>
+    <p id="neg-in-attr" :data-offset="-state.SmallNum">Negative in attribute</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Response struct {
+    IsTrue  bool
+    IsFalse bool
+
+    PositiveNum int
+    NegativeNum int
+    ZeroNum     int
+    SmallNum    int
+    FloatNum    float64
+    IsNegative  bool
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      IsTrue:  true,
+      IsFalse: false,
+
+      PositiveNum: 42,
+      NegativeNum: -10,
+      ZeroNum:     0,
+      SmallNum:    5,
+      FloatNum:    3.14,
+      IsNegative:  true,
+    }, piko.Metadata{}, nil
+  }
+</script>

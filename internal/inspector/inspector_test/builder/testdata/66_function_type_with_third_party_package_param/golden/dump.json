@@ -1,0 +1,299 @@
+{
+  "packages": {
+    "testcase_66_function_type_with_third_party_package_param": {
+      "file_imports": {
+        "66_function_type_with_third_party_package_param/src/main.go": {
+          "context": "context",
+          "syscall": "syscall"
+        }
+      },
+      "named_types": {
+        "Dialer": {
+          "name": "Dialer",
+          "package_path": "testcase_66_function_type_with_third_party_package_param",
+          "defined_in_file_path": "66_function_type_with_third_party_package_param/src/main.go",
+          "type_string": "main.Dialer",
+          "underlying_type_string": "struct{Control func(network string, address string, c syscall.RawConn) error; Cannon func(network string, address string) error; Handler main.MethodHandler}",
+          "fields": [
+            {
+              "definition_file_path": "66_function_type_with_third_party_package_param/src/main.go",
+              "declaring_pkg_path": "testcase_66_function_type_with_third_party_package_param",
+              "pkg_path": "syscall",
+              "underlying_type_string": "func(network string, address string, c syscall.RawConn) error",
+              "declaring_type_name": "Dialer",
+              "name": "Control",
+              "type_string": "func(network string, address string, c syscall.RawConn) error",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "param",
+                  "type_string": "string",
+                  "role": "param_0",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "param",
+                  "type_string": "string",
+                  "role": "param_1",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 1,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "param",
+                  "type_string": "syscall.RawConn",
+                  "role": "param_2",
+                  "underlying_type_string": "interface{Control(f func(fd uintptr)) error; Read(f func(fd uintptr) bool) error; Write(f func(fd uintptr) bool) error}",
+                  "pkg_path": "syscall",
+                  "index": 2,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": false
+                },
+                {
+                  "type": "result",
+                  "type_string": "error",
+                  "role": "result_0",
+                  "underlying_type_string": "interface{Error() string}",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 6,
+              "definition_line": 27,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            },
+            {
+              "definition_file_path": "66_function_type_with_third_party_package_param/src/main.go",
+              "declaring_pkg_path": "testcase_66_function_type_with_third_party_package_param",
+              "pkg_path": "",
+              "underlying_type_string": "func(network string, address string) error",
+              "declaring_type_name": "Dialer",
+              "name": "Cannon",
+              "type_string": "func(network string, address string) error",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "param",
+                  "type_string": "string",
+                  "role": "param_0",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "param",
+                  "type_string": "string",
+                  "role": "param_1",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 1,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "result",
+                  "type_string": "error",
+                  "role": "result_0",
+                  "underlying_type_string": "interface{Error() string}",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 6,
+              "definition_line": 28,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            },
+            {
+              "definition_file_path": "66_function_type_with_third_party_package_param/src/main.go",
+              "declaring_pkg_path": "testcase_66_function_type_with_third_party_package_param",
+              "pkg_path": "testcase_66_function_type_with_third_party_package_param",
+              "underlying_type_string": "func(srv any, ctx context.Context, dec func(any) error, c syscall.RawConn) (any, error)",
+              "declaring_type_name": "Dialer",
+              "name": "Handler",
+              "type_string": "main.MethodHandler",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "param",
+                  "type_string": "any",
+                  "role": "param_0",
+                  "underlying_type_string": "interface{}",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_alias": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "param",
+                  "type_string": "context.Context",
+                  "role": "param_1",
+                  "underlying_type_string": "interface{Deadline() (time.Time, bool); Done() \u003c-chan struct{}; Err() error; Value(key any) any}",
+                  "pkg_path": "context",
+                  "index": 1,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": false
+                },
+                {
+                  "type": "param",
+                  "type_string": "func(any) error",
+                  "role": "param_2",
+                  "underlying_type_string": "func(any) error",
+                  "pkg_path": "",
+                  "composite_parts": [
+                    {
+                      "type": "param",
+                      "type_string": "any",
+                      "role": "param_0",
+                      "underlying_type_string": "interface{}",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_alias": true,
+                      "is_underlying_primitive": true
+                    },
+                    {
+                      "type": "result",
+                      "type_string": "error",
+                      "role": "result_0",
+                      "underlying_type_string": "interface{Error() string}",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": false
+                    }
+                  ],
+                  "composite_type": 6,
+                  "index": 2,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "param",
+                  "type_string": "syscall.RawConn",
+                  "role": "param_3",
+                  "underlying_type_string": "interface{Control(f func(fd uintptr)) error; Read(f func(fd uintptr) bool) error; Write(f func(fd uintptr) bool) error}",
+                  "pkg_path": "syscall",
+                  "index": 3,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": false
+                },
+                {
+                  "type": "result",
+                  "type_string": "any",
+                  "role": "result_0",
+                  "underlying_type_string": "interface{}",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_alias": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "result",
+                  "type_string": "error",
+                  "role": "result_1",
+                  "underlying_type_string": "interface{Error() string}",
+                  "pkg_path": "",
+                  "index": 1,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 6,
+              "definition_line": 29,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 26,
+          "definition_column": 6
+        },
+        "MethodHandler": {
+          "name": "MethodHandler",
+          "package_path": "testcase_66_function_type_with_third_party_package_param",
+          "defined_in_file_path": "66_function_type_with_third_party_package_param/src/main.go",
+          "type_string": "main.MethodHandler",
+          "underlying_type_string": "func(srv any, ctx context.Context, dec func(any) error, c syscall.RawConn) (any, error)",
+          "fields": null,
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 40,
+          "definition_column": 6
+        }
+      },
+      "funcs": {
+        "Test": {
+          "name": "Test",
+          "type_string": "func() syscall.RawConn",
+          "underlying_type_string": "func() syscall.RawConn",
+          "definition_file_path": "66_function_type_with_third_party_package_param/src/main.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "syscall.RawConn"
+            ]
+          },
+          "definition_line": 32,
+          "definition_column": 6
+        },
+        "Test2": {
+          "name": "Test2",
+          "type_string": "func() func(c syscall.RawConn)",
+          "underlying_type_string": "func() func(c syscall.RawConn)",
+          "definition_file_path": "66_function_type_with_third_party_package_param/src/main.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "func(c syscall.RawConn)"
+            ]
+          },
+          "definition_line": 36,
+          "definition_column": 6
+        }
+      },
+      "path": "testcase_66_function_type_with_third_party_package_param",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "66_function_type_with_third_party_package_param/src/main.go": "testcase_66_function_type_with_third_party_package_param"
+  }
+}

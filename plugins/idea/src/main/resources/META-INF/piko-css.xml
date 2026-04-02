@@ -1,0 +1,12 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <multiHostInjector implementation="io.politepixels.piko.pk.injection.PKCssLanguageInjector"/>
+        <implicitUsageProvider implementation="io.politepixels.piko.pk.css.PKCssImplicitUsageProvider"/>
+        <css.classOrIdUsagesProvider
+                implementation="io.politepixels.piko.pk.css.PKCssClassOrIdUsagesProvider"/>
+        <referencesSearch
+                implementation="io.politepixels.piko.pk.css.PKCssReferencesSearchContributor"/>
+        <usageTypeProvider
+                implementation="io.politepixels.piko.pk.css.PKUsageTypeProvider"/>
+    </extensions>
+</idea-plugin>

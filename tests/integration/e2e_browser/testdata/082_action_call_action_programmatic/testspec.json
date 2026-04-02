@@ -1,0 +1,63 @@
+{
+  "description": "Tests programmatic action.call() returns response data with suppressed helpers",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Call action programmatically via action builder .call()"
+    },
+    {
+      "action": "click",
+      "selector": "#call-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify response data is available"
+    },
+    {
+      "action": "checkText",
+      "selector": "#data-echo",
+      "expected": "programmatic"
+    },
+    {
+      "action": "checkText",
+      "selector": "#data-status",
+      "expected": "200"
+    },
+    {
+      "action": "comment",
+      "value": "Verify helpers were suppressed"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-helpers",
+      "expected": "suppressed"
+    },
+    {
+      "action": "comment",
+      "value": "Verify helpers were NOT auto-executed (toast should be hidden)"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "#toast"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_call.html"
+    }
+  ]
+}

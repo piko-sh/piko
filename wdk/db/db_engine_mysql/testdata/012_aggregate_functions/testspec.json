@@ -1,0 +1,3 @@
+{
+  "description": "Aggregate functions (COUNT, SUM, AVG, MIN, MAX) with correct return type inference. COUNT returns BIGINT, SUM/AVG promote types, MIN/MAX preserve input type."
+}

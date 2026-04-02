@@ -1,0 +1,68 @@
+[
+  {
+    "action": "checkText",
+    "selector": "deeply-nested-conditionals >>> #no-a",
+    "expected": "A is hidden"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "deeply-nested-conditionals >>> #level1",
+    "expected": "0"
+  },
+  {
+    "action": "click",
+    "selector": "deeply-nested-conditionals >>> #toggle-a"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "deeply-nested-conditionals >>> #level1",
+    "expected": "1"
+  },
+  {
+    "action": "checkText",
+    "selector": "deeply-nested-conditionals >>> #no-b",
+    "expected": "B is hidden"
+  },
+  {
+    "action": "click",
+    "selector": "deeply-nested-conditionals >>> #toggle-b"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "deeply-nested-conditionals >>> #level2",
+    "expected": "1"
+  },
+  {
+    "action": "checkText",
+    "selector": "deeply-nested-conditionals >>> #no-c",
+    "expected": "C is hidden"
+  },
+  {
+    "action": "click",
+    "selector": "deeply-nested-conditionals >>> #toggle-c"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "deeply-nested-conditionals >>> #level3",
+    "expected": "1"
+  },
+  {
+    "action": "checkText",
+    "selector": "deeply-nested-conditionals >>> #deepest",
+    "expected": "Level 3 (All visible)"
+  },
+  {
+    "action": "click",
+    "selector": "deeply-nested-conditionals >>> #toggle-a"
+  },
+  {
+    "action": "checkText",
+    "selector": "deeply-nested-conditionals >>> #no-a",
+    "expected": "A is hidden"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "deeply-nested-conditionals >>> #level1",
+    "expected": "0"
+  }
+]

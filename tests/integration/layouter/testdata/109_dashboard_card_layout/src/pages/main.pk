@@ -1,0 +1,43 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div data-layout-id="dashboard" style="box-sizing: content-box; display: grid; grid-template-columns: 120px 1fr; grid-template-rows: 50px 1fr; grid-template-areas: 'header header' 'sidebar main'; width: 600px; height: 300px; margin: 0; padding: 0; gap: 0;">
+    <div data-layout-id="header" style="box-sizing: border-box; grid-area: header; padding: 10px; margin: 0;"></div>
+    <div data-layout-id="sidebar" style="box-sizing: border-box; grid-area: sidebar; padding: 8px; margin: 0;"></div>
+    <div data-layout-id="main" style="box-sizing: content-box; grid-area: main; display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 10px;">
+      <div data-layout-id="card-a" style="box-sizing: border-box; min-width: 100px; max-width: 200px; flex-grow: 1; height: 80px; padding: 10px; margin: 0;"></div>
+      <div data-layout-id="card-b" style="box-sizing: border-box; min-width: 100px; max-width: 200px; flex-grow: 1; height: 80px; padding: 10px; margin: 0;"></div>
+      <div data-layout-id="card-c" style="box-sizing: border-box; min-width: 100px; max-width: 200px; flex-grow: 1; height: 80px; padding: 10px; margin: 0;"></div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Dashboard Card Layout Test"}, nil
+}
+</script>

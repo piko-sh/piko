@@ -1,0 +1,18 @@
+<template>
+<ul class="nav nav-updated">
+  <li>Home</li>
+  <li>About</li>
+  <li>Contact</li>
+  <li>Blog</li>
+</ul>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

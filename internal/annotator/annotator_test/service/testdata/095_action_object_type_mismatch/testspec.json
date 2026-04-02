@@ -1,0 +1,10 @@
+{
+  "description": "Validates that passing an object literal with a type-mismatched field to an action emits a warning diagnostic.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Type mismatch for field 'age' in action 'actions.UpdateUser' input type 'UpdateUserInput': got 'string', expected 'int'"
+    }
+  ]
+}

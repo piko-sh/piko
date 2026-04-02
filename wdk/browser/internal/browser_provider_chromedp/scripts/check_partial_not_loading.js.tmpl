@@ -1,0 +1,6 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return null;
+    const classes = el.getAttribute('class') || '';
+    return !classes.includes('pk-loading');
+})()

@@ -1,0 +1,19 @@
+{
+  "matches": [
+    {
+      "ID": 1,
+      "ManagerID": null,
+      "Name": "Alice"
+    },
+    {
+      "ID": 2,
+      "ManagerID": 1,
+      "Name": "Bob"
+    },
+    {
+      "ID": 3,
+      "ManagerID": 1,
+      "Name": "Charlie"
+    }
+  ]
+}

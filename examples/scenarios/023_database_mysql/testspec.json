@@ -1,0 +1,6 @@
+{
+  "description": "Verifies a MySQL-backed blog with posts, comments, joins, and pagination",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "requiresDocker": true
+}

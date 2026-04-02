@@ -1,0 +1,248 @@
+<!-- Sortable data table. Reads query parameters (?sort=name&dir=asc) in the
+     Go Render function and sorts server-side. p-class:active highlights the
+     current sort column. No JavaScript needed; sorting is pure server-side.
+     See https://piko.sh/docs/guide/template-syntax -->
+<template>
+  <div id="app">
+    <h1>Employee Directory</h1>
+    <p id="employee-count">{{ state.EmployeeCount }} employees</p>
+
+    <table id="data-table">
+      <thead>
+        <tr>
+          <th p-class:active="state.SortColumn == 'name'">
+            <piko:a p-if="state.SortColumn == 'name' && state.SortDirection == 'asc'" href="/?sort=name&dir=desc">
+              Name ▼
+            </piko:a>
+            <piko:a p-else-if="state.SortColumn == 'name' && state.SortDirection == 'desc'" href="/?sort=name&dir=asc">
+              Name ▲
+            </piko:a>
+            <piko:a p-else href="/?sort=name&dir=asc">
+              Name
+            </piko:a>
+          </th>
+
+          <th p-class:active="state.SortColumn == 'department'">
+            <piko:a p-if="state.SortColumn == 'department' && state.SortDirection == 'asc'" href="/?sort=department&dir=desc">
+              Department ▼
+            </piko:a>
+            <piko:a p-else-if="state.SortColumn == 'department' && state.SortDirection == 'desc'" href="/?sort=department&dir=asc">
+              Department ▲
+            </piko:a>
+            <piko:a p-else href="/?sort=department&dir=asc">
+              Department
+            </piko:a>
+          </th>
+
+          <th p-class:active="state.SortColumn == 'role'">
+            <piko:a p-if="state.SortColumn == 'role' && state.SortDirection == 'asc'" href="/?sort=role&dir=desc">
+              Role ▼
+            </piko:a>
+            <piko:a p-else-if="state.SortColumn == 'role' && state.SortDirection == 'desc'" href="/?sort=role&dir=asc">
+              Role ▲
+            </piko:a>
+            <piko:a p-else href="/?sort=role&dir=asc">
+              Role
+            </piko:a>
+          </th>
+
+          <th p-class:active="state.SortColumn == 'salary'">
+            <piko:a p-if="state.SortColumn == 'salary' && state.SortDirection == 'asc'" href="/?sort=salary&dir=desc">
+              Salary ▼
+            </piko:a>
+            <piko:a p-else-if="state.SortColumn == 'salary' && state.SortDirection == 'desc'" href="/?sort=salary&dir=asc">
+              Salary ▲
+            </piko:a>
+            <piko:a p-else href="/?sort=salary&dir=asc">
+              Salary
+            </piko:a>
+          </th>
+
+          <th p-class:active="state.SortColumn == 'startdate'">
+            <piko:a p-if="state.SortColumn == 'startdate' && state.SortDirection == 'asc'" href="/?sort=startdate&dir=desc">
+              Start Date ▼
+            </piko:a>
+            <piko:a p-else-if="state.SortColumn == 'startdate' && state.SortDirection == 'desc'" href="/?sort=startdate&dir=asc">
+              Start Date ▲
+            </piko:a>
+            <piko:a p-else href="/?sort=startdate&dir=asc">
+              Start Date
+            </piko:a>
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr p-for="(i, emp) in state.Employees" p-key="emp.Name">
+          <td>{{ emp.Name }}</td>
+          <td>{{ emp.Department }}</td>
+          <td>{{ emp.Role }}</td>
+          <td>{{ emp.Salary }}</td>
+          <td>{{ emp.StartDate }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "sort"
+    "strconv"
+    "strings"
+
+    "piko.sh/piko"
+)
+
+type Employee struct {
+    Name       string
+    Department string
+    Role       string
+    Salary     string
+    StartDate  string
+}
+
+type Response struct {
+    Employees     []Employee
+    SortColumn    string
+    SortDirection string
+    EmployeeCount int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    sortColumn := r.QueryParam("sort")
+    if sortColumn == "" {
+        sortColumn = "name"
+    }
+
+    sortDirection := r.QueryParam("dir")
+    if sortDirection != "asc" && sortDirection != "desc" {
+        sortDirection = "asc"
+    }
+
+    employees := []Employee{
+        {Name: "Alice Chen", Department: "Engineering", Role: "Senior Developer", Salary: "£85,000", StartDate: "2019-03-15"},
+        {Name: "Bob Martinez", Department: "Marketing", Role: "Campaign Manager", Salary: "£62,000", StartDate: "2021-07-01"},
+        {Name: "Charlotte Davies", Department: "Engineering", Role: "Tech Lead", Salary: "£95,000", StartDate: "2017-11-20"},
+        {Name: "David Okonkwo", Department: "Finance", Role: "Financial Analyst", Salary: "£70,000", StartDate: "2020-01-10"},
+        {Name: "Emma Wilson", Department: "Marketing", Role: "Content Strategist", Salary: "£58,000", StartDate: "2022-04-18"},
+        {Name: "Farid Hassan", Department: "Engineering", Role: "DevOps Engineer", Salary: "£78,000", StartDate: "2020-09-05"},
+        {Name: "Grace Kim", Department: "Finance", Role: "Finance Director", Salary: "£110,000", StartDate: "2016-06-12"},
+        {Name: "Henry Nakamura", Department: "Engineering", Role: "Junior Developer", Salary: "£45,000", StartDate: "2023-08-28"},
+    }
+
+    ascending := sortDirection == "asc"
+
+    parseSalary := func(s string) int {
+        s = strings.ReplaceAll(s, "£", "")
+        s = strings.ReplaceAll(s, ",", "")
+        n, _ := strconv.Atoi(strings.TrimSpace(s))
+        return n
+    }
+
+    sort.Slice(employees, func(a, b int) bool {
+        if sortColumn == "salary" {
+            numA, numB := parseSalary(employees[a].Salary), parseSalary(employees[b].Salary)
+            if ascending {
+                return numA < numB
+            }
+            return numA > numB
+        }
+
+        var valA, valB string
+
+        switch sortColumn {
+        case "name":
+            valA, valB = employees[a].Name, employees[b].Name
+        case "department":
+            valA, valB = employees[a].Department, employees[b].Department
+        case "role":
+            valA, valB = employees[a].Role, employees[b].Role
+        case "startdate":
+            valA, valB = employees[a].StartDate, employees[b].StartDate
+        default:
+            valA, valB = employees[a].Name, employees[b].Name
+        }
+
+        cmp := strings.Compare(strings.ToLower(valA), strings.ToLower(valB))
+
+        if ascending {
+            return cmp < 0
+        }
+        return cmp > 0
+    })
+
+    return Response{
+        Employees:     employees,
+        SortColumn:    sortColumn,
+        SortDirection: sortDirection,
+        EmployeeCount: len(employees),
+    }, piko.Metadata{
+        Title: "Employee Directory - Piko Example",
+        Description: "A sortable data table demonstrating query parameters and server-side sorting.",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  #employee-count {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+
+  #data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+
+  #data-table th,
+  #data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  #data-table thead th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+  }
+
+  #data-table thead th.active {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  #data-table thead th a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  #data-table thead th a:hover {
+    text-decoration: underline;
+  }
+
+  #data-table tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  #data-table tbody td {
+    color: #4b5563;
+  }
+</style>

@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package struct types via factory function",
+  "modulePath": "testpkg",
+  "expected": "Alice:30"
+}

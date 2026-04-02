@@ -1,0 +1,23 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">Lazy Loading Viewport Test</h1>
+    <lazy-content partial="pages_index_032f49b1" p-key="r.0:1" status="Initial" load-count="0">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.lazy-content-wrapper{padding: 20px}#status-display{position: fixed;top: 10px;left: 10px;background: white;padding: 10px;border: 1px solid #ccc;z-index: 100}.spacer{height: 2000px;background: linear-gradient(to bottom, #f0f0f0, #e0e0e0)}#lazy-target{padding: 20px;background: #e0ffe0;border: 2px solid #00aa00;min-height: 100px}</style>
+        <div class="lazy-content-wrapper">
+          <div id="status-display">
+            <p id="visibility-status">Initial</p>
+            <p id="load-count">Load count: <span>0</span></p>
+            <button id="simulate-visible">Mark as Visible</button>
+            <button id="simulate-hidden">Mark as Hidden</button>
+          </div>
+          <div class="spacer"></div>
+          <div id="lazy-target">
+            <p id="not-loaded-message">Content not loaded yet</p>
+          </div>
+        </div>
+      </template>
+    </lazy-content>
+  </div>
+</div>

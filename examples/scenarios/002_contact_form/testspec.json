@@ -1,0 +1,17 @@
+{
+  "description": "Contact form submission with server-side validation and result display",
+  "requestURL": "/contact",
+  "expectedStatus": 200,
+  "browserSteps": [
+    { "action": "waitForSelector", "selector": "form" },
+    { "action": "fill", "selector": "#name", "value": "Alice" },
+    { "action": "fill", "selector": "#email", "value": "alice@example.com" },
+    { "action": "fill", "selector": "#message", "value": "Hello from Piko!" },
+    { "action": "eval", "selector": "window", "value": "window.testData = null; var formData = new FormData(document.getElementById('contact-form')); fetch('/_piko/actions/contact.Submit', { method: 'POST', body: formData }).then(function(r) { return r.json(); }).then(function(data) { window.testData = data; document.querySelector('[p-ref=result_name]').textContent = data.name || ''; document.querySelector('[p-ref=result_email]').textContent = data.email || ''; document.querySelector('[p-ref=result_message]').textContent = data.message || ''; document.querySelector('[p-ref=result_container]').style.display = 'block'; }).catch(function(e) { console.error('Fetch error:', e); });" },
+    { "action": "wait", "value": "2000" },
+    { "action": "waitForVisible", "selector": "[p-ref='result_container']", "timeout": 5000 },
+    { "action": "checkText", "selector": "[p-ref='result_name']", "expected": "Alice" },
+    { "action": "checkText", "selector": "[p-ref='result_email']", "expected": "alice@example.com" },
+    { "action": "checkText", "selector": "[p-ref='result_message']", "expected": "Hello from Piko!" }
+  ]
+}

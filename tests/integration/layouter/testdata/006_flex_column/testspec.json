@@ -1,0 +1,7 @@
+{
+    "description": "Verifies flex-direction: column layout with items stacked vertically.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

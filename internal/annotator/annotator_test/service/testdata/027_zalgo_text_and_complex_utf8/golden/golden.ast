@@ -1,0 +1,16 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p id="static-utf8" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "你好, 世界! 👋"
+  </p>
+  <div id="dynamic-zalgo" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.Zalgo }}
+    </RichText>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

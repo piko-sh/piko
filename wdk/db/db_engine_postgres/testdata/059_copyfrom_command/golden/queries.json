@@ -1,0 +1,105 @@
+[
+  {
+    "InsertTable": "measurements",
+    "Filename": "bulk_insert_measurements.sql",
+    "SQL": "-- piko.name: BulkInsertMeasurements\n-- piko.command: copyfrom\nINSERT INTO measurements (sensor_id, value, recorded_at) VALUES ($1, $2, $3);",
+    "Name": "BulkInsertMeasurements",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p2",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "float8",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 1
+        },
+        "Number": 2,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p3",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "timestamptz",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 6
+        },
+        "Number": 3,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [],
+    "GroupByKey": null,
+    "InsertColumns": [
+      "sensor_id",
+      "value",
+      "recorded_at"
+    ],
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 7,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  }
+]

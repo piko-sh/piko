@@ -1,0 +1,14 @@
+[
+  {
+    "action": "checkNotFocused",
+    "selector": "p-ref-component \u003e\u003e\u003e input"
+  },
+  {
+    "action": "click",
+    "selector": "p-ref-component \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkFocused",
+    "selector": "p-ref-component \u003e\u003e\u003e input"
+  }
+]

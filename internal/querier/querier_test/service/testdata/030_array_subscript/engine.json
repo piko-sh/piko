@@ -1,0 +1,54 @@
+{
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "serial": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE posts ( id serial PRIMARY KEY, title text NOT NULL, tags text[] NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "posts",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": true },
+          { "name": "title", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "tags", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false, "isArray": true, "arrayDimensions": 1 }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, tags[1] AS first_tag FROM posts WHERE id = $1",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "posts",
+            "columnName": "id"
+          },
+          {
+            "name": "first_tag",
+            "expression": {
+              "kind": "array_subscript",
+              "array": { "kind": "column_ref", "tableAlias": "posts", "columnName": "tags" },
+              "index": { "kind": "literal", "typeName": "int4" }
+            }
+          }
+        ],
+        "parameterReferences": [
+          {
+            "number": 1,
+            "context": "comparison",
+            "columnReference": { "tableAlias": "posts", "columnName": "id" }
+          }
+        ],
+        "fromTables": [
+          { "name": "posts" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

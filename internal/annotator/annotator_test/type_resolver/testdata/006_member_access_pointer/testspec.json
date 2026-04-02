@@ -1,0 +1,12 @@
+[{
+  "description": "Validates member access on a field that is a pointer to a struct.",
+  "expression": "state.User.ID",
+  "expectedType": "int",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "potentially nil pointer"
+    }
+  ]
+}]

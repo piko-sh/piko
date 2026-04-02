@@ -1,0 +1,32 @@
+{
+  "description": "Comprehensive test covering workspace symbols, rename, highlights, folding ranges, and code actions",
+  "lsp": {
+    "actions": [
+      {
+        "action": "didOpen",
+        "file": "pages/main.pk"
+      },
+      {
+        "action": "workspaceSymbol",
+        "expectContains": ["Render"]
+      },
+      {
+        "action": "rename",
+        "file": "pages/main.pk",
+        "line": 22,
+        "character": 15,
+        "expectContains": ["Heading"]
+      },
+      {
+        "action": "documentHighlight",
+        "file": "pages/main.pk",
+        "line": 22,
+        "character": 15
+      },
+      {
+        "action": "foldingRange",
+        "file": "pages/main.pk"
+      }
+    ]
+  }
+}

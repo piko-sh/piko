@@ -1,0 +1,16 @@
+/*
+--- BEGIN AST DUMP ---
+
+<main [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div class="card" [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_6529585e Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+    <h2 [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+      "Card Title"
+    </h2>
+    <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "This is content passed into the default slot."
+    </p>
+  </div>
+</main>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,73 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "orders.sql",
+    "SQL": "-- piko.name: GetOrdersWithCustomerName\n-- piko.command: many\nSELECT o.id, c.name FROM orders o LEFT JOIN customers c ON o.customer_id = c.id;",
+    "Name": "GetOrdersWithCustomerName",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "orders",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "name",
+        "SourceTable": "customers",
+        "SourceColumn": "name",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "varchar",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

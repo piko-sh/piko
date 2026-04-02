@@ -1,0 +1,5 @@
+{
+  "description": "Tests that pages embedding multiple partials with client-side JS correctly aggregate all partial JS artefact IDs in the manifest",
+  "packageName": "testcase_087_partial_js_aggregation",
+  "isPage": true
+}

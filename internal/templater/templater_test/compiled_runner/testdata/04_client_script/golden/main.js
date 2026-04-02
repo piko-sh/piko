@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",function(){let e=0;const t=document.getElementById("counter-btn"),n=document.getElementById("count");t&&n&&t.addEventListener("click",function(){e++,n.textContent=e.toString(),console.log("Button clicked, count:",e)})})

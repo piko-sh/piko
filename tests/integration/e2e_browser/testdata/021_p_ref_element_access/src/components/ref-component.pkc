@@ -1,0 +1,83 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="ref-component">
+    <div class="container">
+        <div class="input-section">
+            <input type="text" id="my-input" p-ref="myInput" placeholder="Type here...">
+            <button id="focus-btn" p-on:click="focusInput">Focus Input</button>
+            <button id="read-btn" p-on:click="readValue">Read Value</button>
+            <button id="set-btn" p-on:click="setValue">Set Value</button>
+        </div>
+        <div class="output">
+            <p id="read-value">Read value: {{ state.readValue }}</p>
+        </div>
+    </div>
+</template>
+
+<style>
+    .container {
+        padding: 1rem;
+    }
+    .input-section {
+        margin: 1rem 0;
+    }
+    input {
+        padding: 0.5rem;
+        margin-right: 0.5rem;
+        border: 2px solid #ccc;
+        font-size: 1rem;
+    }
+    input:focus {
+        border-color: #2196f3;
+        outline: none;
+    }
+    button {
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        background: #2196f3;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    .output {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f5f5f5;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        readValue: 'None' as string
+    };
+
+    function focusInput() {
+        this.refs.myInput.focus();
+    }
+
+    function readValue() {
+        state.readValue = this.refs.myInput.value || '(empty)';
+    }
+
+    function setValue() {
+        this.refs.myInput.value = 'Set via ref';
+    }
+</script>

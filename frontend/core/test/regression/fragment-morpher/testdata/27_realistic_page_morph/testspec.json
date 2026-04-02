@@ -1,0 +1,40 @@
+{
+    "description": "Full page morph using realistic Piko HTML with partial, p-key, partial_name, partial_src attributes",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".count",
+            "textContent": "1",
+            "description": "Counter text updates to 1"
+        },
+        {
+            "selector": ".counter-partial",
+            "attributes": {
+                "partial": "partials_counter_4804705c pages_main_594861c5",
+                "partial_name": "counter",
+                "partial_src": "/_piko/partials/counter",
+                "p-key": "r.0:2"
+            },
+            "description": "Counter container preserves all partial attributes with scope chain"
+        },
+        {
+            "selector": "h1",
+            "attributes": { "partial": "pages_main_594861c5", "p-key": "r.0:0" },
+            "description": "H1 preserves partial and p-key attributes"
+        },
+        {
+            "selector": "#reload-btn",
+            "attributes": { "partial": "pages_main_594861c5", "p-key": "r.0:1" },
+            "description": "Button preserves partial and p-key attributes"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": ".counter-partial",
+            "description": "Counter container div should be preserved (same reference)"
+        }
+    ]
+}

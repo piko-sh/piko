@@ -1,0 +1,6 @@
+{
+  "title": "Basic PML Components",
+  "description": "Row, column, paragraph, and image in full pipeline",
+  "metadata": {"title": "Components Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

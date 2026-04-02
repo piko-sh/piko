@@ -1,0 +1,79 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div id="wrapper" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p :data-int="state.IntField" {P: state.IntField} :data-money="state.MoneyField" {P: state.MoneyField} :data-string="state.StringField" {P: state.StringField} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <div [p-if: ((state.IntField > 50) && (state.StringField == "hello"))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Binary Ops OK"
+  </div>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Addition: "
+      {{ (state.IntField + state.FloatField) }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Concatenation: "
+      {{ (state.StringField + " world") }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Money Math: "
+      {{ (state.MoneyField + state.DecimalField) }}
+      " and "
+      {{ (state.MoneyField * 2) }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Decimal Math: "
+      {{ (state.DecimalField / state.DecimalField) }}
+      " and "
+      {{ (state.DecimalField * 2) }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Modulo: "
+      {{ (10 % 3) }}
+    </RichText>
+  </p>
+  <div [p-if: !false] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Unary OK"
+  </div>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Negation: "
+      {{ -state.IntField }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Slice Index: "
+      {{ state.StringSlice[0] }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Map Index: "
+      {{ state.StringMap["key"] }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Top-level Call: "
+      {{ Add(5, 3) }}
+    </RichText>
+  </p>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Method Call: "
+      {{ state.CurrentUser.Greet() }}
+    </RichText>
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,25 @@
+<div id="app">
+  <div partial="pages_test_2fae8b58" p-key="r.0" id="app">
+    <h1 partial="pages_test_2fae8b58" p-key="r.0:0">PKC Component Action Test</h1>
+    <p partial="pages_test_2fae8b58" p-key="r.0:1">Tests actions called from within a PKC component</p>
+    <form-handler partial="pages_test_2fae8b58" p-key="r.0:2" success id summary>
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <div class="form-handler">
+          <form id="contact-form"><input id="input-name" name="name" placeholder="Name" type="text" />
+            <input id="input-email" name="email" placeholder="Email" type="email" />
+            <textarea id="input-message" name="message" placeholder="Message"></textarea>
+            <button id="submit-btn" type="button">Submit</button></form>
+          <div id="form-result" style="display: none;">
+            <p>Success: <span id="result-success"></span>
+            </p>
+            <p>ID: <span id="result-id"></span>
+            </p>
+            <p>Summary: <span id="result-summary"></span>
+            </p>
+          </div>
+        </div>
+      </template>
+    </form-handler>
+  </div>
+</div>

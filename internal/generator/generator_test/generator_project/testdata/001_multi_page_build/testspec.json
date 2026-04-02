@@ -1,0 +1,7 @@
+{
+  "description": "Tests a basic multi-page build with a shared partial.",
+  "entryPoints": [
+    { "path": "pages/home.pk", "isPage": true },
+    { "path": "pages/about.pk", "isPage": true }
+  ]
+}

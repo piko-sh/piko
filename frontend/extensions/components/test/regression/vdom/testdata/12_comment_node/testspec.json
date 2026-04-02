@@ -1,0 +1,24 @@
+{
+    "description": "Comment nodes should render correctly via dom.cmt()",
+    "initialState": {
+        "label": "marker-1"
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.cmt(state.label, 'c1'), dom.el('p', 'p1', {}, [dom.txt('Content', 'txt')])])",
+    "steps": [
+        {
+            "description": "Initial render with comment node",
+            "assertions": [
+                {
+                    "selector": "p",
+                    "exists": true,
+                    "description": "Paragraph should exist"
+                },
+                {
+                    "selector": "p",
+                    "textContent": "Content",
+                    "description": "Paragraph text should be Content"
+                }
+            ]
+        }
+    ]
+}

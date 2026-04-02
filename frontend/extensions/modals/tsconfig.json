@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@piko/shared-types": ["../../shared/types"]
+    }
+  },
+  "include": ["src/**/*", "../../shared/types/**/*", "../../shared/utils/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

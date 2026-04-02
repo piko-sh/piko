@@ -1,0 +1,7 @@
+{
+    "description": "Verifies min-width, max-width, min-height, max-height constraints.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

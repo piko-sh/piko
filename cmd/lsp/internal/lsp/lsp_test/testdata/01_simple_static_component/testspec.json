@@ -1,0 +1,9 @@
+{
+  "description": "Tests that a simple, fully static component is correctly generated, utilising the static hoisting optimisation.",
+  "generate": {
+    "packageName": "simple_static_test",
+    "isPage": true,
+    "shouldError": false,
+    "expectDiagnostics": []
+  }
+}

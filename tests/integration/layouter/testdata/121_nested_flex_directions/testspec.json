@@ -1,0 +1,7 @@
+{
+    "description": "Verifies nested flex containers with different directions: row flex inside column flex and column flex inside row flex, testing cross-size pre-stretch and available space propagation.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

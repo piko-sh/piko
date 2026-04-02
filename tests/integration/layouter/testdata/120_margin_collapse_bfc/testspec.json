@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that grid containers and flex items establish block formatting contexts, preventing child margins from collapsing through them.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

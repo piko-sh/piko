@@ -1,0 +1,242 @@
+[
+  {
+    "InsertTable": "rectangles",
+    "Filename": "create_rectangle.sql",
+    "SQL": "-- piko.name: CreateRectangle\n-- piko.command: exec\nINSERT INTO rectangles (width, height) VALUES (?, ?);",
+    "Name": "CreateRectangle",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p2",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Number": 2,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [],
+    "GroupByKey": null,
+    "InsertColumns": [
+      "width",
+      "height"
+    ],
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 2,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  },
+  {
+    "InsertTable": "",
+    "Filename": "get_rectangle.sql",
+    "SQL": "-- piko.name: GetRectangle\n-- piko.command: one\nSELECT id, width, height, area, perimeter FROM rectangles WHERE id = ?;",
+    "Name": "GetRectangle",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "rectangles",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "width",
+        "SourceTable": "rectangles",
+        "SourceColumn": "width",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "height",
+        "SourceTable": "rectangles",
+        "SourceColumn": "height",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "area",
+        "SourceTable": "rectangles",
+        "SourceColumn": "area",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 20,
+          "Scale": 4,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "perimeter",
+        "SourceTable": "rectangles",
+        "SourceColumn": "perimeter",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 20,
+          "Scale": 4,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 0,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

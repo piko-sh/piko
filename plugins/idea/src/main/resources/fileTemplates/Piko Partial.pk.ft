@@ -1,0 +1,24 @@
+<template>
+  <div>
+
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+}
+
+type Response struct {
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+  return Response{}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+</style>

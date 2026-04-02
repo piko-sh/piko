@@ -1,0 +1,73 @@
+# /internal/interpreted: Symbol provider for template access
+
+This directory contains the generated symbol files that allow your Piko templates to access Go code from your application packages.
+
+---
+
+## What is this for?
+
+Piko uses a Go interpreter to execute Go code within your template files in interpreted mode. To make your application's Go packages (like `pkg/dto`, `pkg/domain`, etc.) available to your templates, you need to generate symbol files that the interpreter can use.
+
+The `provider.go` file in this directory imports and exposes these symbols to the Piko templating engine.
+
+---
+
+## Generating symbol files
+
+Whenever you add new packages or modify the exported functions, types, or methods in your application, you need to regenerate the symbol files.
+
+### Command
+
+Run the following command from the root of your project to generate symbol files for all packages you want to access in your templates:
+
+```bash
+go run piko.sh/piko/internal/interp/interp_adapters/driver_symbols_extract -name interpreted \
+  {{ .ModuleName }}/pkg/dto \
+  {{ .ModuleName }}/pkg/domain \
+  {{ .ModuleName }}/pkg/dal
+```
+
+### What does this do?
+
+-   **`extract`**: Tells the tool to analyse the specified packages and generate symbol files.
+-   **`-name interpreted`**: Names the generated symbols with the `interpreted` prefix, matching the package name in this directory.
+-   **Package paths**: Lists all the Go packages you want to make available to your templates. Add or remove packages as needed for your application.
+
+### Example with a real module path
+
+If your module path is `github.com/mycompany/myapp`, the command would be:
+
+```bash
+go run piko.sh/piko/internal/interp/interp_adapters/driver_symbols_extract -name interpreted \
+  github.com/mycompany/myapp/pkg/dto \
+  github.com/mycompany/myapp/pkg/domain \
+  github.com/mycompany/myapp/pkg/dal
+```
+
+---
+
+## When to regenerate
+
+You should regenerate your symbol files:
+
+-   After adding new exported functions, types, or constants to your packages.
+-   After changing the signature of exported functions.
+-   After adding a new package that you want to access from your templates.
+-   If you encounter "symbol not found" errors when running your templates.
+
+---
+
+## Adding more packages
+
+To make additional packages available to your templates, simply add them to the extract command:
+
+```bash
+go run piko.sh/piko/internal/interp/interp_adapters/driver_symbols_extract -name interpreted \
+  {{ .ModuleName }}/pkg/dto \
+  {{ .ModuleName }}/pkg/domain \
+  {{ .ModuleName }}/pkg/dal \
+  {{ .ModuleName }}/pkg/auth \
+  {{ .ModuleName }}/pkg/utils
+```
+
+The generated files will automatically be included when your application builds.

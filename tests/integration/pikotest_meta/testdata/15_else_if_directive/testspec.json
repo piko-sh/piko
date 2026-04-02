@@ -1,0 +1,6 @@
+{
+  "description": "Tests p-else-if directive chains with multiple conditions",
+  "entryPoints": [
+    { "path": "pages/rating.pk", "isPage": true }
+  ]
+}

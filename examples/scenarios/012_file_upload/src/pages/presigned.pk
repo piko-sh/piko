@@ -1,0 +1,284 @@
+<!-- Presigned URL upload: request a presigned PUT URL from the server,
+     upload directly to S3, then finalise to confirm and register. -->
+<template>
+  <div id="app">
+    <h1>S3 File Upload</h1>
+    <nav class="nav">
+      <a href="/">Direct Upload</a>
+      <a href="/presigned" class="active">Presigned URL Upload</a>
+    </nav>
+
+    <p>Upload files via presigned S3 URLs with progress tracking.</p>
+
+    <div class="upload-zone" p-ref="drop_zone">
+      <input p-ref="file_input" type="file" id="file-input" p-on:change="onFileChange()" />
+      <label for="file-input" class="file-label">Choose a file or drag it here</label>
+    </div>
+
+    <div class="file-info" p-ref="file_info" style="display: none">
+      <span p-ref="file_name_display"></span>
+      <span p-ref="file_size_display" class="file-size"></span>
+    </div>
+
+    <button id="upload-btn" p-ref="upload_btn" p-on:click="uploadFile()" disabled>Upload via Presigned URL</button>
+
+    <!-- Progress bar for the S3 PUT -->
+    <div class="progress-container" p-ref="progress_container" style="display: none">
+      <div p-ref="progress_bar" class="progress-bar" style="width: 0%"></div>
+    </div>
+    <div p-ref="progress_text" class="progress-text" style="display: none">0%</div>
+
+    <div p-ref="status" class="status" style="display: none"></div>
+
+    <piko:partial is="file_list"></piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+
+    file_list "testmodule/partials/file-list.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "S3 File Upload - Presigned URL",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+let selectedFile: File | null = null;
+
+function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+export function onFileChange(): void {
+    const fileInput = pk.refs.file_input as HTMLInputElement;
+    const file = fileInput.files?.[0] ?? null;
+    selectFile(file);
+}
+
+function selectFile(file: File | null): void {
+    selectedFile = file;
+    if (file) {
+        pk.refs.file_name_display!.textContent = file.name;
+        pk.refs.file_size_display!.textContent = formatBytes(file.size);
+        pk.refs.file_info!.style.display = 'flex';
+        pk.refs.upload_btn!.removeAttribute('disabled');
+    } else {
+        pk.refs.file_info!.style.display = 'none';
+        pk.refs.upload_btn!.setAttribute('disabled', '');
+    }
+}
+
+function setStatus(text: string, type: string): void {
+    pk.refs.status!.textContent = text;
+    pk.refs.status!.className = 'status ' + type;
+    pk.refs.status!.style.display = 'block';
+}
+
+// putFileToPresignedURL uploads a file directly to S3 via a presigned
+// PUT URL, using XMLHttpRequest for progress tracking.
+function putFileToPresignedURL(url: string, file: File): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', url, true);
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+        xhr.upload.addEventListener('progress', (e: ProgressEvent) => {
+            if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 100);
+                pk.refs.progress_bar!.style.width = pct + '%';
+                pk.refs.progress_text!.textContent = pct + '%';
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve();
+            } else {
+                reject(new Error('S3 PUT failed with status ' + xhr.status));
+            }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('Network error during S3 upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+        xhr.send(file);
+    });
+}
+
+export async function uploadFile(): Promise<void> {
+    if (!selectedFile) return;
+    const file = selectedFile;
+
+    const btn = pk.refs.upload_btn!;
+    btn.setAttribute('disabled', '');
+
+    // Show progress bar.
+    pk.refs.progress_container!.style.display = 'block';
+    pk.refs.progress_text!.style.display = 'block';
+    pk.refs.progress_bar!.style.width = '0%';
+    pk.refs.progress_text!.textContent = '0%';
+
+    try {
+        setStatus('Requesting presigned URL...', 'uploading');
+        const presign = await action.files.RequestUpload({
+            file_name: file.name,
+            content_type: file.type || 'application/octet-stream',
+            file_size: file.size,
+        }).call();
+
+        setStatus('Uploading to S3...', 'uploading');
+        await putFileToPresignedURL(presign.upload_url, file);
+
+        setStatus('Finalising...', 'uploading');
+        const result = await action.files.FinaliseUpload({
+            temp_key: presign.temp_key,
+            file_name: file.name,
+        }).call();
+
+        setStatus('Uploaded: ' + result.file_name + ' (' + result.storage_key + ')', 'success');
+        selectedFile = null;
+        pk.refs.file_info!.style.display = 'none';
+        (pk.refs.file_input as HTMLInputElement).value = '';
+        pk.refs.progress_container!.style.display = 'none';
+        pk.refs.progress_text!.style.display = 'none';
+        piko.partials.reload("file-list");
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setStatus('Upload failed: ' + msg, 'error');
+        btn.removeAttribute('disabled');
+    }
+}
+</script>
+
+<style>
+  * { box-sizing: border-box; }
+
+  #app {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 { color: #1f2937; margin-bottom: 0.5rem; }
+  p { color: #6b7280; margin-bottom: 1rem; }
+
+  .nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+
+    a {
+      text-decoration: none;
+      color: #6b7280;
+      font-weight: 600;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+
+      &.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+      }
+    }
+  }
+
+  .upload-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    transition: border-color 0.15s, background-color 0.15s;
+
+    &.drag-over {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+  }
+
+  .file-label {
+    cursor: pointer;
+    color: #2563eb;
+    font-weight: 500;
+  }
+
+  .file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+
+    .file-size { color: #6b7280; }
+  }
+
+  #upload-btn {
+    padding: 0.5rem 1.5rem;
+    background: #7c3aed;
+    color: #fff;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 1rem;
+
+    &:hover:not(:disabled) { background: #6d28d9; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  .progress-container {
+    height: 1.25rem;
+    background: #e5e7eb;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+
+    .progress-bar {
+      height: 100%;
+      background: #7c3aed;
+      transition: width 0.2s ease;
+      border-radius: 0.375rem;
+    }
+  }
+
+  .progress-text {
+    text-align: right;
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 0.75rem;
+  }
+
+  .status {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+
+    &.uploading { background: #fef3c7; color: #92400e; }
+    &.success { background: #d1fae5; color: #065f46; }
+    &.error { background: #fee2e2; color: #991b1b; }
+  }
+</style>

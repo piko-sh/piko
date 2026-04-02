@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "accounts.sql",
+    "Message": "query \"ArchiveAccount\" uses command \"exec\" but produces 1 output columns",
+    "Code": "Q009",
+    "Suggestion": "",
+    "Line": 13,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

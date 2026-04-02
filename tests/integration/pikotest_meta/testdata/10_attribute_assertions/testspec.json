@@ -1,0 +1,6 @@
+{
+  "description": "Tests attribute assertions: HasAttribute, HasAttributeContaining, HasAttributePresent, HasClass",
+  "entryPoints": [
+    { "path": "pages/products.pk", "isPage": true }
+  ]
+}

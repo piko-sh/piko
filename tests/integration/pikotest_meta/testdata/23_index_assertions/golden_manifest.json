@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/leaderboard.pk": {
+      "routePatterns": {
+        "en": "/leaderboard"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_23_index_assertions/dist/pages/pages_leaderboard_4621c648",
+      "originalSourcePath": "pages/leaderboard.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,94 @@
+{
+  "description": "Tests PKC keydown event forwarding and PK top-level refs via event bus",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Keydown Event Bus Refs Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "key-input"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".key-display-partial"
+    },
+    {
+      "action": "checkText",
+      "selector": "#key-display",
+      "expected": "Waiting..."
+    },
+    {
+      "action": "checkText",
+      "selector": "#count-display",
+      "expected": "0"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "focus",
+      "selector": "key-input >>> #key-input"
+    },
+    {
+      "action": "press",
+      "key": "a"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "checkText",
+      "selector": "key-input >>> #last-key",
+      "expected": "A"
+    },
+    {
+      "action": "checkText",
+      "selector": "#key-display",
+      "expected": "A"
+    },
+    {
+      "action": "checkText",
+      "selector": "#count-display",
+      "expected": "1"
+    },
+    {
+      "action": "press",
+      "key": "Enter"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "checkText",
+      "selector": "key-input >>> #last-key",
+      "expected": "Enter"
+    },
+    {
+      "action": "checkText",
+      "selector": "#key-display",
+      "expected": "Enter"
+    },
+    {
+      "action": "checkText",
+      "selector": "#count-display",
+      "expected": "2"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_keys.html"
+    }
+  ]
+}

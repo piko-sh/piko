@@ -1,0 +1,87 @@
+{
+  "description": "Tests form auto-tracking with data-pk-tracked attribute and pk-no-track opt-out",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Form Dirty Tracking Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#test-form"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#test-form",
+      "attribute": "data-pk-tracked",
+      "expected": "true"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "fill",
+      "selector": "#username",
+      "value": "changed-value"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#test-form",
+      "attribute": "data-pk-tracked",
+      "expected": "true"
+    },
+    {
+      "action": "fill",
+      "selector": "#email",
+      "value": "new@email.com"
+    },
+    {
+      "action": "click",
+      "selector": "#agree"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkValue",
+      "selector": "#username",
+      "expected": "changed-value"
+    },
+    {
+      "action": "checkValue",
+      "selector": "#email",
+      "expected": "new@email.com"
+    },
+    {
+      "action": "fill",
+      "selector": "#other-input",
+      "value": "changed-value"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_changes.html"
+    }
+  ]
+}

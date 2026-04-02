@@ -1,0 +1,50 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="container" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Users"
+  </h2>
+  <ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <li [p-for: (i, user) in state.Users] [p-key: user.ID] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "\n                "
+        {{ i }}
+        ": "
+        {{ user.Name }}
+        "\n            "
+      </RichText>
+    </li>
+  </ul>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Users No Key"
+  </h2>
+  <ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <li [p-for: (i, user) in state.Users] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "\n                "
+        {{ i }}
+        ": "
+        {{ user.Name }}
+        "\n            "
+      </RichText>
+    </li>
+  </ul>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Config"
+  </h2>
+  <div class="config-list" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div [p-for: (key, val) in state.ConfigData] [p-key: key] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "\n                "
+        {{ key }}
+        " = "
+        {{ val }}
+        "\n            "
+      </RichText>
+    </div>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,23 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p id="deep-path" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.L1Data.L2Data.L3Data.FinalItem.Name }}
+    </RichText>
+  </p>
+  <p id="alias-path" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.L2Alias.FinalItem.Name }}
+    </RichText>
+  </p>
+  <p id="shallow-path" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.L3Data.FinalItem.Name }}
+    </RichText>
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

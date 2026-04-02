@@ -1,0 +1,176 @@
+{
+  "description": "Tests p-model two-way binding with text, number, textarea, checkbox, select, and radio inputs",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "p-model Input Types Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input-types-demo"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #text-display",
+      "expected": "initial text"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #number-display",
+      "expected": "42"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #checkbox-display",
+      "expected": "unchecked"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #select-display",
+      "expected": "option1"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #radio-display",
+      "expected": "red"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "fill",
+      "selector": "input-types-demo >>> #text-input",
+      "value": "user typed text"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #text-display",
+      "expected": "user typed text"
+    },
+    {
+      "action": "fill",
+      "selector": "input-types-demo >>> #number-input",
+      "value": "99"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #number-display",
+      "expected": "99"
+    },
+    {
+      "action": "click",
+      "selector": "input-types-demo >>> #checkbox-input"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #checkbox-display",
+      "expected": "checked"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_user_input.html"
+    },
+    {
+      "action": "click",
+      "selector": "input-types-demo >>> #set-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #text-display",
+      "expected": "programmatic text"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #number-display",
+      "expected": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #checkbox-display",
+      "expected": "checked"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #select-display",
+      "expected": "option3"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #radio-display",
+      "expected": "blue"
+    },
+    {
+      "action": "checkValue",
+      "selector": "input-types-demo >>> #text-input",
+      "expected": "programmatic text"
+    },
+    {
+      "action": "checkValue",
+      "selector": "input-types-demo >>> #number-input",
+      "expected": "100"
+    },
+    {
+      "action": "checkValue",
+      "selector": "input-types-demo >>> #select-input",
+      "expected": "option3"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_programmatic.html"
+    },
+    {
+      "action": "click",
+      "selector": "input-types-demo >>> #reset-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #text-display",
+      "expected": "initial text"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #checkbox-display",
+      "expected": "unchecked"
+    },
+    {
+      "action": "checkText",
+      "selector": "input-types-demo >>> #radio-display",
+      "expected": "red"
+    }
+  ]
+}

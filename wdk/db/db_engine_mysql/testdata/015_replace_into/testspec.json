@@ -1,0 +1,3 @@
+{
+  "description": "REPLACE INTO syntax. Tests that REPLACE is parsed and analysed identically to INSERT for parameter and table resolution purposes."
+}

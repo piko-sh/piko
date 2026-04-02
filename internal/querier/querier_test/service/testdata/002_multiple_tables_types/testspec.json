@@ -1,0 +1,3 @@
+{
+  "description": "Multiple tables with different column types. Tests catalogue building with two tables, boolean and text type resolution, and many command."
+}

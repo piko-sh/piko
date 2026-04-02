@@ -1,0 +1,24 @@
+[
+  {
+    "Filename": "exec_with_select.sql",
+    "Message": "query \"ExecWithSelect\" uses command \"exec\" but produces 2 output columns",
+    "Code": "Q009",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "one_with_insert.sql",
+    "Message": "query \"OneWithInsert\" uses command \"one\" but produces no output columns",
+    "Code": "Q009",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

@@ -1,0 +1,139 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "sales_summary.sql",
+    "SQL": "-- piko.name: SalesSummary\n-- piko.command: one\nSELECT\n    COUNT(*) AS total_sales,\n    SUM(quantity) AS total_quantity,\n    AVG(unit_price) AS average_price,\n    MIN(unit_price) AS lowest_price,\n    MAX(unit_price) AS highest_price\nFROM sales;",
+    "Name": "SalesSummary",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "Name": "total_sales",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "bigint",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "total_quantity",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "average_price",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "double",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 1
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "lowest_price",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "highest_price",
+        "SourceTable": "",
+        "SourceColumn": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 0,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  }
+]

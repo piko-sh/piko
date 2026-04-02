@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".page-title[partial~=pages_main_594861c5]{font-size:24px}\n.form[partial~=partials_form_container_f99427c7] .input-group[partial~=partials_form_container_f99427c7]{display:flex;gap:10px;margin-bottom:15px}.form-title[partial~=partials_form_container_f99427c7]{color:#00f}.submit[partial~=partials_form_container_f99427c7]{background:green}\n.input-group[partial~=partials_input_fields_e97d8559] label[partial~=partials_input_fields_e97d8559]{font-weight:700}",
+      "packagePath": "testcase_092_css_cross_partial_descendant/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-class-directive >>> #status",
+    "expected": "Active: false"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-class-directive >>> #count",
+    "expected": "Count: 0"
+  },
+  {
+    "action": "click",
+    "selector": "p-class-directive >>> #toggle"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-class-directive >>> #status",
+    "expected": "Active: true"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-class-directive >>> #count",
+    "expected": "Count: 1"
+  }
+]

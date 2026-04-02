@@ -1,0 +1,6 @@
+{
+  "title": "Account Summary",
+  "description": "Monthly billing/usage summary with data tables and activity log",
+  "metadata": {"title": "Your March 2026 Summary"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

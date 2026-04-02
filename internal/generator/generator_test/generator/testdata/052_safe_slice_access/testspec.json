@@ -1,0 +1,6 @@
+{
+  "description": "Tests safe iteration and IIFE-based safe index access for a slice of structs defined in an external package.",
+  "packageName": "main_test",
+  "isPage": true,
+  "shouldError": false
+}

@@ -1,0 +1,264 @@
+{
+  "Schemas": {
+    "main": {
+      "Tables": {
+        "employees": {
+          "Name": "employees",
+          "Schema": "main",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "integer",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "name",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "text",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "department",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "text",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "salary",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "real",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_create_tables.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {
+        "active_employees": {
+          "Name": "active_employees",
+          "Schema": "main",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 18
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "name",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 18
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "department",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 18
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "salary",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_tables.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 18
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "Definition": "",
+          "Comment": "",
+          "Origin": {
+            "Filename": "001_create_tables.up.sql",
+            "Index": 0
+          }
+        }
+      },
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": "main"
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": "main"
+}

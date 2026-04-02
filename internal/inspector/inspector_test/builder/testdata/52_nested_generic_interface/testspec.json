@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of a complex generic struct that uses a generic interface as a constraint.",
+  "moduleName": "testcase_52_nested_generic_interface",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_52_nested_generic_interface"
+  ],
+  "assertions": [
+    {
+      "description": "The generic interface 'Getter' should be serialised with its method.",
+      "select": "packages.testcase_52_nested_generic_interface.named_types.Getter.methods.0.name",
+      "expect": "Get"
+    },
+    {
+      "description": "The generic struct 'Container' should list its type parameters E and G.",
+      "select": "packages.testcase_52_nested_generic_interface.named_types.Container.type_params",
+      "expect": ["E", "G"]
+    },
+    {
+      "description": "The 'StringSource' field's TypeString must correctly represent the complex nested instantiation.",
+      "select": "packages.testcase_52_nested_generic_interface.named_types.Report.fields.0.type_string",
+      "expect": "main.Container[string, main.Box[string]]"
+    },
+    {
+      "description": "The field's underlying type must show the correctly substituted inner struct.",
+      "select": "packages.testcase_52_nested_generic_interface.named_types.Report.fields.0.underlying_type_string",
+      "expect": "struct{Source main.Box[string]}"
+    }
+  ]
+}

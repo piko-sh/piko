@@ -1,0 +1,25 @@
+{
+  "description": "Mixed bulk update: simultaneous page + partial change rebuilds affected components only",
+  "requestURL": "/home",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial full build: 3 pages, 1 partial. home imports nav, about and contact are independent",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectFullBuild": true
+    },
+    {
+      "stage": 1,
+      "description": "Simultaneous change to about.pk AND nav.pk - should rebuild nav + home (imports nav) + about (directly changed), NOT contact",
+      "useTargetedRebuild": true,
+      "targetedEntryPoints": ["pages/about.pk", "partials/nav.pk", "pages/home.pk"],
+      "expectTier1Hit": true,
+      "expectFastPath": true,
+      "expectAnnotatedCount": 3,
+      "expectGeneratedCount": 3,
+      "delayBeforeRenderMs": 500
+    }
+  ]
+}

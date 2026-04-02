@@ -1,0 +1,3 @@
+{
+  "description": "TIMESTAMP, DATE, INTERVAL types with NOW(), EXTRACT(), DATE_TRUNC(), AGE()"
+}

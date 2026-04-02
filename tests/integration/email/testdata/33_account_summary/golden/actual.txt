@@ -1,0 +1,53 @@
+CloudMetrics
+
+March 2026 Summary
+
+Usage Chart
+
+1.2M
+
+API Calls
+
+99.97%
+
+Uptime
+
+3
+
+Alerts
+
+Billing
+
+Basic Plan
+
+£29.00
+
+API Overage (200k)
+
+£12.00
+
+SSL Certificate
+
+£0.00
+
+Support Add-on
+
+£15.00
+
+**Total**
+
+**£56.00**
+
+Recent Activity
+
+1. API key rotated - 28 Mar
+2. Alert triggered: CPU > 90% - 25 Mar
+3. New team member added - 22 Mar
+4. Plan upgraded to Basic - 15 Mar
+5. SSL certificate renewed - 10 Mar
+
+ View Full Report (https://example.com/dashboard/report)
+
+You received this email because you have a CloudMetrics account.
+
+© 2026 CloudMetrics Ltd. All rights reserved.

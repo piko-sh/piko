@@ -1,0 +1,26 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "p-html-complex >>> #html-content strong",
+    "expected": "1"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-html-complex >>> #html-content em",
+    "expected": "1"
+  },
+  {
+    "action": "click",
+    "selector": "p-html-complex >>> #change"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-html-complex >>> #html-content li",
+    "expected": "2"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-html-complex >>> #html-content li:first-child",
+    "expected": "Item 1"
+  }
+]

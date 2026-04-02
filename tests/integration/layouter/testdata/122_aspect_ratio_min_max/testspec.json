@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that aspect-ratio computed heights are correctly clamped by min-height and max-height constraints in both flex and grid containers.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

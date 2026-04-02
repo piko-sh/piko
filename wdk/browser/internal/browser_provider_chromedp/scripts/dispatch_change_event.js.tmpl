@@ -1,0 +1,9 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (el) {
+        el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+        if (window.__processUploadedFiles) {
+            window.__processUploadedFiles(el);
+        }
+    }
+})()

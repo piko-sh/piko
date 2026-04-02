@@ -1,0 +1,74 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">PK Refs Across Slots Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests that p-ref elements can be accessed across slot boundaries when a partial is loaded into a multi-slot component.</p>
+    <button
+      partial="pages_index_032f49b1"
+      p-key="r.0:2"
+      id="load-btn"
+      p-on:click="eyJmIjoibG9hZFBhcnRpYWxJbnRvQ2FyZCIsImEiOltdfQ"
+      pk-ev-bound="true"
+    >Load Partial</button>
+    <multi-slot-card partial="pages_index_032f49b1" p-key="r.0:3" id="card-container">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.card{border: 2px solid #3b82f6;border-radius: 8px;overflow: hidden}.card-content{padding: 1.5rem;background: #eff6ff}.card-actions{padding: 1rem;background: #dbeafe;border-top: 1px solid #93c5fd;display: flex;gap: 0.5rem}</style>
+        <div class="card">
+          <div class="card-content">
+            <slot></slot>
+          </div>
+          <div class="card-actions">
+            <slot name="actions"></slot>
+          </div>
+        </div>
+      </template>
+      <div
+        p-key="r.0"
+        class="content-area"
+        partial="partials_slotted_content_634da03f"
+        partial_name="slotted_content"
+        partial_src="/_piko/partials/slotted_content"
+      >
+        <h3 partial="partials_slotted_content_634da03f" p-key="r.0:0">Content Area (from partial)</h3>
+        <p partial="partials_slotted_content_634da03f" p-key="r.0:1">Status: <span
+            partial="partials_slotted_content_634da03f"
+            p-key="r.0:1:1"
+            p-ref="statusDisplay"
+            data-pk-partial="partials_slotted_content_634da03f"
+            id="status-display"
+          >incremented</span></p>
+        <p partial="partials_slotted_content_634da03f" p-key="r.0:2">Counter: <span
+            partial="partials_slotted_content_634da03f"
+            p-key="r.0:2:1"
+            p-ref="counterDisplay"
+            data-pk-partial="partials_slotted_content_634da03f"
+            id="counter-display"
+          >2</span></p>
+      </div>
+      <div
+        p-key="r.1"
+        slot="actions"
+        class="actions-area"
+        partial="partials_slotted_content_634da03f"
+        partial_name="slotted_content"
+        partial_src="/_piko/partials/slotted_content"
+      ><button
+          partial="partials_slotted_content_634da03f"
+          p-key="r.1:0"
+          p-ref="incrementBtn"
+          data-pk-partial="partials_slotted_content_634da03f"
+          id="increment-btn"
+          p-on:click="eyJmIjoiaW5jcmVtZW50Q291bnRlciIsImEiOltdfQ"
+          pk-ev-bound="true"
+        >Increment (2)</button><button
+          partial="partials_slotted_content_634da03f"
+          p-key="r.1:1"
+          p-ref="resetBtn"
+          data-pk-partial="partials_slotted_content_634da03f"
+          id="reset-btn"
+          p-on:click="eyJmIjoicmVzZXRDb3VudGVyIiwiYSI6W119"
+          pk-ev-bound="true"
+        > Reset </button></div>
+    </multi-slot-card>
+  </div>
+</div>

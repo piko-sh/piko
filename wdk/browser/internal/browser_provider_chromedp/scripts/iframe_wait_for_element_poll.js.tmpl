@@ -1,0 +1,12 @@
+(() => {
+    const frame = document.querySelector({{jsStr .FrameSelector}});
+    if (!frame || frame.tagName.toLowerCase() !== 'iframe') {
+        return false;
+    }
+    try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        return !!doc.querySelector({{jsStr .ElementSelector}});
+    } catch (e) {
+        return false;
+    }
+})()

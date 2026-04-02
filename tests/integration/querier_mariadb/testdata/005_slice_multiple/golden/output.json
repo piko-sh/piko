@@ -1,0 +1,14 @@
+{
+  "fetch_by_statuses_and_priorities": [
+    {
+      "ID": "t2",
+      "Priority": 3,
+      "Status": "PENDING"
+    },
+    {
+      "ID": "t6",
+      "Priority": 2,
+      "Status": "RETRYING"
+    }
+  ]
+}

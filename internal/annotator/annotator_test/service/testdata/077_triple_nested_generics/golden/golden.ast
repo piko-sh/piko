@@ -1,0 +1,34 @@
+/*
+--- BEGIN AST DUMP ---
+
+<p class="level1" [p-if: props.Data.TripleNested.Get().Data.HasItem()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Level 1 OK"
+</p>
+<p class="level2" [p-if: props.Data.TripleNested.Get().Get().HasItem()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Level 2 OK"
+</p>
+<p class="level3" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.TripleNested.Get().Get().Get().FullName() }}
+  </RichText>
+</p>
+<p class="field-access" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.TripleNested.Get().Get().Get().FirstName.String() }}
+  </RichText>
+</p>
+<p class="mixed-access" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.TripleNested.Inner.Data.Get().LastName.String() }}
+  </RichText>
+</p>
+<p class="full-chain" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.TripleNested.Get().Get().Get().FirstName.String() }}
+    " "
+    {{ props.Data.TripleNested.Get().Get().Get().LastName.String() }}
+  </RichText>
+</p>
+
+--- END AST DUMP ---
+*/

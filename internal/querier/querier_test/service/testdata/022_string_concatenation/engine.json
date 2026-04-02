@@ -1,0 +1,64 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE people ( id int4 PRIMARY KEY, first_name text NOT NULL, middle_name text, last_name text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "people",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "first_name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "middle_name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": true },
+          { "name": "last_name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT first_name || ' ' || last_name as full_name, first_name || ' ' || middle_name as with_middle FROM people",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "full_name",
+            "expression": {
+              "kind": "binary_op",
+              "operator": "||",
+              "left": {
+                "kind": "binary_op",
+                "operator": "||",
+                "left": { "kind": "column_ref", "tableAlias": "people", "columnName": "first_name" },
+                "right": { "kind": "literal", "typeName": "text" }
+              },
+              "right": { "kind": "column_ref", "tableAlias": "people", "columnName": "last_name" }
+            }
+          },
+          {
+            "name": "with_middle",
+            "expression": {
+              "kind": "binary_op",
+              "operator": "||",
+              "left": {
+                "kind": "binary_op",
+                "operator": "||",
+                "left": { "kind": "column_ref", "tableAlias": "people", "columnName": "first_name" },
+                "right": { "kind": "literal", "typeName": "text" }
+              },
+              "right": { "kind": "column_ref", "tableAlias": "people", "columnName": "middle_name" }
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "people" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

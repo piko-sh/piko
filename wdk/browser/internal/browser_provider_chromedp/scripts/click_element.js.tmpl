@@ -1,0 +1,15 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return { found: false, clickable: false };
+    el.scrollIntoView({block: 'center', inline: 'center', behavior: 'instant'});
+    const rect = el.getBoundingClientRect();
+    const x = rect.x + rect.width / 2;
+    const y = rect.y + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return {
+        x: x,
+        y: y,
+        found: true,
+        clickable: (hit === el || el.contains(hit))
+    };
+})()

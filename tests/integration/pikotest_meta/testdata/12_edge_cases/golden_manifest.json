@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/empty.pk": {
+      "routePatterns": {
+        "en": "/empty"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_12_edge_cases/dist/pages/pages_empty_061d668f",
+      "originalSourcePath": "pages/empty.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

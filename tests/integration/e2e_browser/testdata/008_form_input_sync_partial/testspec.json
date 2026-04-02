@@ -1,0 +1,91 @@
+{
+  "description": "Tests sync partial updates triggered by form input",
+  "requestURL": "/search",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Search Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".results"
+    },
+    {
+      "action": "checkText",
+      "selector": ".no-results",
+      "expected": "No results - enter a search term"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "window.fetchLogs = []; window.origFetch = window.fetch; window.fetch = function(url, opts) { var body = opts && opts.body ? opts.body : null; window.fetchLogs.push({url: url, body: body}); return window.origFetch.call(window, url, opts).then(function(response) { var headers = {}; response.headers.forEach(function(v, k) { headers[k] = v; }); return response.clone().text().then(function(text) { window.fetchLogs[window.fetchLogs.length - 1].response = text; window.fetchLogs[window.fetchLogs.length - 1].headers = headers; return response; }); }); };"
+    },
+    {
+      "action": "fill",
+      "selector": "#search-input",
+      "value": "hello"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "var form = document.querySelector('form[partial_mode=\"sync\"]'); var fd = new FormData(form); var obj = {}; for (var entry of fd.entries()) obj[entry[0]] = entry[1]; if (obj.query !== 'hello') throw new Error('FormData query=' + obj.query);"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_debounce.html"
+    },
+    {
+      "action": "waitForText",
+      "selector": ".query-text",
+      "expected": "hello"
+    },
+    {
+      "action": "checkText",
+      "selector": ".result-list li:first-child",
+      "expected": "Result 1 for hello"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_search.html"
+    },
+    {
+      "action": "fill",
+      "selector": "#search-input",
+      "value": ""
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".no-results"
+    },
+    {
+      "action": "checkText",
+      "selector": ".no-results",
+      "expected": "No results - enter a search term"
+    }
+  ]
+}

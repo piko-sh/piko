@@ -1,0 +1,3 @@
+{
+  "description": "Parameter cast to enum array via $1::colour[]. Validates that element type resolves to the enum with correct values."
+}

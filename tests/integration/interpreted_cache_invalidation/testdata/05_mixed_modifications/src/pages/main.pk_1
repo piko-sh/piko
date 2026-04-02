@@ -1,0 +1,16 @@
+<template>
+<h1>Stage 1: Template Changed</h1>
+<p>Script unchanged - should hit Tier 1 cache (fast path).</p>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

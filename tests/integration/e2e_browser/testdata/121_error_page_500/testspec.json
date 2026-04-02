@@ -1,0 +1,20 @@
+{
+  "description": "Verifies custom !500.pk renders when a page Render function fails",
+  "requestURL": "/failing",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Server Error"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-message",
+      "expected": "Something went wrong on our end."
+    }
+  ]
+}

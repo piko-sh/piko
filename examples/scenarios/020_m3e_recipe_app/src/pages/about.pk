@@ -1,0 +1,279 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="About"
+            server.current-page="about">
+
+            <!-- Hero Card -->
+            <section class="page-section">
+                <m3e-card variant="elevated" style="overflow: hidden;">
+                    <m3e-elevation></m3e-elevation>
+                    <piko:img src="@/lib/images/about-hero.jpg" alt="The Norman Kitchen" style="width: 100%; aspect-ratio: 16/7; object-fit: cover;"></piko:img>
+                    <div style="padding: 48px 32px; text-align: center;">
+                        <h2 class="section-title" style="font-size: 2rem;">About The Norman Kitchen</h2>
+                        <p class="section-subtitle" style="font-size: 1.25rem; margin-top: 8px;">Fondue of cooking? So are we!</p>
+                        <p class="text-muted mt-md" style="max-width: 640px; margin: 16px auto 0;">
+                            Established in the heart of Normandy - home of Camembert, naturally - The Norman Kitchen
+                            was founded by three mice who loved cheese so much they started a kitchen. They set out to
+                            prove that every dish is better with cheese, and we think they've done a brie-lliant job.
+                        </p>
+                    </div>
+                </m3e-card>
+            </section>
+
+            <!-- Our Story -->
+            <section class="page-section">
+                <h2 class="section-title">Our Story</h2>
+                <p class="section-subtitle">How three mice turned a love of cheese into a culinary empire</p>
+
+                <m3e-card variant="outlined" style="padding: 24px;">
+                    <p class="text-muted" style="line-height: 1.75;">
+                        It all started in a tiny kitchen in Normandy, where three mice - Cheddar, Brie, and Gouda -
+                        discovered they shared an unshakeable belief: that cheese is not just an ingredient, but a way
+                        of life. While other mice were content nibbling crumbs, our founders dreamt bigger. They wanted
+                        to create recipes that would make the whole world say "gouda gracious!"
+                    </p>
+                    <m3e-divider style="margin: 16px 0;"></m3e-divider>
+                    <p class="text-muted" style="line-height: 1.75;">
+                        From humble beginnings - a single wheel of Camembert and a dream - The Norman Kitchen has grown
+                        into a beloved collection of cheese-forward recipes. Every dish is crafted with care, tested by
+                        our resident mice, and guaranteed to be the gratest thing you've ever tasted. We believe cooking
+                        should be fun, flavourful, and absolutely loaded with cheese.
+                    </p>
+                </m3e-card>
+            </section>
+
+            <!-- Meet the Team -->
+            <section class="page-section">
+                <h2 class="section-title">Meet the Team</h2>
+                <p class="section-subtitle">The mice behind the magic</p>
+
+                <div class="recipe-grid">
+                    <!-- Cheddar the Chef -->
+                    <m3e-card variant="elevated" style="overflow: hidden;">
+                        <m3e-elevation></m3e-elevation>
+                        <piko:img src="@/lib/images/mascot-cheddar-chef.jpg" alt="Cheddar the Chef" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;"></piko:img>
+                        <div style="padding: 20px;">
+                            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">Cheddar the Chef</h3>
+                            <p style="font-size: 0.875rem; color: var(--m3e-primary); font-weight: 500; margin-bottom: 8px;">Head Chef</p>
+                            <p class="text-muted" style="font-size: 0.875rem; line-height: 1.6;">
+                                Sharp as his namesake, Cheddar has been crafting cheesy masterpieces since he could reach
+                                the counter. His signature move? A perfectly melted cheddar crown on everything.
+                            </p>
+                            <div class="flex-row mt-md">
+                                <m3e-chip size="s">Head Chef</m3e-chip>
+                                <m3e-chip size="s" variant="outlined">Cheese Expert</m3e-chip>
+                            </div>
+                        </div>
+                    </m3e-card>
+
+                    <!-- Brie the Baker -->
+                    <m3e-card variant="filled" style="overflow: hidden;">
+                        <piko:img src="@/lib/images/mascot-brie-baker.jpg" alt="Brie the Baker" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;"></piko:img>
+                        <div style="padding: 20px;">
+                            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">Brie the Baker</h3>
+                            <p style="font-size: 0.875rem; color: var(--m3e-primary); font-weight: 500; margin-bottom: 8px;">Pastry Chef</p>
+                            <p class="text-muted" style="font-size: 0.875rem; line-height: 1.6;">
+                                Soft-hearted and creamy in temperament, Brie believes every meal deserves a beautiful
+                                bread accompaniment. Her cheese scones are the stuff of legend.
+                            </p>
+                            <div class="flex-row mt-md">
+                                <m3e-chip size="s">Pastry Chef</m3e-chip>
+                                <m3e-chip size="s" variant="outlined">Bread Whisperer</m3e-chip>
+                            </div>
+                        </div>
+                    </m3e-card>
+
+                    <!-- Gouda the Gourmet -->
+                    <m3e-card variant="outlined" style="overflow: hidden;">
+                        <piko:img src="@/lib/images/mascot-gouda-gourmet.jpg" alt="Gouda the Gourmet" style="width: 100%; aspect-ratio: 1/1; object-fit: cover;"></piko:img>
+                        <div style="padding: 20px;">
+                            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">Gouda the Gourmet</h3>
+                            <p style="font-size: 0.875rem; color: var(--m3e-primary); font-weight: 500; margin-bottom: 8px;">Sommelier &amp; Taster</p>
+                            <p class="text-muted" style="font-size: 0.875rem; line-height: 1.6;">
+                                With a refined palate and a monocle to match, Gouda ensures every cheese pairing is
+                                perfection. He can identify over 200 varieties by smell alone.
+                            </p>
+                            <div class="flex-row mt-md">
+                                <m3e-chip size="s">Sommelier</m3e-chip>
+                                <m3e-chip size="s" variant="outlined">Chief Taster</m3e-chip>
+                            </div>
+                        </div>
+                    </m3e-card>
+                </div>
+            </section>
+
+            <!-- Contact Form -->
+            <section class="page-section">
+                <h2 class="section-title">Get in Touch</h2>
+                <p class="section-subtitle">We'd love to hear from you - don't be shy, drop us a line!</p>
+
+                <m3e-card variant="outlined" style="padding: 32px; max-width: 640px;">
+                    <form p-on:submit.prevent="action.email.Contact($form)">
+                        <div class="mb-md">
+                            <m3e-text-field
+                                variant="outlined"
+                                label="Name"
+                                name="name"
+                                supporting-text="We promise the mice won't share it"
+                                style="width: 100%;">
+                            </m3e-text-field>
+                        </div>
+
+                        <div class="mb-md">
+                            <m3e-text-field
+                                variant="outlined"
+                                label="Email"
+                                name="email"
+                                type="email"
+                                supporting-text="For cheesy updates only"
+                                error-text="Please enter a valid email address"
+                                style="width: 100%;">
+                            </m3e-text-field>
+                        </div>
+
+                        <div class="mb-md">
+                            <m3e-select label="Reason for contact" name="reason" style="width: 100%;">
+                                <option value="general">General Enquiry</option>
+                                <option value="recipe">Recipe Suggestion</option>
+                                <option value="emergency">Cheese Emergency</option>
+                                <option value="bug">Bug Report</option>
+                                <option value="hello">Just Saying Hi</option>
+                            </m3e-select>
+                        </div>
+
+                        <div class="mb-md">
+                            <m3e-text-field
+                                variant="outlined"
+                                label="Message"
+                                name="message"
+                                type="textarea"
+                                supporting-text="Tell us something gouda"
+                                max-length="1000"
+                                style="width: 100%;">
+                            </m3e-text-field>
+                        </div>
+
+                        <div class="flex-row mb-md">
+                            <m3e-switch></m3e-switch>
+                            <span class="text-muted" style="font-size: 0.875rem;">Subscribe to our 'Whey' newsletter</span>
+                        </div>
+
+                        <div class="flex-row">
+                            <m3e-button variant="filled" type="submit">Send Message</m3e-button>
+                            <m3e-button variant="outlined" type="reset">Clear</m3e-button>
+                            <m3e-button variant="text" href="/recipes">Back to Recipes</m3e-button>
+                        </div>
+                    </form>
+                </m3e-card>
+            </section>
+
+            <!-- FAQ Section -->
+            <section class="page-section">
+                <h2 class="section-title">Frequently Asked Questions</h2>
+                <p class="section-subtitle">Everything you wanted to know but were too gouda to ask</p>
+
+                <m3e-card variant="outlined" style="max-width: 640px;">
+                    <m3e-list>
+                        <m3e-list-item>
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">Why is everything about cheese?</div>
+                                <div class="text-muted" style="font-size: 0.875rem; line-height: 1.5;">
+                                    Because cheese makes everything better. That's not an opinion, that's science. Probably.
+                                </div>
+                            </div>
+                        </m3e-list-item>
+                        <m3e-divider></m3e-divider>
+                        <m3e-list-item>
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">Are the mice real?</div>
+                                <div class="text-muted" style="font-size: 0.875rem; line-height: 1.5;">
+                                    Cheddar, Brie, and Gouda are as real as the cheese they're named after. They prefer
+                                    to stay behind the scenes, but rest assured they taste-test every recipe.
+                                </div>
+                            </div>
+                        </m3e-list-item>
+                        <m3e-divider></m3e-divider>
+                        <m3e-list-item>
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">Can I suggest a recipe?</div>
+                                <div class="text-muted" style="font-size: 0.875rem; line-height: 1.5;">
+                                    Absolutely! Use the contact form above. The only rule: it must contain cheese.
+                                </div>
+                            </div>
+                        </m3e-list-item>
+                        <m3e-divider></m3e-divider>
+                        <m3e-list-item>
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">Why 'The Norman Kitchen'?</div>
+                                <div class="text-muted" style="font-size: 0.875rem; line-height: 1.5;">
+                                    Named after Normandy, France - birthplace of the king of cheeses, Camembert.
+                                    It felt only right.
+                                </div>
+                            </div>
+                        </m3e-list-item>
+                    </m3e-list>
+                </m3e-card>
+            </section>
+
+            <!-- Confirmation Dialog -->
+            <m3e-dialog p-ref="confirmDialog">
+                <h3 slot="headline">Message sent!</h3>
+                <p class="text-muted">Whey to go! We'll get back to you faster than cheese melts.</p>
+                <div slot="actions">
+                    <m3e-button variant="filled" p-on:click="closeConfirmation">Brilliant!</m3e-button>
+                </div>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+    contact "testmodule/actions/email/contact.go"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "About - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function closeConfirmation() {
+        const dialog = pk.refs.confirmDialog;
+        if (dialog) {
+            dialog.close();
+        }
+    }
+</script>

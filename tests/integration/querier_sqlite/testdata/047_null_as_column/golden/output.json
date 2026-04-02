@@ -1,0 +1,16 @@
+{
+  "accounts": [
+    {
+      "Email": "alice@example.com",
+      "ID": 1,
+      "Name": "Alice",
+      "PendingAction": null
+    },
+    {
+      "Email": null,
+      "ID": 2,
+      "Name": "Bob",
+      "PendingAction": null
+    }
+  ]
+}

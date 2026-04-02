@@ -1,0 +1,555 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+package generator_adapters
+
+import (
+	"context"
+	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/generator/generator_domain"
+)
+
+func TestNewRegisterEmitter(t *testing.T) {
+	t.Parallel()
+
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	if emitter == nil {
+		t.Fatal("NewRegisterEmitter returned nil")
+	}
+
+	if emitter.fsWriter != mockWriter {
+		t.Error("FSWriter was not properly injected")
+	}
+}
+
+func TestGenerate_EmptyPackageList(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	code, err := emitter.Generate(ctx, []string{})
+
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	if len(code) == 0 {
+		t.Error("Generated code should not be empty")
+	}
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "test.go", code, parser.AllErrors)
+	if parseErr != nil {
+		t.Errorf("Generated code is not valid Go: %v\nCode:\n%s", parseErr, string(code))
+	}
+
+	codeString := string(code)
+	if !strings.Contains(codeString, "package dist") {
+		t.Error("Generated code should have 'package dist' declaration")
+	}
+}
+
+func TestGenerate_SinglePackage(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	packages := []string{"github.com/example/project/dist/pages/home"}
+
+	code, err := emitter.Generate(ctx, packages)
+
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	codeString := string(code)
+
+	if !strings.Contains(codeString, `_ "github.com/example/project/dist/pages/home"`) {
+		t.Error("Generated code should contain the package import")
+	}
+
+	fset := token.NewFileSet()
+	fileAST, parseErr := parser.ParseFile(fset, "test.go", code, parser.AllErrors)
+	if parseErr != nil {
+		t.Errorf("Generated code is not valid Go: %v\nCode:\n%s", parseErr, string(code))
+	}
+
+	if fileAST.Name.Name != "dist" {
+		t.Errorf("Expected package name 'dist', got: %s", fileAST.Name.Name)
+	}
+
+	foundImport := false
+	for _, declaration := range fileAST.Decls {
+		if genDecl, ok := declaration.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+			foundImport = true
+			if len(genDecl.Specs) != 1 {
+				t.Errorf("Expected 1 import spec, got %d", len(genDecl.Specs))
+			}
+		}
+	}
+
+	if !foundImport {
+		t.Error("Generated code should contain an import declaration")
+	}
+}
+
+func TestGenerate_MultiplePackages(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	packages := []string{
+		"github.com/example/project/dist/pages/home",
+		"github.com/example/project/dist/pages/about",
+		"github.com/example/project/dist/partials/header",
+	}
+
+	code, err := emitter.Generate(ctx, packages)
+
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	codeString := string(code)
+
+	for _, pkg := range packages {
+		expectedImport := `_ "` + pkg + `"`
+		if !strings.Contains(codeString, expectedImport) {
+			t.Errorf("Generated code should contain import: %s", expectedImport)
+		}
+	}
+
+	fset := token.NewFileSet()
+	fileAST, parseErr := parser.ParseFile(fset, "test.go", code, parser.AllErrors)
+	if parseErr != nil {
+		t.Errorf("Generated code is not valid Go: %v\nCode:\n%s", parseErr, string(code))
+	}
+
+	for _, declaration := range fileAST.Decls {
+		if genDecl, ok := declaration.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+			if len(genDecl.Specs) != 3 {
+				t.Errorf("Expected 3 import specs, got %d", len(genDecl.Specs))
+			}
+		}
+	}
+}
+
+func TestGenerate_HeaderComment(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	code, err := emitter.Generate(ctx, []string{"test.com/pkg"})
+
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	codeString := string(code)
+
+	if !strings.Contains(codeString, "Code generated by Piko - DO NOT EDIT") {
+		t.Error("Generated code should contain generation notice")
+	}
+
+	if !strings.Contains(codeString, "imports all compiled component packages") {
+		t.Error("Generated code should contain explanation comment")
+	}
+}
+
+func TestEmit(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	var lastPath string
+	var lastData []byte
+	mockWriter := &generator_domain.MockFSWriter{
+		WriteFileFunc: func(_ context.Context, filePath string, data []byte) error {
+			lastPath = filePath
+			lastData = data
+			return nil
+		},
+	}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	packages := []string{"test.com/pages/test"}
+	outputPath := "/output/piko_register.go"
+
+	err := emitter.Emit(ctx, outputPath, packages)
+
+	if err != nil {
+		t.Fatalf("Emit failed: %v", err)
+	}
+
+	if lastPath != outputPath {
+		t.Errorf("Expected path %s, got: %s", outputPath, lastPath)
+	}
+
+	if len(lastData) == 0 {
+		t.Error("No data was written to file")
+	}
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "test.go", lastData, parser.AllErrors)
+	if parseErr != nil {
+		t.Errorf("Written code is not valid Go: %v", parseErr)
+	}
+}
+
+func TestEmit_WriterError(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{
+		WriteFileFunc: func(_ context.Context, _ string, _ []byte) error {
+			return os.ErrPermission
+		},
+	}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	err := emitter.Emit(ctx, "/output/test.go", []string{"test.com/pkg"})
+
+	if err == nil {
+		t.Error("Expected error from writer to propagate")
+	}
+
+	if !errors.Is(err, os.ErrPermission) {
+		t.Errorf("Expected ErrPermission, got: %v", err)
+	}
+}
+
+func TestCreateRegisterFileAST(t *testing.T) {
+	t.Parallel()
+
+	packages := []string{
+		"github.com/example/pkg1",
+		"github.com/example/pkg2",
+	}
+
+	fileAST := createRegisterFileAST(packages)
+
+	if fileAST == nil {
+		t.Fatal("createRegisterFileAST returned nil")
+	}
+
+	if fileAST.Name.Name != "dist" {
+		t.Errorf("Expected package name 'dist', got: %s", fileAST.Name.Name)
+	}
+
+	if len(fileAST.Decls) != 1 {
+		t.Errorf("Expected 1 declaration, got %d", len(fileAST.Decls))
+	}
+
+	importDecl, ok := fileAST.Decls[0].(*ast.GenDecl)
+	if !ok {
+		t.Fatalf("Expected *ast.GenDecl, got %T", fileAST.Decls[0])
+	}
+
+	if importDecl.Tok != token.IMPORT {
+		t.Error("Declaration should be an IMPORT")
+	}
+
+	if len(importDecl.Specs) != 2 {
+		t.Errorf("Expected 2 import specs, got %d", len(importDecl.Specs))
+	}
+}
+
+func TestCreateImportSpecs(t *testing.T) {
+	t.Parallel()
+
+	packages := []string{
+		"github.com/example/pkg1",
+		"github.com/example/pkg2",
+		"github.com/example/pkg3",
+	}
+
+	specs := createImportSpecs(packages)
+
+	if len(specs) != 3 {
+		t.Errorf("Expected 3 import specs, got %d", len(specs))
+	}
+
+	for i, spec := range specs {
+		importSpec, ok := spec.(*ast.ImportSpec)
+		if !ok {
+			t.Fatalf("Expected *ast.ImportSpec, got %T", spec)
+		}
+
+		if importSpec.Name.Name != "_" {
+			t.Errorf("Import %d should have blank identifier, got: %s", i, importSpec.Name.Name)
+		}
+
+		if importSpec.Path == nil {
+			t.Fatalf("Import path should not be nil")
+		}
+
+		if importSpec.Path.Kind != token.STRING {
+			t.Errorf("Import path should be STRING kind, got: %v", importSpec.Path.Kind)
+		}
+
+		if !strings.HasPrefix(importSpec.Path.Value, `"`) || !strings.HasSuffix(importSpec.Path.Value, `"`) {
+			t.Errorf("Import path should be quoted, got: %s", importSpec.Path.Value)
+		}
+	}
+}
+
+func TestCreateImportSpecs_Sorting(t *testing.T) {
+	t.Parallel()
+
+	packages := []string{
+		"github.com/zzz/pkg",
+		"github.com/aaa/pkg",
+		"github.com/mmm/pkg",
+	}
+
+	specs := createImportSpecs(packages)
+
+	paths := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		importSpec, ok := spec.(*ast.ImportSpec)
+		require.True(t, ok, "spec should be *ast.ImportSpec")
+
+		path := strings.Trim(importSpec.Path.Value, `"`)
+		paths = append(paths, path)
+	}
+
+	if paths[0] != "github.com/aaa/pkg" {
+		t.Errorf("First import should be github.com/aaa/pkg, got: %s", paths[0])
+	}
+	if paths[1] != "github.com/mmm/pkg" {
+		t.Errorf("Second import should be github.com/mmm/pkg, got: %s", paths[1])
+	}
+	if paths[2] != "github.com/zzz/pkg" {
+		t.Errorf("Third import should be github.com/zzz/pkg, got: %s", paths[2])
+	}
+}
+
+func TestFormatRegisterFile(t *testing.T) {
+	t.Parallel()
+
+	fileAST := &ast.File{
+		Name: ast.NewIdent("dist"),
+		Decls: []ast.Decl{
+			&ast.GenDecl{
+				Tok:    token.IMPORT,
+				Lparen: 1,
+				Specs:  []ast.Spec{},
+			},
+		},
+	}
+
+	code, err := formatRegisterFile(fileAST)
+
+	if err != nil {
+		t.Fatalf("formatRegisterFile failed: %v", err)
+	}
+
+	if len(code) == 0 {
+		t.Error("Formatted code should not be empty")
+	}
+
+	codeString := string(code)
+
+	if !strings.Contains(codeString, "Code generated by Piko") {
+		t.Error("Formatted code should have header comment")
+	}
+
+	if !strings.Contains(codeString, "package dist") {
+		t.Error("Formatted code should have package declaration")
+	}
+
+	if !strings.Contains(codeString, "import") {
+		t.Error("Formatted code should have import statement")
+	}
+}
+
+func TestGenerate_DeterministicOutput(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	packages := []string{
+		"github.com/example/pkg3",
+		"github.com/example/pkg1",
+		"github.com/example/pkg2",
+	}
+
+	code1, err1 := emitter.Generate(ctx, packages)
+	if err1 != nil {
+		t.Fatalf("First generation failed: %v", err1)
+	}
+
+	code2, err2 := emitter.Generate(ctx, packages)
+	if err2 != nil {
+		t.Fatalf("Second generation failed: %v", err2)
+	}
+
+	if string(code1) != string(code2) {
+		t.Error("Generate should produce deterministic output")
+	}
+
+	codeString := string(code1)
+	package1Position := strings.Index(codeString, "pkg1")
+	package2Position := strings.Index(codeString, "pkg2")
+	package3Position := strings.Index(codeString, "pkg3")
+
+	if package1Position == -1 || package2Position == -1 || package3Position == -1 {
+		t.Fatal("All packages should be present in generated code")
+	}
+
+	if package1Position >= package2Position || package2Position >= package3Position {
+		t.Error("Packages should be sorted in alphabetical order")
+	}
+}
+
+func TestGenerate_SpecialCharacters(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	packages := []string{
+		"github.com/example/pkg-with-dash",
+		"github.com/example/pkg_with_underscore",
+		"github.com/example/pkg.with.dots",
+	}
+
+	code, err := emitter.Generate(ctx, packages)
+
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "test.go", code, parser.AllErrors)
+	if parseErr != nil {
+		t.Errorf("Generated code with special chars is not valid Go: %v\nCode:\n%s", parseErr, string(code))
+	}
+
+	codeString := string(code)
+
+	for _, pkg := range packages {
+		if !strings.Contains(codeString, pkg) {
+			t.Errorf("Generated code should contain package: %s", pkg)
+		}
+	}
+}
+
+func TestGenerate_NoDeclarations(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	mockWriter := &generator_domain.MockFSWriter{}
+	emitter := NewRegisterEmitter(mockWriter)
+
+	code, err := emitter.Generate(ctx, []string{"test.com/pkg"})
+
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	fset := token.NewFileSet()
+	fileAST, parseErr := parser.ParseFile(fset, "test.go", code, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("Parse failed: %v", parseErr)
+	}
+
+	if len(fileAST.Decls) != 1 {
+		t.Errorf("Expected exactly 1 declaration (imports), got %d", len(fileAST.Decls))
+	}
+
+	importDecl, ok := fileAST.Decls[0].(*ast.GenDecl)
+	if !ok || importDecl.Tok != token.IMPORT {
+		t.Error("The only declaration should be an import")
+	}
+}
+
+func TestGenerate_ValidGoSyntax(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		packages []string
+	}{
+		{
+			name:     "standard library style",
+			packages: []string{"fmt", "strings", "context"},
+		},
+		{
+			name: "nested paths",
+			packages: []string{
+				"github.com/org/repo/internal/pkg/subpkg/deep",
+			},
+		},
+		{
+			name: "mixed depths",
+			packages: []string{
+				"short.com/pkg",
+				"very.long.domain.com/org/repo/internal/subpkg/component/file",
+			},
+		},
+		{
+			name: "numbers in paths",
+			packages: []string{
+				"github.com/user123/repo456/pkg789",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+			mockWriter := &generator_domain.MockFSWriter{}
+			emitter := NewRegisterEmitter(mockWriter)
+
+			code, err := emitter.Generate(ctx, tt.packages)
+
+			if err != nil {
+				t.Fatalf("Generate failed: %v", err)
+			}
+
+			fset := token.NewFileSet()
+			_, parseErr := parser.ParseFile(fset, "test.go", code, parser.AllErrors)
+			if parseErr != nil {
+				t.Errorf("Generated code is not valid Go: %v\nCode:\n%s", parseErr, string(code))
+			}
+		})
+	}
+}

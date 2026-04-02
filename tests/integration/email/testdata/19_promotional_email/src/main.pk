@@ -1,0 +1,43 @@
+<template>
+    <pml-row background-color="#ff6b35" padding="15px 0">
+        <pml-col>
+            <pml-p color="#ffffff" font-size="12px" align="center" padding="0 25px">Limited Time Offer</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="30px 0">
+        <pml-col>
+            <pml-p font-size="32px" color="#2c3e50" align="center" padding="10px 25px">Spring Sale</pml-p>
+            <pml-p font-size="18px" color="#666666" align="center" padding="5px 25px">Save 30% on everything this weekend</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="50%">
+            <pml-img src="https://example.com/product-a.jpg" alt="Product A" width="250px" align="center" padding="10px"></pml-img>
+            <pml-p font-size="14px" align="center" padding="5px 10px">Product A</pml-p>
+            <pml-p font-size="16px" color="#e74c3c" align="center" padding="0 10px">£49.99</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-img src="https://example.com/product-b.jpg" alt="Product B" width="250px" align="center" padding="10px"></pml-img>
+            <pml-p font-size="14px" align="center" padding="5px 10px">Product B</pml-p>
+            <pml-p font-size="16px" color="#e74c3c" align="center" padding="0 10px">£79.99</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://example.com/shop" background-color="#e74c3c" color="#ffffff" font-size="18px" border-radius="4px" padding="10px 25px" inner-padding="15px 40px">
+                Shop Now
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f5f5f5" padding="15px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#999999" align="center" padding="5px 25px">
+                You received this because you subscribed to our newsletter.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.product-price { text-decoration: line-through; }
+</style>

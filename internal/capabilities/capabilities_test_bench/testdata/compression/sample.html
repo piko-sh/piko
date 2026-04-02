@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2026 PolitePixels Limited
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piko WDK - Product Showcase</title>
+  <style>
+      :root {
+          --primary-color: #007bff;
+          --secondary-color: #6c757d;
+          --background-color: #f8f9fa;
+          --text-color: #212529;
+          --card-background: #ffffff;
+          --card-border: #dee2e6;
+          --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+
+      body {
+          font-family: var(--font-family);
+          background-color: var(--background-color);
+          color: var(--text-color);
+          margin: 0;
+          padding: 2rem;
+          line-height: 1.6;
+      }
+
+      .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 1rem;
+      }
+
+      .header {
+          text-align: center;
+          margin-bottom: 3rem;
+          border-bottom: 2px solid var(--primary-color);
+          padding-bottom: 1rem;
+      }
+
+      .header h1 {
+          font-size: 2.5rem;
+          color: var(--primary-color);
+          margin: 0;
+      }
+
+      .header p {
+          font-size: 1.1rem;
+          color: var(--secondary-color);
+      }
+
+      .product-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 2rem;
+      }
+
+      .product-card {
+          background-color: var(--card-background);
+          border: 1px solid var(--card-border);
+          border-radius: 8px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          overflow: hidden;
+          transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
+
+      .product-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+      }
+
+      .product-card__image {
+          width: 100%;
+          height: 200px;
+          background-color: #e9ecef;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          color: var(--secondary-color);
+      }
+
+      .product-card__content {
+          padding: 1.5rem;
+      }
+
+      .product-card__title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin-top: 0;
+          margin-bottom: 0.5rem;
+      }
+
+      .product-card__description {
+          font-size: 0.95rem;
+          color: var(--secondary-color);
+          margin-bottom: 1rem;
+          min-height: 60px;
+      }
+
+      .product-card__price {
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: var(--primary-color);
+          margin-bottom: 1rem;
+      }
+
+      .product-card__button {
+          display: block;
+          width: 100%;
+          padding: 0.75rem;
+          background-color: var(--primary-color);
+          color: white;
+          text-align: center;
+          text-decoration: none;
+          border: none;
+          border-radius: 5px;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: background-color 0.2s;
+      }
+
+      .product-card__button:hover {
+          background-color: #0056b3;
+      }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header class="header">
+    <h1>Our Latest Products</h1>
+    <p>High-quality items, crafted with care and precision.</p>
+  </header>
+
+  <main class="product-grid">
+    <div class="product-card" data-id="p-001">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">Quantum Widget</h2>
+        <p class="product-card__description">An advanced widget that leverages quantum mechanics for unparalleled performance.</p>
+        <div class="product-card__price">$99.99</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+    <div class="product-card" data-id="p-002">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">Hyperbolic Gizmo</h2>
+        <p class="product-card__description">A revolutionary gizmo that operates in non-Euclidean space. A must-have for enthusiasts.</p>
+        <div class="product-card__price">$149.50</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+    <div class="product-card" data-id="p-003">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">Flux Capacitor Module</h2>
+        <p class="product-card__description">Essential for temporal displacement activities. Requires 1.21 gigawatts of power.</p>
+        <div class="product-card__price">$1,210,000.00</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+    <div class="product-card" data-id="p-004">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">Recursive Thingamajig</h2>
+        <p class="product-card__description">This thingamajig is defined in terms of itself, providing endless utility.</p>
+        <div class="product-card__price">$42.00</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+    <div class="product-card" data-id="p-005">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">Organic Doodad</h2>
+        <p class="product-card__description">Sustainably sourced and biodegradable. Perfect for the eco-conscious consumer.</p>
+        <div class="product-card__price">$29.95</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+    <div class="product-card" data-id="p-006">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">Inverse Spatula</h2>
+        <p class="product-card__description">It's not for flipping; it's for unflipping. Solves a problem you didn't know you had.</p>
+        <div class="product-card__price">$19.99</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+    <div class="product-card" data-id="p-007">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">Singularity-in-a-Box</h2>
+        <p class="product-card__description">Handle with extreme care. Not responsible for local gravitational anomalies.</p>
+        <div class="product-card__price">$9,999,999.99</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+    <div class="product-card" data-id="p-008">
+      <div class="product-card__image">Placeholder</div>
+      <div class="product-card__content">
+        <h2 class="product-card__title">A Simple Paperclip</h2>
+        <p class="product-card__description">Sometimes, the simplest solutions are the best. Also holds papers together.</p>
+        <div class="product-card__price">$0.05</div>
+        <button class="product-card__button">Add to Cart</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // This script adds a simple interactive feature to the product cards.
+        // It demonstrates a block of typical JavaScript found in web pages.
+        const productCards = document.querySelectorAll('.product-card');
+
+        if (productCards && productCards.length > 0) {
+            productCards.forEach(function(card) {
+                const button = card.querySelector('.product-card__button');
+                const title = card.querySelector('.product-card__title').textContent;
+                const productId = card.getAttribute('data-id');
+
+                if (button) {
+                    button.addEventListener('click', function() {
+                        console.log('Adding product to cart:', { id: productId, name: title });
+
+                        // Visual feedback for the user
+                        button.textContent = 'Added!';
+                        button.style.backgroundColor = '#28a745'; // Success color
+
+                        setTimeout(function() {
+                            button.textContent = 'Add to Cart';
+                            button.style.backgroundColor = ''; // Revert to original color
+                        }, 1500);
+                    });
+                }
+            });
+        }
+
+        // A simple function to log page load analytics
+        function trackPageLoad() {
+            const loadTime = window.performance.timing.domContentLoadedEventEnd - window.performance.timing.navigationStart;
+            const analyticsData = {
+                page: 'Product Showcase',
+                loadTime: loadTime,
+                timestamp: new Date().toISOString()
+            };
+            console.log('Page analytics:', analyticsData);
+        }
+
+        trackPageLoad();
+    });
+</script>
+</body>
+</html>

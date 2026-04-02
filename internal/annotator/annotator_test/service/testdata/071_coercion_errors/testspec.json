@@ -1,0 +1,37 @@
+{
+  "description": "Validates that coercion functions produce appropriate errors for invalid conversions and argument counts.",
+  "shouldError": true,
+  "expectedDiagnostics": 6,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Cannot coerce type",
+      "onLine": 57
+    },
+    {
+      "severity": "error",
+      "messageContains": "Cannot coerce type 'bool' to maths.Decimal",
+      "onLine": 59
+    },
+    {
+      "severity": "error",
+      "messageContains": "Cannot coerce type 'float64' to maths.BigInt",
+      "onLine": 61
+    },
+    {
+      "severity": "error",
+      "messageContains": "Cannot coerce type 'time.Time' to int",
+      "onLine": 63
+    },
+    {
+      "severity": "error",
+      "messageContains": "expects exactly one argument",
+      "onLine": 65
+    },
+    {
+      "severity": "error",
+      "messageContains": "expects exactly one argument",
+      "onLine": 67
+    }
+  ]
+}

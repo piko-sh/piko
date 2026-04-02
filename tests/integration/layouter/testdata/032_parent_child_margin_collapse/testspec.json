@@ -1,0 +1,7 @@
+{
+    "description": "Verifies parent-child margin collapsing when parent has no padding or border.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

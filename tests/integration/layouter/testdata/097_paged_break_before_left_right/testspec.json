@@ -1,0 +1,14 @@
+{
+    "description": "Verifies break-before: right inserts blank pages to land on correct page side.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "div1": {"pageIndex": 0, "x": 0, "y": 0, "width": 800, "height": 100},
+        "div2": {"pageIndex": 2, "x": 0, "y": 0, "width": 800, "height": 100}
+    }
+}

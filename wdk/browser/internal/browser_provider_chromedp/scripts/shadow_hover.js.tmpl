@@ -1,0 +1,24 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    const event = new MouseEvent('mouseover', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2
+    });
+    el.dispatchEvent(event);
+    const enterEvent = new MouseEvent('mouseenter', {
+        bubbles: false,
+        cancelable: false,
+        view: window,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2
+    });
+    el.dispatchEvent(enterEvent);
+    return true;
+})()

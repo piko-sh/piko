@@ -1,0 +1,25 @@
+{
+  "description": "Tests serialisation of a map whose values are instantiated generic interfaces.",
+  "moduleName": "testcase_61_map_with_generic_interface_value",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_61_map_with_generic_interface_value"
+  ],
+  "assertions": [
+    {
+      "description": "The 'IntProducers' field's TypeString must correctly represent the map of instantiated generic interfaces.",
+      "select": "packages.testcase_61_map_with_generic_interface_value.named_types.Report.fields.0.type_string",
+      "expect": "map[string]main.Producer[int]"
+    },
+    {
+      "description": "The PackagePath should be correctly identified from the 'Producer' interface within the map value.",
+      "select": "packages.testcase_61_map_with_generic_interface_value.named_types.Report.fields.0.pkg_path",
+      "expect": "testcase_61_map_with_generic_interface_value"
+    },
+    {
+      "description": "The 'Producer' interface itself should be serialised correctly with its method.",
+      "select": "packages.testcase_61_map_with_generic_interface_value.named_types.Producer.methods.0.name",
+      "expect": "Produce"
+    }
+  ]
+}

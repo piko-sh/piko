@@ -1,0 +1,6 @@
+{
+  "description": "Tests path parameters access and conditional rendering",
+  "entryPoints": [
+    { "path": "pages/profile.pk", "isPage": true }
+  ]
+}

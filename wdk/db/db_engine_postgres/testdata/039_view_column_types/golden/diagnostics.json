@@ -1,0 +1,57 @@
+[
+  {
+    "Filename": "get_active.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"id\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "get_active.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"name\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "get_active.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"email\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "get_active.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"id\"",
+    "Severity": 1,
+    "Code": "Q004",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "get_active.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "query \"GetActiveUser\" uses command \"one\" but produces no output columns",
+    "Severity": 1,
+    "Code": "Q009",
+    "Suggestion": ""
+  }
+]

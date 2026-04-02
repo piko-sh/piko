@@ -1,0 +1,37 @@
+{
+  "active_widgets": [
+    {
+      "ID": 1,
+      "Name": "Widget A",
+      "Price": 1000,
+      "Sku": "WDG-001"
+    },
+    {
+      "ID": 2,
+      "Name": "Widget B",
+      "Price": 1500,
+      "Sku": "WDG-002"
+    }
+  ],
+  "by_attributes": [
+    {
+      "Attributes": "{\"colour\": \"red\", \"weight\": 100}",
+      "ID": 1,
+      "Name": "Widget A",
+      "Sku": "WDG-001"
+    },
+    {
+      "Attributes": "{\"colour\": \"red\", \"weight\": 200}",
+      "ID": 3,
+      "Name": "Gadget X",
+      "Sku": "GDG-001"
+    }
+  ],
+  "by_sku": {
+    "Category": "widgets",
+    "ID": 2,
+    "Name": "Widget B",
+    "Price": 1500,
+    "Sku": "WDG-002"
+  }
+}

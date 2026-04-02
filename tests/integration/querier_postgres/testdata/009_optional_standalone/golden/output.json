@@ -1,0 +1,64 @@
+{
+  "by_name": [
+    {
+      "Email": "alice@test.com",
+      "ID": 1,
+      "Name": "Alice",
+      "Role": "admin"
+    },
+    {
+      "Email": "alice2@test.com",
+      "ID": 3,
+      "Name": "Alice",
+      "Role": "user"
+    }
+  ],
+  "by_name_and_role": [
+    {
+      "Email": "alice2@test.com",
+      "ID": 3,
+      "Name": "Alice",
+      "Role": "user"
+    }
+  ],
+  "by_role": [
+    {
+      "Email": "alice@test.com",
+      "ID": 1,
+      "Name": "Alice",
+      "Role": "admin"
+    },
+    {
+      "Email": "charlie@test.com",
+      "ID": 4,
+      "Name": "Charlie",
+      "Role": "admin"
+    }
+  ],
+  "no_filter": [
+    {
+      "Email": "alice@test.com",
+      "ID": 1,
+      "Name": "Alice",
+      "Role": "admin"
+    },
+    {
+      "Email": "bob@test.com",
+      "ID": 2,
+      "Name": "Bob",
+      "Role": "user"
+    },
+    {
+      "Email": "alice2@test.com",
+      "ID": 3,
+      "Name": "Alice",
+      "Role": "user"
+    },
+    {
+      "Email": "charlie@test.com",
+      "ID": 4,
+      "Name": "Charlie",
+      "Role": "admin"
+    }
+  ]
+}

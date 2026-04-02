@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package interface implementation",
+  "modulePath": "testpkg",
+  "expected": "loud:HELLO quiet:hello"
+}

@@ -1,0 +1,285 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Navigation Rail"
+            server.current-page="navigation/navigation-rail">
+
+            <p class="demo-description">Navigation rails let users switch between primary destinations on tablet and desktop. They support optional FAB and menu slots.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- Basic -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Basic</h3>
+                    <div class="demo-preview">
+                        <div style="height: 400px; display: flex;">
+                            <m3e-navigation-rail selectedIndex="0">
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Home</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Search</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Favourites</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Settings</span>
+                                </button>
+                            </m3e-navigation-rail>
+                        </div>
+                    </div>
+                    <pre class="demo-code"><code>&lt;div style="height: 400px; display: flex;"&gt;
+  &lt;m3e-navigation-rail selectedIndex="0"&gt;
+    &lt;button data-nav-item&gt;
+      &lt;piko:svg src="@/lib/icons/home.svg"&gt;&lt;/piko:svg&gt;
+      &lt;span&gt;Home&lt;/span&gt;
+    &lt;/button&gt;
+    &lt;button data-nav-item&gt;
+      &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
+      &lt;span&gt;Search&lt;/span&gt;
+    &lt;/button&gt;
+    &lt;button data-nav-item&gt;
+      &lt;piko:svg src="@/lib/icons/star.svg"&gt;&lt;/piko:svg&gt;
+      &lt;span&gt;Favourites&lt;/span&gt;
+    &lt;/button&gt;
+    &lt;button data-nav-item&gt;
+      &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+      &lt;span&gt;Settings&lt;/span&gt;
+    &lt;/button&gt;
+  &lt;/m3e-navigation-rail&gt;
+&lt;/div&gt;</code></pre>
+                </section>
+
+                <!-- With FAB -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With FAB</h3>
+                    <div class="demo-preview">
+                        <div style="height: 400px; display: flex;">
+                            <m3e-navigation-rail selectedIndex="0">
+                                <m3e-fab size="small" colour="primary" slot="fab">
+                                    <piko:svg src="@/lib/icons/edit.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                </m3e-fab>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Home</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Search</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Favourites</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Settings</span>
+                                </button>
+                            </m3e-navigation-rail>
+                        </div>
+                    </div>
+                    <pre class="demo-code"><code>&lt;div style="height: 400px; display: flex;"&gt;
+  &lt;m3e-navigation-rail selectedIndex="0"&gt;
+    &lt;m3e-fab size="small" colour="primary" slot="fab"&gt;
+      &lt;piko:svg src="@/lib/icons/edit.svg"&gt;&lt;/piko:svg&gt;
+    &lt;/m3e-fab&gt;
+    &lt;button data-nav-item&gt;
+      &lt;piko:svg src="@/lib/icons/home.svg"&gt;&lt;/piko:svg&gt;
+      &lt;span&gt;Home&lt;/span&gt;
+    &lt;/button&gt;
+    ...
+  &lt;/m3e-navigation-rail&gt;
+&lt;/div&gt;</code></pre>
+                </section>
+
+                <!-- With Menu -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Menu</h3>
+                    <div class="demo-preview">
+                        <div style="height: 400px; display: flex;">
+                            <m3e-navigation-rail selectedIndex="0">
+                                <m3e-icon-button variant="standard" slot="menu">
+                                    <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                </m3e-icon-button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Home</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Search</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Favourites</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Settings</span>
+                                </button>
+                            </m3e-navigation-rail>
+                        </div>
+                    </div>
+                    <pre class="demo-code"><code>&lt;div style="height: 400px; display: flex;"&gt;
+  &lt;m3e-navigation-rail selectedIndex="0"&gt;
+    &lt;m3e-icon-button variant="standard" slot="menu"&gt;
+      &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+    &lt;/m3e-icon-button&gt;
+    &lt;button data-nav-item&gt;
+      &lt;piko:svg src="@/lib/icons/home.svg"&gt;&lt;/piko:svg&gt;
+      &lt;span&gt;Home&lt;/span&gt;
+    &lt;/button&gt;
+    ...
+  &lt;/m3e-navigation-rail&gt;
+&lt;/div&gt;</code></pre>
+                </section>
+
+                <!-- FAB + Menu -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">FAB + Menu</h3>
+                    <div class="demo-preview">
+                        <div style="height: 400px; display: flex;">
+                            <m3e-navigation-rail selectedIndex="0">
+                                <m3e-icon-button variant="standard" slot="menu">
+                                    <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                </m3e-icon-button>
+                                <m3e-fab size="small" colour="primary" slot="fab">
+                                    <piko:svg src="@/lib/icons/edit.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                </m3e-fab>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Home</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Search</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Favourites</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Settings</span>
+                                </button>
+                            </m3e-navigation-rail>
+                        </div>
+                    </div>
+                    <pre class="demo-code"><code>&lt;div style="height: 400px; display: flex;"&gt;
+  &lt;m3e-navigation-rail selectedIndex="0"&gt;
+    &lt;m3e-icon-button variant="standard" slot="menu"&gt;
+      &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+    &lt;/m3e-icon-button&gt;
+    &lt;m3e-fab size="small" colour="primary" slot="fab"&gt;
+      &lt;piko:svg src="@/lib/icons/edit.svg"&gt;&lt;/piko:svg&gt;
+    &lt;/m3e-fab&gt;
+    &lt;button data-nav-item&gt;
+      &lt;piko:svg src="@/lib/icons/home.svg"&gt;&lt;/piko:svg&gt;
+      &lt;span&gt;Home&lt;/span&gt;
+    &lt;/button&gt;
+    ...
+  &lt;/m3e-navigation-rail&gt;
+&lt;/div&gt;</code></pre>
+                </section>
+
+                <!-- Alignment -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Alignment</h3>
+                    <div class="demo-preview" style="display: flex; gap: 16px;">
+                        <div style="height: 400px; display: flex;">
+                            <m3e-navigation-rail selectedIndex="0" alignment="top">
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Top</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Items</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Here</span>
+                                </button>
+                            </m3e-navigation-rail>
+                        </div>
+                        <div style="height: 400px; display: flex;">
+                            <m3e-navigation-rail selectedIndex="0" alignment="middle">
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Middle</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Items</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Here</span>
+                                </button>
+                            </m3e-navigation-rail>
+                        </div>
+                        <div style="height: 400px; display: flex;">
+                            <m3e-navigation-rail selectedIndex="0" alignment="bottom">
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Bottom</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Items</span>
+                                </button>
+                                <button data-nav-item>
+                                    <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                    <span>Here</span>
+                                </button>
+                            </m3e-navigation-rail>
+                        </div>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-navigation-rail alignment="top"&gt;...&lt;/m3e-navigation-rail&gt;
+&lt;m3e-navigation-rail alignment="middle"&gt;...&lt;/m3e-navigation-rail&gt;
+&lt;m3e-navigation-rail alignment="bottom"&gt;...&lt;/m3e-navigation-rail&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Navigation Rail - M3E Components",
+    }, nil
+}
+</script>

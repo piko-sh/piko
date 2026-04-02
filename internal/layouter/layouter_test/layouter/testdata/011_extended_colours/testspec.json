@@ -1,0 +1,3 @@
+{
+  "description": "HSL colours, named colours, and rgba functional notation. Verifies extended colour parsing including hsl(), hsla(), and CSS named colours."
+}

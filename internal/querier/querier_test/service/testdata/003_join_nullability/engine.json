@@ -1,0 +1,55 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "uuid": { "category": "uuid", "engineName": "uuid" },
+    "text": { "category": "text", "engineName": "text" },
+    "int4": { "category": "integer", "engineName": "int4" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL );",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE posts ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), author_id uuid NOT NULL, title text NOT NULL );",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "posts",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "author_id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false },
+          { "name": "title", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT u.name, p.title FROM users u LEFT JOIN posts p ON p.author_id = u.id",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "name", "tableAlias": "u", "columnName": "name" },
+          { "name": "title", "tableAlias": "p", "columnName": "title" }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "users", "alias": "u" }
+        ],
+        "joinClauses": [
+          {
+            "kind": "left",
+            "table": { "name": "posts", "alias": "p" }
+          }
+        ],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

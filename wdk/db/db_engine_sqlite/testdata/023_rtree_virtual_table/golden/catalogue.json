@@ -1,0 +1,170 @@
+{
+  "Schemas": {
+    "main": {
+      "Tables": {
+        "spatial_idx": {
+          "Name": "spatial_idx",
+          "Schema": "main",
+          "Comment": "",
+          "VirtualModuleName": "rtree",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_spatial.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "integer",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "min_x",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_spatial.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "real",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "max_x",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_spatial.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "real",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "min_y",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_spatial.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "real",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "max_y",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_spatial.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "real",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1
+              },
+              "ArrayDimensions": 0,
+              "Nullable": true,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_create_spatial.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": true,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": "main"
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": "main"
+}

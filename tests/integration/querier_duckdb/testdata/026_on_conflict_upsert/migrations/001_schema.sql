@@ -1,0 +1,5 @@
+CREATE TABLE kv (
+    key VARCHAR PRIMARY KEY,
+    value VARCHAR NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);

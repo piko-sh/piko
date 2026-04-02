@@ -1,0 +1,12 @@
+{
+  "title": "Premailer Options",
+  "description": "Tests premailer options like removeClasses and linkQueryParams",
+  "metadata": {"title": "Options Test"},
+  "premailerOptions": {
+    "removeClasses": true,
+    "removeIDs": true,
+    "expandShorthands": true,
+    "makeLeftoverImportant": true,
+    "linkQueryParams": {"utm_source": "email", "utm_medium": "newsletter"}
+  }
+}

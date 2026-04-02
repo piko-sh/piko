@@ -1,0 +1,7 @@
+{
+    "description": "Verifies auto-fill/auto-fit edge cases: very small containers, gaps consuming all space, single repetition.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

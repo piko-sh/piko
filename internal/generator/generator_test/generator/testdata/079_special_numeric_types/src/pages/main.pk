@@ -1,0 +1,84 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Special Numeric Types Test</h1>
+
+    <h2>Decimal Display</h2>
+    <p id="decimal-display" p-text="state.Price">Display decimal: 19.99</p>
+    <p id="decimal-in-attr" :data-price="state.Price">Decimal in attribute</p>
+
+    <h2>Money Type</h2>
+    <p id="money-display" p-text="state.AccountBalance">Display money</p>
+    <p id="money-in-attr" :data-balance="state.AccountBalance">Money in attribute</p>
+
+    <h2>BigInt Display</h2>
+    <p id="bigint-display" p-text="state.LargeNumber">Display BigInt</p>
+    <p id="bigint-in-attr" :data-id="state.LargeNumber">BigInt in attribute</p>
+
+    <h2>Template Literal Interpolation</h2>
+    <p id="decimal-in-template" p-text="`Total: ${state.Price}`">Decimal in template literal</p>
+    <p id="money-in-template" p-text="`Balance: ${state.AccountBalance}`">Money in template literal</p>
+    <p id="bigint-in-template" p-text="`ID: ${state.LargeNumber}`">BigInt in template literal</p>
+
+    <h2>Multiple Values</h2>
+    <p id="combined-template" p-text="`Price: ${state.Price}, Balance: ${state.AccountBalance}`">Combined values</p>
+
+    <h2>Ternary with Special Types</h2>
+    <p id="decimal-ternary" :data-value="state.ShowPrice ? state.Price : state.DefaultPrice">Conditional decimal</p>
+    <p id="money-ternary" p-text="state.HasBalance ? state.AccountBalance : state.ZeroBalance">Conditional money</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/maths"
+  )
+
+  type Response struct {
+    Price        maths.Decimal
+    DefaultPrice maths.Decimal
+    ShowPrice    bool
+
+    AccountBalance maths.Money
+    ZeroBalance    maths.Money
+    HasBalance     bool
+
+    LargeNumber maths.BigInt
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      Price:        maths.NewDecimalFromFloat(19.99),
+      DefaultPrice: maths.NewDecimalFromFloat(0.00),
+      ShowPrice:    true,
+
+      AccountBalance: maths.NewMoneyFromMinorInt(150000, "USD"),
+      ZeroBalance:    maths.NewMoneyFromMinorInt(0, "USD"),
+      HasBalance:     true,
+
+      LargeNumber: maths.NewBigIntFromString("9223372036854775807"),
+    }, piko.Metadata{}, nil
+  }
+</script>

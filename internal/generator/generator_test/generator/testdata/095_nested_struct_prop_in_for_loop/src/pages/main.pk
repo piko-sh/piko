@@ -1,0 +1,66 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Items List</h1>
+    <div class="items">
+      <piko:partial
+        is="item_card"
+        p-for="item in state.Items"
+        p-key="item.ID"
+        :server.item="item"
+      ></piko:partial>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "testcase_095_nested_struct_prop_in_for_loop/pkg/dto"
+    item_card "testcase_095_nested_struct_prop_in_for_loop/partials/item_card.pk"
+  )
+
+  type Response struct {
+    Items []dto.ItemData
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      Items: []dto.ItemData{
+        {
+          ID: "1", Title: "First Item", Description: "First description", Price: 100, Status: "active", Category: "A",
+          RoomSetup: dto.RoomSetup{Bedrooms: 3, Bathrooms: 2, Parking: 1},
+          OpenViewingData: dto.OpenViewingData{Date: "2025-10-25", Time: "14:00"},
+          ImgUrls: []string{"img1.jpg", "img2.jpg"},
+        },
+        {
+          ID: "2", Title: "Second Item", Description: "Second description", Price: 200, Status: "pending", Category: "B",
+          RoomSetup: dto.RoomSetup{Bedrooms: 2, Bathrooms: 1, Parking: 0},
+          OpenViewingData: dto.OpenViewingData{Date: "", Time: ""},
+          ImgUrls: []string{},
+        },
+      },
+    }, piko.Metadata{}, nil
+  }
+</script>

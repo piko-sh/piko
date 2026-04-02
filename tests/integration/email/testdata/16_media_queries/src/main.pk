@@ -1,0 +1,13 @@
+<template>
+    <pml-row padding="10px 0">
+        <pml-col width="33.33%">
+            <pml-p font-size="14px" padding="5px">One third</pml-p>
+        </pml-col>
+        <pml-col width="33.33%">
+            <pml-p font-size="14px" padding="5px">One third</pml-p>
+        </pml-col>
+        <pml-col width="33.34%">
+            <pml-p font-size="14px" padding="5px">One third</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

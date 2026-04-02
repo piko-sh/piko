@@ -1,0 +1,50 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <footer class="app-footer">
+        <div class="footer-brand">The Norman Kitchen</div>
+        <div class="footer-tagline">Made with cheese and love</div>
+
+        <div class="footer-links">
+            <piko:a href="/">Home</piko:a>
+            <piko:a href="/recipes">Recipes</piko:a>
+            <piko:a href="/recipe-index">Recipe Index</piko:a>
+            <piko:a href="/cheese-guide">Cheese Guide</piko:a>
+            <piko:a href="/favourites">Favourites</piko:a>
+            <piko:a href="/meal-planner">Meal Planner</piko:a>
+            <piko:a href="/about">About</piko:a>
+        </div>
+
+        <m3e-divider></m3e-divider>
+
+        <p class="footer-joke mt-md">In queso emergency, eat cheese. 🧀</p>
+    </footer>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

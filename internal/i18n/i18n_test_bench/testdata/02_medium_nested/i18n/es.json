@@ -1,0 +1,182 @@
+{
+  "app": {
+    "title": "Aplicación Empresarial",
+    "subtitle": "Impulsado por Tecnología Avanzada",
+    "version": "2.5.3",
+    "copyright": "© 2025 Company Inc."
+  },
+  "navigation": {
+    "main": {
+      "home": "Inicio",
+      "dashboard": "Panel",
+      "reports": "Informes",
+      "settings": "Configuración"
+    },
+    "user": {
+      "profile": "Mi Perfil",
+      "preferences": "Preferencias",
+      "security": "Seguridad",
+      "logout": "Cerrar Sesión"
+    },
+    "admin": {
+      "users": "Gestión de Usuarios",
+      "roles": "Gestión de Roles",
+      "permissions": "Permisos",
+      "audit": "Registros de Auditoría"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar Sesión",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "remember": "Recordarme",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "submit": "Iniciar Sesión",
+      "signup": "¿No tienes cuenta? Regístrate"
+    },
+    "register": {
+      "title": "Crear Cuenta",
+      "firstname": "Nombre",
+      "lastname": "Apellido",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "confirm": "Confirmar Contraseña",
+      "terms": "Acepto los términos y condiciones",
+      "submit": "Crear Cuenta"
+    },
+    "reset": {
+      "title": "Restablecer Contraseña",
+      "email": "Correo Electrónico",
+      "submit": "Enviar Enlace",
+      "success": "Enlace enviado a tu correo"
+    }
+  },
+  "dashboard": {
+    "welcome": "Bienvenido de nuevo",
+    "overview": {
+      "title": "Vista General",
+      "stats": {
+        "users": "Usuarios Activos",
+        "revenue": "Ingresos Totales",
+        "orders": "Pedidos",
+        "growth": "Tasa de Crecimiento"
+      }
+    },
+    "charts": {
+      "sales": "Rendimiento de Ventas",
+      "traffic": "Tráfico del Sitio",
+      "conversion": "Tasa de Conversión",
+      "engagement": "Participación de Usuarios"
+    },
+    "recent": {
+      "title": "Actividad Reciente",
+      "viewAll": "Ver Todo",
+      "noData": "Sin actividad reciente"
+    }
+  },
+  "forms": {
+    "common": {
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "create": "Crear",
+      "update": "Actualizar",
+      "submit": "Enviar",
+      "reset": "Restablecer",
+      "search": "Buscar",
+      "filter": "Filtrar",
+      "export": "Exportar",
+      "import": "Importar"
+    },
+    "validation": {
+      "required": "Este campo es obligatorio",
+      "email": "Ingrese un correo electrónico válido",
+      "minLength": "Debe tener al menos {min} caracteres",
+      "maxLength": "No debe exceder {max} caracteres",
+      "password": {
+        "weak": "Contraseña muy débil",
+        "medium": "Fuerza de contraseña: Media",
+        "strong": "Fuerza de contraseña: Fuerte",
+        "mismatch": "Las contraseñas no coinciden"
+      },
+      "numeric": "Debe ser un número",
+      "url": "Ingrese una URL válida",
+      "date": "Ingrese una fecha válida"
+    }
+  },
+  "tables": {
+    "headers": {
+      "id": "ID",
+      "name": "Nombre",
+      "email": "Correo",
+      "status": "Estado",
+      "createdAt": "Creado",
+      "updatedAt": "Modificado",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "view": "Ver",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "duplicate": "Duplicar",
+      "archive": "Archivar"
+    },
+    "pagination": {
+      "showing": "Mostrando {start} a {end} de {total} resultados",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "first": "Primero",
+      "last": "Último"
+    },
+    "empty": "No se encontraron registros",
+    "loading": "Cargando datos..."
+  },
+  "notifications": {
+    "success": {
+      "saved": "Cambios guardados exitosamente",
+      "created": "Elemento creado exitosamente",
+      "updated": "Elemento actualizado exitosamente",
+      "deleted": "Elemento eliminado exitosamente"
+    },
+    "error": {
+      "general": "Ocurrió un error",
+      "network": "Error de red. Intente nuevamente",
+      "unauthorized": "No está autorizado para realizar esta acción",
+      "notFound": "Recurso solicitado no encontrado",
+      "validation": "Verifique su entrada e intente nuevamente"
+    },
+    "warning": {
+      "unsaved": "Tiene cambios sin guardar",
+      "confirm": "¿Está seguro de que desea continuar?",
+      "irreversible": "Esta acción no se puede deshacer"
+    },
+    "info": {
+      "processing": "Procesando su solicitud...",
+      "wait": "Por favor espere...",
+      "loading": "Cargando..."
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "Configuración de Perfil",
+      "personal": "Información Personal",
+      "contact": "Información de Contacto",
+      "photo": "Foto de Perfil"
+    },
+    "account": {
+      "title": "Configuración de Cuenta",
+      "email": "Preferencias de Correo",
+      "password": "Cambiar Contraseña",
+      "privacy": "Configuración de Privacidad",
+      "security": "Opciones de Seguridad"
+    },
+    "notifications": {
+      "title": "Configuración de Notificaciones",
+      "email": "Notificaciones por Correo",
+      "push": "Notificaciones Push",
+      "sms": "Notificaciones SMS"
+    }
+  }
+}

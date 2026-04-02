@@ -1,0 +1,12 @@
+{
+  "description": "Validates that the TypeResolver provides a 'Did you mean...?' suggestion for a typo in a field name.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Property 'Mesage' does not exist on type 'main_aaf9a2e0.Response'. Did you mean 'Message'?",
+      "onLine": 37
+    }
+  ]
+}

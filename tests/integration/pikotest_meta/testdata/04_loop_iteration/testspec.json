@@ -1,0 +1,6 @@
+{
+  "description": "Tests p-for loop iteration directive",
+  "entryPoints": [
+    { "path": "pages/products.pk", "isPage": true }
+  ]
+}

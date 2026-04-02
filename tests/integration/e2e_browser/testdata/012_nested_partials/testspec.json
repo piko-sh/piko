@@ -1,0 +1,49 @@
+{
+  "description": "Tests partials containing other partials",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Nested Partials Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".outer-partial"
+    },
+    {
+      "action": "checkText",
+      "selector": ".outer-partial h2",
+      "expected": "Outer Partial"
+    },
+    {
+      "action": "checkText",
+      "selector": ".outer-text",
+      "expected": "This is the outer partial content"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".inner-partial"
+    },
+    {
+      "action": "checkText",
+      "selector": ".inner-partial h3",
+      "expected": "Inner Partial"
+    },
+    {
+      "action": "checkText",
+      "selector": ".inner-text",
+      "expected": "Hello from outer"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "page.html"
+    }
+  ]
+}

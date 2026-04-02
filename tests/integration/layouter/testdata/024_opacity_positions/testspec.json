@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that opacity does not affect layout positions. Elements with opacity should have identical positions to fully opaque elements.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

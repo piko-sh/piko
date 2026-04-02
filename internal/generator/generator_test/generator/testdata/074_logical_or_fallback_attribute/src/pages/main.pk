@@ -1,0 +1,75 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Logical OR (||) vs Nullish Coalescing (??) Test</h1>
+
+    <h2>Test with empty string (the key difference)</h2>
+    <p id="empty-or" :data-value="state.EmptyString || 'or-fallback'">empty || fallback → should be "or-fallback"</p>
+    <p id="empty-coalesce" :data-value="state.EmptyString ?? 'coalesce-fallback'">empty ?? fallback → should be "" (empty preserved)</p>
+
+    <h2>Test with valid/truthy values</h2>
+    <p id="valid-or" :data-value="state.ValidString || 'or-fallback'">valid || fallback → should be "hello"</p>
+    <p id="valid-coalesce" :data-value="state.ValidString ?? 'coalesce-fallback'">valid ?? fallback → should be "hello"</p>
+
+    <h2>Chained fallbacks (same types)</h2>
+    <p id="chain-or" :data-value="state.EmptyString || state.AlsoEmpty || 'final-fallback'">empty || empty || fallback</p>
+    <p id="chain-coalesce" :data-value="state.EmptyString ?? state.AlsoEmpty ?? 'final-fallback'">empty ?? empty ?? fallback</p>
+
+    <h2>Real-world: dynamic src fallback</h2>
+    <img id="img-or" :src="state.EmptyImageURL || '/fallback/image.png'" alt="Using ||" />
+    <img id="img-coalesce" :src="state.EmptyImageURL ?? '/fallback/image.png'" alt="Using ??" />
+
+    <h2>Mixed with ternary (both branches same type)</h2>
+    <p id="ternary-or" :data-value="state.IsActive ? (state.EmptyString || 'default-value') : 'inactive'">ternary with ||</p>
+    <p id="ternary-coalesce" :data-value="state.IsActive ? (state.EmptyString ?? 'default-value') : 'inactive'">ternary with ??</p>
+
+    <h2>In p-text context</h2>
+    <p id="text-or" p-text="state.EmptyString || 'Text fallback via ||'"></p>
+    <p id="text-coalesce" p-text="state.EmptyString ?? 'Text fallback via ??'"></p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Response struct {
+    EmptyString   string
+    AlsoEmpty     string
+    EmptyImageURL string
+
+    ValidString   string
+
+    IsActive      bool
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      EmptyString:   "",
+      AlsoEmpty:     "",
+      EmptyImageURL: "",
+      ValidString:   "hello",
+      IsActive:      true,
+    }, piko.Metadata{}, nil
+  }
+</script>

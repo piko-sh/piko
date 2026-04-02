@@ -1,0 +1,101 @@
+Wayfare
+
+Your Trip to Barcelona
+
+12 - 16 April 2026
+
+Outbound Flight
+
+Flight:
+
+BA 478
+
+Date:
+
+Saturday, 12 April 2026
+
+Departure:
+
+London Heathrow (LHR) - 07:15
+
+Arrival:
+
+Barcelona El Prat (BCN) - 10:30
+
+Class:
+
+Economy
+
+Booking Ref:
+
+XKJM42
+
+Return Flight
+
+Flight:
+
+BA 479
+
+Date:
+
+Wednesday, 16 April 2026
+
+Departure:
+
+Barcelona El Prat (BCN) - 18:45
+
+Arrival:
+
+London Heathrow (LHR) - 20:10
+
+Class:
+
+Economy
+
+Booking Ref:
+
+XKJM42
+
+Hotel
+
+Hotel:
+
+Hotel Arts Barcelona
+
+Check-in:
+
+Saturday, 12 April - from 15:00
+
+Check-out:
+
+Wednesday, 16 April - by 11:00
+
+Room:
+
+Superior Double, Sea View
+
+Confirmation:
+
+HTL-BCN-98214
+
+Trip Summary
+
+Flights (2 passengers)
+
+£478.00
+
+Hotel (4 nights)
+
+£1,120.00
+
+Travel Insurance
+
+£64.00
+
+Total Paid
+
+£1,662.00
+
+ Manage Booking (https://wayfare.example.com/booking/XKJM42)
+
+Wayfare Travel Ltd - ATOL Protected

@@ -1,0 +1,23 @@
+<template>
+	<nav>
+		<ul>
+			<li p-for="item in props.Items" p-key="item.Label">
+				<a :href="item.URL">{{ item.Label }}</a>
+			</li>
+		</ul>
+	</nav>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+	Items []NavItem `prop:"items"`
+}
+
+func Render(_ *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

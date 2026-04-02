@@ -1,0 +1,4 @@
+{
+  "description": "Tests the logical AND (&&) operator in various contexts",
+  "skip": false
+}

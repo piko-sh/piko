@@ -1,0 +1,7 @@
+[
+  {
+    "action": "checkText",
+    "selector": "pp-unnamed >>> p",
+    "expected": "This is a static template with no script."
+  }
+]

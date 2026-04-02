@@ -1,0 +1,78 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div class="container">
+    <table>
+      <tbody>
+        <tr p-for="row in state.Rows" p-key="row.ID" class="row-wrapper">
+          <td p-for="(idx, cell) in row.Cells" p-key="idx" class="data-cell">
+            <span p-text="cell.Text"></span>
+          </td>
+          <td class="actions">
+            <piko:partial is="row_actions"
+              :container_id="state.ContainerID"
+              :category_name="state.CategoryName"
+              :row_id="row.ID"
+              :row_title="row.Title">
+            </piko:partial>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+
+    row_actions "testcase_133_partial_sibling_of_nested_loop/partials/row_actions.pk"
+)
+
+type Cell struct {
+    Text string
+}
+
+type Row struct {
+    ID    string
+    Title string
+    Cells []Cell
+}
+
+type Response struct {
+    ContainerID  string
+    CategoryName string
+    Rows         []Row
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        ContainerID:  "container-abc",
+        CategoryName: "Category A",
+        Rows: []Row{
+            {ID: "1", Title: "First Row", Cells: []Cell{{Text: "A"}, {Text: "B"}}},
+            {ID: "2", Title: "Second Row", Cells: []Cell{{Text: "C"}, {Text: "D"}}},
+        },
+    }, piko.Metadata{}, nil
+}
+</script>

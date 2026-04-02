@@ -1,0 +1,7 @@
+{
+    "description": "Verifies basic CSS Grid layout: grid-template-columns with fixed and fr tracks, auto rows, and gap spacing.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

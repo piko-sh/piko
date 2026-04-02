@@ -1,0 +1,68 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" font-weight="bold" color="#ffffff" background-color="#2c3e50" align="center" padding="10px 25px">Lumiere</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="30px 0 10px 0">
+        <pml-col>
+            <pml-p font-size="28px" color="#1a1a1a" align="center" padding="10px 25px">Forgot something?</pml-p>
+            <pml-p font-size="15px" color="#666666" align="center" line-height="1.6" padding="5px 40px">
+                Items in your basket are selling fast. Complete your purchase before they're gone.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="50%">
+            <pml-p background-color="#e8e8e8" color="#999999" font-size="12px" align="center" padding="40px 10px">Item 1</pml-p>
+            <pml-p font-size="14px" color="#333333" align="center" padding="5px 10px">Leather Tote</pml-p>
+            <pml-p font-size="16px" color="#1a1a1a" align="center" padding="0 10px">£89.00</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p background-color="#e8e8e8" color="#999999" font-size="12px" align="center" padding="40px 10px">Item 2</pml-p>
+            <pml-p font-size="14px" color="#333333" align="center" padding="5px 10px">Suede Loafers</pml-p>
+            <pml-p font-size="16px" color="#1a1a1a" align="center" padding="0 10px">£145.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-hr border-color="#e0e0e0" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Subtotal</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="16px" color="#1a1a1a" align="right" padding="5px 25px">£234.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://example.com/cart/checkout" background-color="#1a1a1a" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="15px 50px">
+                Complete Purchase
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="14px" color="#e74c3c" align="center" padding="5px 25px">
+                Use code COMEBACK15 for 15% off
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f5f5f5" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#999999" align="center" padding="5px 25px">
+                You received this email because you have items in your basket at Lumiere.
+            </pml-p>
+            <pml-p font-size="11px" color="#999999" align="center" padding="0 25px">
+                © 2026 Lumiere. All rights reserved.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.product-card { border: 1px solid #eeeeee; border-radius: 8px; }
+</style>

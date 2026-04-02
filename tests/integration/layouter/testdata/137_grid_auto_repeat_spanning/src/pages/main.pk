@@ -1,0 +1,44 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div data-layout-id="auto-fill-span" style="box-sizing: content-box; display: grid; grid-template-columns: repeat(auto-fill, 100px); width: 400px; gap: 10px; margin: 0; padding: 0;">
+    <div data-layout-id="afs-a" style="box-sizing: content-box; height: 40px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="afs-b" style="box-sizing: content-box; height: 40px; margin: 0; padding: 0; grid-column: span 2;"></div>
+    <div data-layout-id="afs-c" style="box-sizing: content-box; height: 40px; margin: 0; padding: 0;"></div>
+  </div>
+  <div data-layout-id="auto-fit-sparse" style="box-sizing: content-box; display: grid; grid-template-columns: repeat(auto-fit, 80px); width: 400px; gap: 5px; margin: 10px 0 0 0; padding: 0;">
+    <div data-layout-id="aft-a" style="box-sizing: content-box; height: 40px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="aft-b" style="box-sizing: content-box; height: 40px; margin: 0; padding: 0;"></div>
+  </div>
+  <div data-layout-id="after-grid" style="box-sizing: content-box; width: 300px; height: 30px; margin: 10px 0 0 0; padding: 0;"></div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Grid Auto Repeat Spanning Test"}, nil
+}
+</script>

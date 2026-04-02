@@ -1,0 +1,96 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="event-handler">
+    <div class="container">
+        <div class="controls">
+            <button id="simple-btn" p-on:click="increment">Simple Click</button>
+            <button id="args-btn" p-on:click="setMessage('Hello', 42)">Click with Args</button>
+            <button id="event-btn" p-on:click="logEvent($event)">Click with $event</button>
+        </div>
+        <div class="output">
+            <p id="count">Count: {{ state.count }}</p>
+            <p id="message">Message: {{ state.message }}</p>
+            <p id="event-type">Event type: {{ state.eventType }}</p>
+        </div>
+        <div class="loop-section">
+            <h3>Click items in loop:</h3>
+            <ul id="item-list">
+                <li p-for="(index, item) in state.items" p-key="item" class="clickable-item" p-on:click="selectItem(index, item)">
+                    {{ item }}
+                </li>
+            </ul>
+            <p id="selected">Selected: {{ state.selected }}</p>
+        </div>
+    </div>
+</template>
+
+<style>
+    .container {
+        padding: 1rem;
+    }
+    .controls, .output, .loop-section {
+        margin: 1rem 0;
+        padding: 1rem;
+        border: 1px solid #eee;
+    }
+    button {
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        background: #673ab7;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    .clickable-item {
+        padding: 0.5rem;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+    .clickable-item:hover {
+        background: #f0f0f0;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        count: 0 as number,
+        message: 'None' as string,
+        eventType: 'None' as string,
+        items: ['Apple', 'Banana', 'Cherry'],
+        selected: 'None' as string
+    };
+
+    function increment() {
+        state.count++;
+    }
+
+    function setMessage(greeting: string, num: number) {
+        state.message = `${greeting} #${num}`;
+    }
+
+    function logEvent(event: Event) {
+        state.eventType = event.type;
+    }
+
+    function selectItem(index: number, item: string) {
+        state.selected = `Index ${index}: ${item}`;
+    }
+</script>

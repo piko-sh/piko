@@ -1,0 +1,11 @@
+{
+  "description": "Duplicate query name validation (Q006). Two query files both declare piko.name: GetUser, which should produce a Q006 diagnostic.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "Q006",
+      "messageContains": "duplicate query name"
+    }
+  ]
+}

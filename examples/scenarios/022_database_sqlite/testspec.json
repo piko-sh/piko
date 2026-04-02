@@ -1,0 +1,5 @@
+{
+  "description": "Verifies a database-backed task manager with SQLite storage, querier-generated queries, and CRUD actions",
+  "requestURL": "/",
+  "expectedStatus": 200
+}

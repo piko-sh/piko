@@ -1,0 +1,24 @@
+{
+  "by_range": [
+    {
+      "CreatedAt": "2025-01-15 10:00:00",
+      "ID": 1,
+      "Message": "start"
+    },
+    {
+      "CreatedAt": "2025-06-15 12:00:00",
+      "ID": 2,
+      "Message": "middle"
+    }
+  ],
+  "formatted": {
+    "Month": "06",
+    "Year": "2025"
+  },
+  "log": {
+    "CreatedAt": "2025-01-15 10:00:00",
+    "ID": 1,
+    "Message": "start",
+    "UnixTs": 1736935200
+  }
+}

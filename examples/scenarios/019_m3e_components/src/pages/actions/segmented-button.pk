@@ -1,0 +1,118 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Segmented Button"
+            server.current-page="actions/segmented-button">
+
+            <p class="demo-description">Segmented buttons help people select options, switch views, or sort elements. They support single and multi-select modes.</p>
+
+            <div class="demo-grid">
+                <!-- Single Select -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Single Select (Default)</h3>
+                    <div class="demo-preview">
+                        <m3e-segmented-button>
+                            <button data-segment="day" data-selected>Day</button>
+                            <button data-segment="week">Week</button>
+                            <button data-segment="month">Month</button>
+                        </m3e-segmented-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-segmented-button&gt;
+  &lt;button data-segment="day" data-selected&gt;Day&lt;/button&gt;
+  &lt;button data-segment="week"&gt;Week&lt;/button&gt;
+  &lt;button data-segment="month"&gt;Month&lt;/button&gt;
+&lt;/m3e-segmented-button&gt;</code></pre>
+                </section>
+
+                <!-- Multi Select -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Multi Select</h3>
+                    <div class="demo-preview">
+                        <m3e-segmented-button multi>
+                            <button data-segment="bold" data-selected>B</button>
+                            <button data-segment="italic">I</button>
+                            <button data-segment="underline" data-selected>U</button>
+                        </m3e-segmented-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-segmented-button multi&gt;
+  &lt;button data-segment="bold" data-selected&gt;B&lt;/button&gt;
+  &lt;button data-segment="italic"&gt;I&lt;/button&gt;
+  &lt;button data-segment="underline" data-selected&gt;U&lt;/button&gt;
+&lt;/m3e-segmented-button&gt;</code></pre>
+                </section>
+
+                <!-- Two Segments -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Two Segments</h3>
+                    <div class="demo-preview">
+                        <m3e-segmented-button>
+                            <button data-segment="on" data-selected>On</button>
+                            <button data-segment="off">Off</button>
+                        </m3e-segmented-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-segmented-button&gt;
+  &lt;button data-segment="on" data-selected&gt;On&lt;/button&gt;
+  &lt;button data-segment="off"&gt;Off&lt;/button&gt;
+&lt;/m3e-segmented-button&gt;</code></pre>
+                </section>
+
+                <!-- Five Segments -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Five Segments</h3>
+                    <div class="demo-preview">
+                        <m3e-segmented-button>
+                            <button data-segment="xs">XS</button>
+                            <button data-segment="s">S</button>
+                            <button data-segment="m" data-selected>M</button>
+                            <button data-segment="l">L</button>
+                            <button data-segment="xl">XL</button>
+                        </m3e-segmented-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-segmented-button&gt;
+  &lt;button data-segment="xs"&gt;XS&lt;/button&gt;
+  &lt;button data-segment="s"&gt;S&lt;/button&gt;
+  &lt;button data-segment="m" data-selected&gt;M&lt;/button&gt;
+  &lt;button data-segment="l"&gt;L&lt;/button&gt;
+  &lt;button data-segment="xl"&gt;XL&lt;/button&gt;
+&lt;/m3e-segmented-button&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Segmented Button - M3E Components",
+    }, nil
+}
+</script>

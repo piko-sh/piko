@@ -1,0 +1,24 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".accordion[partial~=partials_accordion_panel_192a8185]{border:1px solid #ddd;border-radius:4px;margin:1rem 0}.accordion-header[partial~=partials_accordion_panel_192a8185]{width:100%;padding:1rem;text-align:left;border:none;background:#f8f8f8;cursor:pointer}.accordion-body[partial~=partials_accordion_panel_192a8185]{max-height:0;overflow:hidden;transition:max-height .3s ease}.accordion.expanded[partial~=partials_accordion_panel_192a8185] .accordion-body[partial~=partials_accordion_panel_192a8185]{max-height:200px;padding:1rem}\n.counter-widget[partial~=partials_counter_widget_19b82542]{display:flex;gap:.5rem;align-items:center;padding:1rem;border:1px solid #ccc;border-radius:4px}.count[partial~=partials_counter_widget_19b82542]{font-size:1.5rem;min-width:2rem;text-align:center}\n.toggle-container[partial~=partials_toggle_button_16eaf585]{padding:1rem;border:1px solid #ccc;border-radius:4px;margin:1rem 0}.toggle-content[partial~=partials_toggle_button_16eaf585]{display:none;padding:1rem;background:#f5f5f5;margin-top:.5rem}.toggle-content.visible[partial~=partials_toggle_button_16eaf585]{display:block}",
+      "jsArtefactIds": [
+        "pk-js/partials/counter-widget.js",
+        "pk-js/partials/toggle-button.js",
+        "pk-js/partials/accordion-panel.js"
+      ],
+      "packagePath": "testcase_087_partial_js_aggregation/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,1 @@
+{"description": "CREATE TYPE AS ENUM and column with enum type, cast expression parameter inference"}

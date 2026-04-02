@@ -1,0 +1,13 @@
+/*
+--- BEGIN AST DUMP ---
+
+<main [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div class="card" [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_6529585e Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+    <p [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+      "Simple Card Content"
+    </p>
+  </div>
+</main>
+
+--- END AST DUMP ---
+*/

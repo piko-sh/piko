@@ -1,0 +1,76 @@
+{
+  "groups": {
+    "sidebar": {
+      "sections": [
+        {
+          "children": [
+            {
+              "id": "endpoints",
+              "title": "API Endpoints",
+              "section": "api",
+              "url": "/docs/api/endpoints",
+              "level": 1,
+              "order": 999
+            },
+            {
+              "id": "overview",
+              "title": "API Overview",
+              "section": "api",
+              "url": "/docs/api/overview",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "api",
+          "title": "Api",
+          "section": "api",
+          "level": 0,
+          "order": 999
+        },
+        {
+          "children": [
+            {
+              "id": "installation",
+              "title": "Installation",
+              "section": "getting-started",
+              "url": "/docs/getting-started/installation",
+              "level": 1,
+              "order": 999
+            },
+            {
+              "id": "quick-start",
+              "title": "Quick Start",
+              "section": "getting-started",
+              "url": "/docs/getting-started/quick-start",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "getting-started",
+          "title": "Getting Started",
+          "section": "getting-started",
+          "level": 0,
+          "order": 999
+        },
+        {
+          "children": [
+            {
+              "id": "deployment",
+              "title": "Deployment Guide",
+              "section": "guides",
+              "url": "/docs/guides/deployment",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "guides",
+          "title": "Guides",
+          "section": "guides",
+          "level": 0,
+          "order": 999
+        }
+      ],
+      "locale": "en"
+    }
+  }
+}

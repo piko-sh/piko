@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that a logical operation (&&, ||) results in a bool type.",
+  "expression": "state.IsAdmin && state.IsActive",
+  "expectedType": "bool",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

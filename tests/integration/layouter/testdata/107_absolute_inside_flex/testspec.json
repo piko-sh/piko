@@ -1,0 +1,7 @@
+{
+    "description": "Verifies absolute positioning inside a flex container: containing block resolution, absolute children not affecting flex sizing.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

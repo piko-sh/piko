@@ -1,0 +1,12 @@
+(() => {
+    const callbackName = {{jsStr .CallbackName}};
+    window[callbackName] = function(detail) {
+        window[callbackName + '_data'] = detail;
+    };
+    const el = {{jsRaw .FindElementJS}};
+    if (!el) return false;
+    el.addEventListener({{jsStr .EventName}}, function(e) {
+        window[callbackName](e.detail);
+    });
+    return true;
+})()

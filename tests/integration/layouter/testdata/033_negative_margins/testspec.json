@@ -1,0 +1,7 @@
+{
+    "description": "Verifies negative margins cause elements to overlap.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

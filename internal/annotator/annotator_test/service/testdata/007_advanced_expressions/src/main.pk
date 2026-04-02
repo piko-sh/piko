@@ -1,0 +1,65 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	templater_dto "piko.sh/piko/internal/templater/templater_dto"
+	"testcase_07_advanced_expressions/models"
+)
+
+type Response struct {
+	Score       int
+	IsAdmin     bool
+	CurrentUser *models.User
+}
+
+func IsAdmin(user *models.User) bool {
+	if user == nil {
+		return false
+	}
+	return user.IsAdmin
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	user := &models.User{
+		Name:    "Alice",
+		IsAdmin: true,
+		Address: &models.Address{
+			Street: "123 Main St",
+			City:   "Anytown",
+		},
+	}
+	return Response{Score: 95, IsAdmin: true, CurrentUser: user}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+    <div id="grade-check">
+        Grade: {{ state.Score > 50 ? (state.Score > 90 ? 'A' : 'B') : 'C' }}
+    </div>
+    <div id="admin-check" p-if="state.IsAdmin && IsAdmin(state.CurrentUser)">
+        Welcome, Admin!
+    </div>
+    <div id="address-check">
+        Street: {{ state.CurrentUser?.Address?.Street }}
+    </div>
+</template>

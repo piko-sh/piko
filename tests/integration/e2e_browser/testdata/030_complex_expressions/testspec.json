@@ -1,0 +1,177 @@
+{
+  "description": "Tests complex JavaScript expressions: ternary, logical operators, optional chaining, nullish coalescing",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Complex Expressions Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "expression-demo"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #ternary-value",
+      "expected": "No"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #and-value",
+      "expected": "Not both"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #or-value",
+      "expected": "Neither"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #comparison-value",
+      "expected": "Less than 3"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #arithmetic-value",
+      "expected": "Sum: 10"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #optional-value",
+      "expected": "No user"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #nullish-value",
+      "expected": "No email set"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "expression-demo >>> #toggle-flag-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #ternary-value",
+      "expected": "Yes"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #or-value",
+      "expected": "At least one"
+    },
+    {
+      "action": "click",
+      "selector": "expression-demo >>> #increment-btn"
+    },
+    {
+      "action": "click",
+      "selector": "expression-demo >>> #increment-btn"
+    },
+    {
+      "action": "click",
+      "selector": "expression-demo >>> #increment-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #count-state",
+      "expected": "3"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #and-value",
+      "expected": "Both true"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #comparison-value",
+      "expected": "Exactly 3"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #arithmetic-value",
+      "expected": "Sum: 13"
+    },
+    {
+      "action": "click",
+      "selector": "expression-demo >>> #increment-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #comparison-value",
+      "expected": "More than 3"
+    },
+    {
+      "action": "click",
+      "selector": "expression-demo >>> #set-user-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #optional-value",
+      "expected": "John Doe"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #nullish-value",
+      "expected": "john@example.com"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #has-user-state",
+      "expected": "yes"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_changes.html"
+    },
+    {
+      "action": "click",
+      "selector": "expression-demo >>> #clear-user-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #optional-value",
+      "expected": "No user"
+    },
+    {
+      "action": "checkText",
+      "selector": "expression-demo >>> #has-user-state",
+      "expected": "no"
+    }
+  ]
+}

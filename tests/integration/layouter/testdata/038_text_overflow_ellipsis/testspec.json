@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text-overflow: ellipsis with overflow: hidden and white-space: nowrap.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

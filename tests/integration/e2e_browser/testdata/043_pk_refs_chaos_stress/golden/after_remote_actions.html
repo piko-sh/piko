@@ -1,0 +1,364 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">PK Refs Chaos Stress Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests deeply nested partials, multiple RemoteRenders, cross-slot refs, and general chaos.</p>
+    <div partial="pages_index_032f49b1" p-key="r.0:2" class="page-controls">
+      <p partial="pages_index_032f49b1" p-key="r.0:2:0">Page Status: <span
+          partial="pages_index_032f49b1"
+          p-key="r.0:2:0:1"
+          p-ref="pageStatus"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-status"
+        >chaos active</span></p>
+      <button
+        partial="pages_index_032f49b1"
+        p-key="r.0:2:1"
+        p-ref="pageActionBtn"
+        data-pk-partial="pages_index_032f49b1"
+        id="page-action"
+        p-on:click="eyJmIjoicGFnZUFjdGlvbiIsImEiOltdfQ"
+        pk-ev-bound="true"
+      >Page Action (1)</button>
+      <button
+        partial="pages_index_032f49b1"
+        p-key="r.0:2:2"
+        p-ref="loadEverythingBtn"
+        data-pk-partial="pages_index_032f49b1"
+        id="load-everything"
+        p-on:click="eyJmIjoibG9hZEV2ZXJ5dGhpbmciLCJhIjpbXX0"
+        pk-ev-bound="true"
+      >Chaos Loaded!</button>
+    </div>
+    <div
+      partial="pages_index_032f49b1"
+      p-key="r.0:3"
+      p-ref="mainContainer"
+      data-pk-partial="pages_index_032f49b1"
+      id="main-container"
+      class="main-container"
+    >
+      <div
+        p-key="r.0"
+        class="level-one"
+        partial="partials_level_one_c5f88f06"
+        partial_name="level_one"
+        partial_src="/_piko/partials/level_one"
+      >
+        <h2 partial="partials_level_one_c5f88f06" p-key="r.0:0">Level 1 Partial</h2>
+        <p partial="partials_level_one_c5f88f06" p-key="r.0:1">L1 Value: <span
+            partial="partials_level_one_c5f88f06"
+            p-key="r.0:1:1"
+            p-ref="l1Value"
+            data-pk-partial="partials_level_one_c5f88f06"
+            id="l1-value"
+          >TOGGLED</span></p>
+        <button
+          partial="partials_level_one_c5f88f06"
+          p-key="r.0:2"
+          p-ref="l1ToggleBtn"
+          data-pk-partial="partials_level_one_c5f88f06"
+          id="l1-toggle"
+          p-on:click="eyJmIjoibDFUb2dnbGUiLCJhIjpbXX0"
+          pk-ev-bound="true"
+        >L1 Toggled!</button>
+        <div
+          partial="partials_level_one_c5f88f06"
+          p-key="r.0:3"
+          p-ref="l2Container"
+          data-pk-partial="partials_level_one_c5f88f06"
+          id="l2-container"
+          class="l2-container"
+        >
+          <div
+            p-key="r.0"
+            class="level-two"
+            partial="partials_level_two_5bbe487f"
+            partial_name="level_two"
+            partial_src="/_piko/partials/level_two"
+          >
+            <h3 partial="partials_level_two_5bbe487f" p-key="r.0:0">Level 2 Partial</h3>
+            <p partial="partials_level_two_5bbe487f" p-key="r.0:1">L2 Status: <span
+                partial="partials_level_two_5bbe487f"
+                p-key="r.0:1:1"
+                p-ref="l2Status"
+                data-pk-partial="partials_level_two_5bbe487f"
+                id="l2-status"
+              >action 1x</span></p>
+            <button
+              partial="partials_level_two_5bbe487f"
+              p-key="r.0:2"
+              p-ref="l2ActionBtn"
+              data-pk-partial="partials_level_two_5bbe487f"
+              id="l2-action"
+              p-on:click="eyJmIjoibDJBY3Rpb24iLCJhIjpbXX0"
+              pk-ev-bound="true"
+            >L2 Action (1)</button>
+            <chaos-card
+              partial="partials_level_two_5bbe487f"
+              p-key="r.0:3"
+              p-ref="l2ChaosCard"
+              data-pk-partial="partials_level_two_5bbe487f"
+              id="l2-chaos-card"
+            >
+              <template shadowrootmode="open" shadowrootserializable>
+                <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+                <style>.chaos-card{border: 3px solid #8b5cf6;border-radius: 12px;margin: 1rem 0;overflow: hidden}.chaos-header{background: #ede9fe;padding: 0.75rem 1rem;border-bottom: 2px solid #c4b5fd;font-weight: bold;color: #5b21b6}.chaos-body{padding: 1rem;background: #faf5ff}.chaos-footer{background: #ede9fe;padding: 0.75rem 1rem;border-top: 2px solid #c4b5fd}</style>
+                <div class="chaos-card">
+                  <div class="chaos-header">
+                    <slot name="header"><span>Default Header</span></slot>
+                  </div>
+                  <div class="chaos-body">
+                    <slot></slot>
+                  </div>
+                  <div class="chaos-footer">
+                    <slot name="footer"></slot>
+                  </div>
+                </div>
+              </template>
+              <div
+                p-key="r.0"
+                class="level-three"
+                partial="partials_level_three_7202de12"
+                partial_name="level_three"
+                partial_src="/_piko/partials/level_three"
+              >
+                <h4 partial="partials_level_three_7202de12" p-key="r.0:0">Level 3 Partial</h4>
+                <p partial="partials_level_three_7202de12" p-key="r.0:1">L3 Counter: <span
+                    partial="partials_level_three_7202de12"
+                    p-key="r.0:1:1"
+                    p-ref="l3Counter"
+                    data-pk-partial="partials_level_three_7202de12"
+                    id="l3-counter"
+                    style="font-weight: bold;"
+                  >999</span></p>
+                <button
+                  partial="partials_level_three_7202de12"
+                  p-key="r.0:2"
+                  p-ref="l3IncrementBtn"
+                  data-pk-partial="partials_level_three_7202de12"
+                  id="l3-increment"
+                  p-on:click="eyJmIjoiaW5jcmVtZW50TDMiLCJhIjpbXX0"
+                  pk-ev-bound="true"
+                >Done!</button>
+              </div>
+              <div
+                p-key="r.1"
+                slot="header"
+                class="l3-header"
+                partial="partials_level_three_7202de12"
+                partial_name="level_three"
+                partial_src="/_piko/partials/level_three"
+              ><span
+                  partial="partials_level_three_7202de12"
+                  p-key="r.1:0"
+                  p-ref="l3HeaderStatus"
+                  data-pk-partial="partials_level_three_7202de12"
+                  id="l3-header-status"
+                >ALL UPDATED</span><button
+                  partial="partials_level_three_7202de12"
+                  p-key="r.1:1"
+                  p-ref="l3HeaderToggle"
+                  data-pk-partial="partials_level_three_7202de12"
+                  id="l3-header-toggle"
+                  p-on:click="eyJmIjoidG9nZ2xlTDNIZWFkZXIiLCJhIjpbXX0"
+                  pk-ev-bound="true"
+                >Toggle</button></div>
+              <div
+                p-key="r.2"
+                slot="footer"
+                class="l3-footer"
+                partial="partials_level_three_7202de12"
+                partial_name="level_three"
+                partial_src="/_piko/partials/level_three"
+              ><span
+                  partial="partials_level_three_7202de12"
+                  p-key="r.2:0"
+                  p-ref="l3FooterMessage"
+                  data-pk-partial="partials_level_three_7202de12"
+                  id="l3-footer-msg"
+                >Footer Updated!</span><button
+                  partial="partials_level_three_7202de12"
+                  p-key="r.2:1"
+                  p-ref="l3UpdateAll"
+                  data-pk-partial="partials_level_three_7202de12"
+                  id="l3-update-all"
+                  p-on:click="eyJmIjoidXBkYXRlQWxsTDNSZWZzIiwiYSI6W119"
+                  pk-ev-bound="true"
+                >Update All L3</button></div>
+            </chaos-card>
+            <button
+              partial="partials_level_two_5bbe487f"
+              p-key="r.0:4"
+              p-ref="l2LoadL3Btn"
+              data-pk-partial="partials_level_two_5bbe487f"
+              id="l2-load-l3"
+              p-on:click="eyJmIjoibG9hZEwzSW50b0NhcmQiLCJhIjpbXX0"
+              pk-ev-bound="true"
+            >L3 Loaded!</button>
+            <div
+              partial="partials_level_two_5bbe487f"
+              p-key="r.0:5"
+              p-ref="l2RemoteContainer"
+              data-pk-partial="partials_level_two_5bbe487f"
+              id="l2-remote-container"
+              class="remote-container"
+            >
+              <div
+                p-key="r.0"
+                class="remote-inject"
+                partial="partials_remote_inject_3de0ee51"
+                partial_name="remote_inject"
+                partial_src="/_piko/partials/remote_inject"
+              >
+                <h5 partial="partials_remote_inject_3de0ee51" p-key="r.0:0">Remote Injected Partial</h5>
+                <p partial="partials_remote_inject_3de0ee51" p-key="r.0:1">Remote Value: <span
+                    partial="partials_remote_inject_3de0ee51"
+                    p-key="r.0:1:1"
+                    p-ref="remoteValue"
+                    data-pk-partial="partials_remote_inject_3de0ee51"
+                    id="remote-value"
+                  >nested-action-1</span></p>
+                <button
+                  partial="partials_remote_inject_3de0ee51"
+                  p-key="r.0:2"
+                  p-ref="remoteActionBtn"
+                  data-pk-partial="partials_remote_inject_3de0ee51"
+                  id="remote-action"
+                  p-on:click="eyJmIjoicmVtb3RlQWN0aW9uIiwiYSI6W119"
+                  pk-ev-bound="true"
+                >Remote Action</button>
+                <chaos-card partial="partials_remote_inject_3de0ee51" p-key="r.0:3" id="nested-chaos">
+                  <template shadowrootmode="open" shadowrootserializable>
+                    <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+                    <style>.chaos-card{border: 3px solid #8b5cf6;border-radius: 12px;margin: 1rem 0;overflow: hidden}.chaos-header{background: #ede9fe;padding: 0.75rem 1rem;border-bottom: 2px solid #c4b5fd;font-weight: bold;color: #5b21b6}.chaos-body{padding: 1rem;background: #faf5ff}.chaos-footer{background: #ede9fe;padding: 0.75rem 1rem;border-top: 2px solid #c4b5fd}</style>
+                    <div class="chaos-card">
+                      <div class="chaos-header">
+                        <slot name="header"><span>Default Header</span></slot>
+                      </div>
+                      <div class="chaos-body">
+                        <slot></slot>
+                      </div>
+                      <div class="chaos-footer">
+                        <slot name="footer"></slot>
+                      </div>
+                    </div>
+                  </template>
+                  <div partial="partials_remote_inject_3de0ee51" p-key="r.0:3:0">
+                    <p partial="partials_remote_inject_3de0ee51" p-key="r.0:3:0:0">Nested Counter: <span
+                        partial="partials_remote_inject_3de0ee51"
+                        p-key="r.0:3:0:0:1"
+                        p-ref="nestedCounter"
+                        data-pk-partial="partials_remote_inject_3de0ee51"
+                        id="nested-counter"
+                      >1</span></p>
+                  </div>
+                  <div partial="partials_remote_inject_3de0ee51" p-key="r.0:3:1" slot="header"><span
+                      partial="partials_remote_inject_3de0ee51"
+                      p-key="r.0:3:1:0"
+                      p-ref="nestedHeader"
+                      data-pk-partial="partials_remote_inject_3de0ee51"
+                      id="nested-header"
+                    >Nested: 1</span></div>
+                  <div partial="partials_remote_inject_3de0ee51" p-key="r.0:3:2" slot="footer"><button
+                      partial="partials_remote_inject_3de0ee51"
+                      p-key="r.0:3:2:0"
+                      p-ref="nestedFooterBtn"
+                      data-pk-partial="partials_remote_inject_3de0ee51"
+                      id="nested-footer-btn"
+                      p-on:click="eyJmIjoibmVzdGVkRm9vdGVyQWN0aW9uIiwiYSI6W119"
+                      pk-ev-bound="true"
+                    >Clicked 1x</button></div>
+                </chaos-card>
+              </div>
+            </div>
+            <button
+              partial="partials_level_two_5bbe487f"
+              p-key="r.0:6"
+              p-ref="l2LoadRemote"
+              data-pk-partial="partials_level_two_5bbe487f"
+              id="l2-load-remote"
+              p-on:click="eyJmIjoibG9hZFJlbW90ZUludG9MMiIsImEiOltdfQ"
+              pk-ev-bound="true"
+            >Loaded!</button>
+          </div>
+        </div>
+        <button
+          partial="partials_level_one_c5f88f06"
+          p-key="r.0:4"
+          p-ref="l1LoadL2Btn"
+          data-pk-partial="partials_level_one_c5f88f06"
+          id="l1-load-l2"
+          p-on:click="eyJmIjoibG9hZEwyIiwiYSI6W119"
+          pk-ev-bound="true"
+        >L2 Loaded!</button>
+        <div
+          partial="partials_level_one_c5f88f06"
+          p-key="r.0:5"
+          p-ref="l1RemoteContainer"
+          data-pk-partial="partials_level_one_c5f88f06"
+          id="l1-remote-container"
+          class="l1-remote"
+        >
+          <p partial="partials_level_one_c5f88f06" p-key="r.0:5:0" class="placeholder">L1 Remote area empty</p>
+        </div>
+        <button
+          partial="partials_level_one_c5f88f06"
+          p-key="r.0:6"
+          p-ref="l1LoadRemoteBtn"
+          data-pk-partial="partials_level_one_c5f88f06"
+          id="l1-load-remote"
+          p-on:click="eyJmIjoibG9hZFJlbW90ZUF0TDEiLCJhIjpbXX0"
+          pk-ev-bound="true"
+        >Load Remote at L1</button>
+      </div>
+    </div>
+    <chaos-card partial="pages_index_032f49b1" p-key="r.0:4" id="page-chaos-card">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.chaos-card{border: 3px solid #8b5cf6;border-radius: 12px;margin: 1rem 0;overflow: hidden}.chaos-header{background: #ede9fe;padding: 0.75rem 1rem;border-bottom: 2px solid #c4b5fd;font-weight: bold;color: #5b21b6}.chaos-body{padding: 1rem;background: #faf5ff}.chaos-footer{background: #ede9fe;padding: 0.75rem 1rem;border-top: 2px solid #c4b5fd}</style>
+        <div class="chaos-card">
+          <div class="chaos-header">
+            <slot name="header"><span>Default Header</span></slot>
+          </div>
+          <div class="chaos-body">
+            <slot></slot>
+          </div>
+          <div class="chaos-footer">
+            <slot name="footer"></slot>
+          </div>
+        </div>
+      </template>
+      <div partial="pages_index_032f49b1" p-key="r.0:4:0">
+        <p partial="pages_index_032f49b1" p-key="r.0:4:0:0">Page Card Body: <span
+            partial="pages_index_032f49b1"
+            p-key="r.0:4:0:0:1"
+            p-ref="pageCardBody"
+            data-pk-partial="pages_index_032f49b1"
+            id="page-card-body"
+          >body-1</span></p>
+      </div>
+      <div partial="pages_index_032f49b1" p-key="r.0:4:1" slot="header"><span
+          partial="pages_index_032f49b1"
+          p-key="r.0:4:1:0"
+          p-ref="pageCardHeader"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-card-header"
+        >Header 1</span><button
+          partial="pages_index_032f49b1"
+          p-key="r.0:4:1:1"
+          p-ref="pageHeaderBtn"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-header-btn"
+          p-on:click="eyJmIjoidXBkYXRlUGFnZUNhcmQiLCJhIjpbXX0"
+          pk-ev-bound="true"
+        >Update Card (1)</button></div>
+      <div partial="pages_index_032f49b1" p-key="r.0:4:2" slot="footer"><span
+          partial="pages_index_032f49b1"
+          p-key="r.0:4:2:0"
+          p-ref="pageCardFooter"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-card-footer"
+        >Footer 1</span></div>
+    </chaos-card>
+  </div>
+</div>

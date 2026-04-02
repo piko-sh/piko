@@ -1,0 +1,32 @@
+{
+  "description": "Structs with embedded fields (composition)",
+  "moduleName": "testcase_lite_04",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "Employee has embedded Person field",
+      "select": "packages.testcase_lite_04.named_types.Employee.fields.0.name",
+      "expect": "Person"
+    },
+    {
+      "description": "Embedded Person field is marked as embedded",
+      "select": "packages.testcase_lite_04.named_types.Employee.fields.0.is_embedded",
+      "expect": true
+    },
+    {
+      "description": "Employee has Title field",
+      "select": "packages.testcase_lite_04.named_types.Employee.fields.1.name",
+      "expect": "Title"
+    },
+    {
+      "description": "Manager has embedded pointer to Employee",
+      "select": "packages.testcase_lite_04.named_types.Manager.fields.0.name",
+      "expect": "Employee"
+    },
+    {
+      "description": "Manager embedded field is marked as embedded",
+      "select": "packages.testcase_lite_04.named_types.Manager.fields.0.is_embedded",
+      "expect": true
+    }
+  ]
+}

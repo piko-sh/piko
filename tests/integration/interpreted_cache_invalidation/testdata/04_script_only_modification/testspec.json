@@ -1,0 +1,38 @@
+{
+  "description": "Script-only modification triggers full rebuild",
+  "requestURL": "/main",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial build with base script and template",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectTier2Miss": true,
+      "expectFullBuild": true,
+      "expectFastPath": false
+    },
+    {
+      "stage": 1,
+      "description": "Script block changed (new field added), template unchanged - should trigger full rebuild",
+      "expectedGolden": "stage_1.html",
+      "expectTier1Miss": true,
+      "expectTier2Miss": true,
+      "expectFullBuild": true,
+      "expectFastPath": false,
+      "expectChange": false,
+      "delayBeforeRenderMs": 10
+    },
+    {
+      "stage": 2,
+      "description": "Script block changed again (field renamed), template unchanged - should trigger full rebuild again",
+      "expectedGolden": "stage_2.html",
+      "expectTier1Miss": true,
+      "expectTier2Miss": true,
+      "expectFullBuild": true,
+      "expectFastPath": false,
+      "expectChange": false,
+      "delayBeforeRenderMs": 10
+    }
+  ]
+}

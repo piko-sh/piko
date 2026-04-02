@@ -1,0 +1,187 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Select"
+            server.current-page="selection/select">
+
+            <p class="demo-description">Select menus display a list of choices on a temporary surface. They allow users to pick a value from a predefined set.</p>
+
+            <div class="demo-grid">
+                <!-- Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-select variant="filled" label="Colour">
+                            <m3e-menu-item value="red">Red</m3e-menu-item>
+                            <m3e-menu-item value="green">Green</m3e-menu-item>
+                            <m3e-menu-item value="blue">Blue</m3e-menu-item>
+                        </m3e-select>
+                        <m3e-select variant="filled" label="Colour" disabled>
+                            <m3e-menu-item value="red">Red</m3e-menu-item>
+                            <m3e-menu-item value="green">Green</m3e-menu-item>
+                            <m3e-menu-item value="blue">Blue</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-select variant="filled" label="Colour"&gt;
+  &lt;m3e-menu-item value="red"&gt;Red&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="green"&gt;Green&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="blue"&gt;Blue&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;
+&lt;m3e-select variant="filled" label="Colour" disabled&gt;
+  &lt;m3e-menu-item value="red"&gt;Red&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="green"&gt;Green&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="blue"&gt;Blue&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;</code></pre>
+                </section>
+
+                <!-- Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-select variant="outlined" label="Size">
+                            <m3e-menu-item value="small">Small</m3e-menu-item>
+                            <m3e-menu-item value="medium">Medium</m3e-menu-item>
+                            <m3e-menu-item value="large">Large</m3e-menu-item>
+                        </m3e-select>
+                        <m3e-select variant="outlined" label="Size" disabled>
+                            <m3e-menu-item value="small">Small</m3e-menu-item>
+                            <m3e-menu-item value="medium">Medium</m3e-menu-item>
+                            <m3e-menu-item value="large">Large</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-select variant="outlined" label="Size"&gt;
+  &lt;m3e-menu-item value="small"&gt;Small&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="medium"&gt;Medium&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="large"&gt;Large&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;
+&lt;m3e-select variant="outlined" label="Size" disabled&gt;
+  &lt;m3e-menu-item value="small"&gt;Small&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="medium"&gt;Medium&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="large"&gt;Large&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;</code></pre>
+                </section>
+
+                <!-- Filled - Pre-selected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled - Pre-selected</h3>
+                    <div class="demo-preview">
+                        <m3e-select variant="filled" label="Colour" value="green" displayText="Green">
+                            <m3e-menu-item value="red">Red</m3e-menu-item>
+                            <m3e-menu-item value="green" selected>Green</m3e-menu-item>
+                            <m3e-menu-item value="blue">Blue</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-select variant="filled" label="Colour" value="green" displayText="Green"&gt;
+  &lt;m3e-menu-item value="red"&gt;Red&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="green" selected&gt;Green&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="blue"&gt;Blue&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;</code></pre>
+                </section>
+
+                <!-- Outlined - Pre-selected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined - Pre-selected</h3>
+                    <div class="demo-preview">
+                        <m3e-select variant="outlined" label="Size" value="medium" displayText="Medium">
+                            <m3e-menu-item value="small">Small</m3e-menu-item>
+                            <m3e-menu-item value="medium" selected>Medium</m3e-menu-item>
+                            <m3e-menu-item value="large">Large</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-select variant="outlined" label="Size" value="medium" displayText="Medium"&gt;
+  &lt;m3e-menu-item value="small"&gt;Small&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="medium" selected&gt;Medium&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="large"&gt;Large&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;</code></pre>
+                </section>
+
+                <!-- Error State -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Error State</h3>
+                    <div class="demo-preview">
+                        <m3e-select variant="filled" label="Colour" error errorText="Please select a colour">
+                            <m3e-menu-item value="red">Red</m3e-menu-item>
+                            <m3e-menu-item value="green">Green</m3e-menu-item>
+                            <m3e-menu-item value="blue">Blue</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-select variant="filled" label="Colour" error errorText="Please select a colour"&gt;
+  &lt;m3e-menu-item value="red"&gt;Red&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="green"&gt;Green&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="blue"&gt;Blue&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;</code></pre>
+                </section>
+
+                <!-- Supporting Text -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Supporting Text</h3>
+                    <div class="demo-preview">
+                        <m3e-select variant="outlined" label="Size" supportingText="Choose your preferred size">
+                            <m3e-menu-item value="small">Small</m3e-menu-item>
+                            <m3e-menu-item value="medium">Medium</m3e-menu-item>
+                            <m3e-menu-item value="large">Large</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-select variant="outlined" label="Size" supportingText="Choose your preferred size"&gt;
+  &lt;m3e-menu-item value="small"&gt;Small&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="medium"&gt;Medium&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="large"&gt;Large&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;</code></pre>
+                </section>
+
+                <!-- Required -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Required</h3>
+                    <div class="demo-preview">
+                        <m3e-select variant="filled" label="Category" required>
+                            <m3e-menu-item value="electronics">Electronics</m3e-menu-item>
+                            <m3e-menu-item value="clothing">Clothing</m3e-menu-item>
+                            <m3e-menu-item value="books">Books</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-select variant="filled" label="Category" required&gt;
+  &lt;m3e-menu-item value="electronics"&gt;Electronics&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="clothing"&gt;Clothing&lt;/m3e-menu-item&gt;
+  &lt;m3e-menu-item value="books"&gt;Books&lt;/m3e-menu-item&gt;
+&lt;/m3e-select&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Select - M3E Components",
+    }, nil
+}
+</script>

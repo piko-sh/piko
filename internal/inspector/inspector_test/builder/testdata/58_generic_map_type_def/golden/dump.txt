@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_58_generic_map_type_def ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 58_generic_map_type_def/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type MyMap
+    - Defined In:      58_generic_map_type_def/src/main.go
+    - TypeString:      main.MyMap[K, V]
+    - Underlying:      map[K]V
+    - Stringability:   0
+    - Type Params:     [K, V]
+    - Methods:
+      - func (T) Get             func(K) (V, bool)
+
+[Package-Level Functions]
+  (none)

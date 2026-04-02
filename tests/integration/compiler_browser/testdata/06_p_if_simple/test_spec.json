@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "p-if-simple \u003e\u003e\u003e p",
+    "expected": "0"
+  },
+  {
+    "action": "click",
+    "selector": "p-if-simple \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-if-simple \u003e\u003e\u003e p",
+    "expected": "Visible"
+  },
+  {
+    "action": "click",
+    "selector": "p-if-simple \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-if-simple \u003e\u003e\u003e p",
+    "expected": "0"
+  }
+]

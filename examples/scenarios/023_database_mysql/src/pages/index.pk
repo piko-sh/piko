@@ -1,0 +1,252 @@
+<!--
+  023: MySQL Blog - Database-Backed Blog with Posts, Authors, and Comments
+
+  This page demonstrates how to build a database-backed blog using Piko's
+  querier system with MySQL. The post list is rendered as a public partial
+  that can be reloaded independently after mutations, avoiding a full page
+  refresh.
+
+  The create-post form lives in the page. After creating or publishing a
+  post, the page calls piko.partials.reload("post-list") to re-render
+  just the post listing.
+-->
+
+<template>
+  <div id="app">
+    <header class="site-header">
+      <h1>Blog</h1>
+      <p class="site-tagline">A demo blog built with Piko and MySQL</p>
+    </header>
+
+    <!--
+      The post list is a public partial. After create or publish actions
+      succeed, we reload it with piko.partials.reload("post-list") so
+      only the listing section re-renders from the server.
+    -->
+    <piko:partial is="post_list" />
+
+    <section class="create-section">
+      <h2>Write a new post</h2>
+
+      <form id="create-form" class="create-form" p-on:submit.prevent="handleCreatePost($event, $form)">
+        <div class="form-group">
+          <label for="author_id">Author</label>
+          <select id="author_id" name="author_id" required>
+            <option value="">Select an author...</option>
+            <option
+              p-for="(i, author) in state.Authors"
+              p-key="author.ID"
+              :value="author.ID"
+              p-text="author.Name"
+            ></option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder="Give your post a title..."
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="body">Body</label>
+          <textarea
+            id="body"
+            name="body"
+            rows="6"
+            placeholder="Write your post here..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Publish Post</button>
+      </form>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/db"
+
+    post_list "testmodule/partials/post-list.pk"
+
+    "testmodule/db/generated"
+)
+
+// AuthorOption holds an author's ID and name for the dropdown.
+type AuthorOption struct {
+    ID   int32  `json:"id"`
+    Name string `json:"name"`
+}
+
+// Response holds the page-level state. The post list data is fetched by the
+// partial's own Render function, so the page only provides the author list
+// for the create form.
+type Response struct {
+    Authors []AuthorOption `json:"authors"`
+}
+
+// Render fetches the author list for the create form. The post listing is
+// handled by the post_list partial.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    conn, err := db.GetDatabaseConnection("blog")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(conn)
+
+    // Fetch authors for the create form.
+    author_rows, err := queries.ListAuthors(r.Context())
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    author_list := make([]AuthorOption, len(author_rows))
+    for i, row := range author_rows {
+        author_list[i] = AuthorOption{
+            ID:   row.ID,
+            Name: row.Name,
+        }
+    }
+
+    return Response{
+        Authors: author_list,
+    }, piko.Metadata{
+        Title: "Blog",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function handleCreatePost(_event: SubmitEvent, form: FormDataHandle): Promise<void> {
+    try {
+        await action.posts.Create(form).call();
+        piko.partials.reload("post-list");
+    } catch (e: any) {
+        console.error('Failed to create post:', e);
+    }
+}
+</script>
+
+<style>
+  #app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    font-family: "Georgia", "Times New Roman", serif;
+    color: #1a1a1a;
+  }
+
+  .site-header {
+    text-align: center;
+    padding: 2.5rem 0 2rem;
+    border-bottom: 2px solid #111;
+    margin-bottom: 2.5rem;
+  }
+
+  .site-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: #111;
+  }
+
+  .site-tagline {
+    margin: 0.5rem 0 0;
+    color: #6b7280;
+    font-size: 1rem;
+    font-style: italic;
+  }
+
+  .create-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .create-section h2 {
+    font-size: 1.375rem;
+    font-weight: 600;
+    margin: 0 0 1.25rem;
+    color: #111;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .create-form {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+    color: #374151;
+    font-size: 0.875rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: white;
+    transition: border-color 0.15s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  .btn {
+    padding: 0.625rem 1.5rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: system-ui, -apple-system, sans-serif;
+    transition: background-color 0.15s;
+  }
+
+  .btn-primary {
+    background-color: #111;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #333;
+  }
+</style>

@@ -1,0 +1,16 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button id="btn-parent" [Events: p-on:click.="parentHandler()" {P: parentHandler()}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Parent Action"
+  </button>
+  <div class="child-component" [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk PARTIAL InvKey: child_ca2dc097 Package: partials_child_d247007e InvPackage: main_aaf9a2e0]>
+    <button id="btn-child" [Events: p-on:click.="childHandler()" {P: childHandler()}] [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk]>
+      "Child Action"
+    </button>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

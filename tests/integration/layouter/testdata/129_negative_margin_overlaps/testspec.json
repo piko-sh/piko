@@ -1,0 +1,7 @@
+{
+    "description": "Verifies negative margin-top overlap, negative margin-left shift, positive+negative margin collapse, and both-negative margin collapse.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

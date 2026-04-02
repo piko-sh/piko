@@ -1,0 +1,15 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">Modal Toggle Test</h1>
+    <modal-demo partial="pages_index_032f49b1" p-key="r.0:1" message="You typed: Hello World" input-value="Hello World">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.modal-demo{padding: 20px}.overlay{position: fixed;top: 0;left: 0;right: 0;bottom: 0;background: rgba(0, 0, 0, 0.5);display: flex;align-items: center;justify-content: center;z-index: 1000}.modal-content{background: white;padding: 20px;border-radius: 8px;min-width: 300px}.modal-actions{margin-top: 15px;display: flex;gap: 10px}button{padding: 8px 16px;cursor: pointer}</style>
+        <div class="modal-demo">
+          <button id="open-btn">Open Modal</button>
+          <p id="status">Status: <span>Modal Closed</span></p>
+        </div>
+      </template>
+    </modal-demo>
+  </div>
+</div>

@@ -1,0 +1,31 @@
+Helix
+
+How Was Your Experience?
+
+We'd love to hear about your recent purchase. Your feedback helps us improve.
+
+★
+
+★
+
+★
+
+★
+
+★
+
+ 1 - Poor (https://example.com/survey?rating=1)
+
+ 2 - Fair (https://example.com/survey?rating=2)
+
+ 3 - Good (https://example.com/survey?rating=3)
+
+ 4 - Great (https://example.com/survey?rating=4)
+
+ 5 - Excellent (https://example.com/survey?rating=5)
+
+Or reply to this email with your feedback.
+
+You received this email because you recently made a purchase with Helix Support.
+
+© 2026 Helix Support. All rights reserved.

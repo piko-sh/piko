@@ -1,0 +1,46 @@
+/*
+--- BEGIN AST DUMP ---
+
+<p class="promoted-get" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.WrappedMember.Get().FullName() }}
+  </RichText>
+</p>
+<p class="promoted-hasitem" [p-if: props.Data.WrappedMember.HasItem()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Has item"
+</p>
+<p class="promoted-getid" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.WrappedMember.GetID() }}
+  </RichText>
+</p>
+<p class="own-method" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.WrappedMember.GetLabel() }}
+  </RichText>
+</p>
+<p class="promoted-field" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.WrappedMember.Get().FirstName.String() }}
+  </RichText>
+</p>
+<p class="explicit-embedded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.WrappedMember.Ref.Get().LastName.String() }}
+  </RichText>
+</p>
+<p class="named-field" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.NamedMember.TheRef.Get().FullName() }}
+  </RichText>
+</p>
+<p class="combined" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.WrappedMember.GetLabel() }}
+    ": "
+    {{ props.Data.WrappedMember.Get().FullName() }}
+  </RichText>
+</p>
+
+--- END AST DUMP ---
+*/

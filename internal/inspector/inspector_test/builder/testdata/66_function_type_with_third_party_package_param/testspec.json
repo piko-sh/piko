@@ -1,0 +1,45 @@
+{
+  "description": "Tests serialisation of complex function types that use parameters from the standard library (e.g., syscall, context).",
+  "moduleName": "testcase_66_function_type_with_third_party_package_param",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_66_function_type_with_third_party_package_param"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Control' field's TypeString should correctly represent the function signature with the external 'syscall.RawConn' type.",
+      "select": "packages.testcase_66_function_type_with_third_party_package_param.named_types.Dialer.fields.0.type_string",
+      "expect": "func(network string, address string, c syscall.RawConn) error"
+    },
+    {
+      "description": "The 'Control' field should be a composite type of 'Signature'.",
+      "select": "packages.testcase_66_function_type_with_third_party_package_param.named_types.Dialer.fields.0.composite_type",
+      "expect": 6
+    },
+    {
+      "description": "The composite part for the 'syscall.RawConn' parameter should have its PackagePath correctly set to 'syscall'.",
+      "select": "packages.testcase_66_function_type_with_third_party_package_param.named_types.Dialer.fields.0.composite_parts.2.pkg_path",
+      "expect": "syscall"
+    },
+    {
+      "description": "The 'Handler' field's TypeString should correctly represent the named function type.",
+      "select": "packages.testcase_66_function_type_with_third_party_package_param.named_types.Dialer.fields.2.type_string",
+      "expect": "main.MethodHandler"
+    },
+    {
+      "description": "The underlying type for 'MethodHandler' should be the full function signature.",
+      "select": "packages.testcase_66_function_type_with_third_party_package_param.named_types.MethodHandler.underlying_type_string",
+      "expect": "func(srv any, ctx context.Context, dec func(any) error, c syscall.RawConn) (any, error)"
+    },
+    {
+      "description": "The 'Test' function should have a return type of 'syscall.RawConn'.",
+      "select": "packages.testcase_66_function_type_with_third_party_package_param.funcs.Test.signature.results.0",
+      "expect": "syscall.RawConn"
+    },
+    {
+      "description": "The 'Test2' function should return a function type that includes 'syscall.RawConn'.",
+      "select": "packages.testcase_66_function_type_with_third_party_package_param.funcs.Test2.signature.results.0",
+      "expect": "func(c syscall.RawConn)"
+    }
+  ]
+}

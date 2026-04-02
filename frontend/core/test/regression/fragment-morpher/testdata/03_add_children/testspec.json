@@ -1,0 +1,26 @@
+{
+    "description": "Adding new children should work correctly",
+    "assertions": [
+        {
+            "selector": "#list li",
+            "count": 4,
+            "description": "Should have 4 list items after morph"
+        },
+        {
+            "selector": "#list li:nth-child(3)",
+            "textContent": "Item C",
+            "description": "Third item should be Item C"
+        },
+        {
+            "selector": "#list li:nth-child(4)",
+            "textContent": "Item D",
+            "description": "Fourth item should be Item D"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "#list",
+            "description": "List container should be preserved"
+        }
+    ]
+}

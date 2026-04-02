@@ -1,0 +1,33 @@
+new Promise((resolve) => {
+    const timeout = {{.Timeout}};
+    const start = Date.now();
+
+    const check = () => {
+        if (Date.now() - start > timeout) {
+            resolve(false);
+            return;
+        }
+
+        const images = document.querySelectorAll('img');
+        let pending = 0;
+
+        for (const img of images) {
+            if (!img.src || img.src.startsWith('data:')) continue;
+            if (img.naturalWidth > 0 && img.naturalWidth <= 40) continue;
+
+            const rect = img.getBoundingClientRect();
+            const inViewport = rect.bottom > -500 && rect.top < window.innerHeight + 500;
+            if (inViewport && !img.complete) {
+                pending++;
+            }
+        }
+
+        if (pending === 0) {
+            resolve(true);
+        } else {
+            setTimeout(check, 100);
+        }
+    };
+
+    check();
+})

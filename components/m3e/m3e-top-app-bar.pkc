@@ -1,0 +1,151 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-top-app-bar">
+    <header class="top-app-bar"
+            p-class="{
+                'center-aligned': state.variant == 'center-aligned',
+                'small': state.variant == 'small',
+                'medium': state.variant == 'medium',
+                'large': state.variant == 'large'
+            }">
+        <div class="row">
+            <div class="leading">
+                <slot name="leading"></slot>
+            </div>
+            <h1 class="headline"
+                p-if="state.variant == 'center-aligned' || state.variant == 'small'"
+                p-text="state.headline"></h1>
+            <div class="trailing">
+                <slot name="trailing"></slot>
+            </div>
+        </div>
+        <h1 class="headline-large"
+            p-if="state.variant == 'medium' || state.variant == 'large'"
+            p-text="state.headline"></h1>
+    </header>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'small' as string,
+        headline: '' as string,
+    };
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_surface: var(--m3e-surface, #fffbfe);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .top-app-bar {
+        background: var(--_surface);
+        color: var(--_on-surface);
+
+        &.center-aligned .headline {
+            text-align: center;
+        }
+
+        &.medium .headline-large {
+            font-size: 1.5rem;
+            line-height: 1.333;
+            padding-bottom: 24px;
+        }
+
+        &.large .headline-large {
+            font-size: 2rem;
+            line-height: 1.25;
+            padding-bottom: 28px;
+        }
+    }
+
+    .row {
+        display: flex;
+        align-items: center;
+        height: 64px;
+        padding: 0 4px;
+    }
+
+    .leading {
+        display: flex;
+        align-items: center;
+
+        ::slotted(*) {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            color: var(--_on-surface);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        ::slotted(*:hover) {
+            background: rgba(28, 27, 31, 0.08);
+        }
+    }
+
+    .headline {
+        flex: 1;
+        margin: 0;
+        padding: 0 16px;
+        font-size: 1.375rem;
+        font-weight: 400;
+        line-height: 1.27;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .trailing {
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+
+        ::slotted(*) {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            color: var(--_on-surface-variant);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        ::slotted(*:hover) {
+            background: rgba(73, 69, 79, 0.08);
+        }
+    }
+
+    .headline-large {
+        margin: 0;
+        padding: 0 16px 28px;
+        font-weight: 400;
+        color: var(--_on-surface);
+    }
+</style>

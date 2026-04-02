@@ -1,0 +1,27 @@
+[
+  {
+    "action": "checkText",
+    "selector": "event-access-in-handler >>> #value",
+    "expected": "Value:"
+  },
+  {
+    "action": "checkText",
+    "selector": "event-access-in-handler >>> #type",
+    "expected": "Event type: none"
+  },
+  {
+    "action": "fill",
+    "selector": "event-access-in-handler >>> #input",
+    "value": "test"
+  },
+  {
+    "action": "checkText",
+    "selector": "event-access-in-handler >>> #value",
+    "expected": "Value: test"
+  },
+  {
+    "action": "checkText",
+    "selector": "event-access-in-handler >>> #type",
+    "expected": "Event type: input"
+  }
+]

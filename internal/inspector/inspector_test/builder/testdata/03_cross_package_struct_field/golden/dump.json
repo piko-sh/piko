@@ -1,0 +1,91 @@
+{
+  "packages": {
+    "testcase_03_cross_package_struct_field": {
+      "file_imports": {
+        "03_cross_package_struct_field/src/main.go": {
+          "models": "testcase_03_cross_package_struct_field/models"
+        }
+      },
+      "named_types": {
+        "Request": {
+          "name": "Request",
+          "package_path": "testcase_03_cross_package_struct_field",
+          "defined_in_file_path": "03_cross_package_struct_field/src/main.go",
+          "type_string": "main.Request",
+          "underlying_type_string": "struct{UserData models.User}",
+          "fields": [
+            {
+              "definition_file_path": "03_cross_package_struct_field/src/main.go",
+              "declaring_pkg_path": "testcase_03_cross_package_struct_field",
+              "pkg_path": "testcase_03_cross_package_struct_field/models",
+              "underlying_type_string": "struct{ID int}",
+              "declaring_type_name": "Request",
+              "name": "UserData",
+              "type_string": "models.User",
+              "raw_tag": "",
+              "definition_line": 25,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_03_cross_package_struct_field",
+      "name": "main"
+    },
+    "testcase_03_cross_package_struct_field/models": {
+      "file_imports": {
+        "03_cross_package_struct_field/src/models/user.go": {}
+      },
+      "named_types": {
+        "User": {
+          "name": "User",
+          "package_path": "testcase_03_cross_package_struct_field/models",
+          "defined_in_file_path": "03_cross_package_struct_field/src/models/user.go",
+          "type_string": "models.User",
+          "underlying_type_string": "struct{ID int}",
+          "fields": [
+            {
+              "definition_file_path": "03_cross_package_struct_field/src/models/user.go",
+              "declaring_pkg_path": "testcase_03_cross_package_struct_field/models",
+              "pkg_path": "",
+              "underlying_type_string": "int",
+              "declaring_type_name": "User",
+              "name": "ID",
+              "type_string": "int",
+              "raw_tag": "",
+              "definition_line": 23,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_03_cross_package_struct_field/models",
+      "name": "models"
+    }
+  },
+  "file_to_package": {
+    "03_cross_package_struct_field/src/main.go": "testcase_03_cross_package_struct_field",
+    "03_cross_package_struct_field/src/models/user.go": "testcase_03_cross_package_struct_field/models"
+  }
+}

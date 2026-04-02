@@ -1,0 +1,8 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="mt-4" id="card1" [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_title_same_title_d13b7192 Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0] />
+<div id="card2" [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_title_same_title_d13b7192 Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0] />
+
+--- END AST DUMP ---
+*/

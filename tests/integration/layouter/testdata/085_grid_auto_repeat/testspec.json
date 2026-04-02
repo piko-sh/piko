@@ -1,0 +1,7 @@
+{
+    "description": "Verifies repeat(auto-fill) and repeat(auto-fit) on grid-template-columns, including empty track collapsing for auto-fit.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

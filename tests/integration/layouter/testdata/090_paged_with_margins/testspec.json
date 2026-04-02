@@ -1,0 +1,14 @@
+{
+    "description": "Verifies page margins reduce the content area and positions are page-relative.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 400,
+    "pageMarginPx": 20,
+    "expectedPositions": {
+        "block-a": {"pageIndex": 0, "x": 0, "y": 0, "width": 400, "height": 150},
+        "block-b": {"pageIndex": 0, "x": 0, "y": 150, "width": 400, "height": 150}
+    }
+}

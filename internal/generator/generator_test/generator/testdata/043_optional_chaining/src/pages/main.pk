@@ -1,0 +1,70 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <p>User street: {{ state.User?.Address?.Street }}</p>
+    <p>Guest street: {{ state.Guest?.Address?.Street }}</p>
+    <p :data-street="state.User?.Address?.Street">User Attr</p>
+    <p :data-street="state.Guest?.Address?.Street">Guest Attr</p>
+
+    <hr />
+
+    <p>First Tag (User): {{ state.User?.Tags?.[0] }}</p>
+    <p>First Tag (Guest): {{ state.Guest?.Tags?.[0] }}</p>
+    <p>Out of Bounds Tag: {{ state.User?.Tags?.[99] }}</p>
+
+    <hr />
+
+    <p>First Order Item Name (User): {{ state.User?.Orders?.[0]?.ItemName }}</p>
+    <p>First Order Item Name (Guest): {{ state.Guest?.Orders?.[0]?.ItemName }}</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+  import "piko.sh/piko"
+
+  type Address struct { Street string }
+
+  type Order struct { ItemName string }
+
+  type User struct {
+    Address *Address
+    Tags    []string
+    Orders  []*Order
+  }
+
+  type Response struct {
+    User  *User
+    Guest *User
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      User: &User{
+        Address: &Address{Street: "123 Main St"},
+        Tags:    []string{"admin", "active"},
+        Orders:  []*Order{{ItemName: "Laptop"}, {ItemName: "Mouse"}},
+      },
+      Guest: nil,
+    }, piko.Metadata{}, nil
+  }
+</script>

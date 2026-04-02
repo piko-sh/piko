@@ -1,0 +1,23 @@
+{
+  "isErrorCase": false,
+  "pikoImportCount": 0,
+  "asserts": {
+    "hasTemplate": true,
+    "hasScript": true,
+    "hasStyle": false,
+    "hasI18n": false
+  },
+  "script": {
+    "goPackageName": "piko_default",
+    "hasMiddleware": false,
+    "middlewaresFuncName": "",
+    "hasCachePolicy": false,
+    "cachePolicyFuncName": "",
+    "goImportCount": 0,
+    "expectedGoImportsContain": [],
+    "asserts": {
+      "hasPropsTypeExpr": false,
+      "hasRenderReturnTypeExpr": false
+    }
+  }
+}

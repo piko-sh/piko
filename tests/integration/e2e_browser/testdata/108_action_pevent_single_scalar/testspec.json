@@ -1,0 +1,33 @@
+{
+  "description": "Tests that a single scalar argument in p-event action calls is correctly passed to the server action",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#target[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#trigger-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result",
+      "expected": "hello-world"
+    }
+  ]
+}

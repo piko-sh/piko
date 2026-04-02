@@ -1,0 +1,42 @@
+<template>
+  <div id="app">
+    <h1>Todo App</h1>
+    <p>An interactive todo list built with PKC.</p>
+    <pp-todo-list></pp-todo-list>
+  </div>
+</template>
+
+<!-- Hosts the pp-todo-list PKC component. The component handles all
+     state and interaction in the browser via Shadow DOM.
+     See https://piko.sh/docs/guide/client-components -->
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Todo App - Piko Example",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    text-align: center;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: #6b7280;
+    margin-bottom: 2rem;
+  }
+</style>

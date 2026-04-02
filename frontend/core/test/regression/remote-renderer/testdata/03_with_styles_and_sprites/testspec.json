@@ -1,0 +1,36 @@
+{
+    "description": "Response with styles and sprites should be processed correctly",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/styled-partial",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#content"
+    },
+    "assertions": [
+        {
+            "selector": "#content .styled-component",
+            "exists": true,
+            "description": "Styled component should exist"
+        },
+        {
+            "selector": "#content .styled-component",
+            "textContent": "Styled content",
+            "description": "Content should be correct"
+        }
+    ],
+    "sideEffects": {
+        "stylesAdded": [
+            { "contains": ".styled-component" }
+        ],
+        "spritesMerged": [
+            { "symbolId": "icon-test" }
+        ]
+    }
+}

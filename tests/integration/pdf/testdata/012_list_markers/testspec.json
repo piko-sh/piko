@@ -1,0 +1,5 @@
+{
+    "description": "Tests list markers (disc, circle, square for unordered; decimal for ordered).",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

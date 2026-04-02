@@ -1,0 +1,6 @@
+{
+  "title": "Fluid Mobile Image",
+  "description": "Image with fluid-on-mobile through full pipeline",
+  "metadata": {"title": "Fluid Image Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

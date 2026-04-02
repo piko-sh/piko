@@ -1,0 +1,11 @@
+<template>
+  <div id="main" class="container">
+    <p class="highlight">Specificity test</p>
+  </div>
+</template>
+<style>
+  p { color: blue; }
+  .highlight { color: green; }
+  #main .highlight { color: red; }
+  div p { font-size: 14px; }
+</style>

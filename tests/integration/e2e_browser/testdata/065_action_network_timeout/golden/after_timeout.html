@@ -1,0 +1,55 @@
+<div id="app">
+  <div partial="pages_test_2fae8b58" p-key="r.0" id="app">
+    <h1 partial="pages_test_2fae8b58" p-key="r.0:0">Network Timeout Test</h1>
+    <p partial="pages_test_2fae8b58" p-key="r.0:1">Tests client-side timeout handling with AbortController</p>
+    <button
+      partial="pages_test_2fae8b58"
+      p-key="r.0:2"
+      id="test-btn"
+      p-on:click="eyJmIjoicnVuVGVzdCIsImEiOltdfQ"
+      pk-ev-bound="true"
+    >Run Test</button>
+    <div
+      partial="pages_test_2fae8b58"
+      p-key="r.0:3"
+      p-ref="resultContainer"
+      data-pk-partial="pages_test_2fae8b58"
+      id="result-container"
+      style="display: none;"
+    >
+      <h2 partial="pages_test_2fae8b58" p-key="r.0:3:0">Unexpected Success:</h2>
+      <p
+        partial="pages_test_2fae8b58"
+        p-key="r.0:3:1"
+        p-ref="resultMessage"
+        data-pk-partial="pages_test_2fae8b58"
+        id="result-message"
+      ></p>
+    </div>
+    <div
+      partial="pages_test_2fae8b58"
+      p-key="r.0:4"
+      p-ref="errorContainer"
+      data-pk-partial="pages_test_2fae8b58"
+      id="error-container"
+      style="display: block;"
+    >
+      <h2 partial="pages_test_2fae8b58" p-key="r.0:4:0">Timeout Error:</h2>
+      <p partial="pages_test_2fae8b58" p-key="r.0:4:1">Timed Out: <span partial="pages_test_2fae8b58" p-key="r.0:4:1:1" id="error-timeout">true</span></p>
+      <p partial="pages_test_2fae8b58" p-key="r.0:4:2">Error Name: <span
+          partial="pages_test_2fae8b58"
+          p-key="r.0:4:2:1"
+          p-ref="errorName"
+          data-pk-partial="pages_test_2fae8b58"
+          id="error-name"
+        >TimeoutError</span></p>
+      <p partial="pages_test_2fae8b58" p-key="r.0:4:3">Error Status: <span
+          partial="pages_test_2fae8b58"
+          p-key="r.0:4:3:1"
+          p-ref="errorStatus"
+          data-pk-partial="pages_test_2fae8b58"
+          id="error-status"
+        >408</span></p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,126 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+	<div class="container">
+		<header>
+			<h1>Welcome to Piko</h1>
+			<nav>
+				<a href="/">Home</a>
+				<a href="/about">About</a>
+				<a href="/contact">Contact</a>
+			</nav>
+		</header>
+		<main>
+			<article>
+				<h2>Getting Started</h2>
+				<p>This is a typical SFC component with template, script, and style blocks.</p>
+				<button p-on:click="handleClick">Click me</button>
+			</article>
+		</main>
+		<footer>
+			<p>&copy; 2024 Piko WDK</p>
+		</footer>
+	</div>
+</template>
+
+<script type="application/x-go">
+package components
+
+import (
+	"fmt"
+	"net/http"
+)
+
+type PageData struct {
+	Title   string
+	Counter int
+}
+
+func GetPageData(r *http.Request) (*PageData, error) {
+	return &PageData{
+		Title:   "Welcome",
+		Counter: 0,
+	}, nil
+}
+
+func handleClick() {
+	fmt.Println("Button clicked")
+}
+</script>
+
+<script type="application/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+	const button = document.querySelector('button');
+	button.addEventListener('click', function() {
+		console.log('Button clicked from JS');
+	});
+});
+</script>
+
+<style>
+.container {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1rem;
+}
+
+header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1rem 0;
+	border-bottom: 1px solid #eee;
+}
+
+nav a {
+	margin-left: 1rem;
+	text-decoration: none;
+	color: #333;
+}
+
+main {
+	padding: 2rem 0;
+}
+
+article h2 {
+	margin-bottom: 1rem;
+}
+
+button {
+	background: #007bff;
+	color: white;
+	padding: 0.5rem 1rem;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+button:hover {
+	background: #0056b3;
+}
+
+footer {
+	text-align: center;
+	padding: 1rem 0;
+	border-top: 1px solid #eee;
+	color: #666;
+}
+</style>

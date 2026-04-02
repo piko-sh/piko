@@ -1,0 +1,6 @@
+{
+  "title": "Newsletter Email",
+  "description": "Realistic newsletter template with multiple sections",
+  "metadata": {"title": "Weekly Digest - Issue 42"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

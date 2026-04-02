@@ -1,0 +1,73 @@
+{
+  "description": "Validates nil-guard tracking with partials and slots: internal guards work, slot content inherits parent guard.",
+  "expectedDiagnostics": 2,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.Data.Value' on potentially nil pointer 'props.Data'",
+      "onLine": 42
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.Item.Name' on potentially nil pointer 'props.Item'",
+      "onLine": 54
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#partial-internal-guard",
+      "description": "Partial's own p-if guard protects internal access",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#partial-unguarded",
+      "description": "Partial access without internal guard needs safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    },
+    {
+      "select": "#slot-in-guarded-context",
+      "description": "Slot content inside parent's guard benefits from guard",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Item.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#main-guarded",
+      "description": "Main page guarded access",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Item.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#main-unguarded",
+      "description": "Main page unguarded access needs safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Item.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    }
+  ]
+}

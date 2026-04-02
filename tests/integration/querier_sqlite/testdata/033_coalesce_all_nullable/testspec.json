@@ -1,0 +1,1 @@
+{"description": "COALESCE where all arguments are nullable stays nullable in generated Go"}

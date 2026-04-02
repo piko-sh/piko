@@ -1,0 +1,141 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Bottom App Bar"
+            server.current-page="navigation/bottom-app-bar">
+
+            <p class="demo-description">Bottom app bars display navigation and key actions at the bottom of the screen. They can optionally include a floating action button.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- With Action Icons -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Action Icons</h3>
+                    <div class="demo-preview">
+                        <m3e-bottom-app-bar>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/remove.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-bottom-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-bottom-app-bar&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/remove.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-bottom-app-bar&gt;</code></pre>
+                </section>
+
+                <!-- With FAB -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With FAB</h3>
+                    <div class="demo-preview">
+                        <m3e-bottom-app-bar>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/remove.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-fab size="small" colour="primary" slot="fab">
+                                <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-fab>
+                        </m3e-bottom-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-bottom-app-bar&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/remove.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-fab size="small" colour="primary" slot="fab"&gt;
+    &lt;piko:svg src="@/lib/icons/add.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-fab&gt;
+&lt;/m3e-bottom-app-bar&gt;</code></pre>
+                </section>
+
+                <!-- Icons Only (No FAB) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Icons Only (No FAB)</h3>
+                    <div class="demo-preview">
+                        <m3e-bottom-app-bar>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                            <m3e-icon-button variant="standard">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-bottom-app-bar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-bottom-app-bar&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/home.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/star.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button variant="standard"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-bottom-app-bar&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Bottom App Bar - M3E Components",
+    }, nil
+}
+</script>

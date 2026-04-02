@@ -1,0 +1,48 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<i18n lang="json">
+{
+    "en": {
+        "greeting": "Hello, World!",
+        "user": {
+            "greeting": "Welcome, User!"
+        }
+    },
+    "fr": {
+        "greeting": "Bonjour le monde!",
+        "user": {
+            "greeting": "Bienvenue, Utilisateur!"
+        }
+    }
+}
+</i18n>
+
+<script type="application/x-go">
+package main
+</script>
+
+<template>
+    <div>
+        <h1 id="main-greeting">{{ T("greeting") }}</h1>
+        <p id="user-greeting">{{ T("user.greeting") }}</p>
+        <p id="user-greeting2">{{ LT("user.greeting") }}</p>
+    </div>
+</template>

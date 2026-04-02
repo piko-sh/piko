@@ -1,0 +1,147 @@
+{
+  "all_filters": [
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 1,
+      "Level": 3,
+      "Name": "Alice"
+    }
+  ],
+  "by_active": [
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 1,
+      "Level": 3,
+      "Name": "Alice"
+    },
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 2,
+      "Level": 1,
+      "Name": "Bob"
+    },
+    {
+      "Active": 1,
+      "Department": "sales",
+      "ID": 3,
+      "Level": 2,
+      "Name": "Charlie"
+    },
+    {
+      "Active": 1,
+      "Department": "sales",
+      "ID": 5,
+      "Level": 3,
+      "Name": "Eve"
+    }
+  ],
+  "by_department": [
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 1,
+      "Level": 3,
+      "Name": "Alice"
+    },
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 2,
+      "Level": 1,
+      "Name": "Bob"
+    },
+    {
+      "Active": 0,
+      "Department": "eng",
+      "ID": 4,
+      "Level": 2,
+      "Name": "Dave"
+    }
+  ],
+  "by_dept_and_level": [
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 1,
+      "Level": 3,
+      "Name": "Alice"
+    },
+    {
+      "Active": 0,
+      "Department": "eng",
+      "ID": 4,
+      "Level": 2,
+      "Name": "Dave"
+    }
+  ],
+  "by_min_level": [
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 1,
+      "Level": 3,
+      "Name": "Alice"
+    },
+    {
+      "Active": 1,
+      "Department": "sales",
+      "ID": 3,
+      "Level": 2,
+      "Name": "Charlie"
+    },
+    {
+      "Active": 0,
+      "Department": "eng",
+      "ID": 4,
+      "Level": 2,
+      "Name": "Dave"
+    },
+    {
+      "Active": 1,
+      "Department": "sales",
+      "ID": 5,
+      "Level": 3,
+      "Name": "Eve"
+    }
+  ],
+  "no_filter": [
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 1,
+      "Level": 3,
+      "Name": "Alice"
+    },
+    {
+      "Active": 1,
+      "Department": "eng",
+      "ID": 2,
+      "Level": 1,
+      "Name": "Bob"
+    },
+    {
+      "Active": 1,
+      "Department": "sales",
+      "ID": 3,
+      "Level": 2,
+      "Name": "Charlie"
+    },
+    {
+      "Active": 0,
+      "Department": "eng",
+      "ID": 4,
+      "Level": 2,
+      "Name": "Dave"
+    },
+    {
+      "Active": 1,
+      "Department": "sales",
+      "ID": 5,
+      "Level": 3,
+      "Name": "Eve"
+    }
+  ]
+}

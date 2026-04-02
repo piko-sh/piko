@@ -1,0 +1,18 @@
+{
+    "description": "Basic scope preservation - parent scopes should be preserved when morphing element with partial attribute",
+    "options": {
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".item",
+            "attributes": { "partial": "new_scope parent_scope grandparent_scope" },
+            "description": "Element should preserve parent scopes while updating self scope"
+        },
+        {
+            "selector": ".item",
+            "textContent": "Updated Content",
+            "description": "Content should be updated"
+        }
+    ]
+}

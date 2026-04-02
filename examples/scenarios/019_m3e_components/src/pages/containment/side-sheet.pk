@@ -1,0 +1,149 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Side Sheet"
+            server.current-page="containment/side-sheet">
+
+            <p class="demo-description">Side sheets are surfaces anchored to the side of the screen. They support start and end positioning, and can be standard or modal.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- End (Default) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">End (Default)</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="openEnd()">Open End Sheet</m3e-button>
+                        <m3e-side-sheet p-ref="end_sheet" side="end">
+                            <h3 style="margin: 0 0 8px;">Details</h3>
+                            <p>This side sheet is anchored to the end (right) of its container.</p>
+                        </m3e-side-sheet>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-side-sheet id="my-sheet" side="end"&gt;
+  &lt;h3&gt;Details&lt;/h3&gt;
+  &lt;p&gt;Side sheet content here.&lt;/p&gt;
+&lt;/m3e-side-sheet&gt;
+
+&lt;script&gt;
+  document.getElementById('my-sheet').show();  // open
+  document.getElementById('my-sheet').close(); // close
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- Start -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Start</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="openStart()">Open Start Sheet</m3e-button>
+                        <m3e-side-sheet p-ref="start_sheet" side="start">
+                            <h3 style="margin: 0 0 8px;">Navigation</h3>
+                            <p>This side sheet is anchored to the start (left) of its container.</p>
+                        </m3e-side-sheet>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-side-sheet id="my-sheet" side="start"&gt;
+  &lt;h3&gt;Navigation&lt;/h3&gt;
+  &lt;p&gt;Side sheet content here.&lt;/p&gt;
+&lt;/m3e-side-sheet&gt;
+
+&lt;script&gt;
+  document.getElementById('my-sheet').show();
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- Modal - End -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Modal - End</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="openModalEnd()">Open Modal End</m3e-button>
+                        <m3e-side-sheet p-ref="modal_end_sheet" modal side="end">
+                            <h3 style="margin: 0 0 8px;">Filters</h3>
+                            <p>This modal side sheet displays a scrim behind the content.</p>
+                        </m3e-side-sheet>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-side-sheet id="my-sheet" modal side="end"&gt;
+  &lt;h3&gt;Filters&lt;/h3&gt;
+  &lt;p&gt;Modal side sheet content here.&lt;/p&gt;
+&lt;/m3e-side-sheet&gt;
+
+&lt;script&gt;
+  document.getElementById('my-sheet').show();
+  // Closes on scrim click or Escape key
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- Modal - Start -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Modal - Start</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="openModalStart()">Open Modal Start</m3e-button>
+                        <m3e-side-sheet p-ref="modal_start_sheet" modal side="start">
+                            <h3 style="margin: 0 0 8px;">Menu</h3>
+                            <p>This modal side sheet is anchored to the start with a scrim overlay.</p>
+                        </m3e-side-sheet>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-side-sheet id="my-sheet" modal side="start"&gt;
+  &lt;h3&gt;Menu&lt;/h3&gt;
+  &lt;p&gt;Modal side sheet content here.&lt;/p&gt;
+&lt;/m3e-side-sheet&gt;
+
+&lt;script&gt;
+  document.getElementById('my-sheet').show();
+  // Closes on scrim click or Escape key
+&lt;/script&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Side Sheet - M3E Components",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export function openEnd(): void {
+    (pk.refs.end_sheet as any).show();
+}
+
+export function openStart(): void {
+    (pk.refs.start_sheet as any).show();
+}
+
+export function openModalEnd(): void {
+    (pk.refs.modal_end_sheet as any).show();
+}
+
+export function openModalStart(): void {
+    (pk.refs.modal_start_sheet as any).show();
+}
+</script>

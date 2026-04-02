@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_27_generics_interface_constraint ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 27_generics_interface_constraint/src/main.go
+    - import "io"                 -> io
+
+[Named Types]
+  > type ReaderBox
+    - Defined In:      27_generics_interface_constraint/src/main.go
+    - TypeString:      main.ReaderBox[T]
+    - Underlying:      struct{Source T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Source               T
+
+[Package-Level Functions]
+  (none)

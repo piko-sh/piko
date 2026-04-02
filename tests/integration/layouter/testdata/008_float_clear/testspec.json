@@ -1,0 +1,7 @@
+{
+    "description": "Verifies float: left/right positioning and clear: both.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

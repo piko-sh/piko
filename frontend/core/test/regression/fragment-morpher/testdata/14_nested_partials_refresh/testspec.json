@@ -1,0 +1,24 @@
+{
+    "description": "Simulates pp-dynamic-list refreshing inside modal - nested partials scenario",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".row:first-child",
+            "attributes": { "partial": "row1_scope list_scope modal_scope page_scope" },
+            "description": "First row preserves full scope chain"
+        },
+        {
+            "selector": ".row:nth-child(2)",
+            "attributes": { "partial": "row2_scope list_scope modal_scope page_scope" },
+            "description": "Second row preserves full scope chain"
+        },
+        {
+            "selector": ".row:nth-child(3)",
+            "attributes": { "partial": "row3_scope list_scope modal_scope page_scope" },
+            "description": "New third row inherits full scope chain"
+        }
+    ]
+}

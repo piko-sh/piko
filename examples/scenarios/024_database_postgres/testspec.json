@@ -1,0 +1,6 @@
+{
+  "description": "Verifies a PostgreSQL analytics dashboard with CTEs, window functions, and read-write split configuration",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "requiresDocker": true
+}

@@ -1,0 +1,34 @@
+{
+    "description": "Single section updated - content inherits parent scopes",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/update-sections",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".section:first-child",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".section:first-child",
+            "attributes": { "partial": "section1_scope page_scope" },
+            "description": "First section container unchanged"
+        },
+        {
+            "selector": ".section:first-child .content",
+            "attributes": { "partial": "content1_new section1_scope page_scope" },
+            "description": "First section content inherits parent scopes"
+        },
+        {
+            "selector": ".section:nth-child(2)",
+            "attributes": { "partial": "section2_scope page_scope" },
+            "description": "Second section unchanged"
+        }
+    ]
+}

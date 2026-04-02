@@ -1,0 +1,63 @@
+{
+  "packages": {
+    "testcase_14_external_dependency": {
+      "file_imports": {
+        "14_external_dependency/src/main.go": {
+          "uuid": "github.com/google/uuid"
+        }
+      },
+      "named_types": {
+        "Request": {
+          "name": "Request",
+          "package_path": "testcase_14_external_dependency",
+          "defined_in_file_path": "14_external_dependency/src/main.go",
+          "type_string": "main.Request",
+          "underlying_type_string": "struct{ID uuid.UUID}",
+          "fields": [
+            {
+              "definition_file_path": "14_external_dependency/src/main.go",
+              "declaring_pkg_path": "testcase_14_external_dependency",
+              "pkg_path": "github.com/google/uuid",
+              "underlying_type_string": "[16]byte",
+              "declaring_type_name": "Request",
+              "name": "ID",
+              "type_string": "uuid.UUID",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "byte",
+                  "role": "element",
+                  "underlying_type_string": "byte",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 3,
+              "definition_line": 24,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_14_external_dependency",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "14_external_dependency/src/main.go": "testcase_14_external_dependency"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "description": "Tests serialisation of a field with multiple levels of pointer indirection.",
+  "moduleName": "testcase_47_multi_level_pointer",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_47_multi_level_pointer"
+  ],
+  "assertions": [
+    {
+      "description": "The 'CurrentUser' field should have the correct TypeString with two asterisks.",
+      "select": "packages.testcase_47_multi_level_pointer.named_types.Session.fields.0.type_string",
+      "expect": "**main.User"
+    },
+    {
+      "description": "The PackagePath should correctly point to the package of the final underlying type.",
+      "select": "packages.testcase_47_multi_level_pointer.named_types.Session.fields.0.pkg_path",
+      "expect": "testcase_47_multi_level_pointer"
+    }
+  ]
+}

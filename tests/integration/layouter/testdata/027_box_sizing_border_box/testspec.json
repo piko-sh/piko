@@ -1,0 +1,7 @@
+{
+    "description": "Verifies box-sizing: border-box support: declared width/height includes padding and border, so content area shrinks accordingly.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

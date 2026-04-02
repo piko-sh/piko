@@ -1,0 +1,16 @@
+[
+  {
+    "action": "checkText",
+    "selector": "imports-component \u003e\u003e\u003e p",
+    "expected": "Formatted: World"
+  },
+  {
+    "action": "click",
+    "selector": "imports-component \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "imports-component \u003e\u003e\u003e p",
+    "expected": "Formatted: Universe"
+  }
+]

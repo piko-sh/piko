@@ -1,0 +1,39 @@
+{
+  "description": "Verifies optional pointer fields default to nil when not provided",
+  "requestURL": "/profile-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Submit profile with only required name, optional bio omitted"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_update.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-name",
+      "expected": "Alice"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-has-bio",
+      "expected": "no"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "description": "UNION query where branches have different column counts, producing a Q020 error.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    { "severity": "error", "code": "Q020", "messageContains": "column" }
+  ]
+}

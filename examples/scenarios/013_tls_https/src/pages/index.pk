@@ -1,0 +1,58 @@
+<template>
+  <div id="app">
+    <h1>{{ state.Heading }}</h1>
+    <p>{{ state.Description }}</p>
+
+    <footer>
+      <small>Served with TLS enabled</small>
+    </footer>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+    Heading     string
+    Description string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Heading:     "Secure Connection",
+        Description: "This page was served over HTTPS using a self-signed TLS certificate.",
+    }, piko.Metadata{
+        Title:       "TLS/HTTPS - Piko Example",
+        Description: "A Piko page served over HTTPS with a self-signed TLS certificate.",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #059669;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: #374151;
+    line-height: 1.6;
+  }
+
+  footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    color: #9ca3af;
+    font-size: 0.875rem;
+  }
+</style>

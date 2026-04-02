@@ -1,0 +1,67 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Args Structure Test</h1>
+    <p>This test verifies single struct input is NOT wrapped with numeric index.</p>
+
+    <button id="run-btn" p-on:click="runAction()">Run Action</button>
+
+    <div id="result-container" style="display: none;">
+      <h2>Result:</h2>
+      <div id="result">
+        <p>Name: <span id="result-name"></span></p>
+        <p>Value: <span id="result-value"></span></p>
+        <p>Raw Args Structure: <span id="result-raw"></span></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Args Structure Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export async function runAction(): Promise<void> {
+  const result = await action.arguments.Test({ name: 'TestName', value: 42 }).call();
+
+  const nameSpan = document.getElementById('result-name');
+  const valueSpan = document.getElementById('result-value');
+  const rawSpan = document.getElementById('result-raw');
+  const container = document.getElementById('result-container');
+
+  if (nameSpan) nameSpan.textContent = result.name || '(empty)';
+  if (valueSpan) valueSpan.textContent = String(result.value) || '(empty)';
+  if (rawSpan) rawSpan.textContent = result.rawArgs || '(empty)';
+  if (container) container.style.display = 'block';
+}
+</script>

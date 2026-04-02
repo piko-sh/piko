@@ -1,0 +1,186 @@
+{
+  "Schemas": {
+    "main": {
+      "Tables": {
+        "products": {
+          "Name": "products",
+          "Schema": "main",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "int4",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "name",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "varchar",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "price",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "float8",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {
+        "discount": [
+          {
+            "Name": "discount",
+            "Schema": "",
+            "Language": "",
+            "BodySQL": "",
+            "Arguments": [
+              {
+                "Name": "",
+                "Type": {
+                  "Precision": null,
+                  "Scale": null,
+                  "Length": null,
+                  "ElementType": null,
+                  "EngineName": "amount",
+                  "Schema": "",
+                  "EnumValues": null,
+                  "StructFields": null,
+                  "KeyType": null,
+                  "UnionMembers": null,
+                  "Category": 18
+                },
+                "IsOptional": false
+              },
+              {
+                "Name": "",
+                "Type": {
+                  "Precision": null,
+                  "Scale": null,
+                  "Length": null,
+                  "ElementType": null,
+                  "EngineName": "pct",
+                  "Schema": "",
+                  "EnumValues": null,
+                  "StructFields": null,
+                  "KeyType": null,
+                  "UnionMembers": null,
+                  "Category": 18
+                },
+                "IsOptional": false
+              }
+            ],
+            "CalledFunctions": null,
+            "Origin": {
+              "Filename": "001_schema.up.sql",
+              "Index": 0
+            },
+            "ReturnType": {
+              "Precision": null,
+              "Scale": null,
+              "Length": null,
+              "ElementType": null,
+              "EngineName": "",
+              "Schema": "",
+              "EnumValues": null,
+              "StructFields": null,
+              "KeyType": null,
+              "UnionMembers": null,
+              "Category": 18
+            },
+            "MinArguments": 0,
+            "ReturnsSet": false,
+            "IsAggregate": false,
+            "IsStrict": false,
+            "NullableBehaviour": 0,
+            "DataAccess": 0,
+            "IsVariadic": false
+          }
+        ]
+      },
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": "main"
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": "main"
+}

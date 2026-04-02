@@ -1,0 +1,12 @@
+{
+  "with_custom": {
+    "EffectiveValue": "custom",
+    "ID": 1,
+    "WithLiteralFallback": "custom"
+  },
+  "with_default": {
+    "EffectiveValue": "default",
+    "ID": 2,
+    "WithLiteralFallback": "fallback"
+  }
+}

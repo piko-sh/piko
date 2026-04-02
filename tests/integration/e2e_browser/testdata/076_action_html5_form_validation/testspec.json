@@ -1,0 +1,73 @@
+{
+  "description": "Tests HTML5 form validation prevents action submission when form is invalid",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Submit with empty required fields - should be blocked"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "#result"
+    },
+    {
+      "action": "comment",
+      "value": "Fill in valid data and submit - should succeed"
+    },
+    {
+      "action": "fill",
+      "selector": "#email-input",
+      "value": "test@example.com"
+    },
+    {
+      "action": "fill",
+      "selector": "#name-input",
+      "value": "Alice"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result",
+      "timeout": 5000
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#result-text",
+      "expected": "Alice"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#result-text",
+      "expected": "test@example.com"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_valid_submit.html"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+{
+  "description": "Comprehensive MySQL type catalogue test: integer types (TINYINT through BIGINT), floating point (FLOAT, DOUBLE), fixed point (DECIMAL), string types (CHAR, VARCHAR, TEXT variants), binary types (BINARY, VARBINARY, BLOB variants), temporal types (DATE, TIME, DATETIME, TIMESTAMP, YEAR), and JSON."
+}

@@ -1,0 +1,7 @@
+<template>
+  <div style="width: 400px;">
+    <div style="float: left; width: 100px;">Left float</div>
+    <div style="float: right; width: 100px;">Right float</div>
+    <p>Text flowing around floats</p>
+  </div>
+</template>

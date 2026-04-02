@@ -1,0 +1,11 @@
+{
+  "description": "Test nested directory config loading - should load from parent directory piko.yaml",
+  "expectError": false,
+  "configFiles": ["piko.yaml"],
+  "environment": {},
+  "expectedDefaults": false,
+  "validateFields": {
+    "Network.Port": "8000",
+    "Network.PublicDomain": "parent.example.com"
+  }
+}

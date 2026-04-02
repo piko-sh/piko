@@ -1,0 +1,26 @@
+{
+  "groups": {
+    "sidebar": {
+      "sections": [
+        {
+          "children": [
+            {
+              "id": "contact",
+              "title": "Contact Us",
+              "section": "",
+              "url": "/pages/contact",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "",
+          "title": "",
+          "section": "",
+          "level": 0,
+          "order": 999
+        }
+      ],
+      "locale": "en"
+    }
+  }
+}

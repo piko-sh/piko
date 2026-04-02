@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "users_with_orders.sql",
+    "Message": "Q001: unknown table or alias \"orders\"",
+    "Code": "Q004",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

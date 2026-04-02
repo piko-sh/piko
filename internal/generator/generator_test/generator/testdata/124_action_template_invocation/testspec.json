@@ -1,0 +1,5 @@
+{
+    "description": "Tests that action calls in templates compile correctly alongside action discovery",
+    "packageName": "action_template_invocation_test",
+    "isPage": true
+}

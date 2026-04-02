@@ -1,0 +1,48 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "uuid": { "category": "uuid", "engineName": "uuid" },
+    "text": { "category": "text", "engineName": "text" },
+    "bool": { "category": "boolean", "engineName": "bool" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, active boolean NOT NULL DEFAULT true )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "active", "sqlType": { "category": "boolean", "engineName": "bool" }, "nullable": false, "hasDefault": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT active_users.name FROM active_users",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "name", "tableAlias": "active_users", "columnName": "name" }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "active_users" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": [
+          {
+            "name": "active_users",
+            "outputColumns": [
+              { "name": "id", "tableAlias": "users", "columnName": "id" },
+              { "name": "name", "tableAlias": "users", "columnName": "name" }
+            ],
+            "fromTables": [
+              { "name": "users" }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

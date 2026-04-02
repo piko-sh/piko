@@ -1,0 +1,25 @@
+{
+  "description": "Validates that the compiler can resolve types and function calls across multiple, regular Go packages.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#user-display > p",
+      "description": "The interpolation should correctly resolve the cross-package function call and its return type.",
+      "assertOnInterpolation": {
+        "rawExpression": "util.FormatUser(state.CurrentUser)",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "util.FormatUser",
+          "resolvedTypeIs": "function"
+        },
+        {
+          "rawExpression": "state.CurrentUser",
+          "resolvedTypeIs": "*models.User"
+        }
+      ]
+    }
+  ]
+}

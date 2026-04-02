@@ -1,0 +1,84 @@
+{
+  "description": "Tests 422 validation errors are properly returned with field-level error details",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Submit with taken username - should get validation error"
+    },
+    {
+      "action": "fill",
+      "selector": "#username",
+      "value": "taken"
+    },
+    {
+      "action": "fill",
+      "selector": "#password",
+      "value": "short"
+    },
+    {
+      "action": "click",
+      "selector": "#register-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify validation error was received"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-status",
+      "expected": "422"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#username",
+      "attribute": "error",
+      "expected": "Username is already taken"
+    },
+    {
+      "action": "comment",
+      "value": "Fix the errors and resubmit"
+    },
+    {
+      "action": "fill",
+      "selector": "#username",
+      "value": "available"
+    },
+    {
+      "action": "fill",
+      "selector": "#password",
+      "value": "longpassword123"
+    },
+    {
+      "action": "click",
+      "selector": "#register-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#success",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_register.html"
+    }
+  ]
+}

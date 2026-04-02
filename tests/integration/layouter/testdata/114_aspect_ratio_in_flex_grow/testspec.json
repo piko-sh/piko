@@ -1,0 +1,7 @@
+{
+    "description": "Verifies aspect-ratio interacting with flex-grow: items with aspect-ratio and flex-grow should have height computed from the grown width, affecting the flex line's cross size.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

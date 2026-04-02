@@ -1,0 +1,45 @@
+{
+    "description": "Deeply nested element structures should render and update correctly",
+    "initialState": {
+        "title": "Dashboard",
+        "count": 42
+    },
+    "initialVDOM": "dom.el('div', 'root', { class: 'dashboard' }, [dom.el('header', 'hdr', {}, [dom.el('h1', 'title', {}, [dom.txt(state.title, 'title-txt')])]), dom.el('main', 'main', {}, [dom.el('section', 'stats', { class: 'stats' }, [dom.el('span', 'count', { class: 'count' }, [dom.txt(String(state.count), 'count-txt')])])])])",
+    "steps": [
+        {
+            "description": "Initial render with nested structure",
+            "assertions": [
+                {
+                    "selector": "h1",
+                    "textContent": "Dashboard",
+                    "description": "Title should be Dashboard"
+                },
+                {
+                    "selector": ".count",
+                    "textContent": "42",
+                    "description": "Count should be 42"
+                }
+            ]
+        },
+        {
+            "description": "Update title and count",
+            "stateChanges": [
+                { "path": "title", "value": "Analytics" },
+                { "path": "count", "value": 99 }
+            ],
+            "newVDOM": "dom.el('div', 'root', { class: 'dashboard' }, [dom.el('header', 'hdr', {}, [dom.el('h1', 'title', {}, [dom.txt(state.title, 'title-txt')])]), dom.el('main', 'main', {}, [dom.el('section', 'stats', { class: 'stats' }, [dom.el('span', 'count', { class: 'count' }, [dom.txt(String(state.count), 'count-txt')])])])])",
+            "assertions": [
+                {
+                    "selector": "h1",
+                    "textContent": "Analytics",
+                    "description": "Title should be Analytics"
+                },
+                {
+                    "selector": ".count",
+                    "textContent": "99",
+                    "description": "Count should be 99"
+                }
+            ]
+        }
+    ]
+}

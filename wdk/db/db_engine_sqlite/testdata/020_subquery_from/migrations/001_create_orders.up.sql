@@ -1,0 +1,6 @@
+CREATE TABLE orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  status TEXT NOT NULL
+);

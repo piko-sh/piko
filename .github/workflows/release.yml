@@ -1,0 +1,319 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION_FILE: go.mod
+  NODE_VERSION: "22"
+  JAVA_VERSION: "21"
+
+jobs:
+  build-binaries:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: true
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - name: Set version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set binary extension
+        id: ext
+        run: |
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            echo "cli=.exe" >> "$GITHUB_OUTPUT"
+            echo "lsp=.exe" >> "$GITHUB_OUTPUT"
+          else
+            echo "cli=" >> "$GITHUB_OUTPUT"
+            echo "lsp=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build CLI
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist/cli
+          go build -trimpath \
+            -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" \
+            -o "dist/cli/piko${{ steps.ext.outputs.cli }}" \
+            ./cmd/piko
+
+      - name: Build LSP
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist/lsp
+          go build -trimpath \
+            -ldflags="-s -w" \
+            -o "dist/lsp/piko-lsp${{ steps.ext.outputs.lsp }}" \
+            ./cmd/lsp
+
+      - name: Archive CLI
+        run: |
+          cd dist/cli
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            zip "../../piko-cli-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip" piko${{ steps.ext.outputs.cli }}
+          else
+            tar czf "../../piko-cli-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz" piko${{ steps.ext.outputs.cli }}
+          fi
+
+      - name: Archive LSP
+        run: |
+          cd dist/lsp
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            zip "../../piko-lsp-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip" piko-lsp${{ steps.ext.outputs.lsp }}
+          else
+            tar czf "../../piko-lsp-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz" piko-lsp${{ steps.ext.outputs.lsp }}
+          fi
+
+      - name: Upload CLI archive
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: piko-cli-*
+
+      - name: Upload LSP archive
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: lsp-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: piko-lsp-*
+
+      - name: Upload LSP binary (for plugin bundling)
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: lsp-bin-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/lsp/
+
+  build-vscode-extension:
+    name: Build & Publish VSCode Extension
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download all LSP binaries
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: lsp-bin-*
+          path: lsp-binaries
+
+      - name: Bundle LSP binaries into plugin
+        run: |
+          mkdir -p plugins/vscode/bin
+          for dir in lsp-binaries/lsp-bin-*/; do
+            platform=$(basename "$dir" | sed 's/lsp-bin-//')
+            mkdir -p "plugins/vscode/bin/${platform}"
+            cp "$dir"/* "plugins/vscode/bin/${platform}/"
+            chmod +x "plugins/vscode/bin/${platform}/"* 2>/dev/null || true
+          done
+
+      - name: Build and package extension
+        working-directory: plugins/vscode
+        run: |
+          npm ci
+          npm run compile:production
+          npm run package
+
+      - name: Publish to VS Code Marketplace
+        if: ${{ secrets.VSCE_PAT != '' }}
+        working-directory: plugins/vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx @vscode/vsce publish --no-git-tag-version --packagePath piko-*.vsix
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: vscode-extension
+          path: plugins/vscode/piko-*.vsix
+
+  build-idea-plugin:
+    name: Build & Publish IntelliJ Plugin
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Download all LSP binaries
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: lsp-bin-*
+          path: lsp-binaries
+
+      - name: Bundle LSP binaries into plugin
+        run: |
+          mkdir -p plugins/idea/src/main/resources/bin
+          for dir in lsp-binaries/lsp-bin-*/; do
+            platform=$(basename "$dir" | sed 's/lsp-bin-//')
+            mkdir -p "plugins/idea/src/main/resources/bin/${platform}"
+            cp "$dir"/* "plugins/idea/src/main/resources/bin/${platform}/"
+            chmod +x "plugins/idea/src/main/resources/bin/${platform}/"* 2>/dev/null || true
+          done
+
+      - name: Build plugin
+        working-directory: plugins/idea
+        run: ./gradlew buildPlugin -x buildSearchableOptions --no-daemon
+
+      - name: Publish to JetBrains Marketplace
+        if: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN != '' }}
+        working-directory: plugins/idea
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+        run: ./gradlew publishPlugin --no-daemon
+
+      - name: Upload plugin distribution
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: idea-plugin
+          path: plugins/idea/build/distributions/*.zip
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-binaries, build-vscode-extension, build-idea-plugin]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download all artefacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: release-artefacts
+
+      - name: Collect release files
+        run: |
+          mkdir -p release
+          find release-artefacts/cli-* -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} release/ \;
+          find release-artefacts/lsp-* -not -path '*/lsp-bin-*/*' -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} release/ \;
+          find release-artefacts/vscode-extension -type f -name '*.vsix' -exec cp {} release/ \;
+          find release-artefacts/idea-plugin -type f -name '*.zip' -exec cp -t release/ {} + 2>/dev/null || true
+          ls -la release/
+
+      - name: Generate checksums
+        working-directory: release
+        run: sha256sum * > checksums-sha256.txt
+
+      - name: Determine pre-release
+        id: prerelease
+        run: |
+          if echo "${{ github.ref_name }}" | grep -qE '(alpha|beta|rc)'; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          name: Piko ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+          files: release/*
+
+  sign-release:
+    name: Sign Release Artefacts
+    needs: create-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@e11c554f704a0b820cbf8c51673f6945e0731532 # v0.20.0
+
+      - name: Set version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download all artefacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: release-artefacts
+
+      - name: Collect release files
+        run: |
+          mkdir -p release
+          find release-artefacts/cli-* -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} release/ \;
+          find release-artefacts/lsp-* -not -path '*/lsp-bin-*/*' -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} release/ \;
+          find release-artefacts/vscode-extension -type f -name '*.vsix' -exec cp {} release/ \;
+          find release-artefacts/idea-plugin -type f -name '*.zip' -exec cp -t release/ {} + 2>/dev/null || true
+          ls -la release/
+
+      - name: Generate SBOMs
+        run: |
+          mkdir -p sbom-tmp
+          for archive in release/piko-cli-*.tar.gz release/piko-lsp-*.tar.gz; do
+            [ -f "$archive" ] || continue
+            basename=$(basename "$archive")
+            extract_dir="sbom-tmp/${basename%.tar.gz}"
+            mkdir -p "$extract_dir"
+            tar xzf "$archive" -C "$extract_dir"
+            binary=$(find "$extract_dir" -type f -not -name '*.tar.gz' | head -1)
+            if [ -n "$binary" ]; then
+              syft "$binary" -o "cyclonedx-json" --file "release/${basename}.sbom.cdx.json"
+              syft "$binary" -o "spdx-json" --file "release/${basename}.sbom.spdx.json"
+            fi
+          done
+          rm -rf sbom-tmp
+
+      - name: Sign artefacts with cosign (keyless)
+        run: |
+          for file in release/*; do
+            [ -f "$file" ] || continue
+            cosign sign-blob --yes \
+              --output-signature "${file}.sig" \
+              --output-certificate "${file}.cert" \
+              "$file"
+          done
+
+      - name: Upload signatures and SBOMs to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            release/*.sig \
+            release/*.cert \
+            release/*.sbom.cdx.json \
+            release/*.sbom.spdx.json \
+            --clobber

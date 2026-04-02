@@ -1,0 +1,32 @@
+{
+  "description": "Tests extraction of a simple struct with primitive fields.",
+  "moduleName": "testcase_lite_01",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "The 'User' type should be present",
+      "select": "packages.testcase_lite_01.named_types.User.name",
+      "expect": "User"
+    },
+    {
+      "description": "The 'Name' field should be correctly extracted",
+      "select": "packages.testcase_lite_01.named_types.User.fields.0.name",
+      "expect": "Name"
+    },
+    {
+      "description": "The 'Name' field type should be 'string'",
+      "select": "packages.testcase_lite_01.named_types.User.fields.0.type_string",
+      "expect": "string"
+    },
+    {
+      "description": "The 'Age' field should be correctly extracted",
+      "select": "packages.testcase_lite_01.named_types.User.fields.1.name",
+      "expect": "Age"
+    },
+    {
+      "description": "The 'Age' field type should be 'int'",
+      "select": "packages.testcase_lite_01.named_types.User.fields.1.type_string",
+      "expect": "int"
+    }
+  ]
+}

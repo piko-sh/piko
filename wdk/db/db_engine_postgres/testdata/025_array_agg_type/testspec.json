@@ -1,0 +1,3 @@
+{
+  "description": "array_agg return type: array_agg() should return an array of the input column type."
+}

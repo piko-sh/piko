@@ -1,0 +1,7 @@
+CREATE TABLE rectangles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    width DECIMAL(10, 2) NOT NULL,
+    height DECIMAL(10, 2) NOT NULL,
+    area DECIMAL(20, 4) GENERATED ALWAYS AS (width * height) STORED,
+    perimeter DECIMAL(20, 4) GENERATED ALWAYS AS (2 * (width + height)) VIRTUAL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -1,0 +1,89 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Contact Form Test</h1>
+
+    <form id="contact-form" p-on:submit.prevent="handleSubmit()">
+      <div>
+        <label for="firstname">First Name:</label>
+        <input type="text" id="firstname" name="firstname" p-ref="firstnameInput" required />
+      </div>
+
+      <div>
+        <label for="lastname">Last Name:</label>
+        <input type="text" id="lastname" name="lastname" p-ref="lastnameInput" required />
+      </div>
+
+      <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" p-ref="emailInput" required />
+      </div>
+
+      <div>
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" p-ref="messageInput" required></textarea>
+      </div>
+
+      <button type="submit" id="submit-btn">Submit</button>
+    </form>
+
+    <div id="result-container" p-ref="resultContainer" style="display: none;">
+      <h2>Result:</h2>
+      <div id="result">
+        <p>First Name: <span id="result-firstname" p-ref="resultFirstname"></span></p>
+        <p>Last Name: <span id="result-lastname" p-ref="resultLastname"></span></p>
+        <p>Email: <span id="result-email" p-ref="resultEmail"></span></p>
+        <p>Message: <span id="result-message" p-ref="resultMessage"></span></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Contact Form Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function handleSubmit(): Promise<void> {
+  const result = await action.contact.Submit({
+    firstname: pk.refs.firstnameInput.value,
+    lastname: pk.refs.lastnameInput.value,
+    email: pk.refs.emailInput.value,
+    message: pk.refs.messageInput.value,
+  }).call();
+  pk.refs.resultFirstname.textContent = result.firstname || '';
+  pk.refs.resultLastname.textContent = result.lastname || '';
+  pk.refs.resultEmail.textContent = result.email || '';
+  pk.refs.resultMessage.textContent = result.message || '';
+  pk.refs.resultContainer.style.display = 'block';
+}
+</script>

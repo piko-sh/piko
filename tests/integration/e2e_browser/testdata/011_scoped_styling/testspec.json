@@ -1,0 +1,51 @@
+{
+  "description": "Tests scoped style blocks don't leak between partials",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Scoped Styling Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".red-partial"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".blue-partial"
+    },
+    {
+      "action": "checkText",
+      "selector": ".red-partial .label",
+      "expected": "Red Box"
+    },
+    {
+      "action": "checkText",
+      "selector": ".blue-partial .label",
+      "expected": "Blue Box"
+    },
+    {
+      "action": "checkStyle",
+      "selector": ".red-partial",
+      "name": "background-color",
+      "expected": "rgb(255, 0, 0)"
+    },
+    {
+      "action": "checkStyle",
+      "selector": ".blue-partial",
+      "name": "background-color",
+      "expected": "rgb(0, 0, 255)"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "page.html"
+    }
+  ]
+}

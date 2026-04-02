@@ -1,0 +1,10 @@
+[{
+  "description": "GetCollection without type parameter produces error",
+  "expression": "r.GetCollection(\"blog\")",
+  "expectedType": "",
+  "expectedDiagnostics": 1,
+  "diagnostics": [{
+    "severity": "error",
+    "messageContains": "must have a type parameter"
+  }]
+}]

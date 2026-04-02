@@ -1,0 +1,161 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="input-types-demo">
+    <div class="input-types-demo">
+        <h3>p-model Input Types Test</h3>
+
+        <div class="form-section">
+            <label for="text-input">Text Input:</label>
+            <input type="text" id="text-input" p-model="state.textValue" />
+            <span id="text-display" class="display" p-text="state.textValue"></span>
+        </div>
+
+        <div class="form-section">
+            <label for="number-input">Number Input:</label>
+            <input type="number" id="number-input" p-model="state.numberValue" />
+            <span id="number-display" class="display" p-text="state.numberValue"></span>
+        </div>
+
+        <div class="form-section">
+            <label for="textarea-input">Textarea:</label>
+            <textarea id="textarea-input" p-model="state.textareaValue"></textarea>
+            <span id="textarea-display" class="display" p-text="state.textareaValue"></span>
+        </div>
+
+        <div class="form-section">
+            <label>
+                <input type="checkbox" id="checkbox-input" p-model="state.checkboxValue" />
+                Checkbox
+            </label>
+            <span id="checkbox-display" class="display" p-text="state.checkboxValue ? 'checked' : 'unchecked'"></span>
+        </div>
+
+        <div class="form-section">
+            <label for="select-input">Select:</label>
+            <select id="select-input" p-model="state.selectValue">
+                <option value="option1">Option 1</option>
+                <option value="option2">Option 2</option>
+                <option value="option3">Option 3</option>
+            </select>
+            <span id="select-display" class="display" p-text="state.selectValue"></span>
+        </div>
+
+        <div class="form-section">
+            <label>Radio Buttons:</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="color" value="red" p-model="state.radioValue" />
+                    Red
+                </label>
+                <label>
+                    <input type="radio" name="color" value="green" p-model="state.radioValue" />
+                    Green
+                </label>
+                <label>
+                    <input type="radio" name="color" value="blue" p-model="state.radioValue" />
+                    Blue
+                </label>
+            </div>
+            <span id="radio-display" class="display" p-text="state.radioValue"></span>
+        </div>
+
+        <div class="controls">
+            <button id="reset-btn" p-on:click="resetValues">Reset All</button>
+            <button id="set-btn" p-on:click="setValues">Set Programmatically</button>
+        </div>
+    </div>
+</template>
+
+<style>
+    .input-types-demo {
+        padding: 1rem;
+    }
+    .form-section {
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .form-section label {
+        min-width: 120px;
+    }
+    input[type="text"], input[type="number"], textarea, select {
+        padding: 0.5rem;
+        min-width: 200px;
+    }
+    textarea {
+        resize: vertical;
+        min-height: 60px;
+    }
+    .display {
+        color: #1976d2;
+        font-weight: bold;
+        padding: 0.25rem 0.5rem;
+        background: #e3f2fd;
+        border-radius: 4px;
+    }
+    .radio-group {
+        display: flex;
+        gap: 1rem;
+    }
+    .radio-group label {
+        min-width: auto;
+    }
+    .controls {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .controls button {
+        padding: 0.5rem 1rem;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        textValue: "initial text" as string,
+        numberValue: 42 as number,
+        textareaValue: "initial\nmultiline" as string,
+        checkboxValue: false as boolean,
+        selectValue: "option1" as string,
+        radioValue: "red" as string
+    };
+
+    function resetValues() {
+        state.textValue = "initial text";
+        state.numberValue = 42;
+        state.textareaValue = "initial\nmultiline";
+        state.checkboxValue = false;
+        state.selectValue = "option1";
+        state.radioValue = "red";
+    }
+
+    function setValues() {
+        state.textValue = "programmatic text";
+        state.numberValue = 100;
+        state.textareaValue = "programmatic\ncontent";
+        state.checkboxValue = true;
+        state.selectValue = "option3";
+        state.radioValue = "blue";
+    }
+</script>

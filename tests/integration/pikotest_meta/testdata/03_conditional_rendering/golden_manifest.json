@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/alerts.pk": {
+      "routePatterns": {
+        "en": "/alerts"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_03_conditional_rendering/dist/pages/pages_alerts_9824e61f",
+      "originalSourcePath": "pages/alerts.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

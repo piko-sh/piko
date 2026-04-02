@@ -1,0 +1,26 @@
+<template>
+  <table>
+    <thead>
+      <tr><th>Header 1</th><th>Header 2</th><th>Header 3</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Cell 1</td><td>Cell 2</td><td>Cell 3</td></tr>
+      <tr><td>Cell 4</td><td>Cell 5</td><td>Cell 6</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="3">Footer</td></tr>
+    </tfoot>
+  </table>
+  <form>
+    <fieldset>
+      <legend>Personal Info</legend>
+      <label for="fname">First name:</label>
+      <input id="fname" type="text" />
+      <label for="lname">Last name:</label>
+      <input id="lname" type="text" />
+      <select id="country"><option value="uk">United Kingdom</option><option value="us">United States</option></select>
+      <textarea cols="50" id="bio" rows="4">Biography</textarea>
+      <button type="submit">Submit</button>
+    </fieldset>
+  </form>
+</template>

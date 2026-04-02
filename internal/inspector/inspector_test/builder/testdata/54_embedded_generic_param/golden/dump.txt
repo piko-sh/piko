@@ -1,0 +1,51 @@
+--- PACKAGE: testcase_54_embedded_generic_param ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 54_embedded_generic_param/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type MyType
+    - Defined In:      54_embedded_generic_param/src/main.go
+    - TypeString:      main.MyType
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (T) DoWork          func() string
+
+  > type StringWorker
+    - Defined In:      54_embedded_generic_param/src/main.go
+    - TypeString:      main.StringWorker
+    - Underlying:      struct{main.Worker[string]}
+    - Stringability:   0
+    - Fields:
+      - Worker               main.Worker[string] (embedded)
+        (Canonical Package: testcase_54_embedded_generic_param)
+    - Methods:
+      - func (T) Process         func() string
+        (Promoted from: testcase_54_embedded_generic_param.Worker)
+
+  > type Worker
+    - Defined In:      54_embedded_generic_param/src/main.go
+    - TypeString:      main.Worker[T]
+    - Underlying:      struct{Data T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Data                 T
+    - Methods:
+      - func (T) Process         func() T
+
+  > type Wrapper
+    - Defined In:      54_embedded_generic_param/src/main.go
+    - TypeString:      main.Wrapper[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+
+[Package-Level Functions]
+  (none)

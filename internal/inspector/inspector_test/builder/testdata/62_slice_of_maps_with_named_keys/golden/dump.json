@@ -1,0 +1,128 @@
+{
+  "packages": {
+    "testcase_62_slice_of_maps_with_named_keys": {
+      "file_imports": {
+        "62_slice_of_maps_with_named_keys/src/main.go": {
+          "keys": "testcase_62_slice_of_maps_with_named_keys/keys"
+        }
+      },
+      "named_types": {
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_62_slice_of_maps_with_named_keys",
+          "defined_in_file_path": "62_slice_of_maps_with_named_keys/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{History []map[keys.RequestKey]int}",
+          "fields": [
+            {
+              "definition_file_path": "62_slice_of_maps_with_named_keys/src/main.go",
+              "declaring_pkg_path": "testcase_62_slice_of_maps_with_named_keys",
+              "pkg_path": "testcase_62_slice_of_maps_with_named_keys/keys",
+              "underlying_type_string": "[]map[keys.RequestKey]int",
+              "declaring_type_name": "Response",
+              "name": "History",
+              "type_string": "[]map[keys.RequestKey]int",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "map[keys.RequestKey]int",
+                  "role": "element",
+                  "underlying_type_string": "map[keys.RequestKey]int",
+                  "pkg_path": "testcase_62_slice_of_maps_with_named_keys/keys",
+                  "composite_parts": [
+                    {
+                      "type": "key",
+                      "type_string": "keys.RequestKey",
+                      "role": "key",
+                      "underlying_type_string": "struct{ID string}",
+                      "pkg_path": "testcase_62_slice_of_maps_with_named_keys/keys",
+                      "index": 0,
+                      "is_internal_type": false,
+                      "is_underlying_internal_type": false
+                    },
+                    {
+                      "type": "value",
+                      "type_string": "int",
+                      "role": "value",
+                      "underlying_type_string": "int",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_underlying_primitive": true
+                    }
+                  ],
+                  "composite_type": 1,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 2,
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_62_slice_of_maps_with_named_keys",
+      "name": "main"
+    },
+    "testcase_62_slice_of_maps_with_named_keys/keys": {
+      "file_imports": {
+        "62_slice_of_maps_with_named_keys/src/keys/key.go": {}
+      },
+      "named_types": {
+        "RequestKey": {
+          "name": "RequestKey",
+          "package_path": "testcase_62_slice_of_maps_with_named_keys/keys",
+          "defined_in_file_path": "62_slice_of_maps_with_named_keys/src/keys/key.go",
+          "type_string": "keys.RequestKey",
+          "underlying_type_string": "struct{ID string}",
+          "fields": [
+            {
+              "definition_file_path": "62_slice_of_maps_with_named_keys/src/keys/key.go",
+              "declaring_pkg_path": "testcase_62_slice_of_maps_with_named_keys/keys",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "declaring_type_name": "RequestKey",
+              "name": "ID",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 21,
+              "definition_column": 25,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 21,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_62_slice_of_maps_with_named_keys/keys",
+      "name": "keys"
+    }
+  },
+  "file_to_package": {
+    "62_slice_of_maps_with_named_keys/src/keys/key.go": "testcase_62_slice_of_maps_with_named_keys/keys",
+    "62_slice_of_maps_with_named_keys/src/main.go": "testcase_62_slice_of_maps_with_named_keys"
+  }
+}

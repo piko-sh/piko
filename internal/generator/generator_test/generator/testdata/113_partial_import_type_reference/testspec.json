@@ -1,0 +1,6 @@
+{
+  "description": "Tests that exported type definitions (structs) from imported partials can be referenced.",
+  "packageName": "partial_import_type_reference_test",
+  "isPage": true,
+  "shouldError": false
+}

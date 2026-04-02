@@ -1,0 +1,7 @@
+{
+  "description": "Tests that user-defined packages (pkg/domain) can be imported and used in interpreted mode.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

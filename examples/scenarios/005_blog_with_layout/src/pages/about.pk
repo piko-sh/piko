@@ -1,0 +1,243 @@
+<!-- About page using the shared layout. piko:img renders optimised images;
+     for local paths it transforms them to served asset URLs.
+     See https://piko.sh/docs/guide/pk-templates -->
+<template>
+  <div id="app">
+    <piko:partial is="blog_layout"
+      :server.title="state.Title"
+      :server.description="state.Description"
+      server.current-page="about"
+    >
+
+      <section class="about-intro">
+        <p>We are a small team of developers passionate about building tools that make web development simpler and more enjoyable. Piko is our answer to the complexity of modern frontend toolchains.</p>
+      </section>
+
+      <section class="team" id="team-section">
+        <h2>Our Team</h2>
+        <div class="team-grid">
+          <div class="team-member" p-for="(i, member) in state.Members" p-key="member.Name">
+            <piko:img
+              :src="member.AvatarURL"
+              :alt="member.Name"
+              class="member-avatar"
+            ></piko:img>
+            <h3 class="member-name" p-text="member.Name"></h3>
+            <p class="member-role" p-text="member.Role"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="values">
+        <h2>What We Believe</h2>
+        <div class="value-list">
+          <div class="value-item" p-for="(i, value) in state.Values" p-key="value.Title">
+            <piko:svg src="@/lib/icons/arrow-right.svg" class="value-icon"></piko:svg>
+            <div>
+              <h3 p-text="value.Title"></h3>
+              <p p-text="value.Body"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div p-slot="sidebar" class="sidebar-content">
+        <div class="sidebar-card">
+          <h3>Get Involved</h3>
+          <p>Piko is open source. Contributions, feedback, and bug reports are always welcome.</p>
+          <piko:a href="/contact" class="sidebar-link">Contact us</piko:a>
+        </div>
+      </div>
+
+    </piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko"
+  blog_layout "testmodule/partials/layout.pk"
+)
+
+type Member struct {
+  Name      string
+  Role      string
+  AvatarURL string
+}
+
+type Value struct {
+  Title string
+  Body  string
+}
+
+type Response struct {
+  Title       string
+  Description string
+  Members     []Member
+  Values      []Value
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+  return Response{
+    Title:       "About Us",
+    Description: "Meet the team behind Piko and learn what drives us.",
+    Members: []Member{
+      {
+        Name:      "Alice Williams",
+        Role:      "Lead Developer",
+        AvatarURL: "https://placehold.co/120x120/dbeafe/1d4ed8?text=AJ",
+      },
+      {
+        Name:      "Bob Chen",
+        Role:      "Core Contributor",
+        AvatarURL: "https://placehold.co/120x120/d1fae5/065f46?text=BC",
+      },
+      {
+        Name:      "Carol Davies",
+        Role:      "Documentation Lead",
+        AvatarURL: "https://placehold.co/120x120/fef3c7/92400e?text=CD",
+      },
+    },
+    Values: []Value{
+      {Title: "Simplicity first", Body: "Every feature should reduce complexity, not add to it."},
+      {Title: "Server and client, together", Body: "Server-side rendering by default, client-side interactivity when you need it."},
+      {Title: "Go-native", Body: "Built for Go developers who want a productive web framework without leaving the ecosystem."},
+    },
+  }, piko.Metadata{
+    Title:       "About - Piko Blog",
+    Description: "Meet the team behind the Piko web framework.",
+  }, nil
+}
+</script>
+
+<style>
+  #app {
+    margin: 0;
+    padding: 0;
+  }
+
+  .about-intro {
+    margin-bottom: 2rem;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+
+  .team h2,
+  .values h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: #111827;
+  }
+
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .team-member {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+  }
+
+  .member-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-bottom: 0.75rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .member-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  .member-role {
+    font-size: 0.8125rem;
+    color: #6b7280;
+  }
+
+  .value-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .value-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .value-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #2563eb;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .value-item h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  .value-item p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  .sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .sidebar-card {
+    background-color: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  .sidebar-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #111827;
+  }
+
+  .sidebar-card p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+  }
+
+  .sidebar-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .sidebar-link:hover {
+    text-decoration: underline;
+  }
+</style>

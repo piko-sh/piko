@@ -1,0 +1,28 @@
+{
+    "description": "Checkbox checked state, radio checked state, and button disabled state morph correctly",
+    "options": {
+        "childrenOnly": true
+    },
+    "assertions": [
+        {
+            "selector": "input[type='checkbox']",
+            "attributes": { "checked": null },
+            "description": "Checkbox not checked after morph (checked attribute removed)"
+        },
+        {
+            "selector": "input[type='radio']",
+            "attributes": { "checked": null },
+            "description": "Radio not checked after morph (checked attribute removed)"
+        },
+        {
+            "selector": "button.submit-btn",
+            "attributes": { "disabled": null },
+            "description": "Button not disabled after morph (disabled attribute removed)"
+        },
+        {
+            "selector": "button.submit-btn",
+            "textContent": "Submit",
+            "description": "Button text preserved"
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies vertical-align in table cells (top, middle, bottom).",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,24 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="layout-wrapper" [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk PARTIAL InvKey: layout_1745aa65 Package: partials_layout_ee037d9a InvPackage: main_aaf9a2e0]>
+  <header [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    "Layout Header"
+  </header>
+  <main [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <div class="child-component" id="child-component" :environment_id="state.EnvironmentID" {P: state.EnvironmentID, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk PARTIAL InvKey: child_layout_1745aa65_environment_id_state_environmentid_989e703c Package: partials_child_d247007e InvPackage: main_aaf9a2e0]>
+      <span [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk]>
+        <RichText>
+          "Environment: "
+          {{ state.DisplayID }}
+        </RichText>
+      </span>
+    </div>
+  </main>
+  <footer [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    "Layout Footer"
+  </footer>
+</div>
+
+--- END AST DUMP ---
+*/

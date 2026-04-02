@@ -1,0 +1,110 @@
+{
+  "packages": {
+    "testcase_11_interfaces": {
+      "file_imports": {
+        "11_interfaces/src/main.go": {
+          "io": "io"
+        }
+      },
+      "named_types": {
+        "Logger": {
+          "name": "Logger",
+          "package_path": "testcase_11_interfaces",
+          "defined_in_file_path": "11_interfaces/src/main.go",
+          "type_string": "main.Logger",
+          "underlying_type_string": "interface{Log(message string) error}",
+          "fields": null,
+          "methods": [
+            {
+              "name": "Log",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "testcase_11_interfaces",
+              "declaring_type_name": "Logger",
+              "definition_file_path": "11_interfaces/src/main.go",
+              "signature": {
+                "params": [
+                  "string"
+                ],
+                "param_names": [
+                  "message"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 25,
+              "definition_column": 2,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        },
+        "Service": {
+          "name": "Service",
+          "package_path": "testcase_11_interfaces",
+          "defined_in_file_path": "11_interfaces/src/main.go",
+          "type_string": "main.Service",
+          "underlying_type_string": "interface{main.Logger; io.Closer}",
+          "fields": null,
+          "methods": [
+            {
+              "name": "Close",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "io",
+              "declaring_type_name": "Closer",
+              "definition_file_path": "$GOROOT/src/io/io.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 108,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Log",
+              "type_string": "error",
+              "underlying_type_string": "interface{Error() string}",
+              "declaring_pkg_path": "testcase_11_interfaces",
+              "declaring_type_name": "Logger",
+              "definition_file_path": "11_interfaces/src/main.go",
+              "signature": {
+                "params": [
+                  "string"
+                ],
+                "param_names": [
+                  "message"
+                ],
+                "results": [
+                  "error"
+                ]
+              },
+              "definition_line": 25,
+              "definition_column": 2,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 29,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_11_interfaces",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "11_interfaces/src/main.go": "testcase_11_interfaces"
+  }
+}

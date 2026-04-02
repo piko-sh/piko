@@ -1,0 +1,1 @@
+{"description": "Transitive data-access propagation: function calling VOLATILE inherits non-read-only, function calling IMMUTABLE stays read-only"}

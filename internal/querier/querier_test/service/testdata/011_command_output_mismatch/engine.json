@@ -1,0 +1,48 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "uuid": { "category": "uuid", "engineName": "uuid" },
+    "text": { "category": "text", "engineName": "text" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, name FROM users",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "users", "columnName": "id" },
+          { "name": "name", "tableAlias": "users", "columnName": "name" }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "users" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    },
+    {
+      "sql": "INSERT INTO users (name) VALUES ($1)",
+      "rawAnalysis": {
+        "outputColumns": [],
+        "parameterReferences": [
+          { "number": 1, "context": "assignment", "castType": { "category": "text", "engineName": "text" } }
+        ],
+        "fromTables": [],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

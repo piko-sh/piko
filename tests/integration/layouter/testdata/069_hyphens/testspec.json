@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that hyphens property controls soft hyphen breaking behaviour.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,28 @@
+//go:build e2e
+
+package e2e
+
+import (
+	"fmt"
+	"os"
+	"testing"
+
+	"piko.sh/piko/wdk/browser"
+)
+
+func TestMain(m *testing.M) {
+	harness := browser.NewHarness(
+		// Point to project root (one level up from e2e/)
+		browser.WithProjectDir(".."),
+		browser.WithServerCommand("go", "run", "./cmd/main"),
+	)
+
+	if err := harness.Setup(); err != nil {
+		fmt.Fprintf(os.Stderr, "E2E setup failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	code := m.Run()
+	harness.Cleanup()
+	os.Exit(code)
+}

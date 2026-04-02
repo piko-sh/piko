@@ -1,0 +1,4 @@
+(() => {
+    const value = {{jsRaw .StorageType}}.getItem({{jsStr .Key}});
+    return { value: value, exists: value !== null };
+})()

@@ -1,0 +1,6 @@
+{
+  "title": "Shipping Notification",
+  "description": "Order shipped notification with tracking and delivery details",
+  "metadata": {"title": "Your Order Has Shipped!"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

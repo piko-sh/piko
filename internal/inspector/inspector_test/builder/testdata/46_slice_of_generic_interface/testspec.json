@@ -1,0 +1,20 @@
+{
+  "description": "Tests serialisation of a field that is a slice of an instantiated generic interface.",
+  "moduleName": "testcase_46_slice_of_generic_interface",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_46_slice_of_generic_interface"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Printable' interface should be serialised with its type parameter.",
+      "select": "packages.testcase_46_slice_of_generic_interface.named_types.Printable.type_params.0",
+      "expect": "T"
+    },
+    {
+      "description": "The 'Content' field should have the correct complex TypeString.",
+      "select": "packages.testcase_46_slice_of_generic_interface.named_types.Document.fields.0.type_string",
+      "expect": "[]main.Printable[string]"
+    }
+  ]
+}

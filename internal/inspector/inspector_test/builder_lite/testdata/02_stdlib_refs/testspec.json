@@ -1,0 +1,27 @@
+{
+  "description": "Tests extraction of structs with stdlib type references (time.Time).",
+  "moduleName": "testcase_lite_02",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "The 'Event' type should be present",
+      "select": "packages.testcase_lite_02.named_types.Event.name",
+      "expect": "Event"
+    },
+    {
+      "description": "The 'Created' field should reference time.Time",
+      "select": "packages.testcase_lite_02.named_types.Event.fields.0.name",
+      "expect": "Created"
+    },
+    {
+      "description": "The 'Created' field type string should be 'time.Time'",
+      "select": "packages.testcase_lite_02.named_types.Event.fields.0.type_string",
+      "expect": "time.Time"
+    },
+    {
+      "description": "The 'Created' field pkg_path should be 'time'",
+      "select": "packages.testcase_lite_02.named_types.Event.fields.0.pkg_path",
+      "expect": "time"
+    }
+  ]
+}

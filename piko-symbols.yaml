@@ -1,0 +1,42 @@
+# piko-symbols.yaml - Symbol extraction manifest for the bytecode interpreter.
+#
+# Lists the Go stdlib packages whose symbols are vendored into the
+# interpreter for native-speed access via reflect.Value.Call().
+#
+# Regenerate with: make generate-interp-symbols
+
+package: driven_system_symbols
+output: internal/interp/interp_adapters/driven_system_symbols
+
+packages:
+  - bytes
+  - context
+  - encoding/base64
+  - encoding/json
+  - errors
+  - fmt
+  - html
+  - io
+  - math
+  - os
+  - path
+  - regexp
+  - sort
+  - strconv
+  - strings
+  - sync
+  - time
+  - slices:
+      element_types: [string, int, int64, float64, byte, bool]
+      functions:
+        BinarySearch: [string, int, int64, float64, byte]
+        Compare: [string, int, int64, float64, byte]
+        IsSorted: [string, int, int64, float64, byte]
+        Max: [string, int, int64, float64, byte]
+        Min: [string, int, int64, float64, byte]
+        Sort: [string, int, int64, float64, byte]
+  - maps:
+      key_types: [string, int]
+      value_types: [string, int, float64, bool, any]
+  - cmp:
+      element_types: [string, int, int64, float64, byte]

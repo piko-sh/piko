@@ -1,0 +1,7 @@
+{
+    "description": "Verifies HTML entities render correctly: &nbsp; prevents line breaks, &amp; &lt; &gt; produce correct characters, and numeric entities decode properly.",
+    "requestURL": "/main",
+    "tolerance": 5.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

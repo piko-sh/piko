@@ -1,0 +1,1 @@
+{"description": "Box shadow property parsing. Verifies box-shadow is parsed and stored in the computed style."}

@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "profiles.sql",
+    "Message": "Q001: unknown column \"id\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 5,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

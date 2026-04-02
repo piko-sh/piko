@@ -1,0 +1,210 @@
+go 1.26.1
+
+use (
+	.
+	./cmd/asmgen
+	./cmd/generate_dal
+	./cmd/lsp
+	./cmd/piko
+	./cmd/stdlib-generator
+	./cmd/wasm
+	./tests/benchmarks/orchestrator
+	./tests/benchmarks/registry
+	./tests/integration/asset_pipeline
+	./tests/integration/cache
+	./tests/integration/cache_rendering
+	./tests/integration/compiler_browser
+	./tests/integration/e2e_browser
+	./tests/integration/email
+	./tests/integration/interpreted_cache_invalidation
+	./tests/integration/interpreted_runner
+	./tests/integration/layouter
+	./tests/integration/llm
+	./tests/integration/markdown_collection
+	./tests/integration/orchestrator_pipeline
+	./tests/integration/pdf
+	./tests/integration/persistence_sqlite
+	./tests/integration/pikotest_meta
+	./tests/integration/pkc_serving
+	./tests/integration/querier_sqlite
+	./tests/integration/querier_sqlite_cgo
+	./tests/integration/registry
+	./tests/integration/storage
+	./tests/integration/testutil
+	./tests/integration/wasm_runner
+	./tests/testutil
+	./wdk/browser
+	./wdk/cache/cache_linguistics
+	./wdk/cache/cache_provider_redis
+	./wdk/cache/cache_provider_redis_cluster
+	./wdk/cache/cache_provider_valkey
+	./wdk/cache/cache_provider_valkey_cluster
+	./wdk/config/config_resolver_aws
+	./wdk/config/config_resolver_azure
+	./wdk/config/config_resolver_gcp
+	./wdk/config/config_resolver_kubernetes
+	./wdk/config/config_resolver_vault
+	./wdk/crypto/crypto_provider_aws_kms
+	./wdk/crypto/crypto_provider_gcp_kms
+	./wdk/db/db_catalogue_postgres
+	./wdk/db/db_catalogue_sqlite
+	./wdk/db/db_driver_d1
+	./wdk/db/db_driver_sqlite_cgo
+	./wdk/db/db_driver_sqlite_nocgo
+	./wdk/db/db_emitter_pgx
+	./wdk/db/db_engine_cockroachdb
+	./wdk/db/db_engine_duckdb
+	./wdk/db/db_engine_mariadb
+	./wdk/db/db_engine_mysql
+	./wdk/db/db_engine_postgres
+	./wdk/db/db_engine_sqlite
+	./wdk/email/email_provider_gmail
+	./wdk/email/email_provider_mailchimp_transactional
+	./wdk/email/email_provider_mailgun
+	./wdk/email/email_provider_postmark
+	./wdk/email/email_provider_sendgrid
+	./wdk/email/email_provider_ses
+	./wdk/email/email_provider_smtp
+	./wdk/events/events_provider_nats
+	./wdk/highlight/highlight_chroma
+	./wdk/interp/interp_provider_piko
+	./wdk/json/json_provider_sonic
+
+	./wdk/linguistics/linguistics_language_dutch
+	./wdk/linguistics/linguistics_language_english
+	./wdk/linguistics/linguistics_language_french
+	./wdk/linguistics/linguistics_language_german
+	./wdk/linguistics/linguistics_language_hungarian
+	./wdk/linguistics/linguistics_language_mock
+	./wdk/linguistics/linguistics_language_norwegian
+	./wdk/linguistics/linguistics_language_russian
+	./wdk/linguistics/linguistics_language_spanish
+	./wdk/linguistics/linguistics_language_swedish
+	./wdk/linguistics/linguistics_phonetic_dutch
+	./wdk/linguistics/linguistics_phonetic_english
+	./wdk/linguistics/linguistics_phonetic_french
+	./wdk/linguistics/linguistics_phonetic_german
+	./wdk/linguistics/linguistics_phonetic_hungarian
+	./wdk/linguistics/linguistics_phonetic_mock
+	./wdk/linguistics/linguistics_phonetic_norwegian
+	./wdk/linguistics/linguistics_phonetic_russian
+	./wdk/linguistics/linguistics_phonetic_spanish
+	./wdk/linguistics/linguistics_phonetic_swedish
+	./wdk/linguistics/linguistics_stemmer_dutch
+	./wdk/linguistics/linguistics_stemmer_english
+	./wdk/linguistics/linguistics_stemmer_french
+	./wdk/linguistics/linguistics_stemmer_german
+	./wdk/linguistics/linguistics_stemmer_hungarian
+	./wdk/linguistics/linguistics_stemmer_mock
+	./wdk/linguistics/linguistics_stemmer_norwegian
+	./wdk/linguistics/linguistics_stemmer_russian
+	./wdk/linguistics/linguistics_stemmer_spanish
+	./wdk/linguistics/linguistics_stemmer_swedish
+	./wdk/linguistics/linguistics_stopwords_dutch
+	./wdk/linguistics/linguistics_stopwords_english
+	./wdk/linguistics/linguistics_stopwords_french
+	./wdk/linguistics/linguistics_stopwords_german
+	./wdk/linguistics/linguistics_stopwords_hungarian
+	./wdk/linguistics/linguistics_stopwords_mock
+	./wdk/linguistics/linguistics_stopwords_norwegian
+	./wdk/linguistics/linguistics_stopwords_russian
+	./wdk/linguistics/linguistics_stopwords_spanish
+	./wdk/linguistics/linguistics_stopwords_swedish
+	./wdk/llm/llm_provider_anthropic
+	./wdk/llm/llm_provider_gemini
+	./wdk/llm/llm_provider_grok
+	./wdk/llm/llm_provider_mistral
+	./wdk/llm/llm_provider_ollama
+	./wdk/llm/llm_provider_openai
+	./wdk/llm/llm_provider_zoltai
+	./wdk/logger/logger_integration_otel_grpc
+	./wdk/logger/logger_integration_otel_http
+	./wdk/logger/logger_integration_sentry
+	./wdk/logger/logger_otel_sdk
+	./wdk/markdown/markdown_provider_goldmark
+	./wdk/media/image_provider_imaging
+	./wdk/media/image_provider_vips
+	./wdk/media/video_provider_astiav
+	./wdk/metrics/metrics_exporter_prometheus
+	./wdk/monitoring/monitoring_api
+	./wdk/monitoring/monitoring_transport_grpc
+	./wdk/storage/storage_provider_gcs
+	./wdk/storage/storage_provider_r2
+	./wdk/storage/storage_provider_s3
+	./wdk/storage/storage_transformer_gzip
+	./wdk/storage/storage_transformer_zstd
+	./wdk/validation/validation_provider_playground
+)
+
+replace (
+	piko.sh/piko v0.0.0 => .
+	piko.sh/piko/cmd/asmgen v0.0.0 => ./cmd/asmgen
+	piko.sh/piko/cmd/generate_dal v0.0.0 => ./cmd/generate_dal
+	piko.sh/piko/cmd/piko v0.0.0 => ./cmd/piko
+	piko.sh/piko/cmd/scrape v0.0.0 => ./cmd/scrape
+	piko.sh/piko/cmd/stdlib-generator v0.0.0 => ./cmd/stdlib-generator
+	piko.sh/piko/tests/integration/testutil v0.0.0 => ./tests/integration/testutil
+	piko.sh/piko/tests/testutil v0.0.0 => ./tests/testutil
+	piko.sh/piko/wdk/browser v0.0.0 => ./wdk/browser
+	piko.sh/piko/wdk/cache/cache_linguistics v0.0.0 => ./wdk/cache/cache_linguistics
+	piko.sh/piko/wdk/cache/cache_provider_redis v0.0.0 => ./wdk/cache/cache_provider_redis
+	piko.sh/piko/wdk/cache/cache_provider_redis_cluster v0.0.0 => ./wdk/cache/cache_provider_redis_cluster
+	piko.sh/piko/wdk/cache/cache_provider_valkey v0.0.0 => ./wdk/cache/cache_provider_valkey
+	piko.sh/piko/wdk/cache/cache_provider_valkey_cluster v0.0.0 => ./wdk/cache/cache_provider_valkey_cluster
+	piko.sh/piko/wdk/db/db_catalogue_postgres v0.0.0 => ./wdk/db/db_catalogue_postgres
+	piko.sh/piko/wdk/db/db_catalogue_sqlite v0.0.0 => ./wdk/db/db_catalogue_sqlite
+	piko.sh/piko/wdk/db/db_emitter_pgx v0.0.0 => ./wdk/db/db_emitter_pgx
+	piko.sh/piko/wdk/db/db_engine_cockroachdb v0.0.0 => ./wdk/db/db_engine_cockroachdb
+	piko.sh/piko/wdk/db/db_engine_duckdb v0.0.0 => ./wdk/db/db_engine_duckdb
+	piko.sh/piko/wdk/db/db_engine_mariadb v0.0.0 => ./wdk/db/db_engine_mariadb
+	piko.sh/piko/wdk/db/db_engine_mysql v0.0.0 => ./wdk/db/db_engine_mysql
+	piko.sh/piko/wdk/db/db_engine_postgres v0.0.0 => ./wdk/db/db_engine_postgres
+	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0 => ./wdk/db/db_engine_sqlite
+	piko.sh/piko/wdk/events/events_provider_nats v0.0.0 => ./wdk/events/events_provider_nats
+	piko.sh/piko/wdk/interp/interp_provider_piko v0.0.0 => ./wdk/interp/interp_provider_piko
+	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0 => ./wdk/json/json_provider_sonic
+
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0 => ./wdk/linguistics/linguistics_phonetic_dutch
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_english v0.0.0 => ./wdk/linguistics/linguistics_phonetic_english
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_french v0.0.0 => ./wdk/linguistics/linguistics_phonetic_french
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_german v0.0.0 => ./wdk/linguistics/linguistics_phonetic_german
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_hungarian v0.0.0 => ./wdk/linguistics/linguistics_phonetic_hungarian
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_mock v0.0.0 => ./wdk/linguistics/linguistics_phonetic_mock
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_norwegian v0.0.0 => ./wdk/linguistics/linguistics_phonetic_norwegian
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_russian v0.0.0 => ./wdk/linguistics/linguistics_phonetic_russian
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_spanish v0.0.0 => ./wdk/linguistics/linguistics_phonetic_spanish
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_swedish v0.0.0 => ./wdk/linguistics/linguistics_phonetic_swedish
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0 => ./wdk/linguistics/linguistics_stemmer_dutch
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_english v0.0.0 => ./wdk/linguistics/linguistics_stemmer_english
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_french v0.0.0 => ./wdk/linguistics/linguistics_stemmer_french
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_german v0.0.0 => ./wdk/linguistics/linguistics_stemmer_german
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_hungarian v0.0.0 => ./wdk/linguistics/linguistics_stemmer_hungarian
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_mock v0.0.0 => ./wdk/linguistics/linguistics_stemmer_mock
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_norwegian v0.0.0 => ./wdk/linguistics/linguistics_stemmer_norwegian
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_russian v0.0.0 => ./wdk/linguistics/linguistics_stemmer_russian
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_spanish v0.0.0 => ./wdk/linguistics/linguistics_stemmer_spanish
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_swedish v0.0.0 => ./wdk/linguistics/linguistics_stemmer_swedish
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0 => ./wdk/linguistics/linguistics_stopwords_dutch
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 => ./wdk/linguistics/linguistics_stopwords_english
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 => ./wdk/linguistics/linguistics_stopwords_french
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_german v0.0.0 => ./wdk/linguistics/linguistics_stopwords_german
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_hungarian v0.0.0 => ./wdk/linguistics/linguistics_stopwords_hungarian
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_mock v0.0.0 => ./wdk/linguistics/linguistics_stopwords_mock
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_norwegian v0.0.0 => ./wdk/linguistics/linguistics_stopwords_norwegian
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_russian v0.0.0 => ./wdk/linguistics/linguistics_stopwords_russian
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_spanish v0.0.0 => ./wdk/linguistics/linguistics_stopwords_spanish
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_swedish v0.0.0 => ./wdk/linguistics/linguistics_stopwords_swedish
+	piko.sh/piko/wdk/llm/llm_provider_grok v0.0.0 => ./wdk/llm/llm_provider_grok
+	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0 => ./wdk/logger/logger_integration_otel_grpc
+	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0 => ./wdk/logger/logger_integration_otel_http
+	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0 => ./wdk/logger/logger_otel_sdk
+	piko.sh/piko/wdk/markdown/markdown_provider_goldmark v0.0.0 => ./wdk/markdown/markdown_provider_goldmark
+	piko.sh/piko/wdk/media/image_provider_imaging v0.0.0 => ./wdk/media/image_provider_imaging
+	piko.sh/piko/wdk/media/image_provider_vips v0.0.0 => ./wdk/media/image_provider_vips
+	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0 => ./wdk/monitoring/monitoring_api
+	piko.sh/piko/wdk/monitoring/monitoring_transport_grpc v0.0.0 => ./wdk/monitoring/monitoring_transport_grpc
+	piko.sh/piko/wdk/storage/storage_provider_s3 v0.0.0 => ./wdk/storage/storage_provider_s3
+	piko.sh/piko/wdk/storage/storage_transformer_gzip v0.0.0 => ./wdk/storage/storage_transformer_gzip
+	piko.sh/piko/wdk/storage/storage_transformer_zstd v0.0.0 => ./wdk/storage/storage_transformer_zstd
+	piko.sh/piko/wdk/validation/validation_provider_playground v0.0.0 => ./wdk/validation/validation_provider_playground
+)

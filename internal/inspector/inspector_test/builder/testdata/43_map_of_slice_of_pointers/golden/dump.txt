@@ -1,0 +1,48 @@
+--- PACKAGE: testcase_43_map_of_slice_of_pointers ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 43_map_of_slice_of_pointers/src/main.go
+    - import "models"             -> testcase_43_map_of_slice_of_pointers/models
+
+[Named Types]
+  > type Response
+    - Defined In:      43_map_of_slice_of_pointers/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{Groups map[string][]*models.User; GroupsInline map[string][]*models.User}
+    - Stringability:   0
+    - Fields:
+      - Groups               main.UserGroups
+        (Canonical Package: testcase_43_map_of_slice_of_pointers/models)
+      - GroupsInline         map[string][]*models.User
+        (Canonical Package: testcase_43_map_of_slice_of_pointers/models)
+
+  > type alias UserGroups
+    - Defined In:      43_map_of_slice_of_pointers/src/main.go
+    - TypeString:      map[string][]*models.User
+    - Underlying:      map[string][]*models.User
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_43_map_of_slice_of_pointers/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 43_map_of_slice_of_pointers/src/models/user.go
+    (no imports in this file)
+
+[Named Types]
+  > type User
+    - Defined In:      43_map_of_slice_of_pointers/src/models/user.go
+    - TypeString:      models.User
+    - Underlying:      struct{Name string}
+    - Stringability:   0
+    - Fields:
+      - Name                 string
+
+[Package-Level Functions]
+  (none)

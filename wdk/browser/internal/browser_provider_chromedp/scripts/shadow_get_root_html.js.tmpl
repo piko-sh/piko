@@ -1,0 +1,5 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return null;
+    return host.shadowRoot.innerHTML;
+})()

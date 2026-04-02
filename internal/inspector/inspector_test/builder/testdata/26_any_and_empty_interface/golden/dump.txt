@@ -1,0 +1,27 @@
+--- PACKAGE: testcase_26_any_and_empty_interface ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 26_any_and_empty_interface/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Container
+    - Defined In:      26_any_and_empty_interface/src/main.go
+    - TypeString:      main.Container
+    - Underlying:      struct{GenericValue any; OldValue interface{}}
+    - Stringability:   0
+    - Fields:
+      - GenericValue         main.Data
+        (Canonical Package: testcase_26_any_and_empty_interface)
+      - OldValue             interface{}
+
+  > type alias Data
+    - Defined In:      26_any_and_empty_interface/src/main.go
+    - TypeString:      any
+    - Underlying:      interface{}
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,16 @@
+<template>
+  <!-- Header comment -->
+  <div>
+    <!-- Inline comment -->
+    <p>Text</p>
+    <!-- Very long comment that exceeds the maximum inline comment length and should be placed on its own line for better readability -->
+    <ul>
+      <!-- List start -->
+      <li>Item 1</li>
+      <!-- Between items -->
+      <li>Item 2</li>
+      <!-- List end -->
+    </ul>
+  </div>
+  <!-- Footer comment -->
+</template>

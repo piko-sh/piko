@@ -1,0 +1,3 @@
+{
+  "description": "CTE in UPDATE FROM clause: a CTE used in an UPDATE ... FROM ... RETURNING should resolve columns from both the CTE and the target table."
+}

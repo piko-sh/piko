@@ -1,0 +1,12 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return false;
+    const event = new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        button: 2
+    });
+    el.dispatchEvent(event);
+    return true;
+})()

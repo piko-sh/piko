@@ -1,0 +1,12 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return false;
+    el.focus();
+    el.select();
+    el.value = '';
+    el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true, composed: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true, composed: true }));
+    return true;
+})()

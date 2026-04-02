@@ -1,0 +1,30 @@
+{
+  "description": "Tests that methods from an embedded struct are correctly promoted.",
+  "moduleName": "testcase_05_embedding_promotion",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_05_embedding_promotion"
+  ],
+  "assertions": [
+    {
+      "description": "The 'User' type should have one promoted method.",
+      "select": "packages.testcase_05_embedding_promotion.named_types.User.methods.0.name",
+      "expect": "GetID"
+    },
+    {
+      "description": "The promoted method's return type should be 'int'.",
+      "select": "packages.testcase_05_embedding_promotion.named_types.User.methods.0.type_string",
+      "expect": "int"
+    },
+    {
+      "description": "The declaring package path must point to the 'models' package.",
+      "select": "packages.testcase_05_embedding_promotion.named_types.User.methods.0.declaring_pkg_path",
+      "expect": "testcase_05_embedding_promotion/models"
+    },
+    {
+      "description": "The declaring type name must be 'Base'.",
+      "select": "packages.testcase_05_embedding_promotion.named_types.User.methods.0.declaring_type_name",
+      "expect": "Base"
+    }
+  ]
+}

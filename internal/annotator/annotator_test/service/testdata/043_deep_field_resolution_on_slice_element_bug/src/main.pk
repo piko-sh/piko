@@ -1,0 +1,56 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div>
+        <p id="target-field">{{ state.Root.Item.Ranges[0].To }}</p>
+        <p id="target-method">{{ state.Root.Item.Ranges[0].Charge.MustNumber() }}</p>
+
+        <div id="target-subexpressions"
+            :r="state.Root"
+            :i="state.Root.Item"
+            :s="state.Root.Item.Ranges"
+            :e="state.Root.Item.Ranges[0]"
+            :f="state.Root.Item.Ranges[0].To"
+            :c="state.Root.Item.Ranges[0].Charge"
+            :m="state.Root.Item.Ranges[0].Charge.MustNumber"
+        ></div>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko/internal/templater/templater_dto"
+  "testcase_43_deep_field_resolution_on_slice_element_bug/domain"
+  "testcase_43_deep_field_resolution_on_slice_element_bug/query"
+)
+
+type Response struct {
+    Root domain.RootModal
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Root: query.GetRootModal(),
+    }, piko.Metadata{}, nil
+}
+</script>

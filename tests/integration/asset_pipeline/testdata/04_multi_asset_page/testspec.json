@@ -1,0 +1,34 @@
+{
+  "description": "Multi-asset page: verifies SVG, PNG, and CSS artefacts all use consistent module-prefixed IDs",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/icons/menu.svg",
+      "expectedArtefactID": "testmodule/lib/icons/menu.svg"
+    },
+    {
+      "sourcePath": "src/lib/icons/close.svg",
+      "expectedArtefactID": "testmodule/lib/icons/close.svg"
+    },
+    {
+      "sourcePath": "src/lib/images/hero.png",
+      "expectedArtefactID": "testmodule/lib/images/hero.png"
+    },
+    {
+      "sourcePath": "src/lib/styles/theme.css",
+      "expectedArtefactID": "testmodule/lib/styles/theme.css"
+    }
+  ],
+  "renderChecks": [
+    {
+      "templateSrc": "testmodule/lib/icons/menu.svg",
+      "expectLookupID": "testmodule/lib/icons/menu.svg"
+    },
+    {
+      "templateSrc": "testmodule/lib/icons/close.svg",
+      "expectLookupID": "testmodule/lib/icons/close.svg"
+    }
+  ],
+  "requestURL": "/main",
+  "expectedStatus": 200
+}

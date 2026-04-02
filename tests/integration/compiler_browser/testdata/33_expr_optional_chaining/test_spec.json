@@ -1,0 +1,31 @@
+[
+  {
+    "action": "checkText",
+    "selector": "optional-chaining \u003e\u003e\u003e #p1",
+    "expected": "User Name: Alice"
+  },
+  {
+    "action": "checkText",
+    "selector": "optional-chaining \u003e\u003e\u003e #p2",
+    "expected": "Friend Name:"
+  },
+  {
+    "action": "checkText",
+    "selector": "optional-chaining \u003e\u003e\u003e #p3",
+    "expected": "City:"
+  },
+  {
+    "action": "click",
+    "selector": "optional-chaining \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "optional-chaining \u003e\u003e\u003e #p2",
+    "expected": "Friend Name: Bob"
+  },
+  {
+    "action": "checkText",
+    "selector": "optional-chaining \u003e\u003e\u003e #p3",
+    "expected": "City: New York"
+  }
+]

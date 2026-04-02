@@ -1,0 +1,123 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Search"
+            server.current-page="navigation/search">
+
+            <p class="demo-description">Search bars allow users to enter a query and find content. They support collapsed and expanded states.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- Collapsed (Default) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Collapsed (Default)</h3>
+                    <div class="demo-preview">
+                        <m3e-search></m3e-search>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-search&gt;&lt;/m3e-search&gt;</code></pre>
+                </section>
+
+                <!-- Expanded -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Expanded</h3>
+                    <div class="demo-preview">
+                        <m3e-search expanded></m3e-search>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-search expanded&gt;&lt;/m3e-search&gt;</code></pre>
+                </section>
+
+                <!-- Pre-filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Pre-filled</h3>
+                    <div class="demo-preview">
+                        <m3e-search expanded value="Material Design"></m3e-search>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-search expanded value="Material Design"&gt;&lt;/m3e-search&gt;</code></pre>
+                </section>
+
+                <!-- Custom Placeholder -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Custom Placeholder</h3>
+                    <div class="demo-preview">
+                        <m3e-search placeholder="Search components..."></m3e-search>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-search placeholder="Search components..."&gt;&lt;/m3e-search&gt;</code></pre>
+                </section>
+
+                <!-- With Trailing Icon -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Trailing Icon</h3>
+                    <div class="demo-preview">
+                        <m3e-search expanded>
+                            <piko:svg src="@/lib/icons/close.svg" fill="currentColor" width="24" height="24" slot="trailing"></piko:svg>
+                        </m3e-search>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-search expanded&gt;
+  &lt;piko:svg src="@/lib/icons/close.svg" slot="trailing"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-search&gt;</code></pre>
+                </section>
+
+                <!-- Docked Variant -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Docked Variant</h3>
+                    <div class="demo-preview">
+                        <m3e-search variant="docked" expanded></m3e-search>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-search variant="docked" expanded&gt;&lt;/m3e-search&gt;</code></pre>
+                </section>
+
+                <!-- With Suggestions -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Suggestions</h3>
+                    <div class="demo-preview">
+                        <m3e-search expanded>
+                            <div data-suggestion style="padding: 12px 16px; cursor: pointer;">Suggested result one</div>
+                            <div data-suggestion style="padding: 12px 16px; cursor: pointer;">Suggested result two</div>
+                            <div data-suggestion style="padding: 12px 16px; cursor: pointer;">Suggested result three</div>
+                        </m3e-search>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-search expanded&gt;
+  &lt;div data-suggestion style="padding: 12px 16px; cursor: pointer;"&gt;Suggested result one&lt;/div&gt;
+  &lt;div data-suggestion style="padding: 12px 16px; cursor: pointer;"&gt;Suggested result two&lt;/div&gt;
+  &lt;div data-suggestion style="padding: 12px 16px; cursor: pointer;"&gt;Suggested result three&lt;/div&gt;
+&lt;/m3e-search&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Search - M3E Components",
+    }, nil
+}
+</script>

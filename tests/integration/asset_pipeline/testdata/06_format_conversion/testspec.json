@@ -1,0 +1,72 @@
+{
+  "description": "Format conversion: JPEG source converted to multiple output formats (PNG, JPEG) with various sizes",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jupiter.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jupiter.jpg"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "png-400",
+      "capabilityName": "image-transform",
+      "params": {
+        "width": "400",
+        "height": "310",
+        "format": "png",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/png",
+        "outputNotEmpty": true,
+        "minSizeBytes": 1000,
+        "exactWidth": 400,
+        "exactHeight": 310
+      },
+      "goldenFile": "png-400x310.png"
+    },
+    {
+      "profileName": "jpeg-400",
+      "capabilityName": "image-transform",
+      "params": {
+        "width": "400",
+        "height": "310",
+        "format": "jpeg",
+        "quality": "90",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 1000,
+        "exactWidth": 400,
+        "exactHeight": 310
+      },
+      "goldenFile": "jpeg-400x310-q90.jpg"
+    },
+    {
+      "profileName": "jpeg-200-greyscale",
+      "capabilityName": "image-transform",
+      "params": {
+        "width": "200",
+        "height": "200",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "greyscale": "true"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 500,
+        "exactWidth": 200,
+        "exactHeight": 200
+      },
+      "goldenFile": "jpeg-200x200-greyscale.jpg"
+    }
+  ]
+}

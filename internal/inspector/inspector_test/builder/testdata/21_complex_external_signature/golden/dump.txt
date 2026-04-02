@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_21_complex_external_signature ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 21_complex_external_signature/src/main.go
+    - import "context"            -> context
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Processor
+    - Defined In:      21_complex_external_signature/src/main.go
+    - TypeString:      main.Processor
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (*T) ProcessRequest  func(context.Context, uuid.UUID) (uuid.UUID, error)
+
+[Package-Level Functions]
+  (none)

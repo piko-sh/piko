@@ -1,0 +1,7 @@
+{
+    "description": "Verifies inherit, initial, and unset CSS global keywords for both inheritable and non-inheritable properties.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

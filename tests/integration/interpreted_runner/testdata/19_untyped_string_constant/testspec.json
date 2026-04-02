@@ -1,0 +1,4 @@
+{
+  "description": "Tests that untyped string constants from registered packages (e.g. time.RFC1123) are resolvable via the pre-built types.Package loaded by go/importer.",
+  "requestURL": "/main"
+}

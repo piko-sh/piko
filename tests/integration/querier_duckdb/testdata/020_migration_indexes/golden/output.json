@@ -1,0 +1,25 @@
+{
+  "get_by_sku": {
+    "Category": "stationery",
+    "ID": 3,
+    "Name": "Notebook",
+    "Price": 499,
+    "Sku": "ST-001"
+  },
+  "list_by_category": [
+    {
+      "Category": "hardware",
+      "ID": 1,
+      "Name": "Widget",
+      "Price": 1999,
+      "Sku": "HW-001"
+    },
+    {
+      "Category": "hardware",
+      "ID": 2,
+      "Name": "Gadget",
+      "Price": 2999,
+      "Sku": "HW-002"
+    }
+  ]
+}

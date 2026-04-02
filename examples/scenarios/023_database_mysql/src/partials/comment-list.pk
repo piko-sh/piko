@@ -1,0 +1,282 @@
+<!--
+  Comment List Partial
+
+  This partial renders the list of comments for a single blog post and
+  provides the form to add new comments. It has a public template so it
+  can be reloaded independently after adding a comment without refreshing
+  the entire page.
+
+  The parent page mounts this with
+  <piko:partial is="comment_list" :server.post-id="state.Post.ID" />.
+  After adding a comment, the TypeScript calls
+  piko.partials.reload("comment-list") to re-render just this section.
+-->
+
+<template public>
+  <section class="comments-section">
+    <h2>Comments <span class="comment-count">({{ state.CommentCount }})</span></h2>
+
+    <div class="comment-list">
+      <div p-for="(i, comment) in state.Comments" p-key="comment.ID" class="comment">
+        <div class="comment-header">
+          <span class="comment-author" p-text="comment.AuthorName"></span>
+        </div>
+        <p class="comment-body" p-text="comment.Body"></p>
+      </div>
+    </div>
+
+    <p p-if="len(state.Comments) == 0" class="empty-message">No comments yet. Be the first to comment!</p>
+
+    <div class="comment-form-wrapper">
+      <h3>Leave a comment</h3>
+      <form id="comment-form" class="comment-form" p-on:submit.prevent="handleAddComment($event, $form, state.PostID)">
+        <input type="hidden" name="post_id" :value="state.PostID" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="author_name">Name</label>
+            <input
+              type="text"
+              id="author_name"
+              name="author_name"
+              placeholder="Your name"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="comment_body">Comment</label>
+          <textarea
+            id="comment_body"
+            name="body"
+            rows="3"
+            placeholder="Share your thoughts..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Post Comment</button>
+      </form>
+    </div>
+  </section>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/db"
+
+    "testmodule/db/generated"
+)
+
+// Props receives the post ID from the parent page. The query tag enables
+// fallback to the URL query parameter when the partial is reloaded
+// independently (i.e. not rendered by a parent page).
+type Props struct {
+    PostID int32 `prop:"post-id" query:"post-id" coerce:"true"`
+}
+
+// Comment holds the display data for a single comment.
+type Comment struct {
+    ID         int32  `json:"id"`
+    AuthorName string `json:"author_name"`
+    Body       string `json:"body"`
+}
+
+// Response is the data available as state.* in the template.
+type Response struct {
+    PostID       int32     `json:"post_id"`
+    Comments     []Comment `json:"comments"`
+    CommentCount int32     `json:"comment_count"`
+}
+
+// Render fetches comments for the given post from the database.
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    conn, err := db.GetDatabaseConnection("blog")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(conn)
+
+    // Fetch comments for this post.
+    comment_rows, err := queries.GetCommentsForPost(r.Context(), props.PostID)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    comment_list := make([]Comment, len(comment_rows))
+    for i, row := range comment_rows {
+        comment_list[i] = Comment{
+            ID:         row.ID,
+            AuthorName: row.AuthorName,
+            Body:       row.Body,
+        }
+    }
+
+    // Fetch comment count.
+    count_row, err := queries.GetCommentCount(r.Context(), props.PostID)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    return Response{
+        PostID:       props.PostID,
+        Comments:     comment_list,
+        CommentCount: count_row.Total,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+async function handleAddComment(_event: SubmitEvent, form: FormDataHandle, postId: number): Promise<void> {
+    try {
+        await action.comments.Create(form).call();
+        piko.partials.reload("comment-list", { args: { "post-id": postId } });
+    } catch (e: any) {
+        console.error('Failed to add comment:', e);
+    }
+}
+</script>
+
+<style>
+  .comments-section {
+    border-top: 2px solid #111;
+    padding-top: 2rem;
+  }
+
+  .comments-section h2 {
+    color: #111;
+    font-size: 1.375rem;
+    font-weight: 700;
+    margin: 0 0 1.25rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .comment-count {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  .comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .comment {
+    padding: 1.25rem 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .comment:last-child {
+    border-bottom: none;
+  }
+
+  .comment-header {
+    margin-bottom: 0.375rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .comment-author {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111;
+  }
+
+  .comment-body {
+    color: #4b5563;
+    margin: 0;
+    line-height: 1.6;
+    font-size: 0.9375rem;
+  }
+
+  .comment-form-wrapper {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .comment-form-wrapper h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    color: #111;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .comment-form {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+    color: #374151;
+    font-size: 0.8125rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: white;
+    transition: border-color 0.15s;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  .btn {
+    padding: 0.625rem 1.5rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: system-ui, -apple-system, sans-serif;
+    transition: background-color 0.15s;
+  }
+
+  .btn-primary {
+    background-color: #111;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #333;
+  }
+
+  .empty-message {
+    text-align: center;
+    color: #9ca3af;
+    margin: 2rem 0;
+    font-style: italic;
+  }
+</style>

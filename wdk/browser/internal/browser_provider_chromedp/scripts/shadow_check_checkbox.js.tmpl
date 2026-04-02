@@ -1,0 +1,12 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return false;
+    if (el.type !== 'checkbox' && el.type !== 'radio') return false;
+    if (!el.checked) {
+        el.checked = true;
+        el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+    }
+    return true;
+})()

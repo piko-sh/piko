@@ -1,0 +1,8 @@
+{
+  "description": "Query has an invalid piko.command value, producing a Q007 directive syntax error and a cascading Q008 for the missing valid command.",
+  "expectedDiagnosticCount": 2,
+  "diagnostics": [
+    { "severity": "error", "code": "Q007", "messageContains": "unknown query command" },
+    { "severity": "error", "code": "Q008", "messageContains": "piko.command" }
+  ]
+}

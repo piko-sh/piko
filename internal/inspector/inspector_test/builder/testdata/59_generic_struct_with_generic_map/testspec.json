@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of a generic struct containing a map field that uses the struct's generic parameters.",
+  "moduleName": "testcase_59_generic_struct_with_generic_map",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_59_generic_struct_with_generic_map"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Cache' type should have its generic parameters K and V.",
+      "select": "packages.testcase_59_generic_struct_with_generic_map.named_types.Cache.type_params",
+      "expect": ["K", "V"]
+    },
+    {
+      "description": "The 'Items' field's TypeString must correctly use the generic parameters 'K' and 'V'.",
+      "select": "packages.testcase_59_generic_struct_with_generic_map.named_types.Cache.fields.0.type_string",
+      "expect": "map[K]V"
+    },
+    {
+      "description": "The 'Items' field must be marked as a composite type.",
+      "select": "packages.testcase_59_generic_struct_with_generic_map.named_types.Cache.fields.0.composite_type",
+      "expect": 1
+    },
+    {
+      "description": "The 'Items' field must have composite parts with correct roles and empty pkg_path for generic parameters.",
+      "select": "packages.testcase_59_generic_struct_with_generic_map.named_types.Cache.fields.0.composite_parts.0.role",
+      "expect": "key"
+    }
+  ]
+}

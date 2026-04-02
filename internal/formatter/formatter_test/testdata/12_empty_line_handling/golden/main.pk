@@ -1,0 +1,34 @@
+<template>
+  <header>
+    <h1>Site Title</h1>
+  </header>
+  <main>
+    <div p-if="state.ShowContent">
+      <p>Content 1</p>
+    </div>
+    <div p-if="state.ShowMore">
+      <p>Content 2</p>
+    </div>
+    <section>
+      <h2>Section Title</h2>
+    </section>
+  </main>
+  <footer>
+    <p>Footer</p>
+  </footer>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+	ShowContent bool
+	ShowMore    bool
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{ShowContent: true, ShowMore: true}, piko.Metadata{}, nil
+}
+</script>

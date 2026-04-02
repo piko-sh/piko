@@ -1,0 +1,33 @@
+{
+  "description": "Validates that prop bindings on a LAYOUT invocation (not just a simple component) inside another layout's slot correctly resolve against the page's state.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#inner-layout",
+      "description": "The inner layout invocation should correctly resolve its :sidebar_visible prop against the page's state.",
+      "assert": {
+        "originalPackageAlias": "partials/inner_layout.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.ShowSidebar",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "#nested-child",
+      "description": "The child inside the inner layout should correctly resolve its :data prop against the page's state.",
+      "assert": {
+        "originalPackageAlias": "partials/child.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.ContentData",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

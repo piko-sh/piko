@@ -1,0 +1,192 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "list_user_orders.sql",
+    "SQL": "-- piko.name: ListUserOrders\n-- piko.command: many\n-- $1 as piko.param(userId)\n-- $2 as piko.optional(status)\n-- $3 as piko.limit(pageSize)\n-- $4 as piko.offset(pageOffset)\nSELECT u.name, o.total, o.status\nFROM users u\nJOIN orders o ON o.user_id = u.id\nWHERE u.id = $1\n  AND ($2 IS NULL OR o.status = $2)\nLIMIT $3 OFFSET $4",
+    "Name": "ListUserOrders",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "userId",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "uuid",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 8
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "status",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Number": 2,
+        "Nullable": true,
+        "IsSlice": false,
+        "IsOptional": true,
+        "Kind": 1
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "pageSize",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Number": 3,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 4
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "pageOffset",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Number": 4,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 5
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "name",
+        "SourceTable": "users",
+        "SourceColumn": "name",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "total",
+        "SourceTable": "orders",
+        "SourceColumn": "total",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 10,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "numeric",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "status",
+        "SourceTable": "orders",
+        "SourceColumn": "status",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "text",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": true,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": false
+  }
+]

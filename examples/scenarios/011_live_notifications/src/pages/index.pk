@@ -1,0 +1,310 @@
+<!-- Real-time chat via SSE. chat.Listen streams messages with auto-reconnection
+     using withRetryStream(). chat.Send broadcasts messages to all connected listeners. -->
+<template>
+  <div id="app">
+    <h1>Piko Chat</h1>
+
+    <!-- Login area: shown before joining -->
+    <div p-ref="login_area" class="login-area">
+      <p>Enter a username to join the chat room.</p>
+      <div class="login-row">
+        <input p-ref="username_input" type="text" placeholder="Username" maxlength="20" />
+        <button p-on:click="joinChat()">Join Chat</button>
+      </div>
+    </div>
+
+    <!-- Chat area: hidden until joined -->
+    <div p-ref="chat_area" class="chat-area" style="display: none">
+      <div class="status-bar">
+        <span p-ref="connection_state" class="badge">connecting</span>
+        <span p-ref="user_label" class="user-label"></span>
+      </div>
+
+      <div p-ref="messages" class="messages"></div>
+
+      <div class="send-row">
+        <input p-ref="message_input" type="text" placeholder="Type a message..." maxlength="500" />
+        <button p-ref="send_btn" p-on:click="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Piko Chat - SSE Instant Messaging",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+let currentUsername = '';
+const seenMessageIds = new Set<number>();
+
+function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+export async function joinChat(): Promise<void> {
+    const input = pk.refs.username_input as HTMLInputElement;
+    const username = input.value.trim();
+    if (!username) {
+        input.focus();
+        return;
+    }
+
+    currentUsername = username;
+
+    // Switch from login to chat view.
+    pk.refs.login_area!.style.display = 'none';
+    pk.refs.chat_area!.style.display = 'flex';
+    pk.refs.user_label!.textContent = username;
+    (pk.refs.message_input as HTMLInputElement).focus();
+
+    // Allow Enter key to send messages.
+    pk.refs.message_input!.addEventListener('keydown', (e: Event) => {
+        if ((e as KeyboardEvent).key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Connect to the SSE stream with auto-reconnection.
+    try {
+        pk.refs.connection_state!.textContent = 'connecting';
+        pk.refs.connection_state!.className = 'badge connecting';
+
+        await action.chat.Listen({})
+            .withOnProgress((data: unknown, eventType: string) => {
+                // The server sends a "connected" event when the stream is ready.
+                if (eventType === 'connected') {
+                    pk.refs.connection_state!.textContent = 'connected';
+                    pk.refs.connection_state!.className = 'badge connected';
+                    return;
+                }
+
+                if (eventType !== 'chat') return;
+
+                const msg = data as {
+                    id: number;
+                    username: string;
+                    text: string;
+                    time: string;
+                };
+
+                // Deduplicate on reconnect replay.
+                if (seenMessageIds.has(msg.id)) return;
+                seenMessageIds.add(msg.id);
+
+                appendMessage(msg.username, msg.text, msg.time, msg.username === currentUsername);
+            })
+            .withRetryStream({
+                maxReconnects: Infinity,
+                baseDelay: 2000,
+                backoff: 'exponential',
+                onDisconnect: () => {
+                    pk.refs.connection_state!.textContent = 'reconnecting';
+                    pk.refs.connection_state!.className = 'badge connecting';
+                },
+                onReconnect: () => {
+                    pk.refs.connection_state!.textContent = 'connected';
+                    pk.refs.connection_state!.className = 'badge connected';
+                },
+            })
+            .call();
+    } catch {
+        pk.refs.connection_state!.textContent = 'disconnected';
+        pk.refs.connection_state!.className = 'badge';
+    }
+}
+
+export async function sendMessage(): Promise<void> {
+    const input = pk.refs.message_input as HTMLInputElement;
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    pk.refs.send_btn!.setAttribute('disabled', '');
+
+    try {
+        await action.chat.Send({ username: currentUsername, message: text }).call();
+    } catch {
+        // Message failed - re-populate input so the user can retry.
+        input.value = text;
+    } finally {
+        pk.refs.send_btn!.removeAttribute('disabled');
+        input.focus();
+    }
+}
+
+function appendMessage(username: string, text: string, time: string, own: boolean): void {
+    const el = document.createElement('div');
+    el.className = 'msg' + (own ? ' own' : '');
+    el.innerHTML =
+        '<div class="msg-header">' +
+            '<span class="msg-user">' + escapeHtml(username) + '</span>' +
+            '<span class="msg-time">' + escapeHtml(time) + '</span>' +
+        '</div>' +
+        '<div class="msg-text">' + escapeHtml(text) + '</div>';
+    pk.refs.messages!.appendChild(el);
+    pk.refs.messages!.scrollTop = pk.refs.messages!.scrollHeight;
+}
+</script>
+
+<style>
+  * { box-sizing: border-box; }
+
+  #app {
+    max-width: 520px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 1rem;
+  }
+
+  /* Login */
+  .login-area p {
+    color: #6b7280;
+    margin-bottom: 1rem;
+  }
+
+  .login-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .login-row input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+  }
+
+  .login-row button,
+  .send-row button {
+    padding: 0.5rem 1.25rem;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .login-row button:hover,
+  .send-row button:hover {
+    background: #1d4ed8;
+  }
+
+  /* Chat area */
+  .chat-area {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  .badge.connecting { background: #fef3c7; color: #92400e; }
+  .badge.connected  { background: #d1fae5; color: #065f46; }
+
+  .user-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-left: auto;
+  }
+
+  /* Messages */
+  .messages {
+    height: 360px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: #fafafa;
+  }
+
+  .msg {
+    max-width: 80%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    align-self: flex-start;
+  }
+
+  .msg.own {
+    align-self: flex-end;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+  }
+
+  .msg-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .msg-user {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #2563eb;
+  }
+
+  .msg-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+  }
+
+  .msg-text {
+    font-size: 0.9rem;
+    color: #1f2937;
+    word-break: break-word;
+  }
+
+  /* Send row */
+  .send-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .send-row input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+  }
+
+  .send-row button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>

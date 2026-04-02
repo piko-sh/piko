@@ -1,0 +1,12 @@
+{
+  "description": "Validates that the annotator produces a clear error when calling a method that exists on the concrete implementation but NOT on the interface type the variable is typed as.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "GetFolderAncestors",
+      "onLine": 37
+    }
+  ]
+}

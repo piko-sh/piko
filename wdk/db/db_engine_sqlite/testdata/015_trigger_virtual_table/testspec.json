@@ -1,0 +1,3 @@
+{
+  "description": "Migrations containing CREATE TRIGGER, CREATE VIRTUAL TABLE, and DROP TRIGGER are recognised and skipped without error. Query on a regular table verifies the catalogue is unaffected."
+}

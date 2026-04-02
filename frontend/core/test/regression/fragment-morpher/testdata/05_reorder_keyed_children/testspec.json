@@ -1,0 +1,28 @@
+{
+    "description": "Reordering keyed children should result in correct final order",
+    "assertions": [
+        {
+            "selector": "#list li",
+            "count": 3,
+            "description": "Should have 3 list items"
+        },
+        {
+            "selector": "#list li:nth-child(1)",
+            "attributes": { "data-key": "c" },
+            "textContent": "Item C",
+            "description": "First item should now be C"
+        },
+        {
+            "selector": "#list li:nth-child(2)",
+            "attributes": { "data-key": "a" },
+            "textContent": "Item A",
+            "description": "Second item should now be A"
+        },
+        {
+            "selector": "#list li:nth-child(3)",
+            "attributes": { "data-key": "b" },
+            "textContent": "Item B",
+            "description": "Third item should now be B"
+        }
+    ]
+}

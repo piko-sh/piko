@@ -1,0 +1,87 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-badge">
+    <div class="badge-container">
+        <slot></slot>
+        <div class="badge"
+             p-class="{
+                 'dot': state.value == 0,
+                 'large': state.value > 0
+             }"
+             p-if="state.value >= 0">
+            <span class="label"
+                  p-if="state.value > 0"
+                  p-text="state.value > state.max ? state.max + '+' : String(state.value)"></span>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        value: 0 as number,
+        max: 999 as number,
+    };
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        --_error: var(--m3e-error, #b3261e);
+        --_on-error: var(--m3e-on-error, #ffffff);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .badge-container {
+        position: relative;
+        display: inline-flex;
+    }
+
+    .badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--_error);
+        z-index: 1;
+
+        &.dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        &.large {
+            min-width: 16px;
+            height: 16px;
+            border-radius: var(--m3e-shape-full, 9999px);
+            padding: 0 4px;
+        }
+    }
+
+    .label {
+        font-size: 0.6875rem;
+        font-weight: 500;
+        color: var(--_on-error);
+        line-height: 1;
+    }
+</style>

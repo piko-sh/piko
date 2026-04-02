@@ -1,0 +1,90 @@
+[
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Advanced Configuration",
+          "Slug": "advanced-configuration",
+          "Level": 1
+        }
+      ],
+      "Title": "Advanced Configuration",
+      "WordCount": 5
+    },
+    "id": "advanced",
+    "slug": "advanced",
+    "locale": "en",
+    "translationKey": "docs/advanced",
+    "url": "/docs/advanced",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Hidden Admin Page",
+          "Slug": "hidden-admin-page",
+          "Level": 1
+        }
+      ],
+      "Title": "Hidden Admin Page",
+      "WordCount": 10
+    },
+    "id": "hidden-page",
+    "slug": "hidden-page",
+    "locale": "en",
+    "translationKey": "docs/hidden-page",
+    "url": "/docs/hidden-page",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Introduction",
+          "Slug": "introduction",
+          "Level": 1
+        }
+      ],
+      "Title": "Introduction",
+      "WordCount": 5
+    },
+    "id": "intro",
+    "slug": "intro",
+    "locale": "en",
+    "translationKey": "docs/intro",
+    "url": "/docs/intro",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Environment Setup",
+          "Slug": "environment-setup",
+          "Level": 1
+        }
+      ],
+      "Title": "Environment Setup",
+      "WordCount": 9
+    },
+    "id": "setup",
+    "slug": "setup",
+    "locale": "en",
+    "translationKey": "docs/setup",
+    "url": "/docs/setup",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

@@ -1,0 +1,304 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">PPC Attribute Binding Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests that HTML attributes are correctly synced to PPC component state</p>
+    <section partial="pages_index_032f49b1" p-key="r.0:2" id="test-defaults">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:2:0">Test 1: Default Values (no attributes)</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        p-key="r.0:2:1"
+        id="comp-defaults"
+        name
+        label
+        accept="*/*"
+        max-count="10"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">10</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode single-mode">Single Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:3" id="test-boolean-present">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:3:0">Test 2: Boolean Attribute Present (multiple, disabled)</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        p-key="r.0:3:1"
+        id="comp-bool-present"
+        multiple
+        disabled
+        name
+        label
+        accept="*/*"
+        max-count="10"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">10</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode multiple-mode">Multiple Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:4" id="test-boolean-true">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:4:0">Test 3: Boolean Attribute = "true"</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        p-key="r.0:4:1"
+        id="comp-bool-true"
+        multiple="true"
+        required="true"
+        name
+        label
+        accept="*/*"
+        max-count="10"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">10</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode multiple-mode">Multiple Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:5" id="test-boolean-false">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:5:0">Test 4: Boolean Attribute = "false"</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        p-key="r.0:5:1"
+        id="comp-bool-false"
+        name
+        label
+        accept="*/*"
+        max-count="10"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">10</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode single-mode">Single Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:6" id="test-dynamic-true">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:6:0">Test 5: Dynamic Binding :multiple="true"</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        id="comp-dynamic-true"
+        multiple
+        disabled
+        p-key="r.0:6:1"
+        name
+        label
+        accept="*/*"
+        max-count="10"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">10</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode multiple-mode">Multiple Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:7" id="test-dynamic-false">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:7:0">Test 6: Dynamic Binding :multiple="false"</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        id="comp-dynamic-false"
+        p-key="r.0:7:1"
+        name
+        label
+        accept="*/*"
+        max-count="10"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">10</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode single-mode">Single Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:8" id="test-strings">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:8:0">Test 7: String Attributes</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        p-key="r.0:8:1"
+        id="comp-strings"
+        name="test-field"
+        label="Test Label"
+        accept="image/*,application/pdf"
+        max-count="10"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">test-field</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">Test Label</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">image/*,application/pdf</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">10</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode single-mode">Single Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:9" id="test-numbers">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:9:0">Test 8: Number Attributes</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        p-key="r.0:9:1"
+        id="comp-numbers"
+        max-count="25"
+        name
+        label
+        accept="*/*"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">25</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode single-mode">Single Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:10" id="test-dynamic-number">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:10:0">Test 9: Dynamic Number Binding</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        p-key="r.0:10:1"
+        id="comp-dynamic-number"
+        max-count="50"
+        name
+        label
+        accept="*/*"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">(empty)</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">*/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">50</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode single-mode">Single Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+    <section partial="pages_index_032f49b1" p-key="r.0:11" id="test-mixed">
+      <h2 partial="pages_index_032f49b1" p-key="r.0:11:0">Test 10: Mixed Attributes (Real-world Scenario)</h2>
+      <attr-test
+        partial="pages_index_032f49b1"
+        id="comp-mixed"
+        name="file-upload"
+        label="Upload Files"
+        accept="image/*"
+        required
+        multiple
+        p-key="r.0:11:1"
+        max-count="5"
+      >
+        <template shadowrootmode="open" shadowrootserializable>
+          <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+          <style>:host{display: block;margin: 16px 0}.attr-test-component{border: 1px solid #e2e8f0;border-radius: 8px;padding: 16px;background: #f8fafc}.state-display{font-family: monospace;font-size: 0.875rem}.attr-row{display: flex;align-items: center;gap: 8px;padding: 4px 0;border-bottom: 1px solid #e2e8f0}.attr-row:last-of-type{border-bottom: none}.attr-label{font-weight: 600;color: #334155;min-width: 100px}.attr-value{color: #0f172a;background: #fff;padding: 2px 8px;border-radius: 4px;border: 1px solid #e2e8f0}.attr-type{color: #94a3b8;font-size: 0.75rem}.mode-indicator{margin-top: 12px;padding-top: 12px;border-top: 1px solid #e2e8f0}.mode{display: inline-block;padding: 4px 12px;border-radius: 16px;font-size: 0.75rem;font-weight: 600}.multiple-mode{background: #dcfce7;color: #166534}.single-mode{background: #fef3c7;color: #92400e}</style>
+          <div class="attr-test-component">
+            <div class="state-display">
+              <div class="attr-row"><span class="attr-label">multiple:</span><span id="val-multiple" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">disabled:</span><span id="val-disabled" class="attr-value">false</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">required:</span><span id="val-required" class="attr-value">true</span><span class="attr-type">(boolean)</span></div>
+              <div class="attr-row"><span class="attr-label">name:</span><span id="val-name" class="attr-value">file-upload</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">label:</span><span id="val-label" class="attr-value">Upload Files</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">accept:</span><span id="val-accept" class="attr-value">image/*</span><span class="attr-type">(string)</span></div>
+              <div class="attr-row"><span class="attr-label">max-count:</span><span id="val-max-count" class="attr-value">5</span><span class="attr-type">(number)</span></div>
+              <div class="mode-indicator"><span class="mode multiple-mode">Multiple Mode Active</span></div>
+            </div>
+          </div>
+        </template>
+      </attr-test>
+    </section>
+  </div>
+</div>

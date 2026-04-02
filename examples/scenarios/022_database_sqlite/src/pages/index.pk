@@ -1,0 +1,119 @@
+<!--
+  022: SQLite Task Manager - Database-Backed CRUD with the Querier System
+
+  This page demonstrates a database-backed task manager using Piko's querier
+  system with SQLite. The task list is rendered as a public partial that can
+  be reloaded independently after mutations, avoiding a full page refresh.
+
+  The add-task form lives in the page. Create, toggle, and delete actions
+  are handled in the partial's TypeScript, which calls reloadPartial()
+  after each mutation to re-render just the task list.
+-->
+
+<template>
+  <div id="app">
+    <h1>Task Manager</h1>
+
+    <form id="add-form" p-on:submit.prevent="handleAdd($event, $form)">
+      <div class="add-row">
+        <input
+          type="text"
+          id="title"
+          name="title"
+          placeholder="What needs doing?"
+          required
+        />
+        <button type="submit">Add</button>
+      </div>
+    </form>
+
+    <!--
+      The task list is a public partial. After the create action succeeds,
+      we reload it with piko.partials.reload("task-list") so only the
+      list section re-renders from the server.
+    -->
+    <piko:partial is="task_list" />
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+
+    task_list "testmodule/partials/task-list.pk"
+)
+
+// Response holds the page-level state. The task list data is fetched by the
+// partial's own Render function, so the page itself has no database state.
+type Response struct{}
+
+// Render returns an empty response. The task_list partial handles its own
+// data fetching.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Task Manager",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function handleAdd(_event: SubmitEvent, form: FormDataHandle): Promise<void> {
+    try {
+        await action.tasks.Create(form).call();
+        piko.partials.reload("task-list");
+
+        // Clear the input after successful creation.
+        const input = document.getElementById('title') as HTMLInputElement;
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+    } catch (e: any) {
+        console.error('Failed to create task:', e);
+    }
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #2563eb;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-row input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+  }
+
+  .add-row button {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .add-row button:hover {
+    background-color: #1d4ed8;
+  }
+</style>

@@ -1,0 +1,6 @@
+{
+  "title": "CSS Referral Programme",
+  "description": "Referral programme email styled entirely with CSS classes",
+  "metadata": {"title": "Give \u00a310, Get \u00a310 \u2014 Refer a Friend"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

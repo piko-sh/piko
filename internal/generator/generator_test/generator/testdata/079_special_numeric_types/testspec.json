@@ -1,0 +1,4 @@
+{
+  "description": "Tests special numeric types (maths.Decimal, maths.Money, maths.BigInt)",
+  "skip": false
+}

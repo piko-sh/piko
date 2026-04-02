@@ -1,0 +1,160 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Favourites"
+            server.current-page="favourites">
+
+            <section class="page-section">
+                <h2 class="section-title">My Favourites</h2>
+                <p class="section-subtitle">Your personal collection of cheesy treasures</p>
+
+                <!-- Filter Button Group -->
+                <m3e-button-group class="mb-lg">
+                    <m3e-button selected>All</m3e-button>
+                    <m3e-button>Quick</m3e-button>
+                    <m3e-button>Dinner</m3e-button>
+                    <m3e-button>Dessert</m3e-button>
+                </m3e-button-group>
+
+                <!-- Saved Recipes Grid -->
+                <div class="recipe-grid">
+                    <piko:partial is="recipe_card"
+                        server.title="The Grate Burger"
+                        server.slug="the-grate-burger"
+                        server.pun="The gratest burger you'll ever taste"
+                        server.description="A towering double cheeseburger with aged cheddar, caramelised onions, and our secret sauce."
+                        server.image="@/lib/images/recipe-the-grate-burger.jpg"
+                        server.cook-time="25 mins"
+                        server.cheese="Cheddar"
+                        server.difficulty="Easy"
+                        server.href="/recipe/the-grate-burger"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Camembert Believe It"
+                        server.slug="camembert-believe-it"
+                        server.pun="The king of cheeses, baked to perfection"
+                        server.description="Whole baked Camembert with rosemary, garlic, and crusty bread soldiers."
+                        server.image="@/lib/images/recipe-camembert-believe-it.jpg"
+                        server.cook-time="30 mins"
+                        server.cheese="Camembert"
+                        server.difficulty="Easy"
+                        server.href="/recipe/camembert-believe-it"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Raclette & Roll"
+                        server.slug="raclette-and-roll"
+                        server.pun="Ready to raclette and roll!"
+                        server.description="Classic Swiss raclette with baby potatoes, cornichons, pickled onions, and charcuterie."
+                        server.image="@/lib/images/recipe-raclette-and-roll.jpg"
+                        server.cook-time="40 mins"
+                        server.cheese="Raclette"
+                        server.difficulty="Medium"
+                        server.href="/recipe/raclette-and-roll"
+                    ></piko:partial>
+                </div>
+
+                <m3e-divider class="mt-xl mb-xl"></m3e-divider>
+
+                <!-- Empty State Preview -->
+                <div class="empty-state" style="text-align: center; padding: 48px 24px;">
+                    <div style="max-width: 360px; margin: 0 auto;">
+                        <piko:img src="@/lib/images/empty-state-mouse.jpg" alt="No favourites yet" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; margin: 0 auto 16px;"></piko:img>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">The mice got to it first!</h3>
+                        <p class="text-muted" style="margin-bottom: 24px;">Brie-lieve in yourself &mdash; save some recipes to see them here!</p>
+                        <m3e-button variant="filled" href="/recipes">Browse Recipes</m3e-button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Remove Confirmation Dialog -->
+            <m3e-dialog p-ref="removeDialog">
+                <div slot="headline">Remove Favourite</div>
+                <div slot="content">
+                    <p>Are you sure? This is un-brie-lievable...</p>
+                    <p class="text-muted mt-sm">You can always add it back later. No hard feelings &mdash; just hard cheeses.</p>
+                </div>
+                <div slot="actions">
+                    <m3e-button variant="text" p-on:click="closeDialog">Cancel</m3e-button>
+                    <m3e-button variant="filled" p-on:click="confirmRemove">Remove</m3e-button>
+                </div>
+            </m3e-dialog>
+
+            <!-- Snackbar for remove feedback -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Extended FAB -->
+            <m3e-extended-fab href="/recipes" style="position: fixed; bottom: 80px; right: 24px;">
+                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                Discover Recipes
+            </m3e-extended-fab>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    recipe_card "testmodule/partials/recipe-card.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Favourites - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openRemoveDialog() {
+        const dialog = pk.refs.removeDialog;
+        if (dialog) {
+            dialog.show();
+        }
+    }
+
+    function closeDialog() {
+        const dialog = pk.refs.removeDialog;
+        if (dialog) {
+            dialog.close();
+        }
+    }
+
+    function confirmRemove() {
+        closeDialog();
+        showSnackbar("Removed from favourites. Whey to go... wait, that's sad.");
+    }
+
+    function showSnackbar(message: string) {
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) {
+            snackbar.show(message);
+        }
+    }
+</script>

@@ -1,0 +1,231 @@
+{
+  "description": "Verifies piko:element renders correct tags for static/dynamic is in PK and PKC, including SPA navigation for piko:a",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "comment",
+      "value": "=== PK: Static piko:element is=h2 ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h2#static-heading"
+    },
+    {
+      "action": "checkText",
+      "selector": "h2#static-heading",
+      "expected": "Static Heading"
+    },
+    {
+      "action": "comment",
+      "value": "=== PK: Static piko:element is=piko:a renders as <a> with SPA attr ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "a#static-link"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "a#static-link",
+      "attribute": "href",
+      "expected": "/other"
+    },
+    {
+      "action": "checkText",
+      "selector": "a#static-link",
+      "expected": "Static Link"
+    },
+    {
+      "action": "comment",
+      "value": "=== PK: Static piko:element is=piko:img renders as <img> ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "img#static-img"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "img#static-img",
+      "attribute": "alt",
+      "expected": "Static test image"
+    },
+    {
+      "action": "comment",
+      "value": "=== PK: Static piko:element is=piko:svg renders as inlined <svg> ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "svg#static-svg"
+    },
+    {
+      "action": "comment",
+      "value": "=== PK: Dynamic piko:element :is=state.DynamicTag renders as <section> ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "section#dynamic-pk"
+    },
+    {
+      "action": "checkText",
+      "selector": "section#dynamic-pk",
+      "expected": "Dynamic PK Element"
+    },
+    {
+      "action": "comment",
+      "value": "=== PKC: Initial dynamic element renders as <h3> ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test >>> h3#dynamic-el"
+    },
+    {
+      "action": "checkText",
+      "selector": "dynamic-tag-test >>> h3#dynamic-el",
+      "expected": "Dynamic Content"
+    },
+    {
+      "action": "comment",
+      "value": "=== PKC: Change tag to h1 ==="
+    },
+    {
+      "action": "click",
+      "selector": "dynamic-tag-test >>> #change-to-h1"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test >>> h1#dynamic-el"
+    },
+    {
+      "action": "checkText",
+      "selector": "dynamic-tag-test >>> h1#dynamic-el",
+      "expected": "Dynamic Content"
+    },
+    {
+      "action": "comment",
+      "value": "=== PKC: Change tag to span ==="
+    },
+    {
+      "action": "click",
+      "selector": "dynamic-tag-test >>> #change-to-span"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test >>> span#dynamic-el"
+    },
+    {
+      "action": "comment",
+      "value": "=== PKC: Change tag to article ==="
+    },
+    {
+      "action": "click",
+      "selector": "dynamic-tag-test >>> #change-to-article"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test >>> article#dynamic-el"
+    },
+    {
+      "action": "comment",
+      "value": "=== PKC: Dynamic piko:a link has SPA attribute ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test >>> a#dynamic-link"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "dynamic-tag-test >>> a#dynamic-link",
+      "attribute": "piko:a",
+      "expected": ""
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "dynamic-tag-test >>> a#dynamic-link",
+      "attribute": "href",
+      "expected": "/other"
+    },
+    {
+      "action": "comment",
+      "value": "=== PKC: Dynamic piko:img renders as <img> ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test >>> img#dynamic-img"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "dynamic-tag-test >>> img#dynamic-img",
+      "attribute": "alt",
+      "expected": "Dynamic image"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "dynamic-tag-test >>> img#dynamic-img",
+      "attribute": "src",
+      "expected": "/_piko/assets/testmodule/lib/images/test.png"
+    },
+    {
+      "action": "comment",
+      "value": "=== PKC: Dynamic piko:svg resolves and inlines as <svg> ==="
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "dynamic-tag-test >>> svg#dynamic-svg"
+    },
+    {
+      "action": "comment",
+      "value": "=== Capture initial DOM ==="
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "comment",
+      "value": "=== SPA navigation via static piko:a link ==="
+    },
+    {
+      "action": "click",
+      "selector": "#static-link"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#other-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "#other-page h1",
+      "expected": "Other Page"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_spa_nav.html"
+    }
+  ]
+}

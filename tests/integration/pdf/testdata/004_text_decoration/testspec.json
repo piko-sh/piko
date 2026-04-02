@@ -1,0 +1,5 @@
+{
+    "description": "Text with underline and line-through decorations, verifying decoration lines in PDF output.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

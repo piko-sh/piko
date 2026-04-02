@@ -1,0 +1,91 @@
+<template>
+    <pml-row class="header-bar">
+        <pml-col>
+            <pml-p class="brand-name">Gather</pml-p>
+            <pml-p class="event-name">TechTalks London 2026</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="thanks-section">
+        <pml-col>
+            <pml-p class="thanks-heading">Thanks for Attending!</pml-p>
+            <pml-p class="thanks-body">What an incredible event. Here is a look back at the highlights from this year's TechTalks London.</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="stats-section">
+        <pml-col width="33.33%">
+            <pml-p class="stat-number">127</pml-p>
+            <pml-p class="stat-label">Attendees</pml-p>
+        </pml-col>
+        <pml-col width="33.33%">
+            <pml-p class="stat-number">8</pml-p>
+            <pml-p class="stat-label">Speakers</pml-p>
+        </pml-col>
+        <pml-col width="33.34%">
+            <pml-p class="stat-number">12</pml-p>
+            <pml-p class="stat-label">Sessions</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-p class="section-heading">Highlights</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-ol class="highlights-list">
+                <pml-li class="highlight-item">Keynote: "The Future of Developer Tooling" by Sarah Chen</pml-li>
+                <pml-li class="highlight-item">Workshop: Building Resilient Distributed Systems</pml-li>
+                <pml-li class="highlight-item">Panel: Open Source Sustainability in 2026</pml-li>
+            </pml-ol>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-p class="body-text">Missed a session? All talks were recorded and are now available to watch on demand.</pml-p>
+            <pml-button href="https://gather.example.com/techtalks/recordings" class="primary-cta">Watch Recordings</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-hr class="section-divider"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row class="save-date-section">
+        <pml-col>
+            <pml-p class="save-date-heading">Save the Date</pml-p>
+            <pml-p class="save-date-text">TechTalks London 2027 - 18 March 2027</pml-p>
+            <pml-p class="save-date-subtext">Early bird registration opens in January. We will notify you when tickets go live.</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="footer-bar">
+        <pml-col>
+            <pml-p class="footer-text">Gather Events Ltd - London, UK</pml-p>
+            <pml-p class="footer-text">You are receiving this because you registered for TechTalks London 2026.</pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.header-bar { background-color: #1a1a2e; padding: 30px 0; }
+.brand-name { font-size: 14px; font-weight: bold; color: #e94560; text-align: center; text-transform: uppercase; letter-spacing: 2px; padding: 5px 25px; }
+.event-name { font-size: 26px; font-weight: bold; color: #ffffff; text-align: center; padding: 5px 25px; }
+.thanks-section { padding: 30px 0; }
+.thanks-heading { font-size: 28px; font-weight: bold; color: #1a1a2e; text-align: center; padding: 10px 25px; }
+.thanks-body { font-size: 15px; color: #555555; text-align: center; line-height: 1.6; padding: 10px 30px; }
+.stats-section { background-color: #f8f9fa; padding: 25px 0; }
+.stat-number { font-size: 36px; font-weight: bold; color: #e94560; text-align: center; padding: 10px 15px; }
+.stat-label { font-size: 13px; color: #777777; text-align: center; text-transform: uppercase; letter-spacing: 1px; padding: 0 15px; }
+.content-section { padding: 20px 0; }
+.section-heading { font-size: 20px; font-weight: bold; color: #1a1a2e; padding: 10px 25px; }
+.highlights-list { padding: 5px 25px; }
+.highlight-item { font-size: 14px; color: #444444; line-height: 1.8; }
+.body-text { font-size: 15px; color: #555555; line-height: 1.6; padding: 10px 25px; }
+.primary-cta { background-color: #e94560; color: #ffffff; font-size: 15px; border-radius: 5px; padding: 15px 25px; inner-padding: 12px 30px; }
+.section-divider { border-color: #eeeeee; border-width: 1px; padding: 0 25px; }
+.save-date-section { background-color: #f0f3ff; padding: 25px 0; }
+.save-date-heading { font-size: 20px; font-weight: bold; color: #1a1a2e; text-align: center; padding: 10px 25px; }
+.save-date-text { font-size: 16px; font-weight: bold; color: #e94560; text-align: center; padding: 5px 25px; }
+.save-date-subtext { font-size: 13px; color: #777777; text-align: center; line-height: 1.5; padding: 5px 25px; }
+.footer-bar { background-color: #1a1a2e; padding: 20px 0; }
+.footer-text { font-size: 11px; color: #888888; text-align: center; padding: 3px 25px; }
+</style>

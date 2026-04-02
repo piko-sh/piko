@@ -1,0 +1,6 @@
+{
+  "description": "Tests p-class directive for conditional class binding",
+  "entryPoints": [
+    { "path": "pages/buttons.pk", "isPage": true }
+  ]
+}

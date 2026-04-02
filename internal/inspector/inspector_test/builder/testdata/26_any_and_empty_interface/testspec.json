@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of 'any', 'interface{}', and aliases to them.",
+  "moduleName": "testcase_26_any_and_empty_interface",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_26_any_and_empty_interface"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Data' type should be marked as an alias.",
+      "select": "packages.testcase_26_any_and_empty_interface.named_types.Data.is_alias",
+      "expect": true
+    },
+    {
+      "description": "The 'Data' alias's TypeString should be 'any'.",
+      "select": "packages.testcase_26_any_and_empty_interface.named_types.Data.type_string",
+      "expect": "any"
+    },
+    {
+      "description": "The 'GenericValue' field's TypeString should resolve to 'main.Data'.",
+      "select": "packages.testcase_26_any_and_empty_interface.named_types.Container.fields.0.type_string",
+      "expect": "main.Data"
+    },
+    {
+      "description": "The 'OldValue' field's TypeString should be 'interface{}'.",
+      "select": "packages.testcase_26_any_and_empty_interface.named_types.Container.fields.1.type_string",
+      "expect": "interface{}"
+    }
+  ]
+}

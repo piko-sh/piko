@@ -1,0 +1,6 @@
+{
+  "description": "Tests p-else directive with p-if combinations",
+  "entryPoints": [
+    { "path": "pages/auth.pk", "isPage": true }
+  ]
+}

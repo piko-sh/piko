@@ -1,0 +1,33 @@
+{
+  "description": "A description of the entire test case.",
+  "entryPoints": [
+    { "path": "main.pk", "isPage": true },
+    { "path": "about.pk", "isPage": true }
+  ],
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "pageAssertions": {
+    "main.pk": {
+      "description": "Assertions for the main page.",
+      "expectedCombinedCSSContains": [],
+      "assertNodes": [
+        {
+          "select": "h1",
+          "description": "Main page H1 has correct content",
+          "assert": { "textContent": "Welcome Home, {{ state.Username }}!" }
+        }
+      ]
+    },
+    "about.pk": {
+      "description": "Assertions for the about page.",
+      "expectedCombinedCSSContains": [],
+      "assertNodes": [
+        {
+          "select": "h1",
+          "description": "About page H1 has correct content",
+          "assert": { "textContent": "About Page" }
+        }
+      ]
+    }
+  }
+}

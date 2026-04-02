@@ -1,0 +1,116 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>PPC Attribute Binding Test</h1>
+    <p>Tests that HTML attributes are correctly synced to PPC component state</p>
+
+    <section id="test-defaults">
+      <h2>Test 1: Default Values (no attributes)</h2>
+      <attr-test id="comp-defaults"></attr-test>
+    </section>
+
+    <section id="test-boolean-present">
+      <h2>Test 2: Boolean Attribute Present (multiple, disabled)</h2>
+      <attr-test id="comp-bool-present" multiple disabled></attr-test>
+    </section>
+
+    <section id="test-boolean-true">
+      <h2>Test 3: Boolean Attribute = "true"</h2>
+      <attr-test id="comp-bool-true" multiple="true" required="true"></attr-test>
+    </section>
+
+    <section id="test-boolean-false">
+      <h2>Test 4: Boolean Attribute = "false"</h2>
+      <attr-test id="comp-bool-false" multiple="false" disabled="false"></attr-test>
+    </section>
+
+    <section id="test-dynamic-true">
+      <h2>Test 5: Dynamic Binding :multiple="true"</h2>
+      <attr-test id="comp-dynamic-true" :multiple="true" :disabled="true"></attr-test>
+    </section>
+
+    <section id="test-dynamic-false">
+      <h2>Test 6: Dynamic Binding :multiple="false"</h2>
+      <attr-test id="comp-dynamic-false" :multiple="false" :required="false"></attr-test>
+    </section>
+
+    <section id="test-strings">
+      <h2>Test 7: String Attributes</h2>
+      <attr-test
+        id="comp-strings"
+        name="test-field"
+        label="Test Label"
+        accept="image/*,application/pdf"
+      ></attr-test>
+    </section>
+
+    <section id="test-numbers">
+      <h2>Test 8: Number Attributes</h2>
+      <attr-test id="comp-numbers" max-count="25"></attr-test>
+    </section>
+
+    <section id="test-dynamic-number">
+      <h2>Test 9: Dynamic Number Binding</h2>
+      <attr-test id="comp-dynamic-number" :max-count="50"></attr-test>
+    </section>
+
+    <section id="test-mixed">
+      <h2>Test 10: Mixed Attributes (Real-world Scenario)</h2>
+      <attr-test
+        id="comp-mixed"
+        :multiple="true"
+        name="file-upload"
+        label="Upload Files"
+        accept="image/*"
+        :max-count="5"
+        required
+      ></attr-test>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "PPC Attribute Binding Test",
+    }, nil
+}
+</script>
+
+<style>
+section {
+    margin: 24px 0;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+h2 {
+    margin: 0 0 12px 0;
+    font-size: 1rem;
+    color: #334155;
+}
+</style>

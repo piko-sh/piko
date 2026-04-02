@@ -1,0 +1,213 @@
+{
+  "description": "Tests $event argument handling permutations for both PK and PKC behave identically",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Event Args Parity Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "event-args"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Verify initial state - all results show pending"
+    },
+    {
+      "action": "checkText",
+      "selector": "event-args >>> #bare-result",
+      "expected": "pending"
+    },
+    {
+      "action": "checkText",
+      "selector": "#pk-bare-result",
+      "expected": "pending"
+    },
+    {
+      "action": "comment",
+      "value": "PKC: bare handler - implicit $event, should receive event"
+    },
+    {
+      "action": "click",
+      "selector": "event-args >>> #bare-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "event-args >>> #bare-result",
+      "expected": "click"
+    },
+    {
+      "action": "comment",
+      "value": "PKC: explicit $event, should receive event"
+    },
+    {
+      "action": "click",
+      "selector": "event-args >>> #event-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "event-args >>> #event-result",
+      "expected": "click"
+    },
+    {
+      "action": "comment",
+      "value": "PKC: empty parens, no event passed"
+    },
+    {
+      "action": "click",
+      "selector": "event-args >>> #empty-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "event-args >>> #empty-result",
+      "expected": "no-event"
+    },
+    {
+      "action": "comment",
+      "value": "PKC: static arg only, no event"
+    },
+    {
+      "action": "click",
+      "selector": "event-args >>> #arg-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "event-args >>> #arg-result",
+      "expected": "42:no-event"
+    },
+    {
+      "action": "comment",
+      "value": "PKC: mixed args with $event"
+    },
+    {
+      "action": "click",
+      "selector": "event-args >>> #mixed-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "event-args >>> #mixed-result",
+      "expected": "42:click"
+    },
+    {
+      "action": "comment",
+      "value": "PK: bare handler - implicit $event, should receive event (same as PKC)"
+    },
+    {
+      "action": "click",
+      "selector": "#pk-bare-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#pk-bare-result",
+      "expected": "click"
+    },
+    {
+      "action": "comment",
+      "value": "PK: explicit $event, should receive event"
+    },
+    {
+      "action": "click",
+      "selector": "#pk-event-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#pk-event-result",
+      "expected": "click"
+    },
+    {
+      "action": "comment",
+      "value": "PK: empty parens, no event passed"
+    },
+    {
+      "action": "click",
+      "selector": "#pk-empty-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#pk-empty-result",
+      "expected": "no-event"
+    },
+    {
+      "action": "comment",
+      "value": "PK: static arg only, no event"
+    },
+    {
+      "action": "click",
+      "selector": "#pk-arg-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#pk-arg-result",
+      "expected": "42:no-event"
+    },
+    {
+      "action": "comment",
+      "value": "PK: mixed args with $event"
+    },
+    {
+      "action": "click",
+      "selector": "#pk-mixed-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#pk-mixed-result",
+      "expected": "42:click"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_clicks.html"
+    }
+  ]
+}

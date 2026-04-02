@@ -1,0 +1,94 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Checkbox"
+            server.current-page="selection/checkbox">
+
+            <p class="demo-description">Checkboxes allow users to select one or more items from a set, or turn an option on or off.</p>
+
+            <div class="demo-grid">
+                <!-- Unchecked -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Unchecked</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-checkbox></m3e-checkbox>
+                        <m3e-checkbox disabled></m3e-checkbox>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-checkbox&gt;&lt;/m3e-checkbox&gt;
+&lt;m3e-checkbox disabled&gt;&lt;/m3e-checkbox&gt;</code></pre>
+                </section>
+
+                <!-- Checked -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Checked</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-checkbox checked></m3e-checkbox>
+                        <m3e-checkbox checked disabled></m3e-checkbox>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-checkbox checked&gt;&lt;/m3e-checkbox&gt;
+&lt;m3e-checkbox checked disabled&gt;&lt;/m3e-checkbox&gt;</code></pre>
+                </section>
+
+                <!-- Indeterminate -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Indeterminate</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-checkbox indeterminate></m3e-checkbox>
+                        <m3e-checkbox indeterminate disabled></m3e-checkbox>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-checkbox indeterminate&gt;&lt;/m3e-checkbox&gt;
+&lt;m3e-checkbox indeterminate disabled&gt;&lt;/m3e-checkbox&gt;</code></pre>
+                </section>
+
+                <!-- Form Association -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Form Association</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-checkbox name="agree" value="yes"></m3e-checkbox>
+                        <m3e-checkbox name="newsletter" value="subscribe" checked></m3e-checkbox>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-checkbox name="agree" value="yes"&gt;&lt;/m3e-checkbox&gt;
+&lt;m3e-checkbox name="newsletter" value="subscribe" checked&gt;&lt;/m3e-checkbox&gt;
+
+&lt;!-- When inside a &lt;form&gt;, the hidden input submits the value if checked --&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Checkbox - M3E Components",
+    }, nil
+}
+</script>

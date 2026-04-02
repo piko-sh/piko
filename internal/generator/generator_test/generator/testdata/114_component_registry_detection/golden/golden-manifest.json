@@ -1,0 +1,22 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_114_component_registry_detection/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "customTags": [
+        "my-button",
+        "my-card"
+      ],
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

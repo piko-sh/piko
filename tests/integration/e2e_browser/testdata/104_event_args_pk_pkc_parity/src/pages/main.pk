@@ -1,0 +1,78 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Event Args Parity Test</h1>
+
+    <h2>PKC</h2>
+    <event-args></event-args>
+
+    <h2>PK</h2>
+    <div>
+      <button id="pk-bare-btn" p-on:click="handleBare">Bare</button>
+      <button id="pk-event-btn" p-on:click="handleEvent($event)">Event</button>
+      <button id="pk-empty-btn" p-on:click="handleEmpty()">Empty</button>
+      <button id="pk-arg-btn" p-on:click="handleArg(42)">Arg</button>
+      <button id="pk-mixed-btn" p-on:click="handleMixed(42, $event)">Mixed</button>
+      <span id="pk-bare-result">pending</span>
+      <span id="pk-event-result">pending</span>
+      <span id="pk-empty-result">pending</span>
+      <span id="pk-arg-result">pending</span>
+      <span id="pk-mixed-result">pending</span>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Event Args Parity Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export function handleBare(event?: Event) {
+    document.getElementById('pk-bare-result')!.textContent = event?.type ?? 'no-event';
+}
+
+export function handleEvent(event?: Event) {
+    document.getElementById('pk-event-result')!.textContent = event?.type ?? 'no-event';
+}
+
+export function handleEmpty(event?: Event) {
+    document.getElementById('pk-empty-result')!.textContent = event?.type ?? 'no-event';
+}
+
+export function handleArg(arg1: any, event?: Event) {
+    document.getElementById('pk-arg-result')!.textContent = `${arg1}:${event?.type ?? 'no-event'}`;
+}
+
+export function handleMixed(arg1: any, event?: Event) {
+    document.getElementById('pk-mixed-result')!.textContent = `${arg1}:${event?.type ?? 'no-event'}`;
+}
+</script>

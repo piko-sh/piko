@@ -1,0 +1,39 @@
+{
+  "description": "Verifies nested JSON input works correctly via the action builder",
+  "requestURL": "/api-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Call action with nested JSON input via the action builder"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-name",
+      "expected": "TestItem"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-value",
+      "expected": "42"
+    }
+  ]
+}

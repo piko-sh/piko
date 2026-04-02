@@ -1,0 +1,3 @@
+{
+  "description": "GROUP BY primary key functional dependency rule. Tests that when GROUP BY covers a table's full primary key, output columns from that table retain their base DDL nullability rather than being forced nullable by FULL JOIN."
+}

@@ -1,0 +1,68 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div style="width: 600px; padding: 10px; font-size: 14px;">
+
+    <div data-layout-id="control" style="width: 200px; height: 40px; background: #eee;"></div>
+
+    <div style="display: flex; margin-top: 10px;">
+      <div data-layout-id="regular-text" style="background: #dfe; padding: 4px;">Hello World</div>
+    </div>
+
+    <div style="display: flex; margin-top: 10px;">
+      <div data-layout-id="bold-text" style="font-weight: bold; background: #def; padding: 4px;">Hello World</div>
+    </div>
+
+    <table data-layout-id="table" style="border-collapse: collapse; margin-top: 10px;">
+      <tr>
+        <td data-layout-id="td-short" style="padding: 6px; border: 1px solid #ccc;">Name</td>
+        <td data-layout-id="td-long" style="padding: 6px; border: 1px solid #ccc;">A longer piece of text that drives column width</td>
+        <td data-layout-id="td-number" style="padding: 6px; border: 1px solid #ccc; text-align: right;">1,234.56</td>
+      </tr>
+    </table>
+
+    <div style="display: flex; margin-top: 10px;">
+      <div data-layout-id="letter-spaced" style="letter-spacing: 3px; background: #fde; padding: 4px;">SPACED TEXT</div>
+    </div>
+
+    <div style="display: flex; margin-top: 10px; gap: 10px;">
+      <div data-layout-id="small-text" style="font-size: 8px; background: #eef; padding: 4px;">Tiny text</div>
+      <div data-layout-id="large-text" style="font-size: 24px; background: #ffe; padding: 4px;">Big text</div>
+    </div>
+
+    <div style="display: flex; margin-top: 10px;">
+      <div data-layout-id="uppercase-text" style="text-transform: uppercase; background: #fed; padding: 4px;">uppercase test</div>
+    </div>
+
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Font Metrics Comparison"}, nil
+}
+</script>

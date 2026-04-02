@@ -1,0 +1,143 @@
+--- PACKAGE: github.com/google/uuid ---
+[Package Info]
+  - Name:    uuid
+  - Version: v1.6.0
+
+[File-Scoped Imports]
+  (none)
+
+[Named Types]
+  > type Domain
+    - Defined In:      $GOMODCACHE/github.com/google/uuid@v1.6.0/dce.go
+    - TypeString:      uuid.Domain
+    - Underlying:      byte
+    - Stringability:   2
+    - Methods:
+      - func (T) String          func() string
+
+  > type NullUUID
+    - Defined In:      $GOMODCACHE/github.com/google/uuid@v1.6.0/null.go
+    - TypeString:      uuid.NullUUID
+    - Underlying:      struct{UUID uuid.UUID; Valid bool}
+    - Stringability:   3
+    - Fields:
+      - UUID                 uuid.UUID
+        (Canonical Package: github.com/google/uuid)
+      - Valid                bool
+    - Methods:
+      - func (T) MarshalBinary   func() ([]byte, error)
+      - func (T) MarshalJSON     func() ([]byte, error)
+      - func (T) MarshalText     func() ([]byte, error)
+      - func (*T) Scan            func(interface{}) error
+      - func (*T) UnmarshalBinary func([]byte) error
+      - func (*T) UnmarshalJSON   func([]byte) error
+      - func (*T) UnmarshalText   func([]byte) error
+      - func (T) Value           func() (driver.Value, error)
+
+  > type Time
+    - Defined In:      $GOMODCACHE/github.com/google/uuid@v1.6.0/time.go
+    - TypeString:      uuid.Time
+    - Underlying:      int64
+    - Stringability:   0
+    - Methods:
+      - func (T) UnixTime        func() (int64, int64)
+
+  > type UUID
+    - Defined In:      $GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go
+    - TypeString:      uuid.UUID
+    - Underlying:      [16]byte
+    - Stringability:   2
+    - Methods:
+      - func (T) ClockSequence   func() int
+      - func (T) Domain          func() uuid.Domain
+      - func (T) ID              func() uint32
+      - func (T) MarshalBinary   func() ([]byte, error)
+      - func (T) MarshalText     func() ([]byte, error)
+      - func (T) NodeID          func() []byte
+      - func (*T) Scan            func(interface{}) error
+      - func (T) String          func() string
+      - func (T) Time            func() uuid.Time
+      - func (T) URN             func() string
+      - func (*T) UnmarshalBinary func([]byte) error
+      - func (*T) UnmarshalText   func([]byte) error
+      - func (T) Value           func() (driver.Value, error)
+      - func (T) Variant         func() uuid.Variant
+      - func (T) Version         func() uuid.Version
+
+  > type UUIDs
+    - Defined In:      $GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go
+    - TypeString:      uuid.UUIDs
+    - Underlying:      []uuid.UUID
+    - Stringability:   0
+    - Methods:
+      - func (T) Strings         func() []string
+
+  > type Variant
+    - Defined In:      $GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go
+    - TypeString:      uuid.Variant
+    - Underlying:      byte
+    - Stringability:   2
+    - Methods:
+      - func (T) String          func() string
+
+  > type Version
+    - Defined In:      $GOMODCACHE/github.com/google/uuid@v1.6.0/uuid.go
+    - TypeString:      uuid.Version
+    - Underlying:      byte
+    - Stringability:   2
+    - Methods:
+      - func (T) String          func() string
+
+[Package-Level Functions]
+  - func ClockSequence        func() int
+  - func DisableRandPool      func() 
+  - func EnableRandPool       func() 
+  - func FromBytes            func([]byte) (uuid.UUID, error)
+  - func GetTime              func() (uuid.Time, uint16, error)
+  - func IsInvalidLengthError func(error) bool
+  - func Must                 func(uuid.UUID, error) uuid.UUID
+  - func MustParse            func(string) uuid.UUID
+  - func New                  func() uuid.UUID
+  - func NewDCEGroup          func() (uuid.UUID, error)
+  - func NewDCEPerson         func() (uuid.UUID, error)
+  - func NewDCESecurity       func(uuid.Domain, uint32) (uuid.UUID, error)
+  - func NewHash              func(hash.Hash, uuid.UUID, []byte, int) uuid.UUID
+  - func NewMD5               func(uuid.UUID, []byte) uuid.UUID
+  - func NewRandom            func() (uuid.UUID, error)
+  - func NewRandomFromReader  func(io.Reader) (uuid.UUID, error)
+  - func NewSHA1              func(uuid.UUID, []byte) uuid.UUID
+  - func NewString            func() string
+  - func NewUUID              func() (uuid.UUID, error)
+  - func NewV6                func() (uuid.UUID, error)
+  - func NewV7                func() (uuid.UUID, error)
+  - func NewV7FromReader      func(io.Reader) (uuid.UUID, error)
+  - func NodeID               func() []byte
+  - func NodeInterface        func() string
+  - func Parse                func(string) (uuid.UUID, error)
+  - func ParseBytes           func([]byte) (uuid.UUID, error)
+  - func SetClockSequence     func(int) 
+  - func SetNodeID            func([]byte) bool
+  - func SetNodeInterface     func(string) bool
+  - func SetRand              func(io.Reader) 
+  - func Validate             func(string) error
+
+--- PACKAGE: testcase_57_map_external_key_primitive_value ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 57_map_external_key_primitive_value/src/main.go
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Response
+    - Defined In:      57_map_external_key_primitive_value/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{ScoresByUUID map[uuid.UUID]int}
+    - Stringability:   0
+    - Fields:
+      - ScoresByUUID         map[uuid.UUID]int
+        (Canonical Package: github.com/google/uuid)
+
+[Package-Level Functions]
+  (none)

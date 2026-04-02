@@ -1,0 +1,3 @@
+{
+  "description": "View as table reference in query. Tests that views created via CREATE VIEW can be referenced in SELECT queries with correct column resolution."
+}

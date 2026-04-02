@@ -1,0 +1,8 @@
+<template>
+    <pml-row>
+        <pml-col>
+            <pml-img src="https://example.com/banner.jpg" alt="Banner" width="600px" fluid-on-mobile="true" padding="0">
+            </pml-img>
+        </pml-col>
+    </pml-row>
+</template>

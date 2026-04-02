@@ -1,0 +1,148 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "search_spatial.sql",
+    "SQL": "-- piko.name: SearchSpatial\n-- piko.command: many\nSELECT id FROM spatial_idx WHERE min_x \u003e= ? AND max_x \u003c= ? AND min_y \u003e= ? AND max_y \u003c= ?",
+    "Name": "SearchSpatial",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "real",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 1
+        },
+        "Number": 1,
+        "Nullable": true,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p2",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "real",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 1
+        },
+        "Number": 2,
+        "Nullable": true,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p3",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "real",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 1
+        },
+        "Number": 3,
+        "Nullable": true,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      },
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p4",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "real",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 1
+        },
+        "Number": 4,
+        "Nullable": true,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "spatial_idx",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "integer",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

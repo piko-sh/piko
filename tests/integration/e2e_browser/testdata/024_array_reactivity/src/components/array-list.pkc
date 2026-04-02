@@ -1,0 +1,102 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="array-list">
+    <div class="container">
+        <div class="controls">
+            <button id="push-btn" p-on:click="pushItem">Push (add end)</button>
+            <button id="pop-btn" p-on:click="popItem">Pop (remove end)</button>
+            <button id="shift-btn" p-on:click="shiftItem">Shift (remove first)</button>
+            <button id="unshift-btn" p-on:click="unshiftItem">Unshift (add first)</button>
+            <button id="splice-btn" p-on:click="spliceMiddle">Splice (insert middle)</button>
+        </div>
+        <div class="list-section">
+            <p id="count">Count: {{ state.items.length }}</p>
+            <ul id="item-list">
+                <li p-for="item in state.items" p-key="item" class="list-item">{{ item }}</li>
+            </ul>
+        </div>
+    </div>
+</template>
+
+<style>
+    .container {
+        padding: 1rem;
+    }
+    .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    button {
+        padding: 0.5rem 1rem;
+        background: #e91e63;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    .list-section {
+        padding: 1rem;
+        border: 1px solid #eee;
+    }
+    .list-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    .list-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        items: ['A', 'B', 'C'],
+        counter: 0 as number
+    };
+
+    function pushItem() {
+        state.counter++;
+        state.items.push(`Push-${state.counter}`);
+    }
+
+    function popItem() {
+        if (state.items.length > 0) {
+            state.items.pop();
+        }
+    }
+
+    function shiftItem() {
+        if (state.items.length > 0) {
+            state.items.shift();
+        }
+    }
+
+    function unshiftItem() {
+        state.counter++;
+        state.items.unshift(`Unshift-${state.counter}`);
+    }
+
+    function spliceMiddle() {
+        state.counter++;
+        const midIndex = Math.floor(state.items.length / 2);
+        state.items.splice(midIndex, 0, `Splice-${state.counter}`);
+    }
+</script>

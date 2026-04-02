@@ -1,0 +1,51 @@
+{
+  "description": "Tests partial props passing with image cards",
+  "requestURL": "/gallery",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Image Gallery"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".image-card"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".card-image"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": ".card-image",
+      "name": "loading",
+      "expected": "lazy"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": ".card-image",
+      "name": "alt",
+      "expected": "Placeholder Image 1"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": ".image-card",
+      "expected": "2"
+    },
+    {
+      "action": "checkText",
+      "selector": ".image-label",
+      "expected": "Placeholder Image 1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "page.html"
+    }
+  ]
+}

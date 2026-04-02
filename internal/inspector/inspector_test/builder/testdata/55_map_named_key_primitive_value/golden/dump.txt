@@ -1,0 +1,40 @@
+--- PACKAGE: testcase_55_map_named_key_primitive_value ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 55_map_named_key_primitive_value/src/main.go
+    - import "models"             -> testcase_55_map_named_key_primitive_value/models
+
+[Named Types]
+  > type Response
+    - Defined In:      55_map_named_key_primitive_value/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{UserScores map[models.UserKey]int}
+    - Stringability:   0
+    - Fields:
+      - UserScores           map[models.UserKey]int
+        (Canonical Package: testcase_55_map_named_key_primitive_value/models)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_55_map_named_key_primitive_value/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 55_map_named_key_primitive_value/src/models/key.go
+    (no imports in this file)
+
+[Named Types]
+  > type UserKey
+    - Defined In:      55_map_named_key_primitive_value/src/models/key.go
+    - TypeString:      models.UserKey
+    - Underlying:      struct{ID int}
+    - Stringability:   0
+    - Fields:
+      - ID                   int
+
+[Package-Level Functions]
+  (none)

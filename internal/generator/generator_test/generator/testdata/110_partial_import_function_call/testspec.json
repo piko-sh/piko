@@ -1,0 +1,6 @@
+{
+  "description": "Tests that a page can call an exported function from an imported partial via its alias.",
+  "packageName": "partial_import_function_call_test",
+  "isPage": true,
+  "shouldError": false
+}

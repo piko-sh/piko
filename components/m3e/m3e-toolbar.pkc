@@ -1,0 +1,134 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-toolbar">
+    <div class="toolbar"
+         p-class="{
+             'floating': state.variant == 'floating',
+             'docked': state.variant == 'docked',
+             'fab-end': state.fab_alignment == 'end'
+         }"
+         role="toolbar">
+        <div class="actions">
+            <slot></slot>
+        </div>
+        <div class="fab-slot" p-show="state.has_fab">
+            <slot name="fab"></slot>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'docked' as string,
+        fab_alignment: 'end' as string,
+        has_fab: false as boolean,
+    };
+
+    pkc.attachSlotListener('fab', (elements) => {
+        state.has_fab = elements.length > 0;
+    });
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_surface-container: var(--m3e-surface-container, #f3edf7);
+        --_surface-container-low: var(--m3e-surface-container-low, #f7f2fa);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_primary: var(--m3e-primary, #6750a4);
+        --_primary-container: var(--m3e-primary-container, #eaddff);
+        --_on-primary-container: var(--m3e-on-primary-container, #21005e);
+        --_shape-xl: var(--m3e-shape-xl, 28px);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        font-family: system-ui, -apple-system, sans-serif;
+
+        &([variant="floating"]) {
+            display: inline-flex;
+        }
+    }
+
+    .toolbar {
+        display: flex;
+        align-items: center;
+
+        &.docked {
+            height: 80px;
+            padding: 0 8px;
+            background: var(--_surface-container);
+            box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 2px 6px 2px rgba(0,0,0,0.15);
+        }
+
+        &.floating {
+            display: inline-flex;
+            height: 64px;
+            padding: 0 8px;
+            border-radius: var(--_shape-xl);
+            background: var(--_primary-container);
+            color: var(--_on-primary-container);
+            box-shadow: 0px 1px 3px 1px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.30);
+        }
+
+        &.fab-end .fab-slot {
+            margin-left: auto;
+        }
+
+        &:not(.fab-end) .fab-slot {
+            margin-left: auto;
+        }
+    }
+
+    .actions {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        gap: 0;
+
+        ::slotted(*) {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: background var(--_duration-short) var(--_easing-standard);
+        }
+
+        ::slotted(*:hover) {
+            background: rgba(73, 69, 79, 0.08);
+        }
+    }
+
+    .docked .actions ::slotted(*) {
+        color: var(--_on-surface-variant);
+    }
+
+    .fab-slot {
+        margin-left: auto;
+        padding: 0 4px;
+    }
+</style>

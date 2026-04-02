@@ -1,0 +1,24 @@
+<template>
+  <div class="container">
+    <header>
+      <nav>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/about">About</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+      <section class="content">
+        <article>
+          <h1>Article Title</h1>
+          <p>First paragraph with <strong>bold text</strong> and <em>italic text</em>.</p>
+          <p>Second paragraph.</p>
+        </article>
+      </section>
+    </main>
+    <footer>
+      <p>Copyright 2024</p>
+    </footer>
+  </div>
+</template>

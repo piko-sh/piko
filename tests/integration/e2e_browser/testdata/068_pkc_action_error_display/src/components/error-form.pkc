@@ -1,0 +1,67 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="error-form">
+  <div class="error-form">
+    <form id="test-form" p-show="!state.hasError && !state.success">
+      <input type="email" name="email" id="input-email" placeholder="Email" />
+      <input type="number" name="age" id="input-age" placeholder="Age" />
+      <button type="button" id="submit-btn" p-on:click="handleSubmit">Submit</button>
+    </form>
+    <div id="error-container" p-show="state.hasError">
+      <h3>Validation Errors</h3>
+      <p id="error-message" p-text="state.errorMessage"></p>
+      <p>Error Status: <span id="error-status" p-text="state.errorStatus"></span></p>
+    </div>
+    <div id="success-container" p-show="state.success">
+      <h3>Success!</h3>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+const state = {
+  hasError: false,
+  success: false,
+  errorMessage: '' as string,
+  errorStatus: '' as string,
+};
+
+async function handleSubmit() {
+  const emailInput = this.shadowRoot?.querySelector('#input-email') as HTMLInputElement;
+  const ageInput = this.shadowRoot?.querySelector('#input-age') as HTMLInputElement;
+
+  const data = {
+    email: emailInput?.value || '',
+    age: parseInt(ageInput?.value || '0', 10),
+  };
+
+  try {
+    await action.validate.Fail(data).call();
+    state.success = true;
+    state.hasError = false;
+  } catch (err: any) {
+    state.errorStatus = err.status?.toString() || '422';
+    state.errorMessage = err.message || 'Validation failed';
+    state.hasError = true;
+    state.success = false;
+  }
+}
+</script>

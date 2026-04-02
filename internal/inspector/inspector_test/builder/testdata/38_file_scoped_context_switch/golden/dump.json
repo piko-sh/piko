@@ -1,0 +1,51 @@
+{
+  "packages": {
+    "testcase_38_file_scoped_context_switch/services": {
+      "file_imports": {
+        "38_file_scoped_context_switch/src/services/service.go": {
+          "models": "testcase_38_file_scoped_context_switch/models"
+        }
+      },
+      "named_types": {
+        "UserService": {
+          "name": "UserService",
+          "package_path": "testcase_38_file_scoped_context_switch/services",
+          "defined_in_file_path": "38_file_scoped_context_switch/src/services/service.go",
+          "type_string": "services.UserService",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "GetUser",
+              "type_string": "*models.User",
+              "underlying_type_string": "*models.User",
+              "declaring_pkg_path": "testcase_38_file_scoped_context_switch/services",
+              "declaring_type_name": "UserService",
+              "definition_file_path": "38_file_scoped_context_switch/src/services/service.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "*models.User"
+                ]
+              },
+              "definition_line": 27,
+              "definition_column": 23,
+              "is_pointer_receiver": true
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_38_file_scoped_context_switch/services",
+      "name": "services"
+    }
+  },
+  "file_to_package": {
+    "38_file_scoped_context_switch/src/services/service.go": "testcase_38_file_scoped_context_switch/services"
+  }
+}

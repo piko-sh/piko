@@ -1,0 +1,17 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    const event = new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        button: 2,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2
+    });
+    el.dispatchEvent(event);
+    return true;
+})()

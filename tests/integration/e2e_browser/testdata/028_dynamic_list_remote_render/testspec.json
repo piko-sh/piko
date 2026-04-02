@@ -1,0 +1,38 @@
+{
+  "description": "Tests pp-dynamic-list component with remote partial rendering for add/remove operations",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "pp-dynamic-list"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": ".add-btn"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_first_add.html"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": ".item-row",
+      "expected": "1"
+    }
+  ]
+}

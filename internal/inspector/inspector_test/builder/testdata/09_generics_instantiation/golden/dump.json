@@ -1,0 +1,146 @@
+{
+  "packages": {
+    "testcase_09_generics_instantiation": {
+      "file_imports": {
+        "09_generics_instantiation/src/main.go": {
+          "models": "testcase_09_generics_instantiation/models"
+        }
+      },
+      "named_types": {
+        "Container": {
+          "name": "Container",
+          "package_path": "testcase_09_generics_instantiation",
+          "defined_in_file_path": "09_generics_instantiation/src/main.go",
+          "type_string": "main.Container",
+          "underlying_type_string": "struct{StringBox models.Box[string]; BoxOfIntBox models.Box[models.Box[int]]}",
+          "fields": [
+            {
+              "definition_file_path": "09_generics_instantiation/src/main.go",
+              "declaring_pkg_path": "testcase_09_generics_instantiation",
+              "pkg_path": "testcase_09_generics_instantiation/models",
+              "underlying_type_string": "struct{Value string}",
+              "declaring_type_name": "Container",
+              "name": "StringBox",
+              "type_string": "models.Box[string]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "generic_arg",
+                  "type_string": "string",
+                  "role": "generic_arg_0",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 7,
+              "definition_line": 25,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "09_generics_instantiation/src/main.go",
+              "declaring_pkg_path": "testcase_09_generics_instantiation",
+              "pkg_path": "testcase_09_generics_instantiation/models",
+              "underlying_type_string": "struct{Value models.Box[int]}",
+              "declaring_type_name": "Container",
+              "name": "BoxOfIntBox",
+              "type_string": "models.Box[models.Box[int]]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "generic_arg",
+                  "type_string": "models.Box[int]",
+                  "role": "generic_arg_0",
+                  "underlying_type_string": "struct{Value int}",
+                  "pkg_path": "testcase_09_generics_instantiation/models",
+                  "composite_parts": [
+                    {
+                      "type": "generic_arg",
+                      "type_string": "int",
+                      "role": "generic_arg_0",
+                      "underlying_type_string": "int",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_underlying_primitive": true
+                    }
+                  ],
+                  "composite_type": 7,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 7,
+              "definition_line": 27,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_09_generics_instantiation",
+      "name": "main"
+    },
+    "testcase_09_generics_instantiation/models": {
+      "file_imports": {
+        "09_generics_instantiation/src/models/box.go": {}
+      },
+      "named_types": {
+        "Box": {
+          "name": "Box",
+          "package_path": "testcase_09_generics_instantiation/models",
+          "defined_in_file_path": "09_generics_instantiation/src/models/box.go",
+          "type_string": "models.Box[T]",
+          "underlying_type_string": "struct{Value T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_09_generics_instantiation/models",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Box",
+              "name": "Value",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_09_generics_instantiation/models",
+      "name": "models"
+    }
+  },
+  "file_to_package": {
+    "09_generics_instantiation/src/main.go": "testcase_09_generics_instantiation",
+    "09_generics_instantiation/src/models/box.go": "testcase_09_generics_instantiation/models"
+  }
+}

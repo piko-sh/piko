@@ -1,0 +1,33 @@
+{
+    "description": "pk-no-refresh-attrs preserves only specified attributes while allowing others and text content to update",
+    "options": {
+        "childrenOnly": false
+    },
+    "assertions": [
+        {
+            "selector": "div[p-key='r.0']",
+            "exists": true,
+            "description": "Element should exist after morph"
+        },
+        {
+            "selector": "div[p-key='r.0']",
+            "attributes": { "data-count": "5" },
+            "description": "data-count should be preserved from source (listed in pk-no-refresh-attrs)"
+        },
+        {
+            "selector": "div[p-key='r.0']",
+            "attributes": { "data-timestamp": "123" },
+            "description": "data-timestamp should be preserved from source (listed in pk-no-refresh-attrs)"
+        },
+        {
+            "selector": "div[p-key='r.0']",
+            "attributes": { "data-label": "new" },
+            "description": "data-label should be updated from target (not listed in pk-no-refresh-attrs)"
+        },
+        {
+            "selector": "div[p-key='r.0']",
+            "textContent": "Updated",
+            "description": "Text content should be updated from target"
+        }
+    ]
+}

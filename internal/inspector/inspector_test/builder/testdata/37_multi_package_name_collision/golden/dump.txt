@@ -1,0 +1,49 @@
+--- PACKAGE: testcase_37_multi_package_name_collision ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 37_multi_package_name_collision/src/main.go
+    - import "gofrsuuid"          -> github.com/gofrs/uuid/v5
+    - import "localuuid"          -> testcase_37_multi_package_name_collision/pkg/uuid
+    - import "moderncuuid"        -> modernc.org/libc/uuid/uuid
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Response
+    - Defined In:      37_multi_package_name_collision/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{RealGoogleUUID uuid.UUID; LocalFakeUUID localuuid.UUID; GofrsUUID gofrsuuid.UUID; ModerncUUID [16]uint8}
+    - Stringability:   0
+    - Fields:
+      - RealGoogleUUID       uuid.UUID
+        (Canonical Package: github.com/google/uuid)
+      - LocalFakeUUID        localuuid.UUID
+        (Canonical Package: testcase_37_multi_package_name_collision/pkg/uuid)
+      - GofrsUUID            gofrsuuid.UUID
+        (Canonical Package: github.com/gofrs/uuid/v5)
+      - ModerncUUID          moderncuuid.Uuid_t
+        (Canonical Package: modernc.org/libc/uuid/uuid)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_37_multi_package_name_collision/pkg/uuid ---
+[Package Info]
+  - Name:    uuid
+
+[File-Scoped Imports]
+  > File: 37_multi_package_name_collision/src/pkg/uuid/fake.go
+    (no imports in this file)
+
+[Named Types]
+  > type UUID
+    - Defined In:      37_multi_package_name_collision/src/pkg/uuid/fake.go
+    - TypeString:      uuid.UUID
+    - Underlying:      struct{IsLocal bool}
+    - Stringability:   0
+    - Fields:
+      - IsLocal              bool
+
+[Package-Level Functions]
+  (none)

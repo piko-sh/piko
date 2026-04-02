@@ -1,0 +1,22 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">Mutation Observer Test</h1>
+    <mutation-watcher partial="pages_index_032f49b1" p-key="r.0:1" last-action="none" next-child-num="3">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.mutation-watcher{padding: 20px}.status{background: #f5f5f5;padding: 10px;margin-bottom: 15px}.controls{margin-bottom: 15px}.controls button{margin-right: 10px;padding: 8px 16px}#watched-container{border: 2px solid #ccc;padding: 10px;min-height: 50px}.child{padding: 5px 10px;margin: 5px 0;background: #e0f0ff}</style>
+        <div class="mutation-watcher">
+          <div class="status">
+            <p id="action-log">Last action: none</p>
+          </div>
+          <div class="controls"><button id="add-child">Add Child</button><button id="remove-child">Remove Child</button><button id="clear-all">Clear All</button></div>
+          <div id="watched-container">
+            <div class="child">Child 1</div>
+            <div class="child">Child 2</div>
+          </div>
+          <p id="children-count">Children: <span>2</span></p>
+        </div>
+      </template>
+    </mutation-watcher>
+  </div>
+</div>

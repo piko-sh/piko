@@ -1,0 +1,23 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".modal-a-wrapper[partial~=partials_modal_a_7198b43f]{padding:1rem;border:2px solid #007bff;border-radius:8px;margin:1rem 0;background:#e7f3ff}.modal-a-status.open[partial~=partials_modal_a_7198b43f]{background:#28a745;color:#fff;padding:.5rem;border-radius:4px}\n.modal-b-wrapper[partial~=partials_modal_b_d21b688d]{padding:1rem;border:2px solid #dc3545;border-radius:8px;margin:1rem 0;background:#ffe7e7}.modal-b-status.open[partial~=partials_modal_b_d21b688d]{background:#dc3545;color:#fff;padding:.5rem;border-radius:4px}",
+      "jsArtefactIds": [
+        "pk-js/partials/modal-a.js",
+        "pk-js/partials/modal-b.js"
+      ],
+      "packagePath": "testcase_089_partial_js_scoped_functions/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

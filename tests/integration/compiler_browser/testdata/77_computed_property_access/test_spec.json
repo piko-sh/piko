@@ -1,0 +1,35 @@
+[
+  {
+    "action": "checkText",
+    "selector": "computed-property-access >>> #current-key",
+    "expected": "Key: a"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-property-access >>> #current-value",
+    "expected": "Value: Alpha"
+  },
+  {
+    "action": "click",
+    "selector": "computed-property-access >>> #set-b"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-property-access >>> #current-key",
+    "expected": "Key: b"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-property-access >>> #current-value",
+    "expected": "Value: Beta"
+  },
+  {
+    "action": "click",
+    "selector": "computed-property-access >>> #set-c"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-property-access >>> #current-value",
+    "expected": "Value: Gamma"
+  }
+]

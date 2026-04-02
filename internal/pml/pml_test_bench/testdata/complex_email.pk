@@ -1,0 +1,120 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <pml-hero mode="fluid-height" height="400px" background-url="https://via.placeholder.com/1200x400" 
+              background-width="1200px" background-height="400px"
+              background-position="center center" background-color="#2a2a2a" padding="100px 0">
+        <pml-p font-size="40px" font-weight="bold" color="#ffffff" align="center">
+            Welcome to Our Platform
+        </pml-p>
+        <pml-p font-size="18px" color="#ffffff" align="center" padding="10px 0">
+            The best solution for your business needs
+        </pml-p>
+        <pml-button href="https://example.com" background-color="#ff6b6b" color="#ffffff" 
+                    font-size="16px" padding="15px 40px" border-radius="25px">
+            Get Started Today
+        </pml-button>
+    </pml-hero>
+
+    <pml-row background-color="#f8f9fa" padding="40px 20px">
+        <pml-col width="33.33%">
+            <pml-img src="https://via.placeholder.com/200x200" alt="Feature 1" width="200px" align="center"/>
+            <pml-p font-size="20px" font-weight="bold" color="#333" align="center" padding="15px 0">
+                Fast Performance
+            </pml-p>
+            <pml-p font-size="14px" color="#666" align="center">
+                Lightning-fast processing for all your needs.
+            </pml-p>
+        </pml-col>
+        <pml-col width="33.33%">
+            <pml-img src="https://via.placeholder.com/200x200" alt="Feature 2" width="200px" align="center"/>
+            <pml-p font-size="20px" font-weight="bold" color="#333" align="center" padding="15px 0">
+                Secure & Reliable
+            </pml-p>
+            <pml-p font-size="14px" color="#666" align="center">
+                Bank-level security for your data protection.
+            </pml-p>
+        </pml-col>
+        <pml-col width="33.33%">
+            <pml-img src="https://via.placeholder.com/200x200" alt="Feature 3" width="200px" align="center"/>
+            <pml-p font-size="20px" font-weight="bold" color="#333" align="center" padding="15px 0">
+                24/7 Support
+            </pml-p>
+            <pml-p font-size="14px" color="#666" align="center">
+                Our team is always here to help you succeed.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+
+    <pml-container background-color="#ffffff">
+        <pml-row padding="40px 20px">
+            <pml-col>
+                <pml-p font-size="28px" font-weight="bold" color="#333" align="center">
+                    What's Included
+                </pml-p>
+                <pml-hr border-color="#007bff" border-width="3px" width="100px" padding="20px 0"/>
+                <pml-ul font-size="16px" color="#666" padding="20px 40px">
+                    <pml-li>Unlimited bandwidth and storage</pml-li>
+                    <pml-li>Advanced analytics dashboard</pml-li>
+                    <pml-li>Priority customer support</pml-li>
+                    <pml-li>Regular feature updates</pml-li>
+                    <pml-li>99.9% uptime guarantee</pml-li>
+                </pml-ul>
+            </pml-col>
+        </pml-row>
+
+        <pml-row background-color="#e9ecef" padding="40px 20px">
+            <pml-col width="50%">
+                <pml-p font-size="24px" font-weight="bold" color="#333" padding="0 20px 15px">
+                    Ready to Start?
+                </pml-p>
+                <pml-p font-size="16px" color="#666" padding="0 20px">
+                    Join thousands of satisfied customers who trust our platform.
+                </pml-p>
+                <pml-p font-size="16px" color="#666" padding="10px 20px">
+                    No credit card required. Cancel anytime.
+                </pml-p>
+            </pml-col>
+            <pml-col width="50%" vertical-align="middle">
+                <pml-button href="https://example.com/signup" background-color="#28a745" 
+                           color="#ffffff" font-size="18px" padding="15px 40px" 
+                           border-radius="5px" align="center">
+                    Start Free Trial
+                </pml-button>
+                <pml-br height="10px"/>
+                <pml-p font-size="12px" color="#999" align="center">
+                    No commitment required
+                </pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+
+    <pml-row background-color="#2a2a2a" padding="30px 20px">
+        <pml-col>
+            <pml-p font-size="14px" color="#ffffff" align="center" padding="10px 0">
+                © 2025 Your Company. All rights reserved.
+            </pml-p>
+            <pml-p font-size="12px" color="#999" align="center">
+                123 Business St, City, State 12345
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>

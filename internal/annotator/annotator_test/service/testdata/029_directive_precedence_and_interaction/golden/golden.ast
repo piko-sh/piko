@@ -1,0 +1,15 @@
+/*
+--- BEGIN AST DUMP ---
+
+<ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <li id="the-item" [p-if: (item == "B")] [p-for: (__pikoLoopIdx, item) in state.Items] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "\n            Item is: "
+      {{ item }}
+      "\n        "
+    </RichText>
+  </li>
+</ul>
+
+--- END AST DUMP ---
+*/

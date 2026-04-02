@@ -1,0 +1,125 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Coercion Built-in Functions Test"
+  </h1>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "String Coercion"
+  </h2>
+  <p id="string-from-int" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ string(state.IntVal) }}
+    </RichText>
+  </p>
+  <p id="string-from-float" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ string(state.FloatVal) }}
+    </RichText>
+  </p>
+  <p id="string-from-bool" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ string(state.BoolVal) }}
+    </RichText>
+  </p>
+  <p id="string-from-decimal" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ string(state.DecimalVal) }}
+    </RichText>
+  </p>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Int Coercion"
+  </h2>
+  <p id="int-from-string" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ int(state.StringVal) }}
+    </RichText>
+  </p>
+  <p id="int-from-float" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ int(state.FloatVal) }}
+    </RichText>
+  </p>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Int64/Int32 Coercion"
+  </h2>
+  <p id="int64-from-string" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ int64(state.StringVal) }}
+    </RichText>
+  </p>
+  <p id="int32-from-int" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ int32(state.IntVal) }}
+    </RichText>
+  </p>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Float Coercion"
+  </h2>
+  <p id="float64-from-int" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ float64(state.IntVal) }}
+    </RichText>
+  </p>
+  <p id="float64-from-string" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ float64(state.StringVal) }}
+    </RichText>
+  </p>
+  <p id="float-alias" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ float(state.IntVal) }}
+    </RichText>
+  </p>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Bool Coercion"
+  </h2>
+  <p id="bool-from-string" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ bool(state.StringVal) }}
+    </RichText>
+  </p>
+  <p id="bool-from-int" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ bool(state.IntVal) }}
+    </RichText>
+  </p>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Decimal Coercion"
+  </h2>
+  <p id="decimal-from-int" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ decimal(state.IntVal) }}
+    </RichText>
+  </p>
+  <p id="decimal-from-string" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ decimal(state.StringVal) }}
+    </RichText>
+  </p>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "BigInt Coercion"
+  </h2>
+  <p id="bigint-from-int" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ bigint(state.IntVal) }}
+    </RichText>
+  </p>
+  <p id="bigint-from-string" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ bigint(state.StringVal) }}
+    </RichText>
+  </p>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Ternary with Coercion"
+  </h2>
+  <p id="ternary-coerced" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ (state.BoolVal ? string(state.IntVal) : state.StringVal) }}
+    </RichText>
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

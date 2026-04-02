@@ -1,0 +1,49 @@
+{
+    "description": "Three-level nested partials - Page > Modal > List > Items hierarchy",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/partials/lists/items",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".item-list",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".page",
+            "attributes": { "partial": "page_scope" },
+            "description": "Page scope unchanged"
+        },
+        {
+            "selector": ".modal",
+            "attributes": { "partial": "modal_scope page_scope" },
+            "description": "Modal preserves page scope"
+        },
+        {
+            "selector": ".item-list",
+            "attributes": { "partial": "list_scope modal_scope page_scope" },
+            "description": "List preserves modal and page scopes"
+        },
+        {
+            "selector": ".item:first-child",
+            "attributes": { "partial": "item1_scope list_scope modal_scope page_scope" },
+            "description": "First item inherits full scope chain"
+        },
+        {
+            "selector": ".item:nth-child(2)",
+            "attributes": { "partial": "item2_scope list_scope modal_scope page_scope" },
+            "description": "Second item inherits full scope chain"
+        },
+        {
+            "selector": ".item:nth-child(3)",
+            "attributes": { "partial": "item3_new list_scope modal_scope page_scope" },
+            "description": "New third item inherits full scope chain"
+        }
+    ]
+}

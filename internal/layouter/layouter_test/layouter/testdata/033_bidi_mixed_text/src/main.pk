@@ -1,0 +1,15 @@
+<template>
+  <div style="direction: ltr; width: 400px;">LTR text content</div>
+
+  <div style="direction: rtl; width: 400px;">RTL text content</div>
+
+  <div style="direction: rtl; unicode-bidi: bidi-override; width: 400px;">Override text</div>
+
+  <div style="direction: rtl; text-align: start; width: 400px;">
+    <span style="display: inline-block; width: 100px; height: 20px;"></span>
+  </div>
+
+  <div style="direction: ltr; text-align: end; width: 400px;">
+    <span style="display: inline-block; width: 100px; height: 20px;"></span>
+  </div>
+</template>

@@ -1,0 +1,258 @@
+<template>
+    <pml-row background-color="#003f88" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="28px" color="#ffffff" align="center" padding="10px 25px" font-weight="bold">Wayfare</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#003f88" padding="10px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#ffffff" align="center" padding="5px 25px" font-weight="bold">Your Trip to Barcelona</pml-p>
+            <pml-p font-size="16px" color="#a8c8f0" align="center" padding="5px 25px">12 - 16 April 2026</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#003f88" padding="10px 25px" font-weight="bold">Outbound Flight</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="0">
+        <pml-col>
+            <pml-hr border-color="#003f88" border-width="3px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#eaf2ff" padding="10px 0">
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Flight:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">BA 478</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Date:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Saturday, 12 April 2026</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Departure:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">London Heathrow (LHR) - 07:15</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Arrival:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Barcelona El Prat (BCN) - 10:30</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Class:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Economy</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Booking Ref:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px" font-weight="bold">XKJM42</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-br></pml-br>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#003f88" padding="10px 25px" font-weight="bold">Return Flight</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="0">
+        <pml-col>
+            <pml-hr border-color="#003f88" border-width="3px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#eaf2ff" padding="10px 0">
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Flight:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">BA 479</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Date:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Wednesday, 16 April 2026</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Departure:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Barcelona El Prat (BCN) - 18:45</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Arrival:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">London Heathrow (LHR) - 20:10</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Class:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Economy</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Booking Ref:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px" font-weight="bold">XKJM42</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#003f88" padding="10px 25px" font-weight="bold">Hotel</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="0">
+        <pml-col>
+            <pml-hr border-color="#003f88" border-width="3px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#fef5e7" padding="10px 0">
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Hotel:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Hotel Arts Barcelona</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Check-in:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Saturday, 12 April - from 15:00</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Check-out:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Wednesday, 16 April - by 11:00</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Room:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px">Superior Double, Sea View</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="13px" color="#666666" padding="5px 25px" font-weight="bold">Confirmation:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="13px" color="#2c3e50" padding="5px 25px" font-weight="bold">HTL-BCN-98214</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#003f88" padding="10px 25px" font-weight="bold">Trip Summary</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="60%">
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Flights (2 passengers)</pml-p>
+        </pml-col>
+        <pml-col width="40%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£478.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="60%">
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Hotel (4 nights)</pml-p>
+        </pml-col>
+        <pml-col width="40%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£1,120.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="60%">
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Travel Insurance</pml-p>
+        </pml-col>
+        <pml-col width="40%">
+            <pml-p font-size="14px" color="#2c3e50" align="right" padding="5px 25px">£64.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#003f88" border-width="3px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col width="60%">
+            <pml-p font-size="18px" color="#003f88" align="right" padding="5px 25px" font-weight="bold">Total Paid</pml-p>
+        </pml-col>
+        <pml-col width="40%">
+            <pml-p font-size="18px" color="#003f88" align="right" padding="5px 25px" font-weight="bold">£1,662.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://wayfare.example.com/booking/XKJM42" background-color="#003f88" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 40px">Manage Booking</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#003f88" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#a8c8f0" align="center" padding="5px 25px">
+                Wayfare Travel Ltd - ATOL Protected
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.trip-total { font-weight: bold; }
+</style>

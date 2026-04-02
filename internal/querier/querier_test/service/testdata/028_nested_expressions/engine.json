@@ -1,0 +1,87 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int2": { "category": "integer", "engineName": "int2" },
+    "int4": { "category": "integer", "engineName": "int4" },
+    "numeric": { "category": "decimal", "engineName": "numeric" },
+    "float4": { "category": "float", "engineName": "float4" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE line_items ( id int4 PRIMARY KEY, quantity int2 NOT NULL, unit_price numeric(10,2) NOT NULL, tax_rate float4, discount numeric(10,2) )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "line_items",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "quantity", "sqlType": { "category": "integer", "engineName": "int2" }, "nullable": false },
+          { "name": "unit_price", "sqlType": { "category": "decimal", "engineName": "numeric", "precision": 10, "scale": 2 }, "nullable": false },
+          { "name": "tax_rate", "sqlType": { "category": "float", "engineName": "float4" }, "nullable": true },
+          { "name": "discount", "sqlType": { "category": "decimal", "engineName": "numeric", "precision": 10, "scale": 2 }, "nullable": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, unit_price * quantity + COALESCE(unit_price * quantity * tax_rate, 0) - COALESCE(discount, 0) as total FROM line_items WHERE id = $1",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "line_items",
+            "columnName": "id"
+          },
+          {
+            "name": "total",
+            "expression": {
+              "kind": "binary_op",
+              "operator": "-",
+              "left": {
+                "kind": "binary_op",
+                "operator": "+",
+                "left": {
+                  "kind": "binary_op",
+                  "operator": "*",
+                  "left": { "kind": "column_ref", "tableAlias": "line_items", "columnName": "unit_price" },
+                  "right": { "kind": "column_ref", "tableAlias": "line_items", "columnName": "quantity" }
+                },
+                "right": {
+                  "kind": "coalesce",
+                  "arguments": [
+                    {
+                      "kind": "binary_op",
+                      "operator": "*",
+                      "left": {
+                        "kind": "binary_op",
+                        "operator": "*",
+                        "left": { "kind": "column_ref", "tableAlias": "line_items", "columnName": "unit_price" },
+                        "right": { "kind": "column_ref", "tableAlias": "line_items", "columnName": "quantity" }
+                      },
+                      "right": { "kind": "column_ref", "tableAlias": "line_items", "columnName": "tax_rate" }
+                    },
+                    { "kind": "literal", "typeName": "int4" }
+                  ]
+                }
+              },
+              "right": {
+                "kind": "coalesce",
+                "arguments": [
+                  { "kind": "column_ref", "tableAlias": "line_items", "columnName": "discount" },
+                  { "kind": "literal", "typeName": "int4" }
+                ]
+              }
+            }
+          }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "line_items", "columnName": "id" } }
+        ],
+        "fromTables": [
+          { "name": "line_items" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

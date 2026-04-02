@@ -1,0 +1,43 @@
+{
+    "description": "Replace mode swaps all children of the target element with response content",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/full-replace",
+        "patchMethod": "replace",
+        "childrenOnly": false,
+        "querySelector": "#widget"
+    },
+    "assertions": [
+        {
+            "selector": "#widget",
+            "exists": true,
+            "description": "Widget container should still exist after replace"
+        },
+        {
+            "selector": "#widget .updated",
+            "textContent": "New widget content",
+            "description": "Updated paragraph should have correct text"
+        },
+        {
+            "selector": "#widget .badge",
+            "textContent": "v2",
+            "description": "Badge span should have correct text"
+        },
+        {
+            "selector": "#widget p:not(.updated)",
+            "exists": false,
+            "description": "Old paragraph without .updated class should be removed"
+        },
+        {
+            "selector": "#widget",
+            "attributes": { "class": "old-class", "data-version": "1" },
+            "description": "Container retains original attributes since replace mode does not sync attrs without patchAttributes"
+        }
+    ]
+}

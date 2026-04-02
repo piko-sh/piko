@@ -1,0 +1,444 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-text-field" enable="form">
+    <div class="text-field"
+         p-class="{
+             'filled': state.variant == 'filled',
+             'outlined': state.variant == 'outlined',
+             'focused': state.focused,
+             'populated': state.value != '',
+             'error': state.error,
+             'disabled': state.disabled,
+             'has-leading': state.has_leading,
+             'has-prefix': state.prefix_text != ''
+         }">
+        <div class="container" p-on:click="focusInput">
+            <div class="background" p-if="state.variant == 'filled'"></div>
+            <div class="outline" p-if="state.variant == 'outlined'">
+                <div class="outline-start"></div>
+                <div class="outline-notch">
+                    <span class="outline-label"
+                          p-if="state.label"
+                          p-text="state.label"></span>
+                </div>
+                <div class="outline-end"></div>
+            </div>
+            <div class="content">
+                <div class="label-container" p-if="state.variant == 'filled' && state.label">
+                    <span class="label" p-text="state.label"></span>
+                </div>
+                <slot name="leading"></slot>
+                <span class="prefix-text" p-if="state.prefix_text" p-text="state.prefix_text"></span>
+                <div class="input-wrapper">
+                    <textarea p-if="state.multiline"
+                              class="input"
+                              p-ref="input"
+                              :name="state.name"
+                              :value="state.value"
+                              :disabled="state.disabled ? '' : null"
+                              :rows="String(state.rows)"
+                              :maxlength="state.maxlength > 0 ? String(state.maxlength) : null"
+                              :aria-invalid="state.error ? 'true' : 'false'"
+                              p-on:input="handleInput"
+                              p-on:change="handleChange"
+                              p-on:focus="handleFocus"
+                              p-on:blur="handleBlur"></textarea>
+                    <input p-if="!state.multiline"
+                           class="input"
+                           p-ref="input"
+                           :type="state.type"
+                           :name="state.name"
+                           :value="state.value"
+                           :disabled="state.disabled ? '' : null"
+                           :maxlength="state.maxlength > 0 ? String(state.maxlength) : null"
+                           :aria-invalid="state.error ? 'true' : 'false'"
+                           p-on:input="handleInput"
+                           p-on:change="handleChange"
+                           p-on:focus="handleFocus"
+                           p-on:blur="handleBlur" />
+                </div>
+                <span class="suffix-text" p-if="state.suffix_text" p-text="state.suffix_text"></span>
+                <slot name="trailing"></slot>
+            </div>
+            <div class="active-indicator" p-if="state.variant == 'filled'"></div>
+        </div>
+        <div class="supporting" p-if="state.supportingText || (state.error && state.errorText)">
+            <span class="supporting-text"
+                  p-text="state.error && state.errorText ? state.errorText : state.supportingText"></span>
+            <span class="counter"
+                  p-if="state.maxlength > 0"
+                  p-text="state.value.length + '/' + state.maxlength"></span>
+        </div>
+        <input p-if="state.name" type="hidden" :name="state.name" :value="state.value" />
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'filled' as string,
+        label: '' as string,
+        value: '' as string,
+        type: 'text' as string,
+        error: false as boolean,
+        errorText: '' as string,
+        supportingText: '' as string,
+        maxlength: 0 as number,
+        multiline: false as boolean,
+        rows: 3 as number,
+        prefix_text: '' as string,
+        suffix_text: '' as string,
+        disabled: false as boolean,
+        focused: false as boolean,
+        name: '' as string,
+        has_leading: false as boolean,
+    };
+
+    pkc.attachSlotListener('leading', (elements) => {
+        state.has_leading = elements.length > 0;
+    });
+
+    pkc.getValue = () => {
+        return state.value;
+    }
+
+    pkc.getName = () => {
+        return state.name;
+    }
+
+    function focusInput() {
+        const input = pkc.refs.input;
+        if (input && !state.disabled) {
+            input.focus();
+        }
+    }
+
+    function handleInput(event) {
+        state.value = event.target.value;
+        pkc.dispatchEvent(new CustomEvent('input', {
+            detail: { value: state.value },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleChange(event) {
+        state.value = event.target.value;
+        pkc.dispatchEvent(new CustomEvent('change', {
+            detail: { value: state.value },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleFocus() {
+        state.focused = true;
+    }
+
+    function handleBlur() {
+        state.focused = false;
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        min-width: 210px;
+        max-width: 100%;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline: var(--m3e-outline, #79747e);
+        --_outline-variant: var(--m3e-outline-variant, #cac4d0);
+        --_error: var(--m3e-error, #b3261e);
+        --_on-error: var(--m3e-on-error, #ffffff);
+        --_surface-container-highest: var(--m3e-surface-container-highest, #e6e0e9);
+        --_surface-container: var(--m3e-surface-container, #f3edf7);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-xs: var(--m3e-shape-xs, 4px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .text-field {
+        position: relative;
+
+        &.disabled {
+            opacity: 0.38;
+            pointer-events: none;
+        }
+
+        &:not(.focused):not(.populated) {
+            .prefix-text,
+            .suffix-text {
+                opacity: 0;
+                width: 0;
+                overflow: hidden;
+                padding: 0;
+            }
+        }
+    }
+
+    .container {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        min-height: 56px;
+        cursor: text;
+    }
+
+    .background {
+        position: absolute;
+        inset: 0;
+        background: var(--_surface-container-highest);
+        border-radius: var(--_shape-xs) var(--_shape-xs) 0 0;
+    }
+
+    .active-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--_on-surface-variant);
+        transition: height var(--_duration-short) var(--_easing-standard),
+                    background var(--_duration-short) var(--_easing-standard);
+    }
+
+    .focused {
+        .active-indicator {
+            height: 2px;
+            background: var(--_primary);
+        }
+
+        .outline-notch {
+            border-top-color: transparent;
+        }
+
+        .outline-start,
+        .outline-notch,
+        .outline-end {
+            border-color: var(--_primary);
+            border-width: 2px;
+        }
+
+        .outline-label {
+            color: var(--_primary);
+        }
+
+        .label {
+            color: var(--_primary);
+        }
+    }
+
+    .error {
+        .active-indicator {
+            background: var(--_error);
+        }
+
+        .outline-start,
+        .outline-notch,
+        .outline-end {
+            border-color: var(--_error);
+        }
+
+        &.focused .outline-notch,
+        &.populated .outline-notch {
+            border-top-color: transparent;
+        }
+
+        .outline-label {
+            color: var(--_error);
+        }
+
+        .label {
+            color: var(--_error);
+        }
+
+        .input {
+            caret-color: var(--_error);
+        }
+
+        .supporting {
+            color: var(--_error);
+        }
+    }
+
+    .outline {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        pointer-events: none;
+    }
+
+    .outline-start {
+        width: 16px;
+        border: 1px solid var(--_outline);
+        border-right: none;
+        border-radius: var(--_shape-xs) 0 0 var(--_shape-xs);
+        transition: border-color var(--_duration-short) var(--_easing-standard);
+    }
+
+    .has-leading .outline-start {
+        width: 48px;
+    }
+
+    .outline-notch {
+        border-top: 1px solid var(--_outline);
+        border-bottom: 1px solid var(--_outline);
+        transition: border-color var(--_duration-short) var(--_easing-standard);
+        display: flex;
+        align-items: flex-start;
+        padding: 0 4px;
+    }
+
+    .focused .outline-notch,
+    .populated .outline-notch {
+        border-top-color: transparent;
+    }
+
+    .outline-end {
+        flex: 1;
+        border: 1px solid var(--_outline);
+        border-left: none;
+        border-radius: 0 var(--_shape-xs) var(--_shape-xs) 0;
+        transition: border-color var(--_duration-short) var(--_easing-standard);
+    }
+
+    .outline-label {
+        font-size: 0.75rem;
+        color: var(--_on-surface-variant);
+        transform: translateY(-50%);
+        transform-origin: top left;
+        transition: font-size var(--_duration-short) var(--_easing-standard),
+                    transform var(--_duration-short) var(--_easing-standard),
+                    color var(--_duration-short) var(--_easing-standard);
+    }
+
+    .outlined:not(.focused):not(.populated) .outline-label {
+        font-size: 1rem;
+        transform: translateY(calc(28px - 50%));
+    }
+
+    .content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1;
+        padding: 0 16px;
+        z-index: 1;
+        gap: 8px;
+    }
+
+    .label-container {
+        position: absolute;
+        top: 8px;
+        left: 16px;
+        right: 16px;
+        pointer-events: none;
+    }
+
+    .has-leading .label-container {
+        left: 48px;
+    }
+
+    .has-prefix .label-container {
+        left: 16px;
+    }
+
+    .label {
+        font-size: 0.75rem;
+        color: var(--_on-surface-variant);
+        transform-origin: top left;
+        transition: font-size var(--_duration-short) var(--_easing-standard),
+                    transform var(--_duration-short) var(--_easing-standard),
+                    color var(--_duration-short) var(--_easing-standard);
+    }
+
+    .filled:not(.focused):not(.populated) .label {
+        font-size: 1rem;
+        transform: translateY(8px);
+    }
+
+    .input-wrapper {
+        flex: 1;
+        display: flex;
+    }
+
+    .input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: var(--_on-surface);
+        font-family: inherit;
+        caret-color: var(--_primary);
+        padding: 0;
+
+        &::placeholder {
+            color: var(--_on-surface-variant);
+        }
+    }
+
+    .filled .input {
+        padding-top: 28px;
+        padding-bottom: 8px;
+    }
+
+    .outlined .input {
+        padding-top: 16px;
+        padding-bottom: 16px;
+    }
+
+    textarea.input {
+        resize: vertical;
+        align-self: flex-start;
+    }
+
+    .supporting {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 16px 0;
+        font-size: 0.75rem;
+        color: var(--_on-surface-variant);
+    }
+
+    .counter {
+        margin-left: auto;
+    }
+
+    .prefix-text,
+    .suffix-text {
+        font-size: 1rem;
+        color: var(--_on-surface-variant);
+        white-space: nowrap;
+    }
+
+    .prefix-text {
+        padding-right: 2px;
+    }
+
+    .suffix-text {
+        padding-left: 2px;
+    }
+</style>

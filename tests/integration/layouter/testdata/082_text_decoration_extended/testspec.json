@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text-decoration-color and text-decoration-style do not affect layout positions.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

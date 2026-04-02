@@ -1,0 +1,10 @@
+<template>
+    <pml-row>
+        <pml-col width="30%">
+            <pml-p>Sidebar</pml-p>
+        </pml-col>
+        <pml-col width="70%">
+            <pml-p>Main content</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

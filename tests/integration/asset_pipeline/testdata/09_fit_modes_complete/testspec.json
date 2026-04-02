@@ -1,0 +1,132 @@
+{
+  "description": "Fit modes: cover, contain, fill with various aspect ratios and dimension verification",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jersey.jpg"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "fit-cover-square",
+      "capabilityName": "image-transform",
+      "description": "Cover fit: crop to fill 200x200 square",
+      "params": {
+        "width": "200",
+        "height": "200",
+        "fit": "cover",
+        "format": "jpeg",
+        "quality": "85"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 200,
+        "exactHeight": 200
+      },
+      "goldenFile": "fit-cover-200x200.jpg"
+    },
+    {
+      "profileName": "fit-cover-landscape",
+      "capabilityName": "image-transform",
+      "description": "Cover fit: crop to fill 400x200 landscape",
+      "params": {
+        "width": "400",
+        "height": "200",
+        "fit": "cover",
+        "format": "jpeg",
+        "quality": "85"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 200
+      },
+      "goldenFile": "fit-cover-400x200.jpg"
+    },
+    {
+      "profileName": "fit-cover-portrait",
+      "capabilityName": "image-transform",
+      "description": "Cover fit: crop to fill 200x400 portrait",
+      "params": {
+        "width": "200",
+        "height": "400",
+        "fit": "cover",
+        "format": "jpeg",
+        "quality": "85"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 200,
+        "exactHeight": 400
+      },
+      "goldenFile": "fit-cover-200x400.jpg"
+    },
+    {
+      "profileName": "fit-contain-square",
+      "capabilityName": "image-transform",
+      "description": "Contain fit: letterbox within 200x200 (preserves aspect ratio)",
+      "params": {
+        "width": "200",
+        "height": "200",
+        "fit": "contain",
+        "format": "jpeg",
+        "quality": "85"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "maxWidth": 200,
+        "maxHeight": 200
+      },
+      "goldenFile": "fit-contain-200x200.jpg"
+    },
+    {
+      "profileName": "fit-fill-stretch",
+      "capabilityName": "image-transform",
+      "description": "Fill fit: stretch to exact 300x200 (distorts if needed)",
+      "params": {
+        "width": "300",
+        "height": "200",
+        "fit": "fill",
+        "format": "jpeg",
+        "quality": "85"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 300,
+        "exactHeight": 200
+      },
+      "goldenFile": "fit-fill-300x200.jpg"
+    },
+    {
+      "profileName": "fit-inside",
+      "capabilityName": "image-transform",
+      "description": "Inside fit: scale down to fit within bounds, no upscaling",
+      "params": {
+        "width": "300",
+        "height": "200",
+        "fit": "inside",
+        "format": "jpeg",
+        "quality": "85"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "maxWidth": 300,
+        "maxHeight": 200
+      },
+      "goldenFile": "fit-inside-300x200.jpg"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Tests HasClass assertion method for class checking",
+  "entryPoints": [
+    { "path": "pages/themes.pk", "isPage": true }
+  ]
+}

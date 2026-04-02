@@ -1,0 +1,29 @@
+Lumiere
+
+Forgot something?
+
+Items in your basket are selling fast. Complete your purchase before they're gone.
+
+Item 1
+
+Leather Tote
+
+£89.00
+
+Item 2
+
+Suede Loafers
+
+£145.00
+
+Subtotal
+
+£234.00
+
+ Complete Purchase (https://example.com/cart/checkout)
+
+Use code COMEBACK15 for 15% off
+
+You received this email because you have items in your basket at Lumiere.
+
+© 2026 Lumiere. All rights reserved.

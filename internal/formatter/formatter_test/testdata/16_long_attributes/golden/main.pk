@@ -1,0 +1,13 @@
+<template>
+  <div
+    class="extremely-long-class-name-that-goes-on-and-on-and-on-to-test-wrapping"
+    data-description="This is a very long data attribute with text content"
+    id="another-very-long-identifier-name"
+  >Content</div>
+  <input
+    aria-describedby="name-help-text"
+    autocomplete="name"
+    placeholder="Enter your full name including middle names and any titles"
+    type="text"
+   />
+</template>

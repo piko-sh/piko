@@ -1,0 +1,244 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-tabs">
+    <div class="tabs-wrapper">
+        <button class="scroll-button scroll-left" p-show="state.can_scroll_left" p-on:click="scrollLeft" aria-label="Scroll left">&#x25C0;</button>
+        <div class="tabs-scroller" p-ref="tabsScroller">
+            <div class="tabs"
+                 p-class="{
+                     'primary': state.variant == 'primary',
+                     'secondary': state.variant == 'secondary'
+                 }"
+                 role="tablist"
+                 p-on:keydown="handleKeydown">
+                <slot></slot>
+                <div class="indicator" p-ref="indicator"></div>
+            </div>
+        </div>
+        <button class="scroll-button scroll-right" p-show="state.can_scroll_right" p-on:click="scrollRight" aria-label="Scroll right">&#x25B6;</button>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'primary' as string,
+        selectedIndex: 0 as number,
+        can_scroll_left: false as boolean,
+        can_scroll_right: false as boolean,
+    };
+
+    pkc.onConnected(() => {
+        pkc.addEventListener('tab-click', handleTabClick);
+
+        const tabs = pkc.querySelectorAll('m3e-tab');
+        let presetIndex = -1;
+        tabs.forEach((tab, i) => {
+            if (tab.hasAttribute('active')) {
+                presetIndex = i;
+            }
+        });
+
+        if (presetIndex >= 0) {
+            state.selectedIndex = presetIndex;
+            positionIndicator();
+        } else {
+            syncTabs();
+        }
+
+        const scroller = pkc.refs.tabsScroller;
+        if (scroller) {
+            scroller.addEventListener('scroll', () => checkScroll());
+        }
+        checkScroll();
+    });
+
+    pkc.onDisconnected(() => {
+        pkc.removeEventListener('tab-click', handleTabClick);
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('selectedIndex')) {
+            syncTabs();
+        }
+        checkScroll();
+    });
+
+    const handleTabClick = function(event) {
+        const tabs = pkc.querySelectorAll('m3e-tab');
+        const clickedTab = event.detail.tab;
+        let index = -1;
+
+        tabs.forEach((tab, i) => {
+            if (tab === clickedTab) index = i;
+        });
+
+        if (index >= 0) {
+            state.selectedIndex = index;
+            syncTabs();
+            pkc.dispatchEvent(new CustomEvent('change', {
+                detail: { index: index },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+    };
+
+    function handleKeydown(event) {
+        const isLeft = event.key === 'ArrowLeft';
+        const isRight = event.key === 'ArrowRight';
+        const isHome = event.key === 'Home';
+        const isEnd = event.key === 'End';
+
+        if (!isLeft && !isRight && !isHome && !isEnd) return;
+
+        event.preventDefault();
+        const tabs = Array.from(pkc.querySelectorAll('m3e-tab:not([disabled])'));
+        if (tabs.length < 2) return;
+
+        const focused = pkc.querySelector('m3e-tab:focus');
+        let focusedIndex = focused ? tabs.indexOf(focused) : -1;
+        let nextIndex;
+
+        if (isHome) {
+            nextIndex = 0;
+        } else if (isEnd) {
+            nextIndex = tabs.length - 1;
+        } else if (isRight) {
+            nextIndex = focusedIndex < tabs.length - 1 ? focusedIndex + 1 : 0;
+        } else {
+            nextIndex = focusedIndex > 0 ? focusedIndex - 1 : tabs.length - 1;
+        }
+
+        tabs[nextIndex].focus();
+    }
+
+    function checkScroll() {
+        const scroller = pkc.refs.tabsScroller;
+        if (!scroller) return;
+        state.can_scroll_left = scroller.scrollLeft > 0;
+        state.can_scroll_right = scroller.scrollLeft < scroller.scrollWidth - scroller.clientWidth - 1;
+    }
+
+    function scrollTabs(amount) {
+        const scroller = pkc.refs.tabsScroller;
+        if (!scroller) return;
+        scroller.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+
+    function scrollLeft() {
+        scrollTabs(-200);
+    }
+
+    function scrollRight() {
+        scrollTabs(200);
+    }
+
+    function syncTabs() {
+        const tabs = pkc.querySelectorAll('m3e-tab');
+        tabs.forEach((tab, i) => {
+            if (i === state.selectedIndex) {
+                tab.setAttribute('active', '');
+            } else {
+                tab.removeAttribute('active');
+            }
+            tab.tabIndex = i === state.selectedIndex ? 0 : -1;
+        });
+
+        positionIndicator();
+    }
+
+    function positionIndicator() {
+        requestAnimationFrame(() => {
+            const tabs = pkc.querySelectorAll('m3e-tab');
+            const activeTab = tabs[state.selectedIndex];
+            const indicator = pkc.refs.indicator;
+            const scroller = pkc.refs.tabsScroller;
+            if (!activeTab || !indicator || !scroller) return;
+
+            const scrollerRect = scroller.getBoundingClientRect();
+            const tabRect = activeTab.getBoundingClientRect();
+
+            indicator.style.left = (tabRect.left - scrollerRect.left + scroller.scrollLeft) + 'px';
+            indicator.style.width = tabRect.width + 'px';
+        });
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_surface: var(--m3e-surface, #fffbfe);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline-variant: var(--m3e-outline-variant, #cac4d0);
+    }
+
+    .tabs-wrapper {
+        display: flex;
+        align-items: stretch;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tabs-scroller {
+        overflow-x: auto;
+        scrollbar-width: none;
+        flex: 1;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .tabs {
+        display: flex;
+        position: relative;
+        border-bottom: 1px solid var(--_outline-variant);
+        background: var(--_surface);
+    }
+
+    .indicator {
+        position: absolute;
+        bottom: 0;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+        background: var(--m3e-primary, #6750a4);
+        transition: left 300ms cubic-bezier(0.05, 0.7, 0.1, 1),
+                    width 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
+        z-index: 2;
+    }
+
+    .scroll-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        border: none;
+        background: var(--_surface);
+        color: var(--_on-surface-variant);
+        cursor: pointer;
+        z-index: 1;
+        flex-shrink: 0;
+
+        &:hover {
+            background: rgba(73, 69, 79, 0.08);
+        }
+    }
+</style>

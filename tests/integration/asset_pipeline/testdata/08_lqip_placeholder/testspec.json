@@ -1,0 +1,81 @@
+{
+  "description": "LQIP placeholder generation: tiny blurred base64 data URLs for progressive image loading",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jersey.jpg"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "lqip-default",
+      "capabilityName": "image-transform",
+      "description": "LQIP with default settings (20px, quality 10, blur 5.0)",
+      "params": {
+        "placeholder": "true",
+        "format": "jpeg"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "startsWithDataURL": "data:image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 500,
+        "maxSizeBytes": 2000
+      }
+    },
+    {
+      "profileName": "lqip-custom-width",
+      "capabilityName": "image-transform",
+      "description": "LQIP with 30px width",
+      "params": {
+        "placeholder": "true",
+        "placeholder-width": "30",
+        "format": "jpeg"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "startsWithDataURL": "data:image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 500,
+        "maxSizeBytes": 3000
+      }
+    },
+    {
+      "profileName": "lqip-high-quality",
+      "capabilityName": "image-transform",
+      "description": "LQIP with higher quality (40) for more detail",
+      "params": {
+        "placeholder": "true",
+        "placeholder-width": "20",
+        "placeholder-quality": "40",
+        "format": "jpeg"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "startsWithDataURL": "data:image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 500,
+        "maxSizeBytes": 4000
+      }
+    },
+    {
+      "profileName": "lqip-heavy-blur",
+      "capabilityName": "image-transform",
+      "description": "LQIP with heavy blur (10.0) for smoother transition",
+      "params": {
+        "placeholder": "true",
+        "placeholder-width": "20",
+        "placeholder-blur": "10.0",
+        "format": "jpeg"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "startsWithDataURL": "data:image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 500,
+        "maxSizeBytes": 2000
+      }
+    }
+  ]
+}

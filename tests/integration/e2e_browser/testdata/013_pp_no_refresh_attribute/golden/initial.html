@@ -1,0 +1,28 @@
+<div id="app">
+  <div partial="pages_counter_9f430e26" p-key="r.0">
+    <h1 partial="pages_counter_9f430e26" p-key="r.0:0">pk-no-refresh Test</h1>
+    <div
+      partial="partials_player_f9d130af"
+      partial_name="player"
+      partial_src="/_piko/partials/player"
+      p-key="r.0:1"
+      class="player-partial"
+    >
+      <p partial="partials_player_f9d130af" p-key="r.0:1:0">Server render count: <span partial="partials_player_f9d130af" p-key="r.0:1:0:1">1</span></p>
+      <div partial="partials_player_f9d130af" p-key="r.0:1:1" class="counter-container"><span partial="partials_player_f9d130af" p-key="r.0:1:1:0" id="client-counter" pk-no-refresh data-count="0">0</span><button
+          partial="partials_player_f9d130af"
+          p-key="r.0:1:1:1"
+          id="increment-btn"
+          p-on:click="eyJmIjoiaW5jcmVtZW50IiwiYSI6W119"
+          pk-ev-bound="true"
+        >Increment</button></div>
+      <p partial="partials_player_f9d130af" p-key="r.0:1:2" class="note">The counter above has pk-no-refresh and should preserve its value on partial reload</p>
+    </div>
+    <button
+      partial="pages_counter_9f430e26"
+      p-key="r.0:2"
+      id="reload-btn"
+      onclick="piko.partials.render('[partial_name=player]')"
+    >Reload Partial</button>
+  </div>
+</div>

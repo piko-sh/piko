@@ -1,0 +1,25 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">Complex Object Array Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests p-for reactivity with arrays of complex objects (simulates file uploader)</p>
+    <file-list partial="pages_index_032f49b1" p-key="r.0:2" next-id="2" last-action="push: document1.pdf">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.file-list-component{padding: 20px}.controls{margin-bottom: 20px;display: flex;gap: 10px}.controls button{padding: 10px 20px;cursor: pointer}.file-grid{display: grid;grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));gap: 10px;margin-bottom: 20px;min-height: 50px;border: 2px dashed #ccc;padding: 10px}.file-item{padding: 10px;border: 1px solid #ddd;border-radius: 8px;background: #f9f9f9}.thumbnail{height: 80px;display: flex;align-items: center;justify-content: center;border-radius: 4px;margin-bottom: 8px}.thumbnail.image{background: #e8f5e9;border: 1px solid #4caf50}.thumbnail.document{background: #e3f2fd;border: 1px solid #2196f3}.filetype{font-size: 1.5rem;font-weight: bold;color: #1976d2}.filename{font-size: 0.875rem;word-break: break-word;margin-bottom: 4px}.filesize{font-size: 0.75rem;color: #666;margin-bottom: 8px}.remove-btn{width: 100%;padding: 5px;background: #ff5252;color: white;border: none;border-radius: 4px;cursor: pointer}.remove-btn:hover{background: #d32f2f}#file-count,#last-action{margin: 10px 0;padding: 10px;background: #f5f5f5}</style>
+        <div class="file-list-component">
+          <div class="controls"><button id="add-file-push">Add File (push)</button><button id="add-file-spread">Add File (spread)</button><button id="clear-files">Clear All</button></div>
+          <div class="file-grid">
+            <div data-file-id="file-1" class="file-item">
+              <div class="thumbnail document"><span class="filetype">PDF</span></div>
+              <p class="filename">document1.pdf</p>
+              <p class="filesize">1024 bytes</p>
+              <button class="remove-btn">Remove</button>
+            </div>
+          </div>
+          <p id="file-count">1 files selected</p>
+          <p id="last-action">Last action: push: document1.pdf</p>
+        </div>
+      </template>
+    </file-list>
+  </div>
+</div>

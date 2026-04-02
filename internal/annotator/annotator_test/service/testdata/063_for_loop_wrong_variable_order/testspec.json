@@ -1,0 +1,22 @@
+{
+  "description": "Validates that client-side event handler expressions (p-on:*) are type-checked. Catches: (1) wrong p-for variable order causing type mismatches, (2) misuse of $event in arithmetic, (3) unary operators on wrong types.",
+  "shouldError": true,
+  "expectedDiagnostics": 3,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Operator '+' not defined for operand types 'string' and 'int",
+      "onLine": 30
+    },
+    {
+      "severity": "error",
+      "messageContains": "Operator '+' not defined for operand types 'js.Event' and 'int",
+      "onLine": 36
+    },
+    {
+      "severity": "error",
+      "messageContains": "Unary operator '!' is not defined for non-boolean type 'int'",
+      "onLine": 54
+    }
+  ]
+}

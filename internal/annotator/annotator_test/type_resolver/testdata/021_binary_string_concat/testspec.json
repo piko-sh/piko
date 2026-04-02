@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that adding two strings results in a string type.",
+  "expression": "state.FirstName + ' ' + state.LastName",
+  "expectedType": "string",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

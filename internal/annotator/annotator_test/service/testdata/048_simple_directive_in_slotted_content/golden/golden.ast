@@ -1,0 +1,26 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="layout" :page-title="'Search: ' + state.Query" {P: ("Search: " + state.Query), OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk PARTIAL InvKey: layout_1745aa65 Package: partials_layout_ee037d9a InvPackage: main_aaf9a2e0]>
+  <header [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <h1 [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+      <RichText>
+        {{ state.PageTitle }}
+      </RichText>
+    </h1>
+  </header>
+  <main [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <div class="message-box" [p-text: state.Message] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  </main>
+  <footer [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+    <p [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk]>
+      <RichText>
+        "Version: "
+        {{ state.Version }}
+      </RichText>
+    </p>
+  </footer>
+</div>
+
+--- END AST DUMP ---
+*/

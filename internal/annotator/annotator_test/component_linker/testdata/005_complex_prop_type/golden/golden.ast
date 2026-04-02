@@ -1,0 +1,8 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div id="valid" [ANNOTATIONS: OriginPackage: partials_profile_c5502d03 OriginPath: partials/profile.pk PARTIAL InvKey: profile_user_state_currentuser_2002ed11 Package: partials_profile_c5502d03 InvPackage: main_aaf9a2e0] />
+<div id="invalid" [ANNOTATIONS: OriginPackage: partials_profile_c5502d03 OriginPath: partials/profile.pk PARTIAL InvKey: profile_3861c5f6 Package: partials_profile_c5502d03 InvPackage: main_aaf9a2e0] />
+
+--- END AST DUMP ---
+*/

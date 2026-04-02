@@ -1,0 +1,12 @@
+/*
+--- BEGIN AST DUMP ---
+
+<form [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <input class="form-input" type="text" [ANNOTATIONS: OriginPackage: partials_form_input_960e1e50 OriginPath: partials/form/input.pk PARTIAL InvKey: form_input_454c26bc Package: partials_form_input_960e1e50 InvPackage: main_aaf9a2e0] />
+  <button class="ui-button" [ANNOTATIONS: OriginPackage: partials_ui_button_ecfd43e7 OriginPath: partials/ui/button.pk PARTIAL InvKey: ui_button_550e7c96 Package: partials_ui_button_ecfd43e7 InvPackage: main_aaf9a2e0]>
+    "Click Me"
+  </button>
+</form>
+
+--- END AST DUMP ---
+*/

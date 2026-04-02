@@ -1,0 +1,24 @@
+{
+  "description": "Targeted rebuild with subset entry points should hit Tier 1 cache - introspection hash is now entry-point-independent",
+  "requestURL": "/main",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial full build with all entry points (main.pk + about.pk)",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectTier2Miss": true,
+      "expectFullBuild": true
+    },
+    {
+      "stage": 1,
+      "description": "Template-only change to main.pk, targeted rebuild with only main.pk entry point - hits Tier 1 cache (fast path) because introspection hash discovers all .pk files via tree walk",
+      "useTargetedRebuild": true,
+      "targetedEntryPoints": ["pages/main.pk"],
+      "expectTier1Hit": true,
+      "expectFastPath": true,
+      "delayBeforeRenderMs": 10
+    }
+  ]
+}

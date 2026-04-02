@@ -1,0 +1,81 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="icon-display">
+    <div class="icon-display">
+        <h2>SVG Icon Display</h2>
+        <div class="icon-row">
+            <div class="icon-item">
+                <piko:svg src="@/lib/icons/star.svg" class="icon star-icon" data-testid="static-svg"></piko:svg>
+                <span class="label">Static Icon</span>
+            </div>
+            <div class="icon-item">
+                <piko:svg :src="state.currentIcon" class="icon dynamic-icon" data-testid="dynamic-svg"></piko:svg>
+                <span class="label">Dynamic Icon</span>
+            </div>
+        </div>
+        <button p-on:click="toggleIcon" data-testid="toggle-btn">Toggle Icon</button>
+    </div>
+</template>
+
+<style>
+    .icon-display {
+        padding: 1rem;
+    }
+    .icon-row {
+        display: flex;
+        gap: 2rem;
+        margin: 1rem 0;
+    }
+    .icon-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .icon {
+        width: 48px;
+        height: 48px;
+    }
+    .star-icon {
+        color: #ffc107;
+    }
+    .dynamic-icon {
+        color: #e91e63;
+    }
+    .label {
+        font-size: 0.875rem;
+        color: #666;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        currentIcon: '@/lib/icons/star.svg'
+    };
+
+    function toggleIcon() {
+        if (state.currentIcon === '@/lib/icons/star.svg') {
+            state.currentIcon = '@/lib/icons/heart.svg';
+        } else {
+            state.currentIcon = '@/lib/icons/star.svg';
+        }
+    }
+</script>

@@ -1,0 +1,52 @@
+--- PACKAGE: testcase_06_type_aliases ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 06_type_aliases/src/main.go
+    - import "models"             -> testcase_06_type_aliases/models
+
+[Named Types]
+  > type ProductID
+    - Defined In:      06_type_aliases/src/main.go
+    - TypeString:      main.ProductID
+    - Underlying:      string
+    - Stringability:   0
+
+  > type Request
+    - Defined In:      06_type_aliases/src/main.go
+    - TypeString:      main.Request
+    - Underlying:      struct{RequestID string; ExternalUser models.internalUser}
+    - Stringability:   0
+    - Fields:
+      - RequestID            main.UserID
+        (Canonical Package: testcase_06_type_aliases)
+      - ExternalUser         models.PublicUser
+        (Canonical Package: testcase_06_type_aliases/models)
+
+  > type alias UserID
+    - Defined In:      06_type_aliases/src/main.go
+    - TypeString:      string
+    - Underlying:      string
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_06_type_aliases/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 06_type_aliases/src/models/user.go
+    (no imports in this file)
+
+[Named Types]
+  > type alias PublicUser
+    - Defined In:      06_type_aliases/src/models/user.go
+    - TypeString:      models.internalUser
+    - Underlying:      struct{ID int}
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)

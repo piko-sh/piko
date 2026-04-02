@@ -1,0 +1,38 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Equality and Truthy Operator Tests"
+  </h1>
+  <p id="strict-eq-same-type" [p-if: (state.Count == 5)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Strict equality: 5 == 5"
+  </p>
+  <p id="loose-eq-diff-types" [p-if: (state.Count ~= "5")] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Loose equality: 5 ~= '5' (coerced)"
+  </p>
+  <p id="truthy-string" [p-if: ~state.Message] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Truthy string: non-empty message is truthy"
+  </p>
+  <p id="truthy-int" [p-if: ~state.Count] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Truthy int: non-zero count is truthy"
+  </p>
+  <p id="strict-ne" [p-if: (state.Name != "unknown")] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Strict inequality: 'Alice' != 'unknown'"
+  </p>
+  <p id="loose-ne" [p-if: (state.Count !~= "0")] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Loose inequality: 5 !~= '0' (coerced)"
+  </p>
+  <p id="combined" [p-if: (~state.Message && (state.Count == 5))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Combined: truthy message AND count equals 5"
+  </p>
+  <p :class="state.Status == 'active' ? 'enabled' : 'disabled'" {P: ((state.Status == "active") ? "enabled" : "disabled")} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Status-based class"
+  </p>
+  <p :data-has-message="~state.Message ? 'yes' : 'no'" {P: (~state.Message ? "yes" : "no")} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Truthy in ternary"
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

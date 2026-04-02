@@ -1,0 +1,25 @@
+{
+  "description": "Tests that the serialiser can handle simple and mutually recursive type definitions without infinite loops.",
+  "moduleName": "testcase_39_mutually_recursive_types",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_39_mutually_recursive_types"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Next' field on 'Node' should correctly refer back to '*main.Node'.",
+      "select": "packages.testcase_39_mutually_recursive_types.named_types.Node.fields.1.type_string",
+      "expect": "*main.Node"
+    },
+    {
+      "description": "The 'B' field on 'A' should refer to '*main.B'.",
+      "select": "packages.testcase_39_mutually_recursive_types.named_types.A.fields.0.type_string",
+      "expect": "*main.B"
+    },
+    {
+      "description": "The 'A' field on 'B' should refer to '*main.A'.",
+      "select": "packages.testcase_39_mutually_recursive_types.named_types.B.fields.0.type_string",
+      "expect": "*main.A"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies overflow: hidden does not change layout positions of elements.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

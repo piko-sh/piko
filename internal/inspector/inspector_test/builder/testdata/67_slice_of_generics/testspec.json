@@ -1,0 +1,31 @@
+{
+  "description": "Tests serialisation of fields that are slices of generic types, both local and external. This specifically targets a bug where '[]T' was misclassified as a named type needing a PackagePath.",
+  "moduleName": "testcase_67_slice_of_generics",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_67_slice_of_generics",
+    "testcase_67_slice_of_generics/models"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Items' field (type []T) on the generic struct should have an empty PackagePath.",
+      "select": "packages.testcase_67_slice_of_generics.named_types.GenericResponse.fields.0.pkg_path",
+      "expect": ""
+    },
+    {
+      "description": "The 'Items' field's TypeString should be '[]T'.",
+      "select": "packages.testcase_67_slice_of_generics.named_types.GenericResponse.fields.0.type_string",
+      "expect": "[]T"
+    },
+    {
+      "description": "The 'Boxes' field (type []Box[string]) should have a PackagePath pointing to its own package.",
+      "select": "packages.testcase_67_slice_of_generics.named_types.Response.fields.0.pkg_path",
+      "expect": "testcase_67_slice_of_generics"
+    },
+    {
+      "description": "The 'Stores' field (type []models.Store[int]) should have a PackagePath pointing to the 'models' package.",
+      "select": "packages.testcase_67_slice_of_generics.named_types.Response.fields.1.pkg_path",
+      "expect": "testcase_67_slice_of_generics/models"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+{
+  "description": "INSERT with ON DUPLICATE KEY UPDATE clause. Tests MySQL-specific upsert syntax and parameter handling."
+}

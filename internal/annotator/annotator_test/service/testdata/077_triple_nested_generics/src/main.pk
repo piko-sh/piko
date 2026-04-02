@@ -1,0 +1,54 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	"testcase_77_triple_nested_generics/dto"
+	"testcase_77_triple_nested_generics/fields"
+)
+
+type Props struct {
+	Data dto.PageData
+}
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+	_ = fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]{}
+	return Response{}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+    <p class="level1" p-if="props.Data.TripleNested.Get().Data.HasItem()">Level 1 OK</p>
+
+    <p class="level2" p-if="props.Data.TripleNested.Get().Get().HasItem()">Level 2 OK</p>
+
+    <p class="level3">{{ props.Data.TripleNested.Get().Get().Get().FullName() }}</p>
+
+    <p class="field-access">{{ props.Data.TripleNested.Get().Get().Get().FirstName.String() }}</p>
+
+    <p class="mixed-access">{{ props.Data.TripleNested.Inner.Data.Get().LastName.String() }}</p>
+
+    <p class="full-chain">{{ props.Data.TripleNested.Get().Get().Get().FirstName.String() }} {{ props.Data.TripleNested.Get().Get().Get().LastName.String() }}</p>
+</template>

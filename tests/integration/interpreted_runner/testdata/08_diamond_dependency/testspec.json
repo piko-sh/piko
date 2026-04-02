@@ -1,0 +1,7 @@
+{
+  "description": "Tests diamond-shaped dependency graph where a page imports two layouts that both import the same shared footer component. Ensures correct topological sorting and that the shared component is only loaded once.",
+  "requestURL": "/home",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

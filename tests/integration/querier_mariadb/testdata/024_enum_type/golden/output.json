@@ -1,0 +1,48 @@
+{
+  "all_tickets": [
+    {
+      "ID": 1,
+      "Priority": "high",
+      "Status": "open",
+      "Title": "Fix login bug"
+    },
+    {
+      "ID": 2,
+      "Priority": "low",
+      "Status": "in_progress",
+      "Title": "Update documentation"
+    },
+    {
+      "ID": 3,
+      "Priority": "high",
+      "Status": "open",
+      "Title": "Database migration"
+    },
+    {
+      "ID": 4,
+      "Priority": "medium",
+      "Status": "closed",
+      "Title": "Add unit tests"
+    }
+  ],
+  "high_priority": [
+    {
+      "ID": 1,
+      "Priority": "high",
+      "Status": "open",
+      "Title": "Fix login bug"
+    },
+    {
+      "ID": 3,
+      "Priority": "high",
+      "Status": "open",
+      "Title": "Database migration"
+    }
+  ],
+  "ticket": {
+    "ID": 1,
+    "Priority": "high",
+    "Status": "open",
+    "Title": "Fix login bug"
+  }
+}

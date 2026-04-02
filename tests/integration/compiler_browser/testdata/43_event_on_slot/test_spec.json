@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "slot-event-component \u003e\u003e\u003e p",
+    "expected": "Last clicked item: none"
+  },
+  {
+    "action": "eval",
+    "selector": "slot-event-component",
+    "value": "() =\u003e this.innerHTML = `\u003cbutton onclick=\\\"this.dispatchEvent(new CustomEvent('item-click', { detail: { id: 'item-A' }, bubbles: true, composed: true }))\\\"\u003eButton A\u003c/button\u003e`"
+  },
+  {
+    "action": "wait",
+    "value": "50"
+  },
+  {
+    "action": "click",
+    "selector": "slot-event-component \u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "slot-event-component \u003e\u003e\u003e p",
+    "expected": "Last clicked item: item-A"
+  }
+]

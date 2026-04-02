@@ -1,0 +1,67 @@
+{
+  "description": "Validates that the new equality operators (== strict, ~= loose) and truthy operator (~) are correctly parsed and type-checked. Ensures strict equality requires matching types, loose equality allows type coercion, and the truthy operator evaluates to boolean.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#strict-eq-same-type",
+      "description": "Strict equality with same types should pass type-checking",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "state.Count == 5"
+        }
+      ]
+    },
+    {
+      "select": "#loose-eq-diff-types",
+      "description": "Loose equality allows different types (int ~= string)",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "state.Count ~= '5'"
+        }
+      ]
+    },
+    {
+      "select": "#truthy-string",
+      "description": "Truthy operator on string should evaluate to bool",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "~state.Message"
+        }
+      ]
+    },
+    {
+      "select": "#truthy-int",
+      "description": "Truthy operator on int should evaluate to bool",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "~state.Count"
+        }
+      ]
+    },
+    {
+      "select": "#strict-ne",
+      "description": "Strict inequality with same types",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "state.Name != 'unknown'"
+        }
+      ]
+    },
+    {
+      "select": "#loose-ne",
+      "description": "Loose inequality allows different types",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "state.Count !~= '0'"
+        }
+      ]
+    }
+  ]
+}

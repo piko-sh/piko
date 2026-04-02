@@ -1,0 +1,42 @@
+{
+  "description": "Validates that loop variables correctly shadow system built-in functions, and that non-fatal warnings are correctly reported on a successful compilation.",
+  "shouldError": false,
+  "expectedDiagnostics": 2,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates",
+      "onLine": 46
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Loop variable 'len' shadows a global built-in function",
+      "onLine": 46
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#valid-len",
+      "description": "Valid call to len() on a slice should resolve to int.",
+      "assertOnInterpolation": {
+        "rawExpression": "len(state.StringSlice)",
+        "resolvedTypeIs": "int"
+      }
+    },
+    {
+      "select": "#shadowed-len",
+      "description": "A loop variable named 'len' should shadow the built-in and resolve to the type of the iterated item (string).",
+      "assertOnInterpolation": {
+        "rawExpression": "len",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "len",
+          "resolvedTypeIs": "string",
+          "baseCodeGenVarName": "len"
+        }
+      ]
+    }
+  ]
+}

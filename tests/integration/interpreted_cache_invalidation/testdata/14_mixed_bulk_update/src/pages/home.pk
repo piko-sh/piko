@@ -1,0 +1,19 @@
+<template>
+<div class="page">
+  <nav is="nav"></nav>
+  <h1>Home Page</h1>
+</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	nav "testcase_cache_mixed_bulk_14/partials/nav.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

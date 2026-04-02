@@ -1,0 +1,17 @@
+{
+    "description": "Verifies break-inside: avoid is overridden when the box is taller than a page.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 300,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "spacer": {"pageIndex": 0, "x": 0, "y": 0, "width": 400, "height": 100},
+        "child-a": {"pageIndex": 0, "x": 0, "y": 100, "width": 400, "height": 100},
+        "child-b": {"pageIndex": 0, "x": 0, "y": 200, "width": 400, "height": 100},
+        "child-c": {"pageIndex": 1, "x": 0, "y": 0, "width": 400, "height": 100},
+        "child-d": {"pageIndex": 1, "x": 0, "y": 100, "width": 400, "height": 100}
+    }
+}

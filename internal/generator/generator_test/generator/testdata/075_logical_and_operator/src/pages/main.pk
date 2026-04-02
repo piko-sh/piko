@@ -1,0 +1,104 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Logical AND (&&) Operator Test</h1>
+
+    <h2>Boolean && Boolean</h2>
+    <p id="both-true" p-if="state.IsLoggedIn && state.HasPermission">Both conditions true - VISIBLE</p>
+    <p id="first-false" p-if="state.IsGuest && state.HasPermission">First false - HIDDEN</p>
+    <p id="second-false" p-if="state.IsLoggedIn && state.IsGuest">Second false - HIDDEN</p>
+    <p id="both-false" p-if="state.IsGuest && state.IsBanned">Both false - HIDDEN</p>
+
+    <h2>&& with Comparisons</h2>
+    <p id="range-check" p-if="state.Age >= 18 && state.Age <= 65">Age in working range (18-65)</p>
+    <p id="complex-check" p-if="state.Score > 50 && state.Attempts < 3">Good score with few attempts</p>
+
+    <h2>&& in Ternary Expressions</h2>
+    <p id="ternary-and" :data-status="state.IsLoggedIn && state.HasPermission ? 'authorised' : 'denied'">Ternary with &&</p>
+
+    <h2>&& in Dynamic Attributes</h2>
+    <div id="attr-and" :class="state.IsActive && state.IsHighlighted ? 'active-highlighted' : 'normal'">Class with &&</div>
+
+    <h2>Chained && Operators</h2>
+    <p id="triple-and" p-if="state.IsLoggedIn && state.HasPermission && state.IsVerified">All three conditions met</p>
+
+    <h2>&& with Truthiness Coercion</h2>
+    <p id="string-and-bool" p-if="~state.Username && state.IsLoggedIn">Username exists and logged in</p>
+    <p id="int-and-bool" p-if="~state.ItemCount && state.ShowItems">Has items and should show</p>
+
+    <h2>&& Combined with ||</h2>
+    <p id="and-or-combo" p-if="(state.IsAdmin || state.IsModerator) && state.IsActive">Admin/Mod AND active</p>
+    <p id="or-and-combo" p-if="state.IsAdmin || (state.IsModerator && state.IsVerified)">Admin OR verified mod</p>
+
+    <h2>&& with Negation</h2>
+    <p id="not-and" p-if="!state.IsGuest && state.HasPermission">Not guest AND has permission</p>
+    <p id="and-not" p-if="state.IsLoggedIn && !state.IsBanned">Logged in AND not banned</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Response struct {
+    IsLoggedIn    bool
+    HasPermission bool
+    IsGuest       bool
+    IsBanned      bool
+    IsActive      bool
+    IsHighlighted bool
+    IsVerified    bool
+    IsAdmin       bool
+    IsModerator   bool
+    ShowItems     bool
+
+    Age      int
+    Score    int
+    Attempts int
+
+    Username  string
+    ItemCount int
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      IsLoggedIn:    true,
+      HasPermission: true,
+      IsGuest:       false,
+      IsBanned:      false,
+      IsActive:      true,
+      IsHighlighted: true,
+      IsVerified:    true,
+      IsAdmin:       false,
+      IsModerator:   true,
+      ShowItems:     true,
+
+      Age:      30,
+      Score:    75,
+      Attempts: 2,
+
+      Username:  "john_doe",
+      ItemCount: 5,
+    }, piko.Metadata{}, nil
+  }
+</script>

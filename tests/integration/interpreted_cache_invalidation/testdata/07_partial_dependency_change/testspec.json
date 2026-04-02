@@ -1,0 +1,23 @@
+{
+  "description": "Tests that modifying a partial component triggers cache invalidation for pages that import it, ensuring the VFS pathMap is correctly updated with new hashes",
+  "requestURL": "/",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial render with base partial content",
+      "expectedGolden": "stage_0.html",
+      "expectCacheHit": false,
+      "expectCacheMiss": true
+    },
+    {
+      "stage": 1,
+      "description": "After modifying the imported partial component - tests the bug where pathMap had stale hashes for changed partials",
+      "expectedGolden": "stage_1.html",
+      "expectCacheHit": false,
+      "expectCacheMiss": true,
+      "expectChange": true,
+      "delayBeforeRenderMs": 10
+    }
+  ]
+}

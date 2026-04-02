@@ -1,0 +1,40 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "p-if-wrapping-for >>> li",
+    "expected": "0"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-if-wrapping-for >>> p:not(#count)",
+    "expected": "List is hidden"
+  },
+  {
+    "action": "click",
+    "selector": "p-if-wrapping-for >>> #toggle"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-if-wrapping-for >>> li",
+    "expected": "3"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-if-wrapping-for >>> li:first-child",
+    "expected": "First"
+  },
+  {
+    "action": "click",
+    "selector": "p-if-wrapping-for >>> #toggle"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-if-wrapping-for >>> li",
+    "expected": "0"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-if-wrapping-for >>> p:not(#count)",
+    "expected": "List is hidden"
+  }
+]

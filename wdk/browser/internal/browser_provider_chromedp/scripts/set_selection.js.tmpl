@@ -1,0 +1,45 @@
+(function() {
+	const start = {{jsInt .Start}};
+	const end = {{jsInt .End}};
+	const range = document.createRange();
+	const sel = window.getSelection();
+
+	// Find start position
+	let currentOffset = 0;
+	let startNode = null;
+	let startOffset = 0;
+	let endNode = null;
+	let endOffset = 0;
+
+	const walker = document.createTreeWalker(this, NodeFilter.SHOW_TEXT);
+	let node;
+
+	while (node = walker.nextNode()) {
+		const nodeEnd = currentOffset + node.length;
+
+		// Check if start is in this node
+		if (startNode === null && currentOffset + node.length >= start) {
+			startNode = node;
+			startOffset = start - currentOffset;
+		}
+
+		// Check if end is in this node
+		if (endNode === null && currentOffset + node.length >= end) {
+			endNode = node;
+			endOffset = end - currentOffset;
+			break;
+		}
+
+		currentOffset = nodeEnd;
+	}
+
+	if (startNode && endNode) {
+		range.setStart(startNode, startOffset);
+		range.setEnd(endNode, endOffset);
+		sel.removeAllRanges();
+		sel.addRange(range);
+		return true;
+	}
+
+	return false;
+})

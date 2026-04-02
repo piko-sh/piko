@@ -1,0 +1,107 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "items_by_colour.sql",
+    "SQL": "-- piko.name: ItemsByColour\n-- piko.command: many\nSELECT id, colour FROM items WHERE colour = $1::colour;",
+    "Name": "ItemsByColour",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "p1",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "colour",
+          "Schema": "public",
+          "EnumValues": [
+            "red",
+            "green",
+            "blue",
+            "yellow"
+          ],
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 11
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "items",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "colour",
+        "SourceTable": "items",
+        "SourceColumn": "colour",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "colour",
+          "Schema": "public",
+          "EnumValues": [
+            "red",
+            "green",
+            "blue"
+          ],
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 11
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

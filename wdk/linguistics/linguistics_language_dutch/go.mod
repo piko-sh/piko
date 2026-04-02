@@ -1,0 +1,32 @@
+module piko.sh/piko/wdk/linguistics/linguistics_language_dutch
+
+go 1.26.0
+
+require piko.sh/piko v0.0.0 // indirect
+
+require (
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0
+)
+
+require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dchest/stemmer v0.0.0-20161207102402-66719a20c4b5 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
+	go.opentelemetry.io/otel v1.42.0 // indirect
+	go.opentelemetry.io/otel/metric v1.42.0 // indirect
+	go.opentelemetry.io/otel/trace v1.42.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
+)
+
+replace (
+	piko.sh/piko v0.0.0 => ../../..
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0 => ../../../wdk/linguistics/linguistics_phonetic_dutch
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0 => ../../../wdk/linguistics/linguistics_stemmer_dutch
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0 => ../../../wdk/linguistics/linguistics_stopwords_dutch
+)

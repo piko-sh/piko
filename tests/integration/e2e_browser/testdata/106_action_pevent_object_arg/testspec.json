@@ -1,0 +1,55 @@
+{
+  "description": "Tests that inline object literal args in p-event action calls are correctly passed to the server action",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for DOMBinder to bind the p-event handler"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#target[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Click the button to dispatch the do-delete custom event"
+    },
+    {
+      "action": "click",
+      "selector": "#trigger-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify the action received the correct object literal values"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-item",
+      "expected": "item-123"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-category",
+      "expected": "cat-456"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-label",
+      "expected": "My Label"
+    }
+  ]
+}

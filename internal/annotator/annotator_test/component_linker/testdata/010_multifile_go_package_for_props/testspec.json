@@ -1,0 +1,17 @@
+{
+  "description": "Validates props defined in a separate .go file within the same component package.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "card",
+      "assert": {
+        "passedPropsCount": 1,
+        "hasProp": "title",
+        "propValueIs": {
+          "title": "\"Hello World\""
+        }
+      }
+    }
+  ]
+}

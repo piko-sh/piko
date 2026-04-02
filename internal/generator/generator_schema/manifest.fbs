@@ -1,0 +1,203 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+namespace generator_schema_gen;
+
+table AssetRefFB {
+  kind:string;
+
+  path:string;
+}
+
+table TranslationKeyValueFB {
+    key:string (key);
+
+    value:string;
+}
+
+table RoutePatternMapItemFB {
+    locale:string (key);
+
+    pattern:string;
+}
+
+table LocaleTranslationsFB {
+    locale:string (key);
+
+    translations:[TranslationKeyValueFB];
+}
+
+table ManifestPageEntryFB {
+  package_path:string (key);
+
+  original_source_path:string;
+
+  route_patterns:[RoutePatternMapItemFB];
+
+  i18n_strategy:string;
+
+  style_block:string;
+
+  asset_refs:[AssetRefFB];
+
+  custom_tags:[string];
+
+  javascript_artefact_ids:[string];
+
+  has_cache_policy:bool;
+
+  cache_policy_func_name:string;
+
+  has_middleware:bool;
+
+  middleware_func_name:string;
+
+  has_supported_locales:bool;
+
+  supported_locales_func_name:string;
+
+  local_translations:[LocaleTranslationsFB];
+
+  is_e2e_only:bool;
+
+  has_preview:bool;
+}
+
+table ManifestPartialEntryFB {
+  package_path:string (key);
+
+  original_source_path:string;
+
+  partial_name:string;
+
+  partial_source:string;
+
+  route_pattern:string;
+
+  style_block:string;
+
+  javascript_artefact_id:string;
+
+  is_e2e_only:bool;
+
+  has_preview:bool;
+}
+
+table ManifestEmailEntryFB {
+  package_path:string (key);
+
+  original_source_path:string;
+
+  style_block:string;
+
+  has_supported_locales:bool;
+
+  local_translations:[LocaleTranslationsFB];
+
+  has_preview:bool;
+}
+
+table ManifestErrorPageEntryFB {
+  package_path:string (key);
+
+  original_source_path:string;
+
+  scope_path:string;
+
+  style_block:string;
+
+  javascript_artefact_ids:[string];
+
+  custom_tags:[string];
+
+  status_code:int;
+
+  status_code_min:int;
+
+  status_code_max:int;
+
+  is_catch_all:bool;
+
+  is_e2e_only:bool;
+}
+
+table PageEntryMapItemFB {
+  key:string (key);
+
+  value:ManifestPageEntryFB;
+}
+
+table PartialEntryMapItemFB {
+  key:string (key);
+
+  value:ManifestPartialEntryFB;
+}
+
+table EmailEntryMapItemFB {
+  key:string (key);
+
+  value:ManifestEmailEntryFB;
+}
+
+table ManifestPdfEntryFB {
+  package_path:string (key);
+
+  original_source_path:string;
+
+  style_block:string;
+
+  has_supported_locales:bool;
+
+  local_translations:[LocaleTranslationsFB];
+
+  has_preview:bool;
+}
+
+table PdfEntryMapItemFB {
+  key:string (key);
+
+  value:ManifestPdfEntryFB;
+}
+
+table ErrorPageEntryMapItemFB {
+  key:string (key);
+
+  value:ManifestErrorPageEntryFB;
+}
+
+table CollectionFallbackRouteFB {
+  route_patterns:[RoutePatternMapItemFB];
+
+  i18n_strategy:string;
+}
+
+table ManifestFB {
+  pages:[PageEntryMapItemFB];
+
+  partials:[PartialEntryMapItemFB];
+
+  emails:[EmailEntryMapItemFB];
+
+  pdfs:[PdfEntryMapItemFB];
+
+  error_pages:[ErrorPageEntryMapItemFB];
+
+  collection_fallback_routes:[CollectionFallbackRouteFB];
+}
+
+root_type ManifestFB;

@@ -1,0 +1,19 @@
+{
+  "rows": [
+    {
+      "Column1": 1,
+      "Column2": "alice",
+      "Column3": 10.5
+    },
+    {
+      "Column1": 2,
+      "Column2": "bob",
+      "Column3": 20
+    },
+    {
+      "Column1": 3,
+      "Column2": "charlie",
+      "Column3": 30.75
+    }
+  ]
+}

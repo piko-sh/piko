@@ -1,0 +1,31 @@
+--- PACKAGE: testcase_48_conflicting_import_aliases/service ---
+[Package Info]
+  - Name:    service
+
+[File-Scoped Imports]
+  > File: 48_conflicting_import_aliases/src/service/product_service.go
+    - import "db"                 -> testcase_48_conflicting_import_aliases/models
+  > File: 48_conflicting_import_aliases/src/service/user_service.go
+    - import "m"                  -> testcase_48_conflicting_import_aliases/models
+
+[Named Types]
+  > type ProductResponse
+    - Defined In:      48_conflicting_import_aliases/src/service/product_service.go
+    - TypeString:      service.ProductResponse
+    - Underlying:      struct{Product db.Product}
+    - Stringability:   0
+    - Fields:
+      - Product              db.Product
+        (Canonical Package: testcase_48_conflicting_import_aliases/models)
+
+  > type UserResponse
+    - Defined In:      48_conflicting_import_aliases/src/service/user_service.go
+    - TypeString:      service.UserResponse
+    - Underlying:      struct{User m.User}
+    - Stringability:   0
+    - Fields:
+      - User                 m.User
+        (Canonical Package: testcase_48_conflicting_import_aliases/models)
+
+[Package-Level Functions]
+  (none)

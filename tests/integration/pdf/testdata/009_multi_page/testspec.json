@@ -1,0 +1,5 @@
+{
+    "description": "Content spanning two pages produces a multi-page PDF.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

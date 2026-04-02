@@ -1,0 +1,6 @@
+{
+  "title": "Job Application Update",
+  "description": "Job application status update with next steps",
+  "metadata": {"title": "Application Update: Senior Engineer at Acme"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

@@ -1,0 +1,48 @@
+{
+  "description": "Tests actions called from within a PKC component script",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "fill",
+      "selector": "form-handler >>> #input-name",
+      "value": "John Doe"
+    },
+    {
+      "action": "fill",
+      "selector": "form-handler >>> #input-email",
+      "value": "john@example.com"
+    },
+    {
+      "action": "fill",
+      "selector": "form-handler >>> #input-message",
+      "value": "Hello from test"
+    },
+    {
+      "action": "click",
+      "selector": "form-handler >>> #submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    }
+  ]
+}

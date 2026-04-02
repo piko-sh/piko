@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/article.pk": {
+      "routePatterns": {
+        "en": "/article"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_07_metadata_assertions/dist/pages/pages_article_575369db",
+      "originalSourcePath": "pages/article.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

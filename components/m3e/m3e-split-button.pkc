@@ -1,0 +1,237 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-split-button">
+    <div class="split-button"
+         p-class="{
+             'filled': state.variant == 'filled',
+             'tonal': state.variant == 'tonal',
+             'outlined': state.variant == 'outlined',
+             'disabled': state.disabled,
+             'open': state.open
+         }">
+        <button class="primary-action"
+                type="button"
+                :disabled="state.disabled ? '' : null"
+                p-on:click="handlePrimaryClick">
+            <span class="state-layer"></span>
+            <span class="label"><slot></slot></span>
+        </button>
+        <div class="divider"></div>
+        <button class="dropdown-trigger"
+                type="button"
+                :disabled="state.disabled ? '' : null"
+                :aria-expanded="state.open ? 'true' : 'false'"
+                aria-haspopup="menu"
+                p-on:click="toggleMenu">
+            <span class="state-layer"></span>
+            <span class="arrow">&#x25BC;</span>
+        </button>
+        <div class="menu" p-if="state.open">
+            <slot name="menu"></slot>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'filled' as string,
+        disabled: false as boolean,
+        open: false as boolean,
+    };
+
+    function handlePrimaryClick() {
+        if (state.disabled) return;
+        pkc.dispatchEvent(new CustomEvent('click', {
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function toggleMenu() {
+        if (state.disabled) return;
+        state.open = !state.open;
+
+        if (state.open) {
+            setTimeout(() => {
+                document.addEventListener('click', closeOnOutsideClick, { once: true });
+            }, 0);
+        }
+    }
+
+    const closeOnOutsideClick = () => {
+        state.open = false;
+    };
+
+    pkc.onDisconnected(() => {
+        document.removeEventListener('click', closeOnOutsideClick);
+    });
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        flex-shrink: 0;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_secondary-container: var(--m3e-secondary-container, #e8def8);
+        --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_outline: var(--m3e-outline, #79747e);
+        --_surface-container: var(--m3e-surface-container, #f3edf7);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-full: var(--m3e-shape-full, 9999px);
+        --_shape-xs: var(--m3e-shape-xs, 4px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .split-button {
+        position: relative;
+        display: inline-flex;
+        height: 40px;
+        border-radius: var(--_shape-full);
+        overflow: visible;
+    }
+
+    .primary-action,
+    .dropdown-trigger {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        outline: none;
+        overflow: hidden;
+        font-family: inherit;
+        font-size: 0.875rem;
+        font-weight: 500;
+        appearance: none;
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: transparent;
+        height: 100%;
+        background: var(--_primary);
+        color: var(--_on-primary);
+    }
+
+    .primary-action {
+        padding: 0 16px 0 24px;
+        border-radius: var(--_shape-full) 0 0 var(--_shape-full);
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+    }
+
+    .dropdown-trigger {
+        padding: 0 12px;
+        border-radius: 0 var(--_shape-full) var(--_shape-full) 0;
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--_on-primary);
+        opacity: 0;
+        transition: opacity var(--_duration-short);
+        pointer-events: none;
+    }
+
+    .divider {
+        width: 1px;
+        align-self: stretch;
+        margin: 8px 0;
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .arrow {
+        font-size: 0.625rem;
+        transition: transform var(--_duration-short) var(--_easing-standard);
+        z-index: 1;
+    }
+
+    .open .arrow {
+        transform: rotate(180deg);
+    }
+
+    .label {
+        z-index: 1;
+    }
+
+    .tonal {
+        .primary-action,
+        .dropdown-trigger {
+            background: var(--_secondary-container);
+            color: var(--_on-secondary-container);
+        }
+
+        .state-layer {
+            background: var(--_on-secondary-container);
+        }
+
+        .divider {
+            background: rgba(0, 0, 0, 0.12);
+        }
+    }
+
+    .outlined {
+        .primary-action,
+        .dropdown-trigger {
+            background: transparent;
+            color: var(--_primary);
+            border: 1px solid var(--_outline);
+        }
+
+        .primary-action {
+            border-right: none;
+        }
+
+        .state-layer {
+            background: var(--_primary);
+        }
+
+        .divider {
+            background: var(--_outline);
+        }
+    }
+
+    .disabled {
+        opacity: 0.38;
+        pointer-events: none;
+    }
+
+    .menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        min-width: 112px;
+        z-index: 100;
+        background: var(--_surface-container);
+        border-radius: var(--_shape-xs);
+        box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 2px 6px 2px rgba(0,0,0,0.15);
+        padding: 8px 0;
+    }
+</style>

@@ -1,0 +1,68 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <!-- Latin text with accented characters -->
+  <div data-layout-id="latin-accented" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">caf&#233; na&#239;ve r&#233;sum&#233;</div>
+
+  <!-- Cyrillic text (covered by NotoSans) -->
+  <div data-layout-id="cyrillic" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">&#1055;&#1088;&#1080;&#1074;&#1077;&#1090; &#1084;&#1080;&#1088;</div>
+
+  <!-- Greek text (covered by NotoSans) -->
+  <div data-layout-id="greek" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">&#915;&#949;&#953;&#945; &#963;&#959;&#965; &#954;&#972;&#963;&#956;&#949;</div>
+
+  <!-- Mixed Latin and Cyrillic on same line -->
+  <div data-layout-id="mixed-latin-cyrillic" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">Hello &#1052;&#1080;&#1088; World</div>
+
+  <!-- Mixed Latin and Greek on same line -->
+  <div data-layout-id="mixed-latin-greek" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">Alpha &#945;&#955;&#966;&#945; Beta &#946;&#942;&#964;&#945;</div>
+
+  <!-- Latin extended characters: ligatures and special chars -->
+  <div data-layout-id="latin-extended" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">&#230;&#248;&#229; &#252;&#246;&#228; &#241;&#231;</div>
+
+  <!-- Numbers and punctuation with various scripts -->
+  <div data-layout-id="numbers-punct" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">123 + 456 = 579 (&#1076;&#1072;!)</div>
+
+  <!-- Stacked blocks to verify vertical positioning with multi-byte text -->
+  <div data-layout-id="stack-1" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0; background: #eee;">&#1055;&#1077;&#1088;&#1074;&#1099;&#1081;</div>
+  <div data-layout-id="stack-2" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0; background: #ddd;">&#916;&#949;&#973;&#964;&#949;&#961;&#959;</div>
+  <div data-layout-id="stack-3" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0; background: #ccc;">Third</div>
+
+  <!-- CSS class selector with multi-byte content (verify selectors work) -->
+  <div data-layout-id="styled-cyrillic" class="highlight" style="box-sizing: content-box; width: 200px; margin: 0; padding: 0;">&#1058;&#1077;&#1082;&#1089;&#1090;</div>
+
+  <style>
+    .highlight {
+      padding-left: 20px;
+    }
+  </style>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "UTF-8 Multi-Script Test"}, nil
+}
+</script>

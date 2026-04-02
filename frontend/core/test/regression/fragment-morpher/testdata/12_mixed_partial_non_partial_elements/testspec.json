@@ -1,0 +1,24 @@
+{
+    "description": "Mixed elements - some with partial attribute, some without",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".with-partial",
+            "attributes": { "partial": "new_scope parent_scope" },
+            "description": "Element with partial preserves parents"
+        },
+        {
+            "selector": ".no-partial",
+            "exists": true,
+            "description": "Element without partial is unaffected"
+        },
+        {
+            "selector": ".no-partial",
+            "attributes": { "partial": null },
+            "description": "Element without partial should not have partial attr"
+        }
+    ]
+}

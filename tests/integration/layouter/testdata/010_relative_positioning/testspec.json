@@ -1,0 +1,7 @@
+{
+    "description": "Verifies position: relative with top/left offsets applied after normal flow.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

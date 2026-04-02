@@ -1,0 +1,20 @@
+{
+  "description": "Validates that prop bindings inside a layout wrapper correctly resolve against the parent page's state, not the layout's state. This reproduces a bug where accessing state.EnvironmentID inside <layout> incorrectly checks against layout's NoResponse type.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#child-component",
+      "description": "The child component inside the layout should correctly resolve its :environment_id prop binding against the page's state.",
+      "assert": {
+        "originalPackageAlias": "partials/child.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.EnvironmentID",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+<template>
+<div class="sidebar">
+  <h2>Sidebar</h2>
+  <badge is="badge"></badge>
+</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	badge "testcase_cache_nested_11/partials/badge.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

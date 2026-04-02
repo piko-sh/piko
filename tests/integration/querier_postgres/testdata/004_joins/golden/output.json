@@ -1,0 +1,24 @@
+{
+  "all_books": [
+    {
+      "AuthorName": "Asimov",
+      "ID": 2,
+      "Title": "Foundation"
+    },
+    {
+      "AuthorName": "Tolkien",
+      "ID": 1,
+      "Title": "The Hobbit"
+    },
+    {
+      "AuthorName": "Tolkien",
+      "ID": 3,
+      "Title": "The Silmarillion"
+    }
+  ],
+  "get_book": {
+    "AuthorName": "Tolkien",
+    "ID": 1,
+    "Title": "The Hobbit"
+  }
+}

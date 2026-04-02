@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when accessing a non-existent property on a struct.",
+  "expression": "state.User.Agge",
+  "expectedType": "any",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Property 'Agge' does not exist on type 'models.User'"
+    }
+  ]
+}]

@@ -1,0 +1,21 @@
+/*
+--- BEGIN AST DUMP ---
+
+<h1 id="hello-world" title="Hello World">
+  "Hello"
+  "World"
+</h1>
+<p>
+  "This is a simple paragraph with"
+  <strong>
+    "bold text"
+  </strong>
+  "and a"
+  <a href="https://piko.sh">
+    "link to the Piko project"
+  </a>
+  "."
+</p>
+
+--- END AST DUMP ---
+*/

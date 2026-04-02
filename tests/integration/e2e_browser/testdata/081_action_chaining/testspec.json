@@ -1,0 +1,38 @@
+{
+  "description": "Tests action chaining - onSuccess returns another ActionDescriptor which auto-executes",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#chain-btn"
+    },
+    {
+      "action": "wait",
+      "value": "5000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#step1",
+      "expected": "done"
+    },
+    {
+      "action": "checkText",
+      "selector": "#step2",
+      "expected": "done"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_chain.html"
+    }
+  ]
+}

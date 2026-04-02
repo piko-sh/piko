@@ -1,0 +1,35 @@
+window.__iframeWaitPromise = new Promise((resolve, reject) => {
+    const checkInterval = 100;
+    const timeout = 5000;
+    let elapsed = 0;
+
+    const check = () => {
+        const frame = document.querySelector({{jsStr .FrameSelector}});
+        if (!frame || frame.tagName.toLowerCase() !== 'iframe') {
+            if (elapsed >= timeout) {
+                reject(new Error('iframe not found'));
+                return;
+            }
+            elapsed += checkInterval;
+            setTimeout(check, checkInterval);
+            return;
+        }
+
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        const el = doc.querySelector({{jsStr .ElementSelector}});
+        if (el) {
+            resolve(true);
+            return;
+        }
+
+        if (elapsed >= timeout) {
+            reject(new Error('element not found in iframe'));
+            return;
+        }
+
+        elapsed += checkInterval;
+        setTimeout(check, checkInterval);
+    };
+
+    check();
+})

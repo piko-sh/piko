@@ -1,0 +1,40 @@
+Security Alert
+
+Unusual Login Detected
+
+We noticed a login to your Sentinel account from a new device or location. If this was you, no action is needed.
+
+Date:
+
+1 April 2026 at 14:23 UTC
+
+IP Address:
+
+203.0.113.42
+
+Location:
+
+Berlin, Germany
+
+Device:
+
+Chrome 124 on Windows 11
+
+Status:
+
+Successful login
+
+If this wasn't you:
+
+1. Change your password immediately
+2. Review your recent account activity
+3. Enable two-factor authentication if not already active
+4. Contact our security team if you notice anything suspicious
+
+ This Was Me (https://sentinel.example.com/login/confirm)
+
+ Secure My Account (https://sentinel.example.com/account/secure)
+
+For your protection, we may temporarily restrict account access if suspicious activity continues.
+
+Sentinel Identity Platform - Security you can trust

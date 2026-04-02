@@ -1,0 +1,97 @@
+{
+  "description": "Tests that showToast helper dispatches pk-show-toast CustomEvent and a listener renders the toast. Also tests resetForm helper clears form fields after submission.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for DOMBinder to bind form submit handler"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#contact-form[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "comment",
+      "value": "Verify toast is initially hidden and form is empty"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "#toast"
+    },
+    {
+      "action": "comment",
+      "value": "Fill in form fields"
+    },
+    {
+      "action": "fill",
+      "selector": "#name",
+      "value": "Alice"
+    },
+    {
+      "action": "fill",
+      "selector": "#message",
+      "value": "Hello from the contact form"
+    },
+    {
+      "action": "comment",
+      "value": "Submit form - should dispatch action and trigger helpers"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify pk-show-toast event was captured and toast rendered"
+    },
+    {
+      "action": "checkText",
+      "selector": "#toast",
+      "expected": "Thank you for contacting us!"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#toast",
+      "attribute": "data-variant",
+      "expected": "success"
+    },
+    {
+      "action": "comment",
+      "value": "Verify the event detail was captured correctly"
+    },
+    {
+      "action": "checkText",
+      "selector": "#event-log",
+      "expected": "event:pk-show-toast"
+    },
+    {
+      "action": "comment",
+      "value": "Verify resetForm helper cleared the form fields"
+    },
+    {
+      "action": "checkValue",
+      "selector": "#name",
+      "expected": ""
+    },
+    {
+      "action": "checkValue",
+      "selector": "#message",
+      "expected": ""
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    }
+  ]
+}

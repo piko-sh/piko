@@ -1,0 +1,128 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="expression-demo">
+    <div class="expression-demo">
+        <div class="controls">
+            <button id="toggle-flag-btn" p-on:click="toggleFlag">Toggle Flag</button>
+            <button id="increment-btn" p-on:click="incrementCount">Increment Count</button>
+            <button id="set-user-btn" p-on:click="setUser">Set User</button>
+            <button id="clear-user-btn" p-on:click="clearUser">Clear User</button>
+        </div>
+
+        <div class="results">
+            <h3>Expression Results</h3>
+
+            <p class="ternary-result">
+                Ternary: <span id="ternary-value" p-text="state.flag ? 'Yes' : 'No'"></span>
+            </p>
+
+            <p class="and-result">
+                AND (&&): <span id="and-value" p-text="state.flag && state.count > 0 ? 'Both true' : 'Not both'"></span>
+            </p>
+
+            <p class="or-result">
+                OR (||): <span id="or-value" p-text="state.flag || state.count > 5 ? 'At least one' : 'Neither'"></span>
+            </p>
+
+            <p class="comparison-result">
+                Comparison: <span id="comparison-value" p-text="state.count == 3 ? 'Exactly 3' : state.count > 3 ? 'More than 3' : 'Less than 3'"></span>
+            </p>
+
+            <p class="arithmetic-result">
+                Arithmetic: <span id="arithmetic-value" p-text="'Sum: ' + (state.count + 10)"></span>
+            </p>
+
+            <p class="optional-chain-result">
+                Nested Ternary: <span id="optional-value" p-text="state.user ? state.user.name : 'No user'"></span>
+            </p>
+
+            <p class="nullish-result">
+                Logical AND Chain: <span id="nullish-value" p-text="state.user && state.user.email ? state.user.email : 'No email set'"></span>
+            </p>
+        </div>
+
+        <div class="state-display">
+            <p>Flag: <span id="flag-state" p-text="state.flag ? 'true' : 'false'"></span></p>
+            <p>Count: <span id="count-state" p-text="state.count"></span></p>
+            <p>Has User: <span id="has-user-state" p-text="state.user ? 'yes' : 'no'"></span></p>
+        </div>
+    </div>
+</template>
+
+<style>
+    .expression-demo {
+        padding: 1rem;
+    }
+    .controls {
+        margin-bottom: 1rem;
+    }
+    .controls button {
+        margin-right: 0.5rem;
+        padding: 0.5rem 1rem;
+    }
+    .results {
+        padding: 1rem;
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        margin-bottom: 1rem;
+    }
+    .results p {
+        margin: 0.5rem 0;
+    }
+    .results span {
+        font-weight: bold;
+        color: #1976d2;
+    }
+    .state-display {
+        padding: 0.5rem;
+        background: #e3f2fd;
+        font-size: 0.9rem;
+    }
+</style>
+
+<script lang="ts">
+    interface User {
+        name: string;
+        email?: string;
+    }
+
+    const state = {
+        flag: false as boolean,
+        count: 0 as number,
+        user: null as User | null
+    };
+
+    function toggleFlag() {
+        state.flag = !state.flag;
+    }
+
+    function incrementCount() {
+        state.count++;
+    }
+
+    function setUser() {
+        state.user = { name: "John Doe", email: "john@example.com" };
+    }
+
+    function clearUser() {
+        state.user = null;
+    }
+</script>

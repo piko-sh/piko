@@ -1,0 +1,44 @@
+--- PACKAGE: testcase_30_unexported_embedded_cross_package ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 30_unexported_embedded_cross_package/src/main.go
+    - import "auth"               -> testcase_30_unexported_embedded_cross_package/auth
+
+[Named Types]
+  > type Service
+    - Defined In:      30_unexported_embedded_cross_package/src/main.go
+    - TypeString:      main.Service
+    - Underlying:      struct{auth.AuthProvider}
+    - Stringability:   0
+    - Fields:
+      - AuthProvider         auth.AuthProvider (embedded)
+        (Canonical Package: testcase_30_unexported_embedded_cross_package/auth)
+    - Methods:
+      - func (T) Authenticate    func() bool
+        (Promoted from: testcase_30_unexported_embedded_cross_package/auth.provider)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_30_unexported_embedded_cross_package/auth ---
+[Package Info]
+  - Name:    auth
+
+[File-Scoped Imports]
+  > File: 30_unexported_embedded_cross_package/src/auth/provider.go
+    (no imports in this file)
+
+[Named Types]
+  > type AuthProvider
+    - Defined In:      30_unexported_embedded_cross_package/src/auth/provider.go
+    - TypeString:      auth.AuthProvider
+    - Underlying:      struct{auth.provider}
+    - Stringability:   0
+    - Methods:
+      - func (T) Authenticate    func() bool
+        (Promoted from: testcase_30_unexported_embedded_cross_package/auth.provider)
+
+[Package-Level Functions]
+  (none)

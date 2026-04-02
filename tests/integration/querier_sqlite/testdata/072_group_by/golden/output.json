@@ -1,0 +1,45 @@
+{
+  "orders": [
+    {
+      "OrderItems": [
+        {
+          "ID": 1,
+          "Product": "Widget",
+          "Quantity": 2
+        },
+        {
+          "ID": 2,
+          "Product": "Gadget",
+          "Quantity": 1
+        }
+      ],
+      "Orders": {
+        "Customer": "Alice",
+        "ID": 1,
+        "Total": 100
+      }
+    },
+    {
+      "OrderItems": [
+        {
+          "ID": 3,
+          "Product": "Widget",
+          "Quantity": 5
+        }
+      ],
+      "Orders": {
+        "Customer": "Bob",
+        "ID": 2,
+        "Total": 200
+      }
+    },
+    {
+      "OrderItems": null,
+      "Orders": {
+        "Customer": "Charlie",
+        "ID": 3,
+        "Total": 0
+      }
+    }
+  ]
+}

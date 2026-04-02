@@ -1,0 +1,134 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div style="width: 555px; padding: 20px; font-size: 10px; color: #2d3748;">
+
+    <div style="background: linear-gradient(to right, #553c9a, #6b46c1, #805ad5); padding: 14px 20px; border-radius: 6px; display: flex;">
+      <div style="flex: 1;">
+        <h1 style="font-size: 16px; font-weight: bold; color: #ffffff; margin: 0;">Operations Dashboard</h1>
+        <div style="font-size: 9px; color: #d6bcfa; margin-top: 2px;">Reporting Period: 1 January - 14 March 2026</div>
+      </div>
+      <div style="text-align: right; color: #e9d8fd; font-size: 9px;">
+        <div>Generated: 14 March 2026</div>
+        <div>Region: Northern Europe</div>
+      </div>
+    </div>
+
+    <h2 style="font-size: 11px; font-weight: bold; color: #553c9a; margin-top: 16px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Key Performance Indicators</h2>
+    <div style="display: flex; margin-bottom: 10px;">
+      <div style="flex: 1; margin-right: 8px; padding: 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);">
+        <div style="font-size: 8px; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px;">Revenue</div>
+        <div style="font-size: 24px; font-weight: bold; color: #276749; margin-top: 4px;">2.34M</div>
+        <div style="font-size: 9px; color: #276749; margin-top: 2px;">+12.4% vs prior year</div>
+      </div>
+      <div style="flex: 1; margin-right: 8px; padding: 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);">
+        <div style="font-size: 8px; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px;">Orders</div>
+        <div style="font-size: 24px; font-weight: bold; color: #2b6cb0; margin-top: 4px;">1,847</div>
+        <div style="font-size: 9px; color: #2b6cb0; margin-top: 2px;">+8.1% vs prior year</div>
+      </div>
+      <div style="flex: 1; margin-right: 8px; padding: 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);">
+        <div style="font-size: 8px; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px;">Fulfilment Rate</div>
+        <div style="font-size: 24px; font-weight: bold; color: #553c9a; margin-top: 4px;">96.2%</div>
+        <div style="font-size: 9px; color: #553c9a; margin-top: 2px;">+1.8pp vs target</div>
+      </div>
+      <div style="flex: 1; padding: 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);">
+        <div style="font-size: 8px; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px;">Avg Response Time</div>
+        <div style="font-size: 24px; font-weight: bold; color: #c05621; margin-top: 4px;">2.4h</div>
+        <div style="font-size: 9px; color: #c05621; margin-top: 2px;">-18 min vs prior year</div>
+      </div>
+    </div>
+
+    <h2 style="font-size: 11px; font-weight: bold; color: #553c9a; margin-top: 14px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Monthly Revenue</h2>
+    <div style="padding: 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <div style="display: flex; margin-bottom: 6px; font-size: 9px;">
+        <div style="width: 50px; color: #718096; padding-top: 2px;">Jan</div>
+        <div style="flex: 1; padding-top: 2px;">
+          <div style="width: 78%; height: 14px; background: linear-gradient(to right, #6b46c1, #805ad5); border-radius: 2px;"></div>
+        </div>
+        <div style="width: 50px; text-align: right; color: #4a5568; padding-top: 2px;">780K</div>
+      </div>
+      <div style="display: flex; margin-bottom: 6px; font-size: 9px;">
+        <div style="width: 50px; color: #718096; padding-top: 2px;">Feb</div>
+        <div style="flex: 1; padding-top: 2px;">
+          <div style="width: 82%; height: 14px; background: linear-gradient(to right, #6b46c1, #805ad5); border-radius: 2px;"></div>
+        </div>
+        <div style="width: 50px; text-align: right; color: #4a5568; padding-top: 2px;">820K</div>
+      </div>
+      <div style="display: flex; font-size: 9px;">
+        <div style="width: 50px; color: #718096; padding-top: 2px;">Mar</div>
+        <div style="flex: 1; padding-top: 2px;">
+          <div style="width: 74%; height: 14px; background: linear-gradient(to right, #9f7aea, #b794f4); border-radius: 2px; opacity: 0.7;"></div>
+        </div>
+        <div style="width: 50px; text-align: right; color: #a0aec0; padding-top: 2px;">740K*</div>
+      </div>
+      <div style="font-size: 8px; color: #a0aec0; margin-top: 4px;">* Projected based on data through 14 March</div>
+    </div>
+
+    <div style="display: flex; margin-top: 12px;">
+      <div style="flex: 1; margin-right: 8px; padding: 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 10px; font-weight: bold; color: #553c9a; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Recent Activity</h2>
+        <ul style="list-style-type: disc; padding-left: 16px; font-size: 9px; color: #4a5568;">
+          <li style="margin-bottom: 4px;">Warehouse 3 expansion approved (12 Mar)</li>
+          <li style="margin-bottom: 4px;">New supplier contract signed with Haldane Ltd (10 Mar)</li>
+          <li style="margin-bottom: 4px;">Q1 safety audit completed, zero incidents (8 Mar)</li>
+          <li style="margin-bottom: 4px;">Fleet vehicles serviced, 12 of 15 returned (6 Mar)</li>
+          <li>Staff onboarding: 4 new hires in logistics (3 Mar)</li>
+        </ul>
+      </div>
+      <div style="flex: 1; padding: 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 10px; font-weight: bold; color: #553c9a; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Top Regions</h2>
+        <table style="width: 100%; font-size: 9px; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 4px 0; font-weight: bold;">South East</td>
+            <td style="padding: 4px 0; text-align: right; color: #276749;">892K</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 4px 0; font-weight: bold;">Midlands</td>
+            <td style="padding: 4px 0; text-align: right; color: #276749;">634K</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 4px 0; font-weight: bold;">North West</td>
+            <td style="padding: 4px 0; text-align: right; color: #276749;">418K</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Scotland</td>
+            <td style="padding: 4px 0; text-align: right; color: #276749;">396K</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top: 12px; font-size: 7px; color: #a0aec0; text-align: center;">Confidential - For internal use only. Generated by Northgate Reporting Platform v4.2</div>
+
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Operations Dashboard Q1 2026"}, nil
+}
+</script>

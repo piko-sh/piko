@@ -1,0 +1,3 @@
+{
+  "description": "Tests that sibling self-closing elements within a parent maintain proper indentation. When a self-closing element with wrapped attributes ends with a newline, subsequent siblings should have proper indentation."
+}

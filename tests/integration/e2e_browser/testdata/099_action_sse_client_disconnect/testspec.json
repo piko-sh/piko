@@ -1,0 +1,28 @@
+{
+  "description": "Tests client disconnect detection via stream.Done() channel. Client aborts after receiving 3 events.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#start-btn"
+    },
+    {
+      "action": "wait",
+      "value": "5000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#abort-sent",
+      "expected": "true"
+    }
+  ]
+}

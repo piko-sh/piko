@@ -1,0 +1,21 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Generated code
+src/main/java/io/politepixels/gen/
+
+# IntelliJ Platform
+.intellijPlatform/
+
+# Bundled LSP binaries (built by release.sh)
+src/main/resources/bin/*/piko-lsp*
+
+# Embedded type definitions (copied by Gradle from internal/typegen)
+src/main/resources/types/

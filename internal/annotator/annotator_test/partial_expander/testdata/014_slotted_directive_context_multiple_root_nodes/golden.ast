@@ -1,0 +1,16 @@
+/*
+--- BEGIN AST DUMP ---
+
+<Fragment [ANNOTATIONS: OriginPackage: main_aaf9a2e0 PARTIAL InvKey: card_attribute_test_attribute2_state_shouldappear_5aa31378 Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+  <h1 class="card-title" p-fragment="card_attribute_test_attribute2_state_shouldappear_5aa31378" p-fragment-id="0" [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+    "Multi-Root Card"
+  </h1>
+  <div class="card-body" p-fragment="card_attribute_test_attribute2_state_shouldappear_5aa31378" p-fragment-id="1" [p-if: state.IsActive] [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+    <p [p-if: state.ShouldShow] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Visible from Main"
+    </p>
+  </div>
+</Fragment>
+
+--- END AST DUMP ---
+*/

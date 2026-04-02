@@ -1,0 +1,3 @@
+{
+  "description": "MySQL string functions: CONCAT, CONCAT_WS, SUBSTRING, CHAR_LENGTH, UPPER, LOWER, TRIM, REPLACE. Tests return type inference for string functions."
+}

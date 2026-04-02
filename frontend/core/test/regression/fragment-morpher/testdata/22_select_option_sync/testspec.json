@@ -1,0 +1,29 @@
+{
+    "description": "Select element option selection syncs correctly during morph - selected option changes from B to C",
+    "options": {
+        "childrenOnly": true
+    },
+    "assertions": [
+        {
+            "selector": "select",
+            "exists": true,
+            "description": "Select element should exist after morph"
+        },
+        {
+            "selector": "option[value='c']",
+            "attributes": { "selected": "" },
+            "description": "Option C should have the selected attribute after morph"
+        },
+        {
+            "selector": "option[value='b']",
+            "attributes": { "selected": null },
+            "description": "Option B should no longer have the selected attribute"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "select",
+            "description": "Select element should be preserved (same reference)"
+        }
+    ]
+}

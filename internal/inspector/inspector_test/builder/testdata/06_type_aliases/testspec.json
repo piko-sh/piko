@@ -1,0 +1,51 @@
+{
+  "description": "Tests the distinction between type aliases and type definitions, and how fields using them are serialised.",
+  "moduleName": "testcase_06_type_aliases",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_06_type_aliases",
+    "testcase_06_type_aliases/models"
+  ],
+  "assertions": [
+    {
+      "description": "UserID should be marked as an alias.",
+      "select": "packages.testcase_06_type_aliases.named_types.UserID.is_alias",
+      "expect": true
+    },
+    {
+      "description": "ProductID should NOT be marked as an alias.",
+      "select": "packages.testcase_06_type_aliases.named_types.ProductID.is_alias",
+      "expect": false
+    },
+    {
+      "description": "A field using a local alias should preserve the alias in its TypeString.",
+      "select": "packages.testcase_06_type_aliases.named_types.Request.fields.0.type_string",
+      "expect": "main.UserID"
+    },
+    {
+      "description": "The local alias field should have the main package path.",
+      "select": "packages.testcase_06_type_aliases.named_types.Request.fields.0.pkg_path",
+      "expect": "testcase_06_type_aliases"
+    },
+    {
+      "description": "A field using a cross-package alias should preserve the alias in its TypeString.",
+      "select": "packages.testcase_06_type_aliases.named_types.Request.fields.1.type_string",
+      "expect": "models.PublicUser"
+    },
+    {
+      "description": "The cross-package alias itself (PublicUser) should be serialised and marked as an alias.",
+      "select": "packages.testcase_06_type_aliases/models.named_types.PublicUser.is_alias",
+      "expect": true
+    },
+    {
+      "description": "The cross-package alias's TypeString should point to the underlying (but unexported) type.",
+      "select": "packages.testcase_06_type_aliases/models.named_types.PublicUser.type_string",
+      "expect": "models.internalUser"
+    },
+    {
+      "description": "The ExternalUser field should have the models package path.",
+      "select": "packages.testcase_06_type_aliases.named_types.Request.fields.1.pkg_path",
+      "expect": "testcase_06_type_aliases/models"
+    }
+  ]
+}

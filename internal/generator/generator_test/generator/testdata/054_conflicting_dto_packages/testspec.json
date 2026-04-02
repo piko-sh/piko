@@ -1,0 +1,6 @@
+{
+  "description": "Tests import alias conflict resolution when two packages named 'dto' from different paths need to be imported for IIFE-based safe slice access.",
+  "packageName": "main_test",
+  "isPage": true,
+  "shouldError": false
+}

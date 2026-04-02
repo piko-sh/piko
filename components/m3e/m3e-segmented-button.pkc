@@ -1,0 +1,176 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-segmented-button">
+    <div class="segmented-button"
+         p-class="{ 'multi': state.multi }"
+         role="group">
+        <slot></slot>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        multi: false as boolean,
+    };
+
+    pkc.onConnected(() => {
+        pkc.addEventListener('click', handleSegmentClick);
+        pkc.addEventListener('keydown', handleKeydown);
+        syncTabIndices();
+    });
+
+    pkc.onDisconnected(() => {
+        pkc.removeEventListener('click', handleSegmentClick);
+        pkc.removeEventListener('keydown', handleKeydown);
+    });
+
+    const handleSegmentClick = function(event) {
+        const segment = event.target.closest('[data-segment]');
+        if (!segment) return;
+
+        const segments = pkc.querySelectorAll('[data-segment]');
+
+        if (state.multi) {
+            const isSelected = segment.hasAttribute('data-selected');
+            if (isSelected) {
+                segment.removeAttribute('data-selected');
+            } else {
+                segment.setAttribute('data-selected', '');
+            }
+        } else {
+            segments.forEach((s) => s.removeAttribute('data-selected'));
+            segment.setAttribute('data-selected', '');
+        }
+
+        const selected = [];
+        pkc.querySelectorAll('[data-segment][data-selected]').forEach((s) => {
+            selected.push(s.getAttribute('data-segment'));
+        });
+
+        pkc.dispatchEvent(new CustomEvent('change', {
+            detail: { selected: selected },
+            bubbles: true,
+            composed: true,
+        }));
+    };
+
+    const handleKeydown = function(event) {
+        const isLeft = event.key === 'ArrowLeft';
+        const isRight = event.key === 'ArrowRight';
+        const isHome = event.key === 'Home';
+        const isEnd = event.key === 'End';
+
+        if (!isLeft && !isRight && !isHome && !isEnd) return;
+
+        event.preventDefault();
+        const segments = Array.from(pkc.querySelectorAll('[data-segment]'));
+        if (segments.length < 2) return;
+
+        const focused = document.activeElement;
+        let index = segments.indexOf(focused);
+        if (index < 0) index = 0;
+
+        let nextIndex;
+        if (isHome) {
+            nextIndex = 0;
+        } else if (isEnd) {
+            nextIndex = segments.length - 1;
+        } else if (isRight) {
+            nextIndex = index < segments.length - 1 ? index + 1 : 0;
+        } else {
+            nextIndex = index > 0 ? index - 1 : segments.length - 1;
+        }
+
+        segments[nextIndex].focus();
+    };
+
+    function syncTabIndices() {
+        const segments = pkc.querySelectorAll('[data-segment]');
+        const selected = pkc.querySelector('[data-segment][data-selected]');
+        segments.forEach((seg) => {
+            seg.tabIndex = seg === (selected || segments[0]) ? 0 : -1;
+        });
+    }
+
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        flex-shrink: 0;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline: var(--m3e-outline, #79747e);
+        --_secondary-container: var(--m3e-secondary-container, #e8def8);
+        --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-full: var(--m3e-shape-full, 9999px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .segmented-button {
+        display: inline-flex;
+        border: 1px solid var(--_outline);
+        border-radius: var(--_shape-full);
+        overflow: hidden;
+
+        ::slotted(*) {
+            position: relative;
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            min-width: 48px;
+            padding: 0 24px;
+            cursor: pointer;
+            border: none;
+            border-right: 1px solid var(--_outline);
+            background: transparent;
+            color: var(--_on-surface);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background var(--_duration-short) var(--_easing-standard),
+                        color var(--_duration-short) var(--_easing-standard);
+        }
+
+        ::slotted(*:last-child) {
+            border-right: none;
+        }
+
+        ::slotted(*:hover) {
+            background: rgba(73, 69, 79, 0.08);
+        }
+
+        ::slotted([data-selected]) {
+            background: var(--_secondary-container);
+            color: var(--_on-secondary-container);
+        }
+    }
+</style>

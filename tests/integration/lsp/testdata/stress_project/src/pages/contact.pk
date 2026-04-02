@@ -1,0 +1,31 @@
+<template>
+	<div class="contact">
+		<nav is="nav" :items="state.Config.Nav" />
+		<h1>Contact</h1>
+		<p>{{ state.Email }}</p>
+	</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	_ "testcase_lsp_stress/partials/nav.pk"
+)
+
+type ContactResponse struct {
+	Config SiteConfig
+	Email  string
+}
+
+func Render(_ *piko.RequestData, _ piko.NoProps) (ContactResponse, piko.Metadata, error) {
+	return ContactResponse{
+		Config: SiteConfig{
+			Title: "Contact",
+			Nav:   []NavItem{{Label: "Contact", URL: "/contact", Active: true}},
+		},
+		Email: "hello@example.com",
+	}, piko.Metadata{}, nil
+}
+</script>

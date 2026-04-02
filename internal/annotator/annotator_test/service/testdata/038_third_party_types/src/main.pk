@@ -1,0 +1,80 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div>
+        <p id="direct-implicit">{{ state.DirectUUID }}</p>
+        <p id="direct-explicit">{{ state.DirectUUID.String() }}</p>
+
+        <p id="model-implicit">{{ state.ModelData.UserID }}</p>
+        <p id="model-explicit">{{ state.ModelData.UserID.String() }}</p>
+
+        <p id="aliased-implicit">{{ state.AliasedUUID }}</p>
+        <p id="aliased-explicit">{{ state.AliasedUUID.String() }}</p>
+
+        <p id="aliased-implicit">{{ state.Deep.Data.UserID }}</p>
+        <p id="aliased-explicit">{{ state.Deep.Data.UserID.String() }}</p>
+        <p id="aliased-implicit" :test="state.Deep.Data.UserID"></p>
+        <p id="aliased-implicit" :test="state.Deep.Data.UserID.String()"></p>
+
+        <p id="model-implicit">{{ state.MoreModelData.UserID }}</p>
+        <p id="model-implicit">{{ state.FinalModelData.UserID }}</p>
+
+        <piko:partial is="consumer" id="prop-implicit-string" :title="state.DirectUUID" />
+
+        <piko:partial is="consumer" id="prop-exact-match" :uuid="state.DirectUUID" />
+
+        <piko:partial is="consumer" id="prop-explicit-string" :title="state.DirectUUID.String()" />
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"github.com/google/uuid"
+	"testcase_38_third_party_types/deep"
+	"testcase_38_third_party_types/models"
+	templater_dto "piko.sh/piko/internal/templater/templater_dto"
+  consumer "testcase_38_third_party_types/partials/prop_consumer.pk"
+)
+
+type MyUUID = uuid.UUID
+
+type Response struct {
+	Deep        deep.Deep
+	DirectUUID  uuid.UUID
+	ModelData   models.Data
+	MoreModelData   models.MoreData
+	FinalModelData   models.FinalData
+	AliasedUUID MyUUID
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Deep:        deep.Deep{},
+		DirectUUID:  uuid.New(),
+		ModelData:   models.NewData(),
+		MoreModelData:   models.MoreData{},
+		FinalModelData:   models.FinalData{},
+		AliasedUUID: MyUUID(uuid.New()),
+	}, piko.Metadata{}, nil
+}
+</script>

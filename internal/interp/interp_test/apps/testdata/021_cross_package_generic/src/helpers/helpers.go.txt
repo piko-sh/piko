@@ -1,0 +1,12 @@
+package helpers
+
+func Identity[T any](v T) T {
+	return v
+}
+
+func Max[T ~int](a, b T) T {
+	if a > b {
+		return a
+	}
+	return b
+}

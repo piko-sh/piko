@@ -1,0 +1,6 @@
+{
+  "title": "PML Components with CSS",
+  "description": "PML components combined with CSS inlining",
+  "metadata": {"title": "PML + CSS Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

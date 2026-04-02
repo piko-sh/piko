@@ -1,0 +1,49 @@
+[
+  {
+    "action": "checkText",
+    "selector": "slot-listener-component >>> p",
+    "expected": "Item count: 0"
+  },
+  {
+    "action": "eval",
+    "selector": "slot-listener-component",
+    "value": "() => this.innerHTML = '<div>Item 1</div><div>Item 2</div>'"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkText",
+    "selector": "slot-listener-component >>> p",
+    "expected": "Item count: 2"
+  },
+  {
+    "action": "eval",
+    "selector": "slot-listener-component",
+    "value": "() => this.innerHTML = '<div>Item A</div>'"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkText",
+    "selector": "slot-listener-component >>> p",
+    "expected": "Item count: 1"
+  },
+  {
+    "action": "eval",
+    "selector": "slot-listener-component",
+    "value": "() => this.innerHTML = ''"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkText",
+    "selector": "slot-listener-component >>> p",
+    "expected": "Item count: 0"
+  }
+]

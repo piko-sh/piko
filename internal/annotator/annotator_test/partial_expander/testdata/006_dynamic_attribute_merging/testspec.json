@@ -1,0 +1,34 @@
+{
+  "specs": [
+    {
+      "description": "The final div should have dynamic attributes from both invoker and partial, with invoker's taking precedence",
+      "select": "div",
+      "assert": {
+        "dynAttr": {
+          "title": "state.Title",
+          "aria-hidden": "state.IsHidden",
+          "data-value": "state.DefaultValue"
+        }
+      }
+    },
+    {
+      "description": "The origin of 'title' and 'aria-hidden' should be the main component",
+      "select": "div",
+      "assert": {
+        "dynAttrOrigin": {
+          "title": "main.pk",
+          "aria-hidden": "main.pk"
+        }
+      }
+    },
+    {
+      "description": "The origin of 'data-value' should be the partial",
+      "select": "div",
+      "assert": {
+        "dynAttrOrigin": {
+          "data-value": "partials/card.pk"
+        }
+      }
+    }
+  ]
+}

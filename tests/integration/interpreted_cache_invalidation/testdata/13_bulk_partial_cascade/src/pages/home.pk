@@ -1,0 +1,19 @@
+<template>
+<div class="page">
+  <header is="header"></header>
+  <h1>Home Page</h1>
+</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	header "testcase_cache_bulk_cascade_13/partials/header.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

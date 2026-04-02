@@ -1,0 +1,25 @@
+{
+  "description": "Tests method promotion from the embedded built-in 'error' interface.",
+  "moduleName": "testcase_40_embedding_error_interface",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_40_embedding_error_interface"
+  ],
+  "assertions": [
+    {
+      "description": "MyError should have the promoted 'Error' method.",
+      "select": "packages.testcase_40_embedding_error_interface.named_types.MyError.methods.0.name",
+      "expect": "Error"
+    },
+    {
+      "description": "The 'Error' method should have a return type of 'string'.",
+      "select": "packages.testcase_40_embedding_error_interface.named_types.MyError.methods.0.signature.results.0",
+      "expect": "string"
+    },
+    {
+      "description": "The 'error' field itself is unexported and should not be serialised.",
+      "select": "packages.testcase_40_embedding_error_interface.named_types.MyError.fields.0.name",
+      "expect": "Code"
+    }
+  ]
+}

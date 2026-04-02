@@ -1,0 +1,3 @@
+{
+  "description": "Tests that formatting is idempotent (applying format twice yields same result)"
+}

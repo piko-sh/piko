@@ -1,0 +1,5 @@
+{
+  "description": "Verifies a contact form that sends a templated confirmation email via the stdout provider",
+  "requestURL": "/",
+  "expectedStatus": 200
+}

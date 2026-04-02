@@ -1,0 +1,31 @@
+<template>
+	<div class="about">
+		<nav is="nav" :items="state.Config.Nav" />
+		<h1>About Us</h1>
+		<p>{{ state.Description }}</p>
+	</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	_ "testcase_lsp_stress/partials/nav.pk"
+)
+
+type AboutResponse struct {
+	Config      SiteConfig
+	Description string
+}
+
+func Render(_ *piko.RequestData, _ piko.NoProps) (AboutResponse, piko.Metadata, error) {
+	return AboutResponse{
+		Config: SiteConfig{
+			Title: "About",
+			Nav:   []NavItem{{Label: "About", URL: "/about", Active: true}},
+		},
+		Description: "We build great things.",
+	}, piko.Metadata{}, nil
+}
+</script>

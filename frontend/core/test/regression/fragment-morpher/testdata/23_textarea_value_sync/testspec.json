@@ -1,0 +1,24 @@
+{
+    "description": "Textarea value preservation during morph - content updates from initial to target text",
+    "options": {
+        "childrenOnly": true
+    },
+    "assertions": [
+        {
+            "selector": "textarea",
+            "exists": true,
+            "description": "Textarea element should exist after morph"
+        },
+        {
+            "selector": "textarea",
+            "textContent": "Updated text",
+            "description": "Textarea content should match target value"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "textarea",
+            "description": "Textarea element should be preserved (same reference)"
+        }
+    ]
+}

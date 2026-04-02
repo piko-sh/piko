@@ -1,0 +1,11 @@
+{
+  "specs": [
+    {
+      "description": "The expanded card should have PartialInfo attached",
+      "select": "div.card",
+      "assert": {
+        "hasPartialInfo": true
+      }
+    }
+  ]
+}

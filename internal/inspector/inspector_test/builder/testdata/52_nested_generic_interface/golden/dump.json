@@ -1,0 +1,198 @@
+{
+  "packages": {
+    "testcase_52_nested_generic_interface": {
+      "file_imports": {
+        "52_nested_generic_interface/src/main.go": {}
+      },
+      "named_types": {
+        "Box": {
+          "name": "Box",
+          "package_path": "testcase_52_nested_generic_interface",
+          "defined_in_file_path": "52_nested_generic_interface/src/main.go",
+          "type_string": "main.Box[T]",
+          "underlying_type_string": "struct{Value T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_52_nested_generic_interface",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Box",
+              "name": "Value",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [
+            {
+              "name": "Get",
+              "type_string": "T",
+              "underlying_type_string": "T",
+              "declaring_pkg_path": "testcase_52_nested_generic_interface",
+              "declaring_type_name": "Box",
+              "definition_file_path": "52_nested_generic_interface/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "T"
+                ]
+              },
+              "definition_line": 39,
+              "definition_column": 17,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 34,
+          "definition_column": 6
+        },
+        "Container": {
+          "name": "Container",
+          "package_path": "testcase_52_nested_generic_interface",
+          "defined_in_file_path": "52_nested_generic_interface/src/main.go",
+          "type_string": "main.Container[E, G]",
+          "underlying_type_string": "struct{Source G}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_52_nested_generic_interface",
+              "pkg_path": "",
+              "underlying_type_string": "G",
+              "declaring_type_name": "Container",
+              "name": "Source",
+              "type_string": "G",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "E",
+            "G"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 29,
+          "definition_column": 6
+        },
+        "Getter": {
+          "name": "Getter",
+          "package_path": "testcase_52_nested_generic_interface",
+          "defined_in_file_path": "52_nested_generic_interface/src/main.go",
+          "type_string": "main.Getter[T]",
+          "underlying_type_string": "interface{Get() T}",
+          "fields": null,
+          "methods": [
+            {
+              "name": "Get",
+              "type_string": "T",
+              "underlying_type_string": "T",
+              "declaring_pkg_path": "testcase_52_nested_generic_interface",
+              "declaring_type_name": "Getter",
+              "definition_file_path": "52_nested_generic_interface/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "T"
+                ]
+              },
+              "definition_line": 24,
+              "definition_column": 2,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        },
+        "Report": {
+          "name": "Report",
+          "package_path": "testcase_52_nested_generic_interface",
+          "defined_in_file_path": "52_nested_generic_interface/src/main.go",
+          "type_string": "main.Report",
+          "underlying_type_string": "struct{StringSource main.Container[string, main.Box[string]]}",
+          "fields": [
+            {
+              "definition_file_path": "52_nested_generic_interface/src/main.go",
+              "declaring_pkg_path": "testcase_52_nested_generic_interface",
+              "pkg_path": "testcase_52_nested_generic_interface",
+              "underlying_type_string": "struct{Source main.Box[string]}",
+              "declaring_type_name": "Report",
+              "name": "StringSource",
+              "type_string": "main.Container[string, main.Box[string]]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "generic_arg",
+                  "type_string": "string",
+                  "role": "generic_arg_0",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "generic_arg",
+                  "type_string": "main.Box[string]",
+                  "role": "generic_arg_1",
+                  "underlying_type_string": "struct{Value string}",
+                  "pkg_path": "testcase_52_nested_generic_interface",
+                  "composite_parts": [
+                    {
+                      "type": "generic_arg",
+                      "type_string": "string",
+                      "role": "generic_arg_0",
+                      "underlying_type_string": "string",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_underlying_primitive": true
+                    }
+                  ],
+                  "composite_type": 7,
+                  "index": 1,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 7,
+              "definition_line": 49,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 44,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_52_nested_generic_interface",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "52_nested_generic_interface/src/main.go": "testcase_52_nested_generic_interface"
+  }
+}

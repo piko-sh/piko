@@ -1,0 +1,5 @@
+CREATE TABLE profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    display_name VARCHAR(100),
+    username VARCHAR(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

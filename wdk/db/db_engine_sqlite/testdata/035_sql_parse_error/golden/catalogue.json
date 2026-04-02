@@ -1,0 +1,83 @@
+{
+  "Schemas": {
+    "main": {
+      "Name": "main",
+      "Tables": {
+        "users": {
+          "Name": "users",
+          "Schema": "main",
+          "Columns": [
+            {
+              "Name": "id",
+              "SQLType": {
+                "Category": 0,
+                "EngineName": "integer",
+                "Schema": "",
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "EnumValues": null,
+                "ElementType": null
+              },
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false,
+              "ArrayDimensions": 0,
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_users.sql",
+                "Index": 0
+              }
+            },
+            {
+              "Name": "name",
+              "SQLType": {
+                "Category": 4,
+                "EngineName": "text",
+                "Schema": "",
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "EnumValues": null,
+                "ElementType": null
+              },
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false,
+              "ArrayDimensions": 0,
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_create_users.sql",
+                "Index": 0
+              }
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Comment": "",
+          "IsVirtual": false,
+          "VirtualModuleName": "",
+          "IsWithoutRowID": false,
+          "Origin": {
+            "Filename": "001_create_users.sql",
+            "Index": 0
+          }
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {}
+    }
+  },
+  "DefaultSchema": "main",
+  "Extensions": {}
+}

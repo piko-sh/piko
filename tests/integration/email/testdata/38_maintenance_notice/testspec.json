@@ -1,0 +1,6 @@
+{
+  "title": "Maintenance Notice",
+  "description": "Scheduled maintenance notification with timeline and affected services",
+  "metadata": {"title": "Scheduled Maintenance - 5 April 2026"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

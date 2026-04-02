@@ -1,0 +1,27 @@
+--- PACKAGE: testcase_25_anonymous_composites ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 25_anonymous_composites/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Response
+    - Defined In:      25_anonymous_composites/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{Meta struct{Status int; Message string}}
+    - Stringability:   0
+    - Fields:
+      - Meta                 struct{Status int; Message string}
+
+  > type Runner
+    - Defined In:      25_anonymous_composites/src/main.go
+    - TypeString:      main.Runner
+    - Underlying:      struct{Task interface{Run() error}}
+    - Stringability:   0
+    - Fields:
+      - Task                 interface{Run() error}
+
+[Package-Level Functions]
+  (none)

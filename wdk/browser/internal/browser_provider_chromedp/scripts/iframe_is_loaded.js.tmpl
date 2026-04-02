@@ -1,0 +1,13 @@
+(() => {
+    const frame = document.querySelector({{jsStr .Selector}});
+    if (!frame || frame.tagName.toLowerCase() !== 'iframe') {
+        return false;
+    }
+    try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        return doc.readyState === 'complete';
+    } catch (e) {
+        // Cross-origin frames will throw - assume loaded if we can't check
+        return true;
+    }
+})()

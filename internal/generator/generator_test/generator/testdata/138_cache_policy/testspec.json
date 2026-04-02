@@ -1,0 +1,5 @@
+{
+  "description": "Tests that a page with a user-defined CachePolicy function generates correct registration code with a type-adapting wrapper.",
+  "packageName": "cache_policy_test",
+  "isPage": true
+}

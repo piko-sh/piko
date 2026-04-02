@@ -1,0 +1,53 @@
+{
+  "description": "Tests a page using a partial, passing dynamic state as a prop, and validates LSP hover functionality.",
+  "generate": {
+    "packageName": "dynamic_prop_test",
+    "isPage": true,
+    "shouldError": false,
+    "expectDiagnostics": []
+  },
+  "lsp": {
+    "actions": [
+      {
+        "action": "didOpen",
+        "file": "pages/main.pk"
+      },
+      {
+        "action": "hover",
+        "file": "pages/main.pk",
+        "line": 21,
+        "character": 48,
+        "expectContains": [
+          "```go",
+          "(variable) WelcomeMessage: string",
+          "```"
+        ]
+      },
+      {
+        "action": "hover",
+        "file": "pages/main.pk",
+        "line": 21,
+        "character": 12,
+        "expectContains": [
+          "Imported partial component",
+          "partials/card.pk"
+        ]
+      },
+      {
+        "action": "didOpen",
+        "file": "partials/card.pk"
+      },
+      {
+        "action": "hover",
+        "file": "partials/card.pk",
+        "line": 22,
+        "character": 22,
+        "expectContains": [
+          "```go",
+          "(variable) Title: string",
+          "```"
+        ]
+      }
+    ]
+  }
+}

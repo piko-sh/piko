@@ -1,0 +1,5 @@
+{
+  "description": "Comprehensive test for all prop struct tag options: prop, validate, default, factory, and coerce",
+  "packageName": "testcase_072_prop_tags_comprehensive",
+  "isPage": true
+}

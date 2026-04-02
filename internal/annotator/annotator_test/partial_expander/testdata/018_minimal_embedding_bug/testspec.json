@@ -1,0 +1,43 @@
+{
+  "specs": [
+    {
+      "description": "The root element should be the expanded data_table component",
+      "select": "div.table-wrapper",
+      "assert": {
+        "originalPackageAlias": "partials/data_table.pk",
+        "childCount": 1
+      }
+    },
+    {
+      "description": "The table should be properly expanded with the data-table class",
+      "select": "div.table-wrapper table.data-table",
+      "assert": {
+        "originalPackageAlias": "partials/data_table.pk",
+        "childCount": 2
+      }
+    },
+    {
+      "description": "The table header should contain the Name column",
+      "select": "table.data-table thead tr th",
+      "assert": {
+        "originalPackageAlias": "partials/data_table.pk",
+        "textContentContains": "Name"
+      }
+    },
+    {
+      "description": "The table body should contain the first data row",
+      "select": "table.data-table tbody tr:first-child td:first-child",
+      "assert": {
+        "originalPackageAlias": "partials/data_table.pk",
+        "textContentContains": "Item 1"
+      }
+    },
+    {
+      "description": "Verify that the minimal embedding pattern works without errors",
+      "select": "div.table-wrapper",
+      "assert": {
+        "hasPartialInfo": true
+      }
+    }
+  ]
+}

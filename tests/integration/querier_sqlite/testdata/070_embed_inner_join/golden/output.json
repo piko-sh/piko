@@ -1,0 +1,18 @@
+{
+  "book_1": {
+    "Authors": {
+      "ID": 1,
+      "Name": "Tolkien"
+    },
+    "ID": 1,
+    "Title": "The Hobbit"
+  },
+  "book_2": {
+    "Authors": {
+      "ID": 2,
+      "Name": "Orwell"
+    },
+    "ID": 2,
+    "Title": "1984"
+  }
+}

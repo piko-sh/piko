@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that the special 'props' identifier correctly resolves to the component's Props struct.",
+  "expression": "props",
+  "expectedType": "main_aaf9a2e0.Props",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

@@ -1,0 +1,3 @@
+module testcase_66_function_type_with_third_party_package_param
+
+go 1.25.1

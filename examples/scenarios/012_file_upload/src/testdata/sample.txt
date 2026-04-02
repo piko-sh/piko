@@ -1,0 +1,2 @@
+Hello from Piko file upload test!
+This is a sample file used to demonstrate S3 storage integration.

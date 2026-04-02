@@ -1,0 +1,39 @@
+{
+  "description": "Verifies actions with no input parameters execute correctly",
+  "requestURL": "/ping-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Call action with no parameters via the action builder"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_call.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-status",
+      "expected": "ok"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-message",
+      "expected": "Service is healthy"
+    }
+  ]
+}

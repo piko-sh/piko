@@ -1,0 +1,30 @@
+--- PACKAGE: testcase_35_build_tags ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 35_build_tags/src/config_linux.go
+    (no imports in this file)
+  > File: 35_build_tags/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type MyConfig
+    - Defined In:      35_build_tags/src/config_linux.go
+    - TypeString:      main.MyConfig
+    - Underlying:      struct{Path string}
+    - Stringability:   0
+    - Fields:
+      - Path                 string
+
+  > type Response
+    - Defined In:      35_build_tags/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{Config main.MyConfig}
+    - Stringability:   0
+    - Fields:
+      - Config               main.MyConfig
+        (Canonical Package: testcase_35_build_tags)
+
+[Package-Level Functions]
+  (none)

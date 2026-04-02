@@ -1,0 +1,48 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div data-layout-id="flex-with-table" style="box-sizing: content-box; display: flex; gap: 10px; width: 600px; margin: 0; padding: 0;">
+    <table data-layout-id="flex-table" style="box-sizing: content-box; border-collapse: separate; border-spacing: 5px; margin: 0; padding: 0; border: none; flex-shrink: 0;">
+      <tr>
+        <td data-layout-id="cs-cell" colspan="2" style="box-sizing: content-box; width: 200px; height: 30px; padding: 5px; margin: 0; border: none;"></td>
+        <td data-layout-id="single-cell" style="box-sizing: content-box; width: 80px; height: 30px; padding: 5px; margin: 0; border: none;"></td>
+      </tr>
+      <tr>
+        <td data-layout-id="r2c1" style="box-sizing: content-box; height: 30px; padding: 5px; margin: 0; border: none;"></td>
+        <td data-layout-id="r2c2" style="box-sizing: content-box; height: 30px; padding: 5px; margin: 0; border: none;"></td>
+        <td data-layout-id="r2c3" style="box-sizing: content-box; height: 30px; padding: 5px; margin: 0; border: none;"></td>
+      </tr>
+    </table>
+    <div data-layout-id="flex-fill" style="box-sizing: content-box; flex-grow: 1; height: 60px; margin: 0; padding: 0;"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Table Colspan In Flex Test"}, nil
+}
+</script>

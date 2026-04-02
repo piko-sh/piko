@@ -1,0 +1,3 @@
+{
+  "description": "PL/pgSQL function bodies in migrations are skipped without crashing. Verifies that tables defined alongside complex functions are still correctly catalogued."
+}

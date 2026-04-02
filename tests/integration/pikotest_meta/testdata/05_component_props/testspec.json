@@ -1,0 +1,6 @@
+{
+  "description": "Tests component that receives props",
+  "entryPoints": [
+    { "path": "pages/greeting.pk", "isPage": true }
+  ]
+}

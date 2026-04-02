@@ -1,0 +1,7 @@
+{
+    "description": "Verifies float placement and clearing within grid and flex items: floats inside a grid item's BFC, floats inside a flex item child, and clear:both interacting with the containing item's content area.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

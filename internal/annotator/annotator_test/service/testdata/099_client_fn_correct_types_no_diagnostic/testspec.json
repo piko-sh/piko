@@ -1,0 +1,4 @@
+{
+  "description": "Validates that calling a client-side TypeScript function with correctly-typed arguments produces no diagnostics.",
+  "expectedDiagnostics": 0
+}

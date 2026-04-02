@@ -1,0 +1,3 @@
+{
+  "description": "Same parameter used in multiple contexts with an explicit cast. Validates that explicit cast type wins over column-inferred type."
+}

@@ -1,0 +1,100 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="mutation-watcher">
+  <div class="mutation-watcher">
+    <div class="status">
+      <p id="action-log" p-text="'Last action: ' + state.lastAction"></p>
+    </div>
+
+    <div class="controls">
+      <button id="add-child" p-on:click="addChild">Add Child</button>
+      <button id="remove-child" p-on:click="removeChild">Remove Child</button>
+      <button id="clear-all" p-on:click="clearAll">Clear All</button>
+    </div>
+
+    <div id="watched-container">
+      <div class="child" p-for="item in state.children" p-key="item" p-text="item"></div>
+    </div>
+
+    <p id="children-count">Children: <span p-text="state.children.length.toString()"></span></p>
+  </div>
+</template>
+
+<script lang="ts">
+const state = {
+    lastAction: "none" as string,
+    children: ["Child 1", "Child 2"] as string[],
+    nextChildNum: 3 as number
+};
+
+function addChild() {
+    const newChild = "Child " + state.nextChildNum;
+    state.children = [...state.children, newChild];
+    state.nextChildNum = state.nextChildNum + 1;
+    state.lastAction = "added: " + newChild;
+}
+
+function removeChild() {
+    if (state.children.length > 0) {
+        const removed = state.children[state.children.length - 1];
+        state.children = state.children.slice(0, -1);
+        state.lastAction = "removed: " + removed;
+    }
+}
+
+function clearAll() {
+    state.children = [];
+    state.lastAction = "cleared all";
+}
+</script>
+
+<style>
+.mutation-watcher {
+    padding: 20px;
+}
+
+.status {
+    background: #f5f5f5;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.controls {
+    margin-bottom: 15px;
+}
+
+.controls button {
+    margin-right: 10px;
+    padding: 8px 16px;
+}
+
+#watched-container {
+    border: 2px solid #ccc;
+    padding: 10px;
+    min-height: 50px;
+}
+
+.child {
+    padding: 5px 10px;
+    margin: 5px 0;
+    background: #e0f0ff;
+}
+</style>

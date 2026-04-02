@@ -1,0 +1,71 @@
+{
+  "description": "Tests piko:a element for SPA navigation",
+  "requestURL": "/home",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Home Page"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".navigation"
+    },
+    {
+      "action": "checkText",
+      "selector": ".nav-home",
+      "expected": "Home"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "home.html"
+    },
+    {
+      "action": "click",
+      "selector": ".nav-about"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "About Page"
+    },
+    {
+      "action": "checkText",
+      "selector": ".about-content",
+      "expected": "This is the about page"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "about.html"
+    },
+    {
+      "action": "click",
+      "selector": ".nav-home"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Home Page"
+    },
+    {
+      "action": "checkText",
+      "selector": ".home-content",
+      "expected": "Welcome to the home page"
+    }
+  ]
+}

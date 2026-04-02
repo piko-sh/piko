@@ -1,0 +1,9 @@
+<template>
+    <pml-row>
+        <pml-col>
+            <pml-button href="https://example.com/action" background-color="#e74c3c" color="#ffffff" border-radius="4px" font-size="16px" padding="12px 30px" inner-padding="10px 25px">
+                Take Action
+            </pml-button>
+        </pml-col>
+    </pml-row>
+</template>

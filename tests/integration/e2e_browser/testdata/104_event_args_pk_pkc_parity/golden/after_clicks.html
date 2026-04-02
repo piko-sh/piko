@@ -1,0 +1,52 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0" id="app">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">Event Args Parity Test</h1>
+    <h2 partial="pages_main_594861c5" p-key="r.0:1">PKC</h2>
+    <event-args
+      partial="pages_main_594861c5"
+      p-key="r.0:2"
+      bare-result="click"
+      event-result="click"
+      empty-result="no-event"
+      arg-result="42:no-event"
+      mixed-result="42:click"
+    >
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <div><button id="bare-btn">Bare</button><button id="event-btn">Event</button><button id="empty-btn">Empty</button><button id="arg-btn">Arg</button><button id="mixed-btn">Mixed</button><span id="bare-result">click</span><span id="event-result">click</span><span id="empty-result">no-event</span><span id="arg-result">42:no-event</span><span id="mixed-result">42:click</span></div>
+      </template>
+    </event-args>
+    <h2 partial="pages_main_594861c5" p-key="r.0:3">PK</h2>
+    <div partial="pages_main_594861c5" p-key="r.0:4"><button
+        partial="pages_main_594861c5"
+        id="pk-bare-btn"
+        p-key="r.0:4:0"
+        p-on:click="eyJmIjoiaGFuZGxlQmFyZSIsImEiOlt7InQiOiJlIn1dfQ"
+        pk-ev-bound="true"
+      >Bare</button><button
+        partial="pages_main_594861c5"
+        p-key="r.0:4:1"
+        id="pk-event-btn"
+        p-on:click="eyJmIjoiaGFuZGxlRXZlbnQiLCJhIjpbeyJ0IjoiZSJ9XX0"
+        pk-ev-bound="true"
+      >Event</button><button
+        partial="pages_main_594861c5"
+        p-key="r.0:4:2"
+        id="pk-empty-btn"
+        p-on:click="eyJmIjoiaGFuZGxlRW1wdHkiLCJhIjpbXX0"
+        pk-ev-bound="true"
+      >Empty</button><button
+        partial="pages_main_594861c5"
+        p-key="r.0:4:3"
+        id="pk-arg-btn"
+        p-on:click="eyJmIjoiaGFuZGxlQXJnIiwiYSI6W3sidCI6InMiLCJ2Ijo0Mn1dfQ"
+        pk-ev-bound="true"
+      >Arg</button><button
+        partial="pages_main_594861c5"
+        p-key="r.0:4:4"
+        id="pk-mixed-btn"
+        p-on:click="eyJmIjoiaGFuZGxlTWl4ZWQiLCJhIjpbeyJ0IjoicyIsInYiOjQyfSx7InQiOiJlIn1dfQ"
+        pk-ev-bound="true"
+      >Mixed</button><span partial="pages_main_594861c5" p-key="r.0:4:5" id="pk-bare-result">click</span><span partial="pages_main_594861c5" p-key="r.0:4:6" id="pk-event-result">click</span><span partial="pages_main_594861c5" p-key="r.0:4:7" id="pk-empty-result">no-event</span><span partial="pages_main_594861c5" p-key="r.0:4:8" id="pk-arg-result">42:no-event</span><span partial="pages_main_594861c5" p-key="r.0:4:9" id="pk-mixed-result">42:click</span></div>
+  </div>
+</div>

@@ -1,0 +1,6 @@
+{
+  "title": "Complex Layout",
+  "description": "Multi-section real-world email layout",
+  "metadata": {"title": "Complex Layout Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

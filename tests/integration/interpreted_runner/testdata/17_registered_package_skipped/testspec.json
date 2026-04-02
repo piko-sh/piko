@@ -1,0 +1,8 @@
+{
+  "description": "Tests that user packages available in the symbol registry are not compiled from source. The pkg/registered package is pre-registered with symbols, so its source (which contains an unresolvable import) should never be compiled.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false,
+  "registeredPackages": true
+}

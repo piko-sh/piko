@@ -1,0 +1,6 @@
+{
+  "title": "Survey Request",
+  "description": "Post-purchase feedback survey with rating scale",
+  "metadata": {"title": "How Did We Do?"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

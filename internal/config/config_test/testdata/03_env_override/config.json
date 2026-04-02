@@ -1,0 +1,9 @@
+{
+  "network": {
+    "port": "3000",
+    "publicDomain": "localhost:3000"
+  },
+  "build": {
+    "watchMode": false
+  }
+}

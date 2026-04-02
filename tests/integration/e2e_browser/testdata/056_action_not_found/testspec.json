@@ -1,0 +1,34 @@
+{
+  "description": "Verifies calling nonexistent action returns 404 response",
+  "requestURL": "/not-found-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Call nonexistent action - should get 404"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_call.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-status",
+      "expected": "404"
+    }
+  ]
+}

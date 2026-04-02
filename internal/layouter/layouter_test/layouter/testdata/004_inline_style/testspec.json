@@ -1,0 +1,3 @@
+{
+  "description": "A div with inline style attributes. Verifies CSS parsing from inline styles, pixel-to-point conversion, and correct box dimensions."
+}

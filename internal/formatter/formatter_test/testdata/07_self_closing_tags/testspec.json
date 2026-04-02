@@ -1,0 +1,3 @@
+{
+  "description": "Tests proper formatting of void/self-closing HTML elements (img, br, hr, input, etc.)"
+}

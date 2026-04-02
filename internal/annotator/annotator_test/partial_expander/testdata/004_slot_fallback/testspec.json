@@ -1,0 +1,28 @@
+{
+  "specs": [
+    {
+      "description": "The header should be overridden by main.pk's content",
+      "select": "header h1",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Overridden Header"
+      }
+    },
+    {
+      "description": "The main content should use the fallback content from the layout partial",
+      "select": "main p",
+      "assert": {
+        "originalPackageAlias": "partials/layout.pk",
+        "textContentContains": "This is the default fallback content."
+      }
+    },
+    {
+      "description": "The footer should use the fallback content from the layout partial",
+      "select": "footer p",
+      "assert": {
+        "originalPackageAlias": "partials/layout.pk",
+        "textContentContains": "Default Footer"
+      }
+    }
+  ]
+}

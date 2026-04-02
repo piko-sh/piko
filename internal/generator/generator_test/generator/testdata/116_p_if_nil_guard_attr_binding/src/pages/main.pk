@@ -1,0 +1,59 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>p-if Nil Guard Attribute Binding Test</h1>
+    <p>
+      This test verifies that when a p-if directive guards against nil,
+      the generated code should not emit redundant nil-check warnings
+      for attribute bindings that access fields on the guarded pointer.
+    </p>
+
+    <piko:partial is="floor_plan_modal"></piko:partial>
+
+    <piko:partial is="floor_plan_modal" :server.floorplan="state.TestImage"></piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "testcase_116_p_if_nil_guard_attr_binding/pkg"
+    floor_plan_modal "testcase_116_p_if_nil_guard_attr_binding/partials/floor_plan_modal.pk"
+  )
+
+  type PageData struct {
+    TestImage *pkg.Image
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (PageData, piko.Metadata, error) {
+    return PageData{
+      TestImage: &pkg.Image{
+        URL:    "https://example.com/floorplan.jpg",
+        Alt:    "Test Floor Plan",
+        Width:  800,
+        Height: 600,
+      },
+    }, piko.Metadata{}, nil
+  }
+</script>

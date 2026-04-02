@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when using an incorrect key type for a map.",
+  "expression": "state.UserMap[123]",
+  "expectedType": "int",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Cannot use type 'int64' as index into type 'map[string]int'"
+    }
+  ]
+}]

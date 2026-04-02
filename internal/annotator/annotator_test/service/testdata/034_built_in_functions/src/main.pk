@@ -1,0 +1,65 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	templater_dto "piko.sh/piko/internal/templater/templater_dto"
+)
+
+type Response struct {
+	StringSlice []string
+	IntSlice    []int
+	StringMap   map[string]int
+	IntField    int
+	ShadowItems []string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		StringSlice: make([]string, 5, 10),
+		IntSlice:    []int{1, 2, 3},
+		StringMap:   map[string]int{"a": 1},
+		IntField:    123,
+		ShadowItems: []string{"A", "B", "C"},
+	}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+    <div>
+        <p id="valid-len">Len: {{ len(state.StringSlice) }}</p>
+        <p id="valid-cap">Cap: {{ cap(state.StringSlice) }}</p>
+        <p id="valid-append">New Len: {{ len(append(state.IntSlice, 4)) }}</p>
+
+        <ul id="shadow-container">
+            <li id="shadowed-len" p-for="len in state.ShadowItems">
+                {{ len }}
+            </li>
+        </ul>
+
+        <p id="invalid-len-args">{{ len() }}</p>
+        <p id="invalid-len-type">{{ len(state.IntField) }}</p>
+        <p id="invalid-cap-type">{{ cap(state.StringMap) }}</p>
+        <p id="invalid-append-base">{{ append(state.IntField, 1) }}</p>
+        <p id="invalid-append-arg">{{ append(state.IntSlice, "a") }}</p>
+    </div>
+</template>

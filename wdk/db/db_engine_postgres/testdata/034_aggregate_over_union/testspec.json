@@ -1,0 +1,3 @@
+{
+  "description": "Aggregate function applied to a CTE containing UNION ALL. Validates no panic and correct int8 return type for COUNT(*)."
+}

@@ -1,0 +1,16 @@
+<template>
+<div class="page">
+  <h1>Home Page</h1>
+  <p>Copyright 2025 Acme Corp</p>
+</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

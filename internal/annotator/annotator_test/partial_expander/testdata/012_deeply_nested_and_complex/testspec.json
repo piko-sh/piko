@@ -1,0 +1,101 @@
+{
+  "specs": [
+    {
+      "description": "The root layout div should have merged classes and dynamic attributes from main.pk",
+      "select": "div.page-layout",
+      "assert": {
+        "attr": {
+          "class": "page-layout theme-dark"
+        },
+        "dynAttr": {
+          "data-logged-in": "state.IsLoggedIn"
+        },
+        "dynAttrOrigin": {
+          "data-logged-in": "main.pk"
+        }
+      }
+    },
+    {
+      "description": "The main content area should be filled by main.pk's named slot",
+      "select": "main.page-layout-main > h1",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Welcome to the Dashboard"
+      }
+    },
+    {
+      "description": "The sidebar div, passed as a slot, should have its own attributes merged correctly",
+      "select": "aside > div.sidebar",
+      "assert": {
+        "originalPackageAlias": "partials/sidebar.pk",
+        "hasPartialInfo": true,
+        "dynAttr": {
+          "is-collapsible": "true"
+        },
+        "dynAttrOrigin": {
+          "is-collapsible": "main.pk"
+        }
+      }
+    },
+    {
+      "description": "The sidebar's 'top' named slot should be filled by content from main.pk",
+      "select": "aside > div.sidebar > header > h2",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Main Navigation"
+      }
+    },
+    {
+      "description": "The sidebar's default slot content should be filled by the <p> tag from main.pk",
+      "select": "aside > div.sidebar > nav > p",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Hello, {{ state.Username }}!"
+      }
+    },
+    {
+      "description": "The avatar div (from the multi-root user_profile) should exist inside the sidebar",
+      "select": "aside > div.sidebar div.avatar",
+      "assert": {
+        "originalPackageAlias": "partials/avatar.pk",
+        "hasPartialInfo": true
+      }
+    },
+    {
+      "description": "The user-profile-info div (second root from user_profile) should also exist inside the sidebar",
+      "select": "aside > div.sidebar div.user-profile-info",
+      "assert": {
+        "originalPackageAlias": "partials/user_profile.pk",
+        "hasPartialInfo": false
+      }
+    },
+    {
+      "description": "The avatar's 'initial' prop must be correctly passed down from user_profile.pk",
+      "select": "div.avatar",
+      "assert": {
+        "dynAttr": {
+          "title": "props.initial",
+          "initial": "state.UserInitial"
+        },
+        "dynAttrOrigin": {
+          "title": "partials/avatar.pk",
+          "initial": "partials/user_profile.pk"
+        }
+      }
+    },
+    {
+      "description": "The notification span's 'notification-count' prop must be passed down from sidebar.pk",
+      "select": "span.user-profile-notifications",
+      "assert": {
+        "originalPackageAlias": "partials/user_profile.pk"
+      }
+    },
+    {
+      "description": "The user_profile invocation inside sidebar should correctly pass its props down",
+      "select": ".user-profile-info > span[p-if]",
+      "assert": {
+        "originalPackageAlias": "partials/user_profile.pk"
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+(() => {
+    const source = document.querySelector({{jsStr .SourceSelector}});
+    const target = document.querySelector({{jsStr .TargetSelector}});
+    if (!source) throw new Error('Source element not found');
+    if (!target) throw new Error('Target element not found');
+
+    const dataTransfer = new DataTransfer();
+    {{jsRaw .DataSetup}}
+
+    const dragStartEvent = new DragEvent('dragstart', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: dataTransfer
+    });
+    source.dispatchEvent(dragStartEvent);
+
+    const dragOverEvent = new DragEvent('dragover', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: dataTransfer
+    });
+    target.dispatchEvent(dragOverEvent);
+
+    const dropEvent = new DragEvent('drop', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: dataTransfer
+    });
+    target.dispatchEvent(dropEvent);
+
+    const dragEndEvent = new DragEvent('dragend', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: dataTransfer
+    });
+    source.dispatchEvent(dragEndEvent);
+
+    return true;
+})()

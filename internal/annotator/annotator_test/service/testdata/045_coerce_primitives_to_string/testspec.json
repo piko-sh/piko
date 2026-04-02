@@ -1,0 +1,106 @@
+{
+  "description": "Validates automatic coercion of primitive types (int, int64, float64, bool, uint, etc.) to string when passing to component props with coerce:\"true\"",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#int64-coerce",
+      "description": "Prop Passing: int64 should be coerced to string via strconv.FormatInt",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "strconv.FormatInt(int64(state.Int64Value), 10)",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#int-coerce",
+      "description": "Prop Passing: int should be coerced to string via strconv.FormatInt",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "strconv.FormatInt(int64(state.IntValue), 10)",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#float64-coerce",
+      "description": "Prop Passing: float64 should be coerced to string via strconv.FormatFloat",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "strconv.FormatFloat(float64(state.Float64Value), 'f', -1, 64)",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#bool-coerce",
+      "description": "Prop Passing: bool should be coerced to string via strconv.FormatBool",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "strconv.FormatBool(state.BoolValue)",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#uint-coerce",
+      "description": "Prop Passing: uint should be coerced to string via strconv.FormatUint",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "strconv.FormatUint(uint64(state.UintValue), 10)",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#uint64-coerce",
+      "description": "Prop Passing: uint64 should be coerced to string via strconv.FormatUint",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "strconv.FormatUint(uint64(state.Uint64Value), 10)",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#nested-coerce",
+      "description": "Prop Passing: nested int64 field should be coerced to string via strconv.FormatInt",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "strconv.FormatInt(int64(state.NestedData.Count), 10)",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#string-direct",
+      "description": "Prop Passing: passing a string to a string prop should work without transformation",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "state.StringValue",
+          "resolvedTypeIs": "string"
+        }
+      }
+    },
+    {
+      "select": "#exact-match",
+      "description": "Prop Passing: exact type match without coerce should work",
+      "assertOnPartialInvocation": {
+        "passedProp": {
+          "name": "value",
+          "expressionIs": "state.Int64Value",
+          "resolvedTypeIs": "int64"
+        }
+      }
+    }
+  ]
+}

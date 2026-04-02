@@ -1,0 +1,7 @@
+{
+    "description": "Verifies inline-block elements with different vertical-align values alongside text, and tall inline-blocks forcing line height expansion.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,39 @@
+[
+  {
+    "action": "eval",
+    "selector": "#test-harness",
+    "value": "() => this.innerHTML = `<form id='test-form'><form-component name='my-field' value='start'></form-component></form>`"
+  },
+  {
+    "action": "wait",
+    "value": "200"
+  },
+  {
+    "action": "checkFormData",
+    "selector": "#test-form",
+    "expected": {
+      "my-field": "start"
+    }
+  },
+  {
+    "action": "checkValue",
+    "selector": "form-component >>> input",
+    "expected": "start"
+  },
+  {
+    "action": "setValue",
+    "selector": "form-component >>> input",
+    "value": "updated"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkFormData",
+    "selector": "#test-form",
+    "expected": {
+      "my-field": "updated"
+    }
+  }
+]

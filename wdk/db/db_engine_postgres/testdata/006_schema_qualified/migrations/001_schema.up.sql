@@ -1,0 +1,6 @@
+CREATE SCHEMA app;
+CREATE TABLE app.accounts (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE
+);

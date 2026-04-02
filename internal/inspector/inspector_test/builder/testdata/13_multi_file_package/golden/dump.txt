@@ -1,0 +1,30 @@
+--- PACKAGE: testcase_13_multi_file_package/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 13_multi_file_package/src/models/profile.go
+    (no imports in this file)
+  > File: 13_multi_file_package/src/models/user.go
+    (no imports in this file)
+
+[Named Types]
+  > type Profile
+    - Defined In:      13_multi_file_package/src/models/profile.go
+    - TypeString:      models.Profile
+    - Underlying:      struct{Email string}
+    - Stringability:   0
+    - Fields:
+      - Email                string
+
+  > type User
+    - Defined In:      13_multi_file_package/src/models/user.go
+    - TypeString:      models.User
+    - Underlying:      struct{Profile models.Profile}
+    - Stringability:   0
+    - Fields:
+      - Profile              models.Profile
+        (Canonical Package: testcase_13_multi_file_package/models)
+
+[Package-Level Functions]
+  (none)

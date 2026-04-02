@@ -1,0 +1,31 @@
+{
+  "description": "Validates function calls with mixed contexts (local state and parent props).",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "p",
+      "description": "Asserts on the <p> tag containing the complex function call.",
+      "assertOnInterpolation": {
+        "rawExpression": "Hello(state.Message, props.Greeting)",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.Message",
+          "resolvedTypeIs": "string",
+          "hasPropDataSource": false
+        },
+        {
+          "rawExpression": "props.Greeting",
+          "resolvedTypeIs": "string",
+          "hasPropDataSource": true,
+          "propDataSource": {
+            "resolvedTypeIs": "string",
+            "baseCodeGenVarName": "pageData"
+          }
+        }
+      ]
+    }
+  ]
+}

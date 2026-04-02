@@ -1,0 +1,20 @@
+{
+  "description": "Tests a method that returns a generic type instantiated with the receiver's type parameter.",
+  "moduleName": "testcase_29_method_returning_generic",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_29_method_returning_generic"
+  ],
+  "assertions": [
+    {
+      "description": "The 'NewBox' method should be present.",
+      "select": "packages.testcase_29_method_returning_generic.named_types.Factory.methods.0.name",
+      "expect": "NewBox"
+    },
+    {
+      "description": "The return type must be 'main.Box[T]', preserving the type parameter.",
+      "select": "packages.testcase_29_method_returning_generic.named_types.Factory.methods.0.signature.results.0",
+      "expect": "main.Box[T]"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "packages": {
+    "testcase_16_transitive_dependency": {
+      "file_imports": {
+        "16_transitive_dependency/src/main.go": {
+          "lib": "testcase_16_transitive_dependency/lib"
+        }
+      },
+      "named_types": {
+        "Request": {
+          "name": "Request",
+          "package_path": "testcase_16_transitive_dependency",
+          "defined_in_file_path": "16_transitive_dependency/src/main.go",
+          "type_string": "main.Request",
+          "underlying_type_string": "struct{RequestedItem lib.Item}",
+          "fields": [
+            {
+              "definition_file_path": "16_transitive_dependency/src/main.go",
+              "declaring_pkg_path": "testcase_16_transitive_dependency",
+              "pkg_path": "testcase_16_transitive_dependency/lib",
+              "underlying_type_string": "struct{ItemID uuid.UUID}",
+              "declaring_type_name": "Request",
+              "name": "RequestedItem",
+              "type_string": "lib.Item",
+              "raw_tag": "",
+              "definition_line": 24,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_16_transitive_dependency",
+      "name": "main"
+    },
+    "testcase_16_transitive_dependency/lib": {
+      "file_imports": {
+        "16_transitive_dependency/src/lib/types.go": {
+          "uuid": "github.com/google/uuid"
+        }
+      },
+      "named_types": {
+        "Item": {
+          "name": "Item",
+          "package_path": "testcase_16_transitive_dependency/lib",
+          "defined_in_file_path": "16_transitive_dependency/src/lib/types.go",
+          "type_string": "lib.Item",
+          "underlying_type_string": "struct{ItemID uuid.UUID}",
+          "fields": [
+            {
+              "definition_file_path": "16_transitive_dependency/src/lib/types.go",
+              "declaring_pkg_path": "testcase_16_transitive_dependency/lib",
+              "pkg_path": "github.com/google/uuid",
+              "underlying_type_string": "[16]byte",
+              "declaring_type_name": "Item",
+              "name": "ItemID",
+              "type_string": "uuid.UUID",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "byte",
+                  "role": "element",
+                  "underlying_type_string": "byte",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 3,
+              "definition_line": 24,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_16_transitive_dependency/lib",
+      "name": "lib"
+    }
+  },
+  "file_to_package": {
+    "16_transitive_dependency/src/lib/types.go": "testcase_16_transitive_dependency/lib",
+    "16_transitive_dependency/src/main.go": "testcase_16_transitive_dependency"
+  }
+}

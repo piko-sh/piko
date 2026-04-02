@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when a ternary expression has mismatched types in its branches.",
+  "expression": "state.IsActive ? state.Status : state.Code",
+  "expectedType": "string",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Ternary expression has mismatched types: true branch is 'string', false branch is 'int'"
+    }
+  ]
+}]

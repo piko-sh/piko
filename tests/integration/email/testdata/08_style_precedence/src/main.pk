@@ -1,0 +1,16 @@
+<template>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p class="styled-text" color="#000000" font-size="16px" padding="10px 25px">
+                PML attributes vs CSS classes
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.styled-text {
+    color: #ff0000 !important;
+    font-weight: bold;
+}
+</style>

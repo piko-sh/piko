@@ -1,0 +1,72 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>SSE Client Disconnect Test</h1>
+    <button id="start-btn" p-on:click="startStream()">Start</button>
+    <div id="events-before-abort">0</div>
+    <div id="abort-sent">false</div>
+    <div id="stream-status">idle</div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "SSE Client Disconnect Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export async function startStream(): Promise<void> {
+    let eventCount = 0;
+    const controller = new AbortController();
+    const statusEl = document.getElementById('stream-status')!;
+    statusEl.textContent = 'connecting';
+
+    try {
+        await action.stream.Long({})
+            .withOnProgress((_data: unknown, _eventType: string) => {
+                eventCount++;
+                document.getElementById('events-before-abort')!.textContent = String(eventCount);
+                statusEl.textContent = 'streaming';
+
+                if (eventCount >= 3) {
+                    controller.abort();
+                    document.getElementById('abort-sent')!.textContent = 'true';
+                }
+            })
+            .withSignal(controller.signal)
+            .call();
+    } catch {
+        if (statusEl.textContent !== 'streaming') {
+            statusEl.textContent = 'aborted';
+        }
+    }
+}
+</script>

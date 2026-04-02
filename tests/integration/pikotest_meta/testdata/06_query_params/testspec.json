@@ -1,0 +1,6 @@
+{
+  "description": "Tests accessing query parameters from request",
+  "entryPoints": [
+    { "path": "pages/search.pk", "isPage": true }
+  ]
+}

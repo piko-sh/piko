@@ -1,0 +1,87 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr p-for="row in state.TableRows" p-if="row.Header">
+          <th p-for="cell in row.TableCells" p-text="cell.Text"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr p-for="row in state.TableRows" p-if="!row.Header">
+          <td p-for="cell in row.TableCells" p-text="cell.Text"></td>
+        </tr>
+      </tbody>
+    </table>
+    <p p-if="len(state.TableRows) <= 1">No customers found.</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "context"
+    "piko.sh/piko"
+  )
+  
+  type PaginatedCustomerResult struct {
+	  Customers []struct {
+		  ID int64
+		  CompanyName string
+	  }
+  }
+
+  func ListCustomersPaginated(ctx context.Context, page, pageSize int, filter *string) (PaginatedCustomerResult, error) {
+      return PaginatedCustomerResult{}, nil
+  }
+
+
+  type TableCell struct {
+    Text string
+  }
+  type TableRow struct {
+    ID         int64
+    TableCells []TableCell
+    Header     bool
+  }
+  type Response struct {
+    TableRows []TableRow
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    customerData, _ := ListCustomersPaginated(r.Context(), 0, 25, nil)
+
+    rows := []TableRow{
+      {Header: true, TableCells: []TableCell{{Text: "ID"}, {Text: "Company Name"}}},
+    }
+
+    for _, data := range customerData.Customers {
+      rows = append(rows, TableRow{
+        ID: data.ID, 
+        TableCells: []TableCell{{Text: "dummy"}, {Text: data.CompanyName}},
+      })
+    }
+
+    return Response{ TableRows: rows }, piko.Metadata{}, nil
+  }
+</script>

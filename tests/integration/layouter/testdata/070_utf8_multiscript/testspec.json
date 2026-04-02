@@ -1,0 +1,7 @@
+{
+    "description": "Verifies correct layout of multi-script UTF-8 text including Latin, Cyrillic, Greek, and mixed-script content.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

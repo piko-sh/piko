@@ -1,0 +1,6 @@
+{
+  "description": "Tests external package variable map/slice indexing in templates.",
+  "packageName": "main_test",
+  "isPage": true,
+  "shouldError": false
+}

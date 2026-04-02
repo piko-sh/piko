@@ -1,0 +1,31 @@
+{
+  "description": "Validates that a p-for directive placed directly on a partial invocation element correctly resolves expressions in the invoker's (parent's) context, not the partial's context. This is a regression test for the context confusion bug where state.Items was incorrectly resolved against the partial's Response type instead of the page's Response type.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "div.item-card[p-for]",
+      "description": "The expanded partial root should have the p-for directive with correctly resolved collection type.",
+      "assertOnDirective": [
+        {
+          "name": "p-for",
+          "rawExpression": "item in state.Items",
+          "resolvedTypeIs": "[]main_aaf9a2e0.Item"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.Items",
+          "resolvedTypeIs": "[]main_aaf9a2e0.Item"
+        },
+        {
+          "rawExpression": "item.ID",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "item.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

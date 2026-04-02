@@ -1,0 +1,57 @@
+[
+  {
+    "Filename": "contacts.sql",
+    "Message": "Q003: unknown table-valued function \"expand_addresses\"",
+    "Code": "Q003",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "contacts.sql",
+    "Message": "Q001: unknown table or alias \"a\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "contacts.sql",
+    "Message": "Q001: unknown table or alias \"a\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "contacts.sql",
+    "Message": "Q001: unknown table or alias \"a\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "contacts.sql",
+    "Message": "query \"GetContactAddresses\" uses command \"many\" but produces no output columns",
+    "Code": "Q009",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

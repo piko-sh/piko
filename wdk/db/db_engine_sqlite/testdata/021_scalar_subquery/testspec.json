@@ -1,0 +1,3 @@
+{
+  "description": "Scalar subqueries in expression position. Verifies (SELECT ...) is parsed as ScalarSubqueryExpression and resolved as nullable unknown type. Parameters inside scalar subqueries are tracked."
+}

@@ -1,0 +1,38 @@
+{
+  "description": "Tests that the standard HTTP Call() path works for an action that also implements StreamProgress.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#start-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-status",
+      "expected": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-taskid",
+      "expected": "fallback-1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-action-status",
+      "expected": "completed"
+    }
+  ]
+}

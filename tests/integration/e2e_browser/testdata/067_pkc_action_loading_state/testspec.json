@@ -1,0 +1,77 @@
+{
+  "description": "Tests loading state management during action execution in PKC component",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Verify initial state - no loading class"
+    },
+    {
+      "action": "checkAttributeNotContains",
+      "selector": "loading-button >>> #action-btn",
+      "attribute": "class",
+      "expected": "is-loading"
+    },
+    {
+      "action": "comment",
+      "value": "Click button to trigger action"
+    },
+    {
+      "action": "click",
+      "selector": "loading-button >>> #action-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "comment",
+      "value": "Verify loading state is active"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "loading-button >>> #action-btn",
+      "attribute": "class",
+      "expected": "btn is-loading"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "loading-button >>> #loading-indicator",
+      "timeout": 1000
+    },
+    {
+      "action": "comment",
+      "value": "Wait for action to complete"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "loading-button >>> #result",
+      "timeout": 5000
+    },
+    {
+      "action": "comment",
+      "value": "Verify loading state is removed after completion"
+    },
+    {
+      "action": "checkAttributeNotContains",
+      "selector": "loading-button >>> #action-btn",
+      "attribute": "class",
+      "expected": "is-loading"
+    },
+    {
+      "action": "checkText",
+      "selector": "loading-button >>> #result-message",
+      "expected": "Process completed"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_complete.html"
+    }
+  ]
+}

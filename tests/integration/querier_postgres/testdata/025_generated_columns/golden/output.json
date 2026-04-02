@@ -1,0 +1,36 @@
+{
+  "all_items": [
+    {
+      "DisplayName": "Widget x3",
+      "ID": 1,
+      "Product": "Widget",
+      "Quantity": 3,
+      "TotalPrice": 1500,
+      "UnitPrice": 500
+    },
+    {
+      "DisplayName": "Gadget x2",
+      "ID": 2,
+      "Product": "Gadget",
+      "Quantity": 2,
+      "TotalPrice": 2400,
+      "UnitPrice": 1200
+    }
+  ],
+  "item_1": {
+    "DisplayName": "Widget x3",
+    "ID": 1,
+    "Product": "Widget",
+    "Quantity": 3,
+    "TotalPrice": 1500,
+    "UnitPrice": 500
+  },
+  "item_2": {
+    "DisplayName": "Gadget x2",
+    "ID": 2,
+    "Product": "Gadget",
+    "Quantity": 2,
+    "TotalPrice": 2400,
+    "UnitPrice": 1200
+  }
+}

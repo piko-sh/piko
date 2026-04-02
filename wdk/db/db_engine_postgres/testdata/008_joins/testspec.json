@@ -1,0 +1,3 @@
+{
+  "description": "INNER JOIN with table aliases and column aliasing. Tests multi-table resolution, foreign key references, and ORDER BY on joined results."
+}

@@ -1,0 +1,19 @@
+{
+    "description": "pk-no-refresh interaction with scope preservation - preserved elements keep original scopes",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".preserved",
+            "attributes": { "partial": "preserved_original parent1 parent2" },
+            "description": "pk-no-refresh element keeps original partial unchanged"
+        },
+        {
+            "selector": ".normal",
+            "attributes": { "partial": "normal_new parent1 parent2" },
+            "description": "Normal element gets scope preservation applied"
+        }
+    ]
+}

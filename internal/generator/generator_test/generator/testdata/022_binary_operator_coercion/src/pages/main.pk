@@ -1,0 +1,76 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Expression Coercion Test</h1>
+
+    <h2>String Concatenation (string wins)</h2>
+    <p id="s_plus_s" p-text="'hello' + ' ' + 'world'"></p>
+    <p id="s_plus_i" p-text="`item-${state.ID}`"></p>
+    <p id="i_plus_s" p-text="`${state.ID}-item`"></p>
+    <p id="s_plus_f" p-text="`price: ${state.Price}`"></p>
+    <p id="s_plus_b" p-text="`active: ${state.IsActive}`"></p>
+    <p id="s_plus_nil" p-text="`optional: ${state.MaybeString}`"></p>
+
+    <h2>Numeric Arithmetic (coerced to float64)</h2>
+    <p id="i_plus_i" p-text="state.ID + 5"></p>
+    <p id="i_plus_f" p-text="state.ID + 0.5"></p>
+    <p id="f_plus_i" p-text="state.Price + 10"></p>
+    <p id="i_minus_f" p-text="10 - state.Price"></p>
+    <p id="b_plus_i" p-text="state.IsActive + state.ID"></p>
+    <p id="b_mul_i" p-text="state.IsActive * 10"></p>
+    <p id="b_false_mul_i" p-text="state.IsInactive + state.ID"></p>
+
+    <h2>Comparison (using helpers)</h2>
+    <p id="i_gt_f" p-text="state.ID > 4.5"></p>
+    <p id="i_eq_f" p-text="state.ID == 5.0"></p>
+    <p id="s_eq_i" p-text="state.IDString ~= state.ID"></p>
+    <p id="b_eq_s" p-text="state.IsActive ~= 'true'"></p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Response struct {
+    ID          int
+    Price       float64
+    IsActive    bool
+    IsInactive  bool
+    Message     string
+    MaybeString *string
+    IDString    string
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      ID:          5,
+      Price:       9.99,
+      IsActive:    true,
+      IsInactive:  false,
+      Message:     "hello",
+      MaybeString: nil,
+      IDString:    "5",
+    }, piko.Metadata{}, nil
+  }
+</script>

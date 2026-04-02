@@ -1,0 +1,6 @@
+{
+  "description": "Tests CSS @import bundling with module-absolute paths from different component depths, involving a page and a nested partial.",
+  "packageName": "css_imports_test",
+  "isPage": true,
+  "shouldError": false
+}

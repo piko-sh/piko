@@ -1,0 +1,47 @@
+--- PACKAGE: testcase_63_embedding_instantiated_generic_map ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 63_embedding_instantiated_generic_map/src/main.go
+    - import "keys"               -> testcase_63_embedding_instantiated_generic_map/keys
+
+[Named Types]
+  > type Cache
+    - Defined In:      63_embedding_instantiated_generic_map/src/main.go
+    - TypeString:      main.Cache[K, V]
+    - Underlying:      map[K]V
+    - Stringability:   0
+    - Type Params:     [K, V]
+
+  > type Response
+    - Defined In:      63_embedding_instantiated_generic_map/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{main.Cache[keys.SessionKey, int]}
+    - Stringability:   0
+    - Fields:
+      - Cache                main.Cache[keys.SessionKey, int] (embedded)
+        (Canonical Package: testcase_63_embedding_instantiated_generic_map)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_63_embedding_instantiated_generic_map/keys ---
+[Package Info]
+  - Name:    keys
+
+[File-Scoped Imports]
+  > File: 63_embedding_instantiated_generic_map/src/keys/key.go
+    (no imports in this file)
+
+[Named Types]
+  > type SessionKey
+    - Defined In:      63_embedding_instantiated_generic_map/src/keys/key.go
+    - TypeString:      keys.SessionKey
+    - Underlying:      struct{ID string}
+    - Stringability:   0
+    - Fields:
+      - ID                   string
+
+[Package-Level Functions]
+  (none)

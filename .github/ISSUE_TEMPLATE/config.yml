@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and Discussions
+    url: https://github.com/piko-sh/piko/discussions
+    about: Ask questions and discuss ideas in GitHub Discussions

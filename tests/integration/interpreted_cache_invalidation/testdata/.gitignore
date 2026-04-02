@@ -1,0 +1,5 @@
+# Ignore all staged directories (temporary working directories created during tests)
+**/staged/
+
+# But keep the .gitignore file itself
+!.gitignore

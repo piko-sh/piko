@@ -1,0 +1,141 @@
+<!--
+  024: Product Management Page
+
+  This page provides a form to add new products. The product table is
+  rendered as a public partial that can be reloaded independently after
+  adding a product without refreshing the entire page.
+-->
+
+<template>
+  <div id="app">
+    <h1>Products</h1>
+
+    <form id="add-form" p-on:submit.prevent="handleAdd($event, $form)">
+      <div class="form-row">
+        <input
+          type="text"
+          name="name"
+          placeholder="Product name"
+          required
+        />
+        <input
+          type="text"
+          name="category"
+          placeholder="Category"
+          required
+        />
+        <input
+          type="number"
+          name="price"
+          placeholder="Price"
+          step="0.01"
+          min="0.01"
+          required
+        />
+        <button type="submit">Add Product</button>
+      </div>
+    </form>
+
+    <!--
+      The product table is a public partial. After creating a product,
+      we reload it with piko.partials.reload("product-table") so only
+      the table re-renders from the server.
+    -->
+    <piko:partial is="product_table" />
+
+    <div class="nav-links">
+      <a href="/">Back to Dashboard</a>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+
+    product_table "testmodule/partials/product-table.pk"
+)
+
+// Response holds the page-level state. The product list is fetched by the
+// partial's own Render function, so the page itself has no database state.
+type Response struct{}
+
+// Render returns an empty response. The product_table partial handles its
+// own data fetching.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Products",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function handleAdd(_event: SubmitEvent, form: FormDataHandle): Promise<void> {
+    try {
+        await action.products.Create(form).call();
+        piko.partials.reload("product-table");
+    } catch (e: any) {
+        console.error('Failed to create product:', e);
+    }
+}
+</script>
+
+<style>
+  #app {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #2563eb;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .form-row input {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+  }
+
+  .form-row button {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .form-row button:hover {
+    background-color: #1d4ed8;
+  }
+
+  .nav-links {
+    margin-top: 1.5rem;
+  }
+
+  .nav-links a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .nav-links a:hover {
+    text-decoration: underline;
+  }
+</style>

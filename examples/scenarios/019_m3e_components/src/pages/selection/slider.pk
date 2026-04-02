@@ -1,0 +1,122 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Slider"
+            server.current-page="selection/slider">
+
+            <p class="demo-description">Sliders allow users to make selections from a range of values. They support continuous and discrete modes.</p>
+
+            <div class="demo-grid">
+                <!-- Continuous (Default) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Continuous (Default)</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-slider></m3e-slider>
+                        <m3e-slider disabled></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider&gt;&lt;/m3e-slider&gt;
+&lt;m3e-slider disabled&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+
+                <!-- Discrete with Step -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Discrete with Step</h3>
+                    <div class="demo-preview">
+                        <m3e-slider discrete step="10"></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider discrete step="10"&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+
+                <!-- Custom Range -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Custom Range</h3>
+                    <div class="demo-preview">
+                        <m3e-slider min="0" max="1000" value="250"></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider min="0" max="1000" value="250"&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+
+                <!-- At Minimum -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">At Minimum</h3>
+                    <div class="demo-preview">
+                        <m3e-slider value="0"></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider value="0"&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+
+                <!-- At Maximum -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">At Maximum</h3>
+                    <div class="demo-preview">
+                        <m3e-slider value="100"></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider value="100"&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+
+                <!-- Range (Dual Thumb) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Range (Dual Thumb)</h3>
+                    <div class="demo-preview">
+                        <m3e-slider range value_start="25" value_end="75"></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider range value_start="25" value_end="75"&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+
+                <!-- With Step Ticks -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Step Ticks</h3>
+                    <div class="demo-preview">
+                        <m3e-slider discrete step="20" show_ticks></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider discrete step="20" show_ticks&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+
+                <!-- Soft-Disabled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Soft-Disabled</h3>
+                    <div class="demo-preview">
+                        <m3e-slider soft-disabled value="40"></m3e-slider>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-slider soft-disabled value="40"&gt;&lt;/m3e-slider&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Slider - M3E Components",
+    }, nil
+}
+</script>

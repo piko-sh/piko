@@ -1,0 +1,199 @@
+{
+  "description": "Tests file upload UI with real image preview - validates that selected images render correctly with thumbnails using FileReader",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "File Upload Image Preview Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "image-uploader"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #image-count",
+      "expected": "0 image(s) selected"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #preview-heading",
+      "expected": "No images selected"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "(() => { const host = document.querySelector('image-uploader'); const ctx = host.$$ctx; ctx.state.images = [...ctx.state.images, { id: 'img-1', name: 'test-red.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADq0wQdLYAAAAAElFTkSuQmCC', size: '1 KB' }]; ctx.state.lastAction = 'added test-red.png'; })()"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #image-count",
+      "expected": "1 image(s) selected"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #preview-heading",
+      "expected": "Selected Images (1)"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "image-uploader >>> .preview-card"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "image-uploader >>> .preview-card",
+      "expected": 1
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> .preview-name",
+      "expected": "test-red.png"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_first_image.html"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "(() => { const host = document.querySelector('image-uploader'); const ctx = host.$$ctx; ctx.state.images = [...ctx.state.images, { id: 'img-2', name: 'test-blue.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNkYPhfz0AEYBxVSF+FAP9/Dq3+xZtDAAAAAElFTkSuQmCC', size: '1 KB' }]; ctx.state.lastAction = 'added test-blue.png'; })()"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #image-count",
+      "expected": "2 image(s) selected"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #preview-heading",
+      "expected": "Selected Images (2)"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "image-uploader >>> .preview-card",
+      "expected": 2
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_second_image.html"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "(() => { const host = document.querySelector('image-uploader'); const ctx = host.$$ctx; ctx.state.images = [...ctx.state.images, { id: 'img-3', name: 'test-red.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADq0wQdLYAAAAAElFTkSuQmCC', size: '1 KB' }]; ctx.state.lastAction = 'added test-red.png'; })()"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #image-count",
+      "expected": "3 image(s) selected"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "(() => { const host = document.querySelector('image-uploader'); const ctx = host.$$ctx; ctx.state.images = [...ctx.state.images, { id: 'img-4', name: 'test-blue.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNkYPhfz0AEYBxVSF+FAP9/Dq3+xZtDAAAAAElFTkSuQmCC', size: '1 KB' }]; ctx.state.lastAction = 'added test-blue.png'; })()"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #image-count",
+      "expected": "4 image(s) selected"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "image-uploader >>> .preview-card",
+      "expected": 4
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_multiple_upload.html"
+    },
+    {
+      "action": "click",
+      "selector": "image-uploader >>> .preview-card:first-child .remove-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #image-count",
+      "expected": "3 image(s) selected"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "image-uploader >>> .preview-card",
+      "expected": 3
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_remove_first.html"
+    },
+    {
+      "action": "click",
+      "selector": "image-uploader >>> #clear-all"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #image-count",
+      "expected": "0 image(s) selected"
+    },
+    {
+      "action": "checkText",
+      "selector": "image-uploader >>> #preview-heading",
+      "expected": "No images selected"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "image-uploader >>> .preview-card",
+      "expected": 0
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "image-uploader >>> .empty-state"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_clear_all.html"
+    }
+  ]
+}

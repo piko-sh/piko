@@ -1,0 +1,11 @@
+<template>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-ul>
+                <pml-li>First item</pml-li>
+                <pml-li>Second item</pml-li>
+                <pml-li>Third item</pml-li>
+            </pml-ul>
+        </pml-col>
+    </pml-row>
+</template>

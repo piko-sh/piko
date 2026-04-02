@@ -1,0 +1,17 @@
+[
+  {
+    "action": "checkText",
+    "selector": "props-component \u003e\u003e\u003e h3",
+    "expected": "User Guest"
+  },
+  {
+    "action": "checkText",
+    "selector": "props-component \u003e\u003e\u003e p:first-of-type",
+    "expected": "Age: 99"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "props-component \u003e\u003e\u003e p.content",
+    "expected": "0"
+  }
+]

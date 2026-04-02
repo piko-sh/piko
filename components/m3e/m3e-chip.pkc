@@ -1,0 +1,219 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-chip">
+    <div class="chip"
+         p-class="{
+             'assist': state.variant == 'assist',
+             'filter': state.variant == 'filter',
+             'input': state.variant == 'input',
+             'suggestion': state.variant == 'suggestion',
+             'selected': state.selected,
+             'elevated': state.elevated,
+             'disabled': state.disabled,
+             'soft-disabled': state.soft_disabled
+         }"
+         role="option"
+         :aria-selected="state.selected ? 'true' : 'false'"
+         :aria-disabled="state.disabled || state.soft_disabled ? 'true' : 'false'"
+         :tabindex="state.disabled ? '-1' : '0'"
+         p-on:click="handleClick"
+         p-on:keydown="handleKeydown">
+        <span class="state-layer"></span>
+        <span class="leading" p-if="state.variant == 'filter' && state.selected">
+            <piko:svg src="piko.sh/piko/lib/icons/check.svg" fill="currentColor" width="18" height="18"></piko:svg>
+        </span>
+        <span class="leading" p-show="(state.variant != 'filter' || !state.selected) && state.has_icon">
+            <slot name="icon"></slot>
+        </span>
+        <span class="label"><slot></slot></span>
+        <button class="remove"
+                p-if="state.removable"
+                p-on:click="handleRemove"
+                aria-label="Remove">
+            <piko:svg src="piko.sh/piko/lib/icons/close.svg" fill="currentColor" width="18" height="18"></piko:svg>
+        </button>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'assist' as string,
+        selected: false as boolean,
+        elevated: false as boolean,
+        removable: false as boolean,
+        disabled: false as boolean,
+        soft_disabled: false as boolean,
+        has_icon: false as boolean,
+    };
+
+    pkc.attachSlotListener('icon', (elements) => {
+        state.has_icon = elements.length > 0;
+    });
+
+    function handleClick() {
+        if (state.disabled || state.soft_disabled) return;
+
+        if (state.variant === 'filter') {
+            state.selected = !state.selected;
+        } else if (state.variant === 'suggestion') {
+            state.selected = !state.selected;
+        }
+
+        pkc.dispatchEvent(new CustomEvent('click', {
+            detail: { selected: state.selected },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleRemove(event) {
+        event.stopPropagation();
+        pkc.dispatchEvent(new CustomEvent('remove', {
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleKeydown(event) {
+        if (event.key === ' ' || event.key === 'Enter') {
+            event.preventDefault();
+            handleClick();
+        }
+        if (event.key === 'Backspace' || event.key === 'Delete') {
+            if (state.removable) {
+                handleRemove(event);
+            }
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline: var(--m3e-outline, #79747e);
+        --_secondary-container: var(--m3e-secondary-container, #e8def8);
+        --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_surface-container-low: var(--m3e-surface-container-low, #f7f2fa);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-sm: var(--m3e-shape-sm, 8px);
+        font-family: system-ui, -apple-system, sans-serif;
+
+        &([touch-target="wrapper"]) {
+            margin: 8px 0;
+        }
+    }
+
+    .chip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 32px;
+        padding: 0 16px;
+        border: 1px solid var(--_outline);
+        border-radius: var(--_shape-sm);
+        background: transparent;
+        color: var(--_on-surface-variant);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        outline: none;
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+        transition: background var(--_duration-short) var(--_easing-standard),
+                    border-color var(--_duration-short) var(--_easing-standard);
+
+        &:focus-visible .state-layer {
+            opacity: 0.12;
+        }
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+    }
+
+    .selected {
+        background: var(--_secondary-container);
+        color: var(--_on-secondary-container);
+        border-color: transparent;
+    }
+
+    .elevated {
+        border-color: transparent;
+        box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 1px 3px 1px rgba(0,0,0,0.15);
+    }
+
+    .disabled {
+        cursor: default;
+        opacity: 0.38;
+        pointer-events: none;
+    }
+
+    .soft-disabled {
+        opacity: 0.38;
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--_on-surface);
+        opacity: 0;
+        transition: opacity var(--_duration-short);
+        pointer-events: none;
+    }
+
+    .leading {
+        display: inline-flex;
+        align-items: center;
+        margin-left: -8px;
+    }
+
+    .label {
+        z-index: 1;
+    }
+
+    .remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        margin-right: -8px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_on-surface-variant);
+        cursor: pointer;
+        outline: none;
+        z-index: 1;
+
+        &:hover {
+            background: rgba(73, 69, 79, 0.12);
+        }
+    }
+</style>

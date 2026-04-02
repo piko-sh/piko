@@ -1,0 +1,25 @@
+{
+  "description": "Bulk find-and-replace across 2 partials cascades to their respective importers but not unrelated pages",
+  "requestURL": "/home",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial full build: 3 pages, 2 partials. home imports header, dashboard imports footer, about imports nothing",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectFullBuild": true
+    },
+    {
+      "stage": 1,
+      "description": "Simultaneous change to header.pk AND footer.pk - should rebuild header + footer + home (imports header) + dashboard (imports footer), NOT about",
+      "useTargetedRebuild": true,
+      "targetedEntryPoints": ["partials/header.pk", "partials/footer.pk", "pages/home.pk", "pages/dashboard.pk"],
+      "expectTier1Hit": true,
+      "expectFastPath": true,
+      "expectAnnotatedCount": 4,
+      "expectGeneratedCount": 4,
+      "delayBeforeRenderMs": 500
+    }
+  ]
+}

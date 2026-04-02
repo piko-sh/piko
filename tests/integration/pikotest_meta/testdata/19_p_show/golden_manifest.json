@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/notifications.pk": {
+      "routePatterns": {
+        "en": "/notifications"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_19_p_show/dist/pages/pages_notifications_fedd5776",
+      "originalSourcePath": "pages/notifications.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

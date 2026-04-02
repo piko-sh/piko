@@ -1,0 +1,54 @@
+[
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> #first",
+    "expected": "First: C"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> li:first-child",
+    "expected": "C"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation-sort-reverse >>> #sort"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> #first",
+    "expected": "First: A"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> li:first-child",
+    "expected": "A"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> li:last-child",
+    "expected": "C"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation-sort-reverse >>> #reverse"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> #first",
+    "expected": "First: C"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> li:first-child",
+    "expected": "C"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation-sort-reverse >>> #reset"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-sort-reverse >>> li:first-child",
+    "expected": "C"
+  }
+]

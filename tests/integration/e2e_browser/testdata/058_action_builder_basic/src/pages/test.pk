@@ -1,0 +1,74 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>ActionBuilder Basic Test</h1>
+    <p>Tests the action.namespace.function() pattern</p>
+
+    <button id="test-btn" p-on:click="runAction()">Run Action</button>
+
+    <div id="result-container" style="display: none;">
+      <h2>Result:</h2>
+      <p>Echo: <span id="result-echo"></span></p>
+      <p>Count: <span id="result-count"></span></p>
+    </div>
+
+    <div id="error-container" style="display: none;">
+      <h2>Error:</h2>
+      <p id="error-message"></p>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "ActionBuilder Basic Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export async function runAction(): Promise<void> {
+  try {
+    const result = await action.echo.Message({ text: 'Hello World', repeat: 3 }).call();
+
+    const echoSpan = document.getElementById('result-echo');
+    const countSpan = document.getElementById('result-count');
+    const resultContainer = document.getElementById('result-container');
+
+    if (echoSpan) echoSpan.textContent = result.echo || '';
+    if (countSpan) countSpan.textContent = String(result.count || '');
+    if (resultContainer) resultContainer.style.display = 'block';
+  } catch (e) {
+    const errorMessage = document.getElementById('error-message');
+    const errorContainer = document.getElementById('error-container');
+    if (errorMessage) errorMessage.textContent = (e as Error).message;
+    if (errorContainer) errorContainer.style.display = 'block';
+  }
+}
+</script>

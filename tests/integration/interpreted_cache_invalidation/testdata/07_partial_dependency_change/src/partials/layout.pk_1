@@ -1,0 +1,14 @@
+<template>
+  <div class="layout-container-updated">
+    <p>Modified layout content - Stage 1</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+  import "piko.sh/piko"
+
+  func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+  }
+</script>

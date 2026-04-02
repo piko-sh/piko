@@ -1,0 +1,20 @@
+{
+  "description": "Tests that an aliased external import is correctly handled in the TypeString.",
+  "moduleName": "testcase_15_external_dependency_alias",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_15_external_dependency_alias"
+  ],
+  "assertions": [
+    {
+      "description": "The TypeString should use the import alias 'guuid'.",
+      "select": "packages.testcase_15_external_dependency_alias.named_types.Event.fields.0.type_string",
+      "expect": "guuid.UUID"
+    },
+    {
+      "description": "The PackagePath must remain the canonical import path.",
+      "select": "packages.testcase_15_external_dependency_alias.named_types.Event.fields.0.pkg_path",
+      "expect": "github.com/google/uuid"
+    }
+  ]
+}

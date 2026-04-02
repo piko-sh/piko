@@ -1,0 +1,149 @@
+{
+  "packages": {
+    "testcase_lite_07": {
+      "file_imports": {
+        "07_function_types/src/main.go": {}
+      },
+      "named_types": {
+        "Button": {
+          "name": "Button",
+          "package_path": "testcase_lite_07",
+          "defined_in_file_path": "07_function_types/src/main.go",
+          "type_string": "Button",
+          "underlying_type_string": "struct{...}",
+          "fields": [
+            {
+              "definition_file_path": "07_function_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "name": "Label",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 27,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "07_function_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "func()",
+              "name": "OnClick",
+              "type_string": "func()",
+              "raw_tag": "",
+              "definition_line": 28,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "07_function_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "func(int)",
+              "name": "OnHover",
+              "type_string": "func(int)",
+              "raw_tag": "",
+              "definition_line": 29,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": null,
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 26,
+          "definition_column": 6
+        },
+        "EventEmitter": {
+          "name": "EventEmitter",
+          "package_path": "testcase_lite_07",
+          "defined_in_file_path": "07_function_types/src/main.go",
+          "type_string": "EventEmitter",
+          "underlying_type_string": "struct{...}",
+          "fields": [
+            {
+              "definition_file_path": "07_function_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "map[string]func(any)",
+              "name": "Listeners",
+              "type_string": "map[string]func(any)",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "string",
+                  "type_string": "string",
+                  "role": "key",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false,
+                  "is_underlying_primitive": true
+                },
+                {
+                  "type": "func(any)",
+                  "type_string": "func(any)",
+                  "role": "value",
+                  "underlying_type_string": "func(any)",
+                  "pkg_path": "",
+                  "index": 1,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 1,
+              "definition_line": 34,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "07_function_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "func(error)",
+              "name": "OnError",
+              "type_string": "func(error)",
+              "raw_tag": "",
+              "definition_line": 35,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": null,
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 33,
+          "definition_column": 6
+        },
+        "Handler": {
+          "name": "Handler",
+          "package_path": "testcase_lite_07",
+          "defined_in_file_path": "07_function_types/src/main.go",
+          "type_string": "Handler",
+          "underlying_type_string": "func(string) (string, error)",
+          "fields": null,
+          "methods": null,
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_lite_07",
+      "name": "main"
+    }
+  },
+  "file_to_package": {}
+}

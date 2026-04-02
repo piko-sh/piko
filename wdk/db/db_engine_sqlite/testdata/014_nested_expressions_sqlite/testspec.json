@@ -1,0 +1,3 @@
+{
+  "description": "Tests nested expression resolution through the SQLite parser. Multi-level: binary_op wrapping COALESCE wrapping column references."
+}

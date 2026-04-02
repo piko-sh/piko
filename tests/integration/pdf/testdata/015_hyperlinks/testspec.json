@@ -1,0 +1,5 @@
+{
+    "description": "Tests link annotations in the PDF.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

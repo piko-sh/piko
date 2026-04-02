@@ -1,0 +1,1 @@
+{"description": "CREATE TRIGGER and DROP TRIGGER are parsed and produce catalogue mutations without error"}

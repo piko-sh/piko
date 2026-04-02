@@ -1,0 +1,25 @@
+{
+  "description": "Validates that the compiler correctly infers the Go package name from the directory if not specified, and respects it if it is.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "button.ui-button",
+      "description": "The button partial with an explicit package name should be resolved correctly.",
+      "assert": {
+        "originalPackageAlias": "partials/ui/button.pk",
+        "hasPartialInfo": true,
+        "invocationKey": "ui_button_550e7c96"
+      }
+    },
+    {
+      "select": "input.form-input",
+      "description": "The input partial with an inferred package name should be resolved correctly.",
+      "assert": {
+        "originalPackageAlias": "partials/form/input.pk",
+        "hasPartialInfo": true,
+        "invocationKey": "form_input_454c26bc"
+      }
+    }
+  ]
+}

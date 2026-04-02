@@ -1,0 +1,145 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Toolbar"
+            server.current-page="actions/toolbar">
+
+            <p class="demo-description">The toolbar provides quick access to common actions. It comes in docked and floating variants with optional FAB integration.</p>
+
+            <div class="demo-grid">
+                <!-- Docked -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Docked</h3>
+                    <div class="demo-preview">
+                        <m3e-toolbar variant="docked">
+                            <m3e-icon-button><piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                            <m3e-icon-button><piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                        </m3e-toolbar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-toolbar variant="docked"&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-toolbar&gt;</code></pre>
+                </section>
+
+                <!-- Floating -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Floating</h3>
+                    <div class="demo-preview">
+                        <m3e-toolbar variant="floating">
+                            <m3e-icon-button><piko:svg src="@/lib/icons/edit.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                            <m3e-icon-button><piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                        </m3e-toolbar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-toolbar variant="floating"&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/edit.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/add.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+&lt;/m3e-toolbar&gt;</code></pre>
+                </section>
+
+                <!-- With FAB -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With FAB</h3>
+                    <div class="demo-preview">
+                        <m3e-toolbar variant="docked">
+                            <m3e-icon-button><piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                            <m3e-fab slot="fab" size="small" colour="primary"><piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-fab>
+                        </m3e-toolbar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-toolbar variant="docked"&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-fab slot="fab" size="small" colour="primary"&gt;
+    &lt;piko:svg src="@/lib/icons/add.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-fab&gt;
+&lt;/m3e-toolbar&gt;</code></pre>
+                </section>
+
+                <!-- FAB Alignment -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">FAB Alignment</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-toolbar variant="docked" fab_alignment="center">
+                            <m3e-icon-button><piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                            <m3e-icon-button><piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                            <m3e-fab slot="fab" size="small" colour="primary"><piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-fab>
+                        </m3e-toolbar>
+                        <m3e-toolbar variant="docked" fab_alignment="end">
+                            <m3e-icon-button><piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                            <m3e-icon-button><piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-icon-button>
+                            <m3e-fab slot="fab" size="small" colour="primary"><piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg></m3e-fab>
+                        </m3e-toolbar>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-toolbar variant="docked" fab_alignment="center"&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-fab slot="fab" size="small" colour="primary"&gt;
+    &lt;piko:svg src="@/lib/icons/add.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-fab&gt;
+&lt;/m3e-toolbar&gt;
+
+&lt;m3e-toolbar variant="docked" fab_alignment="end"&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/menu.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-icon-button&gt;
+    &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-icon-button&gt;
+  &lt;m3e-fab slot="fab" size="small" colour="primary"&gt;
+    &lt;piko:svg src="@/lib/icons/add.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-fab&gt;
+&lt;/m3e-toolbar&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Toolbar - M3E Components",
+    }, nil
+}
+</script>

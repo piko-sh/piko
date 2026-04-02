@@ -1,0 +1,7 @@
+{
+    "description": "Verifies white-space: pre, pre-wrap, and pre-line preserve whitespace correctly.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

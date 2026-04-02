@@ -1,0 +1,44 @@
+{
+  "description": "Tests 500 internal server error handling when action returns error",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Call action that returns internal error using action builder"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "import('/_piko/assets/pk-js/pk/actions.gen.js').then(function(m) { return m.action.fail.internal({}).call(); }).then(function(data) { document.getElementById('result-message').textContent = data.message; document.getElementById('result-container').style.display = 'block'; }).catch(function(e) { document.getElementById('error-status').textContent = e.status || 500; document.getElementById('error-container').style.display = 'block'; });"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#error-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-status",
+      "expected": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-received",
+      "expected": "true"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_error.html"
+    }
+  ]
+}

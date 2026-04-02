@@ -1,0 +1,6 @@
+{
+  "title": "Abandoned Cart",
+  "description": "Cart reminder with product images, urgency, and CTA",
+  "metadata": {"title": "You Left Something Behind"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

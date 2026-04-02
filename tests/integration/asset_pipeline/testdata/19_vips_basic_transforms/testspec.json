@@ -1,0 +1,133 @@
+{
+  "description": "Vips transformer: basic transforms, format conversions, fit modes",
+  "moduleName": "testmodule",
+  "transformer": "vips",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/mercury.bmp",
+      "expectedArtefactID": "testmodule/lib/images/mercury.bmp"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "vips-webp-cover",
+      "capabilityName": "image-transform",
+      "description": "Vips: BMP to WebP with cover fit",
+      "params": {
+        "width": "400",
+        "height": "300",
+        "format": "webp",
+        "quality": "85",
+        "fit": "cover"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 300
+      },
+      "goldenFile": "vips-webp-cover-400x300.webp"
+    },
+    {
+      "profileName": "vips-jpeg-fill",
+      "capabilityName": "image-transform",
+      "description": "Vips: BMP to JPEG with fill (stretch)",
+      "params": {
+        "width": "500",
+        "height": "400",
+        "format": "jpeg",
+        "quality": "90",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 500,
+        "exactHeight": 400
+      },
+      "goldenFile": "vips-jpeg-fill-500x400.jpg"
+    },
+    {
+      "profileName": "vips-png-large",
+      "capabilityName": "image-transform",
+      "description": "Vips: BMP to PNG at large size",
+      "params": {
+        "width": "800",
+        "height": "568",
+        "format": "png",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/png",
+        "outputNotEmpty": true,
+        "exactWidth": 800,
+        "exactHeight": 568
+      },
+      "goldenFile": "vips-png-800x568.png"
+    },
+    {
+      "profileName": "vips-webp-small",
+      "capabilityName": "image-transform",
+      "description": "Vips: BMP to small WebP thumbnail",
+      "params": {
+        "width": "100",
+        "height": "71",
+        "format": "webp",
+        "quality": "80",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 100,
+        "exactHeight": 71
+      },
+      "goldenFile": "vips-webp-thumbnail-100x71.webp"
+    },
+    {
+      "profileName": "vips-jpeg-high-quality",
+      "capabilityName": "image-transform",
+      "description": "Vips: BMP to JPEG at max quality",
+      "params": {
+        "width": "600",
+        "height": "426",
+        "format": "jpeg",
+        "quality": "100",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 600,
+        "exactHeight": 426
+      },
+      "goldenFile": "vips-jpeg-q100-600x426.jpg"
+    },
+    {
+      "profileName": "vips-webp-low-quality",
+      "capabilityName": "image-transform",
+      "description": "Vips: BMP to WebP at low quality for compression test",
+      "params": {
+        "width": "400",
+        "height": "284",
+        "format": "webp",
+        "quality": "50",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 284,
+        "maxSizeBytes": 50000
+      },
+      "goldenFile": "vips-webp-q50-400x284.webp"
+    }
+  ]
+}

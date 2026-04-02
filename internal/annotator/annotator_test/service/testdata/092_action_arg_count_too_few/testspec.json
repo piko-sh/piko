@@ -1,0 +1,10 @@
+{
+  "description": "Validates that passing too few arguments to an action emits a warning diagnostic.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Action 'actions.DeleteUser' expects 1 argument(s), but 0 provided"
+    }
+  ]
+}

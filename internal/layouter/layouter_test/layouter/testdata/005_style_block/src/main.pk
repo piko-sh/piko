@@ -1,0 +1,7 @@
+<template>
+    <div class="box">Content</div>
+</template>
+
+<style>
+.box { width: 50%; }
+</style>

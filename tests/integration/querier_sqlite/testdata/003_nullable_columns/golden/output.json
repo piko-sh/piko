@@ -1,0 +1,28 @@
+{
+  "all_profiles": [
+    {
+      "Age": 30,
+      "Biography": "Software engineer",
+      "ID": 1,
+      "Name": "Alice"
+    },
+    {
+      "Age": null,
+      "Biography": null,
+      "ID": 2,
+      "Name": "Bob"
+    }
+  ],
+  "profile_with_nulls": {
+    "Age": null,
+    "Biography": null,
+    "ID": 2,
+    "Name": "Bob"
+  },
+  "profile_with_values": {
+    "Age": 30,
+    "Biography": "Software engineer",
+    "ID": 1,
+    "Name": "Alice"
+  }
+}

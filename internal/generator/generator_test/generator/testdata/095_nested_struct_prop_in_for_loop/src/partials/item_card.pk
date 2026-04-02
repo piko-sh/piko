@@ -1,0 +1,57 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <article class="item-card">
+    <h2 class="item-title">{{ props.Item.Title }}</h2>
+    <p class="item-description">{{ props.Item.Description }}</p>
+    <div class="item-details">
+      <span class="price">{{ props.Item.Price }}</span>
+      <span class="status">{{ props.Item.Status }}</span>
+      <span class="category">{{ props.Item.Category }}</span>
+    </div>
+    <div class="rooms">
+      <span class="bedrooms">{{ props.Item.RoomSetup.Bedrooms }} beds</span>
+      <span class="bathrooms">{{ props.Item.RoomSetup.Bathrooms }} baths</span>
+      <span class="parking">{{ props.Item.RoomSetup.Parking }} parking</span>
+    </div>
+    <div p-if="props.Item.OpenViewingData.Date != ''" class="open-viewing">
+      Open viewing on {{ props.Item.OpenViewingData.Date }}
+    </div>
+    <span class="item-id">ID: {{ props.Item.ID }}</span>
+  </article>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "testcase_095_nested_struct_prop_in_for_loop/pkg/dto"
+  )
+
+  type Props struct {
+    Item dto.ItemData `prop:"item"`
+  }
+
+  func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+  }
+</script>

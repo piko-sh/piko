@@ -1,0 +1,59 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div [p-if: (props.User != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="outer-guarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.User.Name }}
+      </RichText>
+    </span>
+    <div [p-for: (idx, User) in props.Users] [p-key: idx] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <span id="loop-shadowed" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ User.Name }}
+        </RichText>
+      </span>
+    </div>
+  </div>
+  <div [p-for: (idx, member) in props.Team] [p-key: idx] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div [p-if: (member.Profile != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <span id="loop-item-guarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ member.Profile.Bio }}
+        </RichText>
+      </span>
+    </div>
+    <span id="loop-item-unguarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ member.Profile.Bio }}
+      </RichText>
+    </span>
+  </div>
+  <div [p-for: (i, item) in props.Items] [p-key: i] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div [p-for: (j, item) in item.Children] [p-key: j] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <span id="inner-loop-shadowed" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ item.Name }}
+        </RichText>
+      </span>
+    </div>
+  </div>
+  <div [p-for: (idx, ptr) in props.Pointers] [p-key: idx] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div [p-if: (ptr != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <span id="pointer-loop-item-guarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ ptr.Value }}
+        </RichText>
+      </span>
+    </div>
+    <span id="pointer-loop-item-unguarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ ptr.Value }}
+      </RichText>
+    </span>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

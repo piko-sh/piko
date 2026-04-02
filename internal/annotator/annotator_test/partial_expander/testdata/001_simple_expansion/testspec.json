@@ -1,0 +1,28 @@
+{
+  "specs": [
+    {
+      "description": "The root of the entire document should be the <main> tag from main.pk",
+      "select": "main",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "childCount": 1
+      }
+    },
+    {
+      "description": "The child of <main> should be the expanded partial's root, a div with class 'card'",
+      "select": "main div.card",
+      "assert": {
+        "originalPackageAlias": "partials/card.pk",
+        "childCount": 1
+      }
+    },
+    {
+      "description": "The content inside the card should be the paragraph from the partial",
+      "select": "main div.card p",
+      "assert": {
+        "originalPackageAlias": "partials/card.pk",
+        "textContentContains": "Simple Card Content"
+      }
+    }
+  ]
+}

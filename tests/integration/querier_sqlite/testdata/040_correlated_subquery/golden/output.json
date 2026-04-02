@@ -1,0 +1,22 @@
+{
+  "departments": [
+    {
+      "EmployeeCount": 2,
+      "ID": 1,
+      "MaxSalary": 90000,
+      "Name": "Engineering"
+    },
+    {
+      "EmployeeCount": 1,
+      "ID": 2,
+      "MaxSalary": 70000,
+      "Name": "Sales"
+    },
+    {
+      "EmployeeCount": 0,
+      "ID": 3,
+      "MaxSalary": null,
+      "Name": "Empty"
+    }
+  ]
+}

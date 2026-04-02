@@ -1,0 +1,105 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+package testcase_14
+
+import (
+	"strings"
+	"testing"
+
+	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/ast/ast_domain"
+)
+
+// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
+// It simulates two invocations that both result in a prop having a 'nil' value, but
+// through different mechanisms: one is explicitly passed `nil`, and the other omits the
+// prop, relying on a `default:"nil"` tag. This is the ideal input to test that the
+// ComponentLinker's canonical key generation correctly distinguishes between these
+// two different invoker intents.
+func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
+	findHash := func(relPath string) string {
+		for hash, comp := range vm.ComponentsByHash {
+			if strings.HasSuffix(comp.Source.SourcePath, relPath) {
+				return hash
+			}
+		}
+		t.Fatalf("BUG IN TEST: Could not find real hash for relative path: %s", relPath)
+		return ""
+	}
+
+	mainHash := findHash("main.pk")
+	profileHash := findHash("partials/profile.pk")
+
+	profileSourcePath := vm.ComponentsByHash[profileHash].Source.SourcePath
+
+	flattenedAST := &ast_domain.TemplateAST{
+		RootNodes: []*ast_domain.TemplateNode{
+			{
+				NodeType: ast_domain.NodeElement, TagName: "div", Attributes: []ast_domain.HTMLAttribute{{Name: "id", Value: "explicit-nil"}},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+					OriginalPackageAlias: &profileHash,
+					OriginalSourcePath:   &profileSourcePath,
+					PartialInfo: &ast_domain.PartialInvocationInfo{
+						InvocationKey:       "potential-key-1",
+						PartialAlias:        "profile",
+						PartialPackageName:  profileHash,
+						InvokerPackageAlias: mainHash,
+						PassedProps:         map[string]ast_domain.PropValue{"user": {Expression: &ast_domain.NilLiteral{}}},
+					},
+				},
+			},
+			{
+				NodeType: ast_domain.NodeElement, TagName: "div", Attributes: []ast_domain.HTMLAttribute{{Name: "id", Value: "omitted"}},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+					OriginalPackageAlias: &profileHash,
+					OriginalSourcePath:   &profileSourcePath,
+					PartialInfo: &ast_domain.PartialInvocationInfo{
+						InvocationKey:       "potential-key-2",
+						PartialAlias:        "profile",
+						PartialPackageName:  profileHash,
+						InvokerPackageAlias: mainHash,
+						PassedProps:         map[string]ast_domain.PropValue{},
+					},
+				},
+			},
+		},
+	}
+
+	var potentialInvocations []*annotator_dto.PartialInvocation
+	flattenedAST.Walk(func(node *ast_domain.TemplateNode) bool {
+		if node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil {
+			pInfo := node.GoAnnotations.PartialInfo
+			potentialInvocations = append(potentialInvocations, &annotator_dto.PartialInvocation{
+				InvocationKey:     pInfo.InvocationKey,
+				PartialAlias:      pInfo.PartialAlias,
+				PartialHashedName: pInfo.PartialPackageName,
+				PassedProps:       pInfo.PassedProps,
+				RequestOverrides:  pInfo.RequestOverrides,
+				InvokerHashedName: pInfo.InvokerPackageAlias,
+				Location:          node.Location,
+			})
+		}
+		return true
+	})
+
+	return &annotator_dto.ExpansionResult{
+		FlattenedAST:         flattenedAST,
+		PotentialInvocations: potentialInvocations,
+	}
+}

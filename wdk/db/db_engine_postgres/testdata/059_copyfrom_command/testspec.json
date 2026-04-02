@@ -1,0 +1,3 @@
+{
+  "description": "CopyFrom command directive (piko.command: copyfrom). Tests query analysis recognises copyfrom command and resolves InsertTable and InsertColumns for pgx CopyFrom bulk insertion."
+}

@@ -1,0 +1,3 @@
+{
+  "description": "Compound queries using UNION, UNION ALL, INTERSECT, and EXCEPT. Verifies parser recognition, output column type widening across branches, and correct parameter tracking."
+}

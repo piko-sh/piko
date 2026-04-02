@@ -1,0 +1,182 @@
+{
+  "app": {
+    "title": "Enterprise Application",
+    "subtitle": "Powered by Advanced Technology",
+    "version": "2.5.3",
+    "copyright": "© 2025 Company Inc."
+  },
+  "navigation": {
+    "main": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "reports": "Reports",
+      "settings": "Settings"
+    },
+    "user": {
+      "profile": "My Profile",
+      "preferences": "Preferences",
+      "security": "Security",
+      "logout": "Log Out"
+    },
+    "admin": {
+      "users": "User Management",
+      "roles": "Role Management",
+      "permissions": "Permissions",
+      "audit": "Audit Logs"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "email": "Email Address",
+      "password": "Password",
+      "remember": "Remember me",
+      "forgot": "Forgot password?",
+      "submit": "Sign In",
+      "signup": "Don't have an account? Sign up"
+    },
+    "register": {
+      "title": "Create Account",
+      "firstname": "First Name",
+      "lastname": "Last Name",
+      "email": "Email Address",
+      "password": "Password",
+      "confirm": "Confirm Password",
+      "terms": "I agree to the terms and conditions",
+      "submit": "Create Account"
+    },
+    "reset": {
+      "title": "Reset Password",
+      "email": "Email Address",
+      "submit": "Send Reset Link",
+      "success": "Reset link sent to your email"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "overview": {
+      "title": "Overview",
+      "stats": {
+        "users": "Active Users",
+        "revenue": "Total Revenue",
+        "orders": "Orders",
+        "growth": "Growth Rate"
+      }
+    },
+    "charts": {
+      "sales": "Sales Performance",
+      "traffic": "Website Traffic",
+      "conversion": "Conversion Rate",
+      "engagement": "User Engagement"
+    },
+    "recent": {
+      "title": "Recent Activity",
+      "viewAll": "View All",
+      "noData": "No recent activity"
+    }
+  },
+  "forms": {
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "create": "Create",
+      "update": "Update",
+      "submit": "Submit",
+      "reset": "Reset",
+      "search": "Search",
+      "filter": "Filter",
+      "export": "Export",
+      "import": "Import"
+    },
+    "validation": {
+      "required": "This field is required",
+      "email": "Please enter a valid email address",
+      "minLength": "Must be at least {min} characters",
+      "maxLength": "Must not exceed {max} characters",
+      "password": {
+        "weak": "Password is too weak",
+        "medium": "Password strength: Medium",
+        "strong": "Password strength: Strong",
+        "mismatch": "Passwords do not match"
+      },
+      "numeric": "Must be a number",
+      "url": "Please enter a valid URL",
+      "date": "Please enter a valid date"
+    }
+  },
+  "tables": {
+    "headers": {
+      "id": "ID",
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "createdAt": "Created",
+      "updatedAt": "Modified",
+      "actions": "Actions"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "archive": "Archive"
+    },
+    "pagination": {
+      "showing": "Showing {start} to {end} of {total} results",
+      "previous": "Previous",
+      "next": "Next",
+      "first": "First",
+      "last": "Last"
+    },
+    "empty": "No records found",
+    "loading": "Loading data..."
+  },
+  "notifications": {
+    "success": {
+      "saved": "Changes saved successfully",
+      "created": "Item created successfully",
+      "updated": "Item updated successfully",
+      "deleted": "Item deleted successfully"
+    },
+    "error": {
+      "general": "An error occurred",
+      "network": "Network error. Please try again",
+      "unauthorized": "You are not authorised to perform this action",
+      "notFound": "Requested resource not found",
+      "validation": "Please check your input and try again"
+    },
+    "warning": {
+      "unsaved": "You have unsaved changes",
+      "confirm": "Are you sure you want to continue?",
+      "irreversible": "This action cannot be undone"
+    },
+    "info": {
+      "processing": "Processing your request...",
+      "wait": "Please wait...",
+      "loading": "Loading..."
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "Profile Settings",
+      "personal": "Personal Information",
+      "contact": "Contact Information",
+      "photo": "Profile Photo"
+    },
+    "account": {
+      "title": "Account Settings",
+      "email": "Email Preferences",
+      "password": "Change Password",
+      "privacy": "Privacy Settings",
+      "security": "Security Options"
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "email": "Email Notifications",
+      "push": "Push Notifications",
+      "sms": "SMS Notifications"
+    }
+  }
+}

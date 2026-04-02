@@ -1,0 +1,33 @@
+--- PACKAGE: testcase_49_deep_slice_resolution_bug/dto ---
+[Package Info]
+  - Name:    dto
+
+[File-Scoped Imports]
+  > File: 49_deep_slice_resolution_bug/src/dto/item.go
+    - import "maths"              -> piko.sh/piko/wdk/maths
+
+[Named Types]
+  > type ItemDto
+    - Defined In:      49_deep_slice_resolution_bug/src/dto/item.go
+    - TypeString:      dto.ItemDto
+    - Underlying:      struct{ID int64; Name string; Ranges []dto.RangeItem}
+    - Stringability:   0
+    - Fields:
+      - ID                   int64
+      - Name                 string
+      - Ranges               []dto.RangeItem
+        (Canonical Package: testcase_49_deep_slice_resolution_bug/dto)
+
+  > type RangeItem
+    - Defined In:      49_deep_slice_resolution_bug/src/dto/item.go
+    - TypeString:      dto.RangeItem
+    - Underlying:      struct{From int64; To int64; Charge maths.Money}
+    - Stringability:   0
+    - Fields:
+      - From                 int64
+      - To                   int64
+      - Charge               maths.Money
+        (Canonical Package: piko.sh/piko/wdk/maths)
+
+[Package-Level Functions]
+  (none)

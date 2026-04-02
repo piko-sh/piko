@@ -1,0 +1,5 @@
+{
+  "description": "Multiple return values from cross-file functions",
+  "shouldError": false,
+  "expected": "17/5=3r2 div0:safe ok:3"
+}

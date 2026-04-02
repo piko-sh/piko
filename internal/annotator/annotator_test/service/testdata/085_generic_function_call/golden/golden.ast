@@ -1,0 +1,17 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Contains check: "
+      {{ slices.Contains(state.Tags, "featured") }}
+    </RichText>
+  </p>
+  <div [p-if: slices.Contains(state.Tags, "featured")] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Is Featured"
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

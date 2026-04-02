@@ -1,0 +1,191 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+  <div class="lifecycle-partial">
+    <h3>Lifecycle Test Partial</h3>
+    <div class="counters">
+      <p id="connected-count">Connected: {{ state.ConnectedCount }}</p>
+      <p id="disconnected-count">Disconnected: {{ state.DisconnectedCount }}</p>
+      <p id="before-render-count">BeforeRender: {{ state.BeforeRenderCount }}</p>
+      <p id="after-render-count">AfterRender: {{ state.AfterRenderCount }}</p>
+      <p id="updated-count">Updated: {{ state.UpdatedCount }}</p>
+    </div>
+    <div class="actions">
+      <button id="reload-btn" p-on:click="reloadSelf()">Reload Partial</button>
+    </div>
+    <div id="lifecycle-log" class="log">
+      <h4>Lifecycle Log:</h4>
+      <ul p-ref="logList">
+      </ul>
+    </div>
+  </div>
+</template>
+
+<style>
+  .lifecycle-partial {
+    border: 2px solid #28a745;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+  }
+  .counters {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .counters p {
+    margin: 0;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+  }
+  .actions {
+    margin-bottom: 1rem;
+  }
+  #reload-btn {
+    padding: 0.5rem 1rem;
+    background: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  #reload-btn:hover {
+    background: #218838;
+  }
+  .log {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .log h4 {
+    margin-top: 0;
+  }
+  .log ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import (
+    "strconv"
+
+    "piko.sh/piko"
+)
+
+type LifecycleState struct {
+    ConnectedCount    int
+    DisconnectedCount int
+    BeforeRenderCount int
+    AfterRenderCount  int
+    UpdatedCount      int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (LifecycleState, piko.Metadata, error) {
+    connectedCount, _ := strconv.Atoi(r.QueryParam("connectedCount"))
+    disconnectedCount, _ := strconv.Atoi(r.QueryParam("disconnectedCount"))
+    beforeRenderCount, _ := strconv.Atoi(r.QueryParam("beforeRenderCount"))
+    afterRenderCount, _ := strconv.Atoi(r.QueryParam("afterRenderCount"))
+    updatedCount, _ := strconv.Atoi(r.QueryParam("updatedCount"))
+
+    if connectedCount == 0 {
+        connectedCount = 1
+    }
+
+    return LifecycleState{
+        ConnectedCount:    connectedCount,
+        DisconnectedCount: disconnectedCount,
+        BeforeRenderCount: beforeRenderCount,
+        AfterRenderCount:  afterRenderCount,
+        UpdatedCount:      updatedCount,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+let connectedCount = 0;
+let disconnectedCount = 0;
+let beforeRenderCount = 0;
+let afterRenderCount = 0;
+let updatedCount = 0;
+
+function logEvent(event: string): void {
+    const logList = pk.refs.logList as HTMLUListElement;
+    if (logList) {
+        const li = document.createElement('li');
+        li.textContent = event;
+        logList.appendChild(li);
+    }
+    console.log(`[lifecycle-test] ${event}`);
+}
+
+pk.onConnected(() => {
+    connectedCount++;
+    logEvent(`onConnected (count: ${connectedCount})`);
+});
+
+pk.onDisconnected(() => {
+    disconnectedCount++;
+    logEvent(`onDisconnected (count: ${disconnectedCount})`);
+});
+
+pk.onBeforeRender(() => {
+    beforeRenderCount++;
+    logEvent(`onBeforeRender (count: ${beforeRenderCount})`);
+});
+
+pk.onAfterRender(() => {
+    afterRenderCount++;
+    logEvent(`onAfterRender (count: ${afterRenderCount})`);
+});
+
+pk.onUpdated((context?: unknown) => {
+    updatedCount++;
+    logEvent(`onUpdated (count: ${updatedCount}, context: ${JSON.stringify(context)})`);
+});
+
+function reloadSelf(): void {
+    const partial = document.querySelector('[partial_name="lifecycle-test"]');
+    if (partial) {
+        const params = new URLSearchParams({
+            connectedCount: String(connectedCount),
+            disconnectedCount: String(disconnectedCount),
+            beforeRenderCount: String(beforeRenderCount),
+            afterRenderCount: String(afterRenderCount),
+            updatedCount: String(updatedCount)
+        });
+        piko.partials.render({
+            src: `/_piko/partials/lifecycle-test?${params.toString()}`,
+            querySelector: '[partial_name="lifecycle-test"]',
+            patchLocation: partial as HTMLElement,
+            patchMethod: 'morph'
+        });
+    }
+}
+</script>

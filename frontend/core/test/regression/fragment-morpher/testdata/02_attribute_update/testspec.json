@@ -1,0 +1,20 @@
+{
+    "description": "Attribute updates should be applied correctly while preserving the element",
+    "assertions": [
+        {
+            "selector": "#btn",
+            "attributes": {
+                "class": "btn-primary active",
+                "disabled": null,
+                "data-count": "5"
+            },
+            "description": "Attributes should be updated correctly"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "#btn",
+            "description": "Button element should be preserved"
+        }
+    ]
+}

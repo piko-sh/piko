@@ -1,0 +1,25 @@
+Piko
+Copyright (c) 2026 PolitePixels Limited
+https://politepixels.io
+
+This product includes software developed at PolitePixels Limited.
+
+=========================================================================
+
+This product includes a vendored copy of esbuild (v0.27.3).
+Copyright (c) 2020 Evan Wallace
+Licence: MIT
+Source: https://github.com/evanw/esbuild
+
+The vendored esbuild code includes a forked Go standard library filepath
+module.
+Copyright (c) 2009 The Go Authors. All rights reserved.
+Licence: BSD 3-Clause
+Source: https://github.com/golang/go
+
+=========================================================================
+
+This product includes icons from Google Material Design Icons.
+Copyright (c) Google LLC
+Licence: Apache License 2.0
+Source: https://github.com/google/material-design-icons

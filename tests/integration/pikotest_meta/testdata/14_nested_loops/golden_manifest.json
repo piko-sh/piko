@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/categories.pk": {
+      "routePatterns": {
+        "en": "/categories"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_14_nested_loops/dist/pages/pages_categories_5130e719",
+      "originalSourcePath": "pages/categories.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

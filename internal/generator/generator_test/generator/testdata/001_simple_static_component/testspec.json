@@ -1,0 +1,5 @@
+{
+  "description": "Tests that a simple, fully static component is correctly generated, utilising the static hoisting optimisation.",
+  "packageName": "simple_static_test",
+  "isPage": true
+}

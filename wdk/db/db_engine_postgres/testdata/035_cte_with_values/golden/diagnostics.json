@@ -1,0 +1,35 @@
+[
+  {
+    "Filename": "values_cte.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q005: unknown function \"values\"",
+    "Severity": 1,
+    "Code": "Q004",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "values_cte.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"column1\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "values_cte.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "query \"ValuesCTE\" uses command \"many\" but produces no output columns",
+    "Severity": 1,
+    "Code": "Q009",
+    "Suggestion": ""
+  }
+]

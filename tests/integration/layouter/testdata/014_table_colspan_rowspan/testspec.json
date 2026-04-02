@@ -1,0 +1,7 @@
+{
+    "description": "Verifies table colspan and rowspan: cells span multiple columns and rows with correct positioning and sizing.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

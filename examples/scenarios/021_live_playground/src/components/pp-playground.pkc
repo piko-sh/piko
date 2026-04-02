@@ -1,0 +1,833 @@
+<!--
+  021: Live Playground - PKC Component
+
+  This component implements the entire browser-based Piko IDE: a Monaco
+  Editor on the left with Piko syntax highlighting, a file tree for
+  multi-file projects (pages + partials), and a split output panel on
+  the right showing either a live HTML preview or generated Go code.
+  All rendering is powered by the Piko WASM module running in the browser.
+-->
+
+<template name="pp-playground">
+  <div class="playground">
+    <div class="toolbar">
+      <span class="logo">Piko Playground</span>
+      <span class="status" p-ref="status">Loading...</span>
+    </div>
+    <div class="main">
+      <div class="editor-panel">
+        <div class="sidebar" p-ref="sidebar">
+          <div class="sidebar-section">
+            <div class="sidebar-heading">pages</div>
+            <div class="file-list" p-ref="file_list_pages"></div>
+          </div>
+          <div class="sidebar-section">
+            <div class="sidebar-heading">partials</div>
+            <div class="file-list" p-ref="file_list_partials"></div>
+          </div>
+        </div>
+        <div class="editor-area">
+          <div class="panel-header" p-ref="panel_header">index.pk</div>
+          <div class="editor-mount" p-ref="editor_mount"></div>
+        </div>
+      </div>
+      <div class="output-panel">
+        <div class="tab-bar">
+          <button class="tab active" p-ref="tab_preview">Preview</button>
+          <button class="tab" p-ref="tab_code">Generated Code</button>
+        </div>
+        <div class="diagnostics" p-ref="diagnostics"></div>
+        <div class="tab-content">
+          <div class="preview-wrap" p-ref="preview_wrap">
+            <iframe class="preview-frame" p-ref="preview_frame" sandbox="allow-scripts"></iframe>
+          </div>
+          <div class="code-wrap hidden" p-ref="code_wrap"></div>
+          <div class="loading-overlay" p-ref="loading_overlay">
+            <div class="spinner"></div>
+            <div class="loading-text" p-ref="loading_text">Loading WASM runtime...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import * as monaco from 'https://esm.sh/monaco-editor@0.55.1';
+
+const WASM_BASE = 'http://localhost:3001';
+const DEBOUNCE_MS = 500;
+
+const DEFAULT_PAGE = [
+  '<template>',
+  '  <div id="app">',
+  '    <h1>{{ state.Greeting }}</h1>',
+  '    <p>{{ state.Description }}</p>',
+  '',
+  '    <piko:partial is="info_card"',
+  '      :server.title="state.CardTitle"',
+  '      :server.message="state.CardMessage"',
+  '    ></piko:partial>',
+  '',
+  '    <ul>',
+  '      <li p-for="item in state.Items">{{ item }}</li>',
+  '    </ul>',
+  '  </div>',
+  '</template>',
+  '',
+  '<script type="application/x-go">',
+  'package main',
+  '',
+  'import (',
+  '    "piko.sh/piko"',
+  '    info_card "playground/partials/info-card.pk"',
+  ')',
+  '',
+  'type Response struct {',
+  '    Greeting    string',
+  '    Description string',
+  '    CardTitle   string',
+  '    CardMessage string',
+  '    Items       []string',
+  '}',
+  '',
+  'func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {',
+  '    _ = info_card.Render',
+  '    return Response{',
+  '        Greeting:    "Hello, Playground!",',
+  '        Description: "Edit this template and see live changes.",',
+  '        CardTitle:   "Welcome",',
+  '        CardMessage: "This card is rendered from a partial.",',
+  '        Items:       []string{"First item", "Second item", "Third item"},',
+  '    }, piko.Metadata{',
+  '        Title: "Live Playground",',
+  '    }, nil',
+  '}',
+  '<' + '/script>',
+  '',
+  '<style>',
+  '  #app {',
+  '    max-width: 600px;',
+  '    margin: 2rem auto;',
+  '    padding: 1rem;',
+  '    font-family: system-ui, -apple-system, sans-serif;',
+  '  }',
+  '',
+  '  h1 {',
+  '    color: #2563eb;',
+  '    margin-bottom: 0.5rem;',
+  '  }',
+  '',
+  '  p {',
+  '    color: #374151;',
+  '    line-height: 1.6;',
+  '  }',
+  '',
+  '  ul {',
+  '    margin-top: 1rem;',
+  '    padding-left: 1.5rem;',
+  '  }',
+  '',
+  '  li {',
+  '    color: #374151;',
+  '    padding: 0.25rem 0;',
+  '  }',
+  '</style>',
+].join('\n');
+
+const DEFAULT_PARTIAL = [
+  '<template>',
+  '  <div class="info-card">',
+  '    <h2 p-text="state.Title"></h2>',
+  '    <p p-text="state.Message"></p>',
+  '  </div>',
+  '</template>',
+  '',
+  '<script type="application/x-go">',
+  'package main',
+  '',
+  'import "piko.sh/piko"',
+  '',
+  'type Props struct {',
+  '    Title   string `prop:"title"`',
+  '    Message string `prop:"message"`',
+  '}',
+  '',
+  'func Render(r *piko.RequestData, props Props) (Props, piko.Metadata, error) {',
+  '    return props, piko.Metadata{}, nil',
+  '}',
+  '<' + '/script>',
+  '',
+  '<style>',
+  '  .info-card {',
+  '    background: #f0f9ff;',
+  '    border: 1px solid #bae6fd;',
+  '    border-radius: 8px;',
+  '    padding: 1rem;',
+  '    margin-top: 1rem;',
+  '  }',
+  '',
+  '  .info-card h2 {',
+  '    color: #0369a1;',
+  '    margin: 0 0 0.5rem 0;',
+  '    font-size: 1.1rem;',
+  '  }',
+  '',
+  '  .info-card p {',
+  '    color: #475569;',
+  '    margin: 0;',
+  '  }',
+  '</style>',
+].join('\n');
+
+const DEFAULT_FILES: Record<string, string> = {
+  'pages/index.pk': DEFAULT_PAGE,
+  'partials/info-card.pk': DEFAULT_PARTIAL,
+};
+
+let mainEditor: any = null;
+let codeEditor: any = null;
+let debounceTimer: any = null;
+let wasmReady = false;
+let currentFile = 'pages/index.pk';
+let files: Record<string, string> = {};
+
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+function registerPikoLanguage() {
+  monaco.languages.register({ id: 'piko', extensions: ['.pk'] });
+
+  monaco.languages.setMonarchTokensProvider('piko', {
+    defaultToken: '',
+    tokenPostfix: '.piko',
+    tokenizer: {
+      root: [
+        ['<!--', 'comment.html', '@htmlComment'],
+        ['<template>', { token: 'tag.piko', next: '@template' }],
+        ['<script\\s+type="application\\/x-go">', { token: 'tag.piko', next: '@goScript' }],
+        ['<style>', { token: 'tag.piko', next: '@cssStyle' }],
+        ['<\\/template>', 'tag.piko'],
+        ['<\\/script>', 'tag.piko'],
+        ['<\\/style>', 'tag.piko'],
+      ],
+      htmlComment: [
+        ['-->', 'comment.html', '@pop'],
+        ['[^-]+', 'comment.html'],
+        ['.', 'comment.html'],
+      ],
+      template: [
+        ['<\\/template>', { token: 'tag.piko', next: '@pop' }],
+        ['\\{\\{', { token: 'delimiter.expression.piko', next: '@templateExpr' }],
+        ['<!--', 'comment.html', '@htmlComment'],
+        ['<piko:[a-zA-Z][\\w-]*', { token: 'tag.component.piko', next: '@htmlTag' }],
+        ['<\\/?[a-zA-Z][\\w-]*', { token: 'tag.html', next: '@htmlTag' }],
+        ['[^<{]+', ''],
+      ],
+      templateExpr: [
+        ['\\}\\}', { token: 'delimiter.expression.piko', next: '@pop' }],
+        ['"[^"]*"', 'string.piko'],
+        ['\\d+(\\.\\d+)?', 'number.piko'],
+        ['\\b(true|false|nil)\\b', 'constant.piko'],
+        ['\\.', 'delimiter.piko'],
+        ['[a-zA-Z_]\\w*', 'variable.piko'],
+        ['[()\\[\\],]', 'delimiter.piko'],
+        ['\\s+', ''],
+      ],
+      htmlTag: [
+        ['\\s+', ''],
+        ['\\/?>', 'tag.html', '@pop'],
+        ['[:@][a-zA-Z][\\w.-]*', { token: 'attribute.directive.piko', next: '@htmlAttrValue' }],
+        ['p-(?:if|else-if|else|for|show|text|html|model|bind|on|class|style|slot|key|ref|memo)', { token: 'attribute.directive.piko', next: '@htmlAttrValue' }],
+        ['[a-zA-Z][\\w-]*', { token: 'attribute.name.html', next: '@htmlAttrValue' }],
+      ],
+      htmlAttrValue: [
+        ['\\s+', '', '@pop'],
+        ['\\/?>', { token: 'tag.html', next: '@pop', goBack: true }],
+        ['=', 'delimiter.html'],
+        ['"[^"]*"', { token: 'attribute.value.html', next: '@pop' }],
+      ],
+      goScript: [
+        ['<\\/script>', { token: 'tag.piko', next: '@pop' }],
+        ['\\/\\/.*$', 'comment.go'],
+        ['\\/\\*', 'comment.go', '@goBlockComment'],
+        ['"', 'string.go', '@goString'],
+        ['`[^`]*`', 'string.raw.go'],
+        ['\\b(?:func|type|struct|interface|package|import|return|if|else|for|range|switch|case|default|var|const|defer|go|chan|select|map|break|continue|fallthrough|goto)\\b', 'keyword.go'],
+        ['\\b(?:bool|byte|string|error|int|int8|int16|int32|int64|uint|uint8|uint16|uint32|uint64|float32|float64|complex64|complex128|rune|uintptr|any)\\b', 'type.go'],
+        ['\\b(?:true|false|nil|iota)\\b', 'constant.go'],
+        ['\\b(?:len|cap|make|new|append|copy|delete|close|panic|recover|print|println)\\b', 'builtin.go'],
+        ['\\b\\d+(\\.\\d+)?\\b', 'number.go'],
+        ['[a-zA-Z_]\\w*', 'identifier.go'],
+      ],
+      goString: [
+        ['[^\\\\"]+', 'string.go'],
+        ['\\\\.', 'string.escape.go'],
+        ['"', 'string.go', '@pop'],
+      ],
+      goBlockComment: [
+        ['\\*\\/', 'comment.go', '@pop'],
+        ['[^*]+', 'comment.go'],
+        ['.', 'comment.go'],
+      ],
+      cssStyle: [
+        ['<\\/style>', { token: 'tag.piko', next: '@pop' }],
+        ['\\/\\*', 'comment.css', '@cssComment'],
+        ['[.#][a-zA-Z_][\\w-]*', 'tag.selector.css'],
+        ['[a-zA-Z][\\w-]*(?=\\s*\\{)', 'tag.css'],
+        ['[a-zA-Z-]+(?=\\s*:)', 'attribute.name.css'],
+        [':', 'delimiter.css'],
+        [';', 'delimiter.css'],
+        ['\\{', 'delimiter.bracket.css'],
+        ['\\}', 'delimiter.bracket.css'],
+        ['#[0-9a-fA-F]{3,8}\\b', 'constant.color.css'],
+        ['\\d+(\\.\\d+)?(%|px|em|rem|vh|vw|s|ms|fr)\\b', 'number.css'],
+        ['\\d+(\\.\\d+)?', 'number.css'],
+        ['"[^"]*"', 'string.css'],
+        ['[a-zA-Z][\\w-]*', 'value.css'],
+      ],
+      cssComment: [
+        ['\\*\\/', 'comment.css', '@pop'],
+        ['[^*]+', 'comment.css'],
+        ['.', 'comment.css'],
+      ],
+    },
+  });
+
+  monaco.editor.defineTheme('piko-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'tag.piko', foreground: 'C586C0', fontStyle: 'bold' },
+      { token: 'tag.component.piko', foreground: '4EC9B0' },
+      { token: 'delimiter.expression.piko', foreground: 'DCDCAA', fontStyle: 'bold' },
+      { token: 'variable.piko', foreground: '9CDCFE' },
+      { token: 'string.piko', foreground: 'CE9178' },
+      { token: 'number.piko', foreground: 'B5CEA8' },
+      { token: 'constant.piko', foreground: '569CD6' },
+      { token: 'delimiter.piko', foreground: 'D4D4D4' },
+      { token: 'attribute.directive.piko', foreground: 'C586C0' },
+      { token: 'tag.html', foreground: '569CD6' },
+      { token: 'attribute.name.html', foreground: '9CDCFE' },
+      { token: 'attribute.value.html', foreground: 'CE9178' },
+      { token: 'delimiter.html', foreground: 'D4D4D4' },
+      { token: 'comment.html', foreground: '6A9955' },
+      { token: 'keyword.go', foreground: '569CD6' },
+      { token: 'type.go', foreground: '4EC9B0' },
+      { token: 'constant.go', foreground: '569CD6' },
+      { token: 'builtin.go', foreground: 'DCDCAA' },
+      { token: 'string.go', foreground: 'CE9178' },
+      { token: 'string.raw.go', foreground: 'CE9178' },
+      { token: 'string.escape.go', foreground: 'D7BA7D' },
+      { token: 'comment.go', foreground: '6A9955' },
+      { token: 'number.go', foreground: 'B5CEA8' },
+      { token: 'identifier.go', foreground: 'D4D4D4' },
+      { token: 'tag.selector.css', foreground: 'D7BA7D' },
+      { token: 'tag.css', foreground: '569CD6' },
+      { token: 'attribute.name.css', foreground: '9CDCFE' },
+      { token: 'constant.color.css', foreground: 'CE9178' },
+      { token: 'number.css', foreground: 'B5CEA8' },
+      { token: 'string.css', foreground: 'CE9178' },
+      { token: 'value.css', foreground: 'CE9178' },
+      { token: 'comment.css', foreground: '6A9955' },
+      { token: 'delimiter.css', foreground: 'D4D4D4' },
+      { token: 'delimiter.bracket.css', foreground: 'D4D4D4' },
+    ],
+    colors: {
+      'editor.background': '#1e1e1e',
+    },
+  });
+}
+
+pkc.onConnected(() => {
+  function setStatus(text: string, type?: string) {
+    const el = pkc.refs.status;
+    if (!el) return;
+    el.textContent = text;
+    el.style.background = ({
+      ready:     '#2ea04333',
+      loading:   '#dcdcaa33',
+      error:     '#f4433633',
+      rendering: '#569cd633',
+    } as Record<string, string>)[type || ''] || '#404040';
+    el.style.color = ({
+      ready:     '#4ec9b0',
+      loading:   '#dcdcaa',
+      error:     '#f48771',
+      rendering: '#9cdcfe',
+    } as Record<string, string>)[type || ''] || '#d4d4d4';
+  }
+
+  function showDiagnostics(messages: string[]) {
+    const el = pkc.refs.diagnostics;
+    if (!el) return;
+    if (!messages || messages.length === 0) {
+      el.style.display = 'none';
+      el.textContent = '';
+      return;
+    }
+    el.style.display = 'block';
+    el.textContent = messages.join('\n');
+  }
+
+  function fileBaseName(path: string): string {
+    const parts = path.split('/');
+    return parts[parts.length - 1];
+  }
+
+  function renderFileTree() {
+    const pagesContainer = pkc.refs.file_list_pages;
+    const partialsContainer = pkc.refs.file_list_partials;
+    if (!pagesContainer || !partialsContainer) return;
+
+    pagesContainer.innerHTML = '';
+    partialsContainer.innerHTML = '';
+
+    const sortedPaths = Object.keys(files).sort();
+    sortedPaths.forEach((path: string) => {
+      const isPage = path.startsWith('pages/');
+      const container = isPage ? pagesContainer : partialsContainer;
+
+      const item = document.createElement('div');
+      item.className = 'file-item' + (path == currentFile ? ' active' : '');
+      item.textContent = fileBaseName(path);
+      item.addEventListener('click', () => {
+        switchToFile(path);
+      });
+      container.appendChild(item);
+    });
+  }
+
+  function switchToFile(path: string) {
+    if (path == currentFile) return;
+
+    // Save current editor content
+    if (mainEditor) {
+      files[currentFile] = mainEditor.getValue();
+    }
+
+    currentFile = path;
+    pkc.refs.panel_header!.textContent = fileBaseName(path);
+
+    // Load new file content into editor
+    if (mainEditor) {
+      mainEditor.setValue(files[path] || '');
+    }
+
+    renderFileTree();
+  }
+
+  async function loadWASM() {
+    const w = window as any;
+    pkc.refs.loading_text!.textContent = 'Downloading WASM support...';
+    await loadScript(WASM_BASE + '/wasm_exec.js');
+
+    pkc.refs.loading_text!.textContent = 'Instantiating WASM binary...';
+    const go = new w.Go();
+    const result = await WebAssembly.instantiateStreaming(
+      fetch(WASM_BASE + '/piko.wasm'),
+      go.importObject,
+    );
+    go.run(result.instance);
+
+    pkc.refs.loading_text!.textContent = 'Initialising Piko runtime...';
+    await w.piko.init();
+    wasmReady = true;
+  }
+
+  function getAllSources(): Record<string, string> {
+    // Save current editor state before collecting
+    if (mainEditor) {
+      files[currentFile] = mainEditor.getValue();
+    }
+    const sources: Record<string, string> = {};
+    Object.keys(files).forEach((path: string) => {
+      sources[path] = files[path];
+    });
+    return sources;
+  }
+
+  async function updatePreview(sources: Record<string, string>): Promise<any> {
+    const w = window as any;
+    const result = await w.piko.dynamicRender({
+      sources: sources,
+      moduleName: 'playground',
+    });
+    if (result.success) {
+      const html = '<!DOCTYPE html><html><head><style>'
+        + (result.css || '')
+        + '</style></head><body>'
+        + result.html
+        + '</body></html>';
+      (pkc.refs.preview_frame as HTMLIFrameElement).srcdoc = html;
+    }
+    return result;
+  }
+
+  async function updateGeneratedCode(sources: Record<string, string>): Promise<any> {
+    const w = window as any;
+    const result = await w.piko.generate({
+      sources: sources,
+      moduleName: 'playground',
+    });
+    if (result.success && result.artefacts && result.artefacts.length > 0) {
+      const content = result.artefacts
+        .map((a: any) => '// --- ' + a.path + ' ---\n' + a.content)
+        .join('\n\n');
+      if (codeEditor) {
+        codeEditor.setValue(content);
+      }
+    }
+    return result;
+  }
+
+  async function runUpdate() {
+    if (!wasmReady || !mainEditor) return;
+    const sources = getAllSources();
+    setStatus('Rendering...', 'rendering');
+    try {
+      const previewResult = await updatePreview(sources);
+      const codeResult = await updateGeneratedCode(sources);
+      const diags: string[] = [];
+      const results = [previewResult, codeResult];
+      results.forEach((r: any) => {
+        if (r.diagnostics) {
+          r.diagnostics.forEach((d: any) => diags.push(d.message || String(d)));
+        }
+        if (!r.success && r.error) {
+          diags.push(r.error);
+        }
+      });
+      showDiagnostics(diags);
+      setStatus(diags.length > 0 ? 'Error' : 'Ready', diags.length > 0 ? 'error' : 'ready');
+    } catch (err: any) {
+      setStatus('Error', 'error');
+      showDiagnostics([err.message || String(err)]);
+    }
+  }
+
+  function scheduleUpdate() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(runUpdate, DEBOUNCE_MS);
+  }
+
+  // Tab switching
+  pkc.refs.tab_preview?.addEventListener('click', () => {
+    pkc.refs.preview_wrap?.classList.remove('hidden');
+    pkc.refs.code_wrap?.classList.add('hidden');
+    pkc.refs.tab_preview?.classList.add('active');
+    pkc.refs.tab_code?.classList.remove('active');
+  });
+
+  pkc.refs.tab_code?.addEventListener('click', () => {
+    pkc.refs.preview_wrap?.classList.add('hidden');
+    pkc.refs.code_wrap?.classList.remove('hidden');
+    pkc.refs.tab_preview?.classList.remove('active');
+    pkc.refs.tab_code?.classList.add('active');
+    if (codeEditor) codeEditor.layout();
+  });
+
+  // Boot sequence
+  setStatus('Initialising Monaco...', 'loading')
+
+  async function boot() {
+    try {
+      // Inject Monaco CSS into shadow root - Monaco injects its styles into
+      // document.head which doesn't reach Shadow DOM, causing layout glitches.
+      const shadowRoot = pkc.refs.editor_mount.getRootNode() as ShadowRoot;
+      const monacoCSS = document.createElement('link');
+      monacoCSS.rel = 'stylesheet';
+      monacoCSS.href = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs/editor/editor.main.css';
+      shadowRoot.appendChild(monacoCSS);
+
+      // Wait for stylesheet to load before creating editors
+      await new Promise<void>((resolve) => {
+        monacoCSS.onload = () => resolve();
+        monacoCSS.onerror = () => resolve();
+      });
+
+      registerPikoLanguage();
+
+      // Initialise file state
+      Object.keys(DEFAULT_FILES).forEach((path: string) => {
+        files[path] = DEFAULT_FILES[path];
+      });
+      renderFileTree();
+
+      // Main editor
+      mainEditor = monaco.editor.create(pkc.refs.editor_mount, {
+        value: files[currentFile],
+        language: 'piko',
+        theme: 'piko-dark',
+        minimap: { enabled: false },
+        fontSize: 13,
+        lineNumbers: 'on',
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        tabSize: 2,
+        wordWrap: 'on',
+        padding: { top: 8 },
+      });
+
+      // Read-only code viewer
+      codeEditor = monaco.editor.create(pkc.refs.code_wrap, {
+        value: '// Generated Go code will appear here after editing the template.',
+        language: 'go',
+        theme: 'vs-dark',
+        minimap: { enabled: false },
+        fontSize: 13,
+        lineNumbers: 'on',
+        readOnly: true,
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        padding: { top: 8 },
+      });
+
+      mainEditor.onDidChangeModelContent(scheduleUpdate);
+
+      // Load WASM
+      setStatus('Loading WASM...', 'loading');
+      await loadWASM();
+
+      setStatus('Ready', 'ready');
+      pkc.refs.loading_overlay!.style.display = 'none';
+
+      // Initial render
+      runUpdate();
+    } catch (err: any) {
+      setStatus('Load failed', 'error');
+      pkc.refs.loading_text!.textContent = 'Failed: ' + (err.message || String(err));
+      console.error('Playground init error:', err);
+    }
+  }
+
+  boot()
+});
+</script>
+
+<style>
+  :host {
+    display: block;
+    height: 100vh;
+  }
+
+  .playground {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 16px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #404040;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-weight: 600;
+    font-size: 14px;
+    color: #569cd6;
+    letter-spacing: 0.5px;
+  }
+
+  .status {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    background: #404040;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .editor-panel {
+    display: flex;
+    border-right: 2px solid #404040;
+    min-height: 0;
+  }
+
+  .sidebar {
+    width: 160px;
+    flex-shrink: 0;
+    background: #252526;
+    border-right: 1px solid #404040;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding-bottom: 4px;
+  }
+
+  .sidebar-heading {
+    padding: 8px 12px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #808080;
+  }
+
+  .file-item {
+    padding: 4px 12px 4px 20px;
+    font-size: 12px;
+    color: #cccccc;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-item:hover {
+    background: #2a2d2e;
+  }
+
+  .file-item.active {
+    background: #37373d;
+    color: #ffffff;
+  }
+
+  .editor-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .panel-header {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: #252526;
+    border-bottom: 1px solid #404040;
+    font-size: 12px;
+    color: #808080;
+    flex-shrink: 0;
+  }
+
+  .editor-mount {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .output-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .tab-bar {
+    display: flex;
+    height: 32px;
+    background: #252526;
+    border-bottom: 1px solid #404040;
+    flex-shrink: 0;
+  }
+
+  .tab {
+    padding: 0 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #808080;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .tab:hover { color: #d4d4d4; }
+
+  .tab.active {
+    color: #d4d4d4;
+    border-bottom-color: #569cd6;
+  }
+
+  .diagnostics {
+    display: none;
+    padding: 8px 12px;
+    background: #332222;
+    border-bottom: 1px solid #5a1d1d;
+    font-size: 12px;
+    font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    color: #f48771;
+    max-height: 80px;
+    overflow-y: auto;
+    flex-shrink: 0;
+    white-space: pre-wrap;
+  }
+
+  .tab-content {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+
+  .preview-wrap {
+    width: 100%;
+    height: 100%;
+  }
+
+  .preview-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #ffffff;
+  }
+
+  .code-wrap {
+    width: 100%;
+    height: 100%;
+  }
+
+  .hidden { display: none !important; }
+
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e1e1eee;
+    z-index: 100;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #404040;
+    border-top-color: #569cd6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 13px;
+    color: #808080;
+  }
+</style>

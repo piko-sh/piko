@@ -1,0 +1,29 @@
+{
+    "description": "Complex child manipulation - add, remove, reorder while preserving scopes",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".item:first-child",
+            "attributes": { "partial": "c_scope parent1 parent2", "p-key": "c" },
+            "description": "Item C moved to first position"
+        },
+        {
+            "selector": ".item:nth-child(2)",
+            "attributes": { "partial": "a_scope parent1 parent2", "p-key": "a" },
+            "description": "Item A moved to second position"
+        },
+        {
+            "selector": ".item:nth-child(3)",
+            "attributes": { "partial": "d_scope parent1 parent2", "p-key": "d" },
+            "description": "New item D added"
+        },
+        {
+            "selector": ".item[p-key='b']",
+            "exists": false,
+            "description": "Item B should be removed"
+        }
+    ]
+}

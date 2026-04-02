@@ -1,0 +1,30 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "tailwindcss -i lib/styles/input.css -o lib/styles/tailwind.css --content 'pages/**/*.pk,partials/**/*.pk' --minify && go build -o ./bin/generator ./cmd/generator/main.go && ./bin/generator all && go build -o ./bin/main ./cmd/main/main.go"
+bin = "./bin/main"
+full_bin = "./bin/main dev"
+delay = 500
+exclude_file = ["config.json"]
+include_ext = ["go", "pk", "pkc", "json", "css"]
+exclude_dir = ["tmp", "dist", "bin", ".piko"]
+log = "air.log"
+stop_on_error = true
+follow_symlink = false
+
+[color]
+app = ""
+build = "yellow"
+main = "magenta"
+runner = "green"
+watcher = "cyan"
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
+
+[screen]
+clear_on_rebuild = false

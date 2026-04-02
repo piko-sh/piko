@@ -1,0 +1,19 @@
+{
+  "description": "Tests that a misspelled `:server.*` prop generates a helpful 'Did you mean...?' warning.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Unknown server-only prop 'titel' passed to component <card>. Did you mean 'title'?"
+    }
+  ],
+  "expectedUniqueInvocations": 1,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "card",
+      "assert": {
+        "passedPropsCount": 0
+      }
+    }
+  ]
+}

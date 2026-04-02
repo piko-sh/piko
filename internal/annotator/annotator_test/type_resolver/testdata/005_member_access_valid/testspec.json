@@ -1,0 +1,7 @@
+[{
+  "description": "Validates basic, successful member access on a struct field.",
+  "expression": "state.CurrentUser.Name",
+  "expectedType": "string",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

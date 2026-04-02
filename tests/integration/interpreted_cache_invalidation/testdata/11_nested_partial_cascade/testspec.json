@@ -1,0 +1,25 @@
+{
+  "description": "Nested partial change cascades through full dependency chain but skips unrelated pages",
+  "requestURL": "/home",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial full build with 2 pages and 2 nested partials",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectFullBuild": true
+    },
+    {
+      "stage": 1,
+      "description": "Template change to badge.pk - should rebuild badge + sidebar (direct importer) + home (transitive importer), NOT about",
+      "useTargetedRebuild": true,
+      "targetedEntryPoints": ["partials/badge.pk", "partials/sidebar.pk", "pages/home.pk"],
+      "expectTier1Hit": true,
+      "expectFastPath": true,
+      "expectAnnotatedCount": 3,
+      "expectGeneratedCount": 3,
+      "delayBeforeRenderMs": 10
+    }
+  ]
+}

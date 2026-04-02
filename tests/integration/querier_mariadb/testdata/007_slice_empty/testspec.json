@@ -1,0 +1,3 @@
+{
+  "description": "Empty slice: IN (NULL) matches nothing, returns zero rows"
+}

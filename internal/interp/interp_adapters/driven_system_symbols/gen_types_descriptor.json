@@ -1,0 +1,24 @@
+{
+  "import_paths": [
+    "bytes",
+    "cmp",
+    "context",
+    "encoding/base64",
+    "encoding/json",
+    "errors",
+    "fmt",
+    "html",
+    "io",
+    "maps",
+    "math",
+    "os",
+    "path",
+    "regexp",
+    "slices",
+    "sort",
+    "strconv",
+    "strings",
+    "sync",
+    "time"
+  ]
+}

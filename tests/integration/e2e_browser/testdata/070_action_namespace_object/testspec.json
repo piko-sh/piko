@@ -1,0 +1,64 @@
+{
+  "description": "Tests multiple actions across multiple namespaces (user.Create, user.Delete, order.Submit)",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-user",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-user-create",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-user-delete",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-order",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#has-order-submit",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-user-create",
+      "expected": "usr_001"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-user-delete",
+      "expected": "deleted"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-order-submit",
+      "expected": "ord_2024_001"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_actions.html"
+    }
+  ]
+}

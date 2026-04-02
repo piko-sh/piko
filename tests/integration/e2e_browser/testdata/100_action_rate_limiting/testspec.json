@@ -1,0 +1,28 @@
+{
+  "description": "Tests per-action rate limiting. Action allows 3 requests per minute. The 4th request should be rejected with 429.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result",
+      "expected": "rate_limited"
+    }
+  ]
+}

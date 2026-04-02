@@ -1,0 +1,6 @@
+{
+  "title": "Subscription Renewal",
+  "description": "Subscription renewal notice with plan details and billing breakdown",
+  "metadata": {"title": "Your Subscription Renews in 7 Days"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

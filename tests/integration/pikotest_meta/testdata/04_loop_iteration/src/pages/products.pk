@@ -1,0 +1,67 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package products
+
+import "piko.sh/piko"
+
+type Product struct {
+	ID    string
+	Name  string
+	Price float64
+	InStock bool
+}
+
+type Response struct {
+	Products []Product
+	Total    int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	products := []Product{
+		{ID: "p1", Name: "Widget", Price: 29.99, InStock: true},
+		{ID: "p2", Name: "Gadget", Price: 49.99, InStock: true},
+		{ID: "p3", Name: "Gizmo", Price: 19.99, InStock: false},
+	}
+
+	return Response{
+		Products: products,
+		Total:    len(products),
+	}, piko.Metadata{
+		Title: "Product Catalogue",
+	}, nil
+}
+</script>
+<template>
+	<div class="catalogue">
+		<h1>Products</h1>
+		<p class="total">Total: {{ state.Total }} products</p>
+
+		<ul class="product-list">
+			<li p-for="product in state.Products" class="product-item" data-id="{{ product.ID }}">
+				<span class="product-name">{{ product.Name }}</span>
+				<span class="product-price">${{ product.Price }}</span>
+				<span p-if="product.InStock" class="in-stock">In Stock</span>
+				<span p-if="!product.InStock" class="out-of-stock">Out of Stock</span>
+			</li>
+		</ul>
+	</div>
+</template>

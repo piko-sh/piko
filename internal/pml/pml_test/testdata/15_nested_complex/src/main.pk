@@ -1,0 +1,28 @@
+<template>
+    <pml-container background-color="#ffffff">
+        <pml-row background-color="#2c3e50" padding="30px 0">
+            <pml-col>
+                <pml-p color="#ffffff" font-size="24px" align="center">Header</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="20px 0">
+            <pml-col width="60%">
+                <pml-p font-size="16px" padding="10px 25px">Main content area with text.</pml-p>
+                <pml-button href="https://example.com" background-color="#27ae60" color="#ffffff" padding="10px 25px" inner-padding="10px 20px">Primary Action</pml-button>
+            </pml-col>
+            <pml-col width="40%">
+                <pml-img src="https://example.com/sidebar.jpg" alt="Sidebar" width="200px" padding="10px"></pml-img>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="10px 0">
+            <pml-col>
+                <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+            </pml-col>
+        </pml-row>
+        <pml-row background-color="#f8f9fa" padding="20px 0">
+            <pml-col>
+                <pml-p font-size="12px" color="#999999" align="center">Footer text</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+</template>

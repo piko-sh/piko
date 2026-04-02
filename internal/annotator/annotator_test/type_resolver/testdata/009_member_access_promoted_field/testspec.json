@@ -1,0 +1,7 @@
+[{
+  "description": "Validates member access on a promoted field from an embedded struct.",
+  "expression": "state.AdminUser.ID",
+  "expectedType": "int",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

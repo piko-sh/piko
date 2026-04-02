@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that auto margins in flex items consume free space on the main axis and centre items on the cross axis.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

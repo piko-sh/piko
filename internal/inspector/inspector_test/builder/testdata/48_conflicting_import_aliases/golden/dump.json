@@ -1,0 +1,83 @@
+{
+  "packages": {
+    "testcase_48_conflicting_import_aliases/service": {
+      "file_imports": {
+        "48_conflicting_import_aliases/src/service/product_service.go": {
+          "db": "testcase_48_conflicting_import_aliases/models"
+        },
+        "48_conflicting_import_aliases/src/service/user_service.go": {
+          "m": "testcase_48_conflicting_import_aliases/models"
+        }
+      },
+      "named_types": {
+        "ProductResponse": {
+          "name": "ProductResponse",
+          "package_path": "testcase_48_conflicting_import_aliases/service",
+          "defined_in_file_path": "48_conflicting_import_aliases/src/service/product_service.go",
+          "type_string": "service.ProductResponse",
+          "underlying_type_string": "struct{Product db.Product}",
+          "fields": [
+            {
+              "definition_file_path": "48_conflicting_import_aliases/src/service/product_service.go",
+              "declaring_pkg_path": "testcase_48_conflicting_import_aliases/service",
+              "pkg_path": "testcase_48_conflicting_import_aliases/models",
+              "underlying_type_string": "struct{SKU string}",
+              "declaring_type_name": "ProductResponse",
+              "name": "Product",
+              "type_string": "db.Product",
+              "raw_tag": "",
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        },
+        "UserResponse": {
+          "name": "UserResponse",
+          "package_path": "testcase_48_conflicting_import_aliases/service",
+          "defined_in_file_path": "48_conflicting_import_aliases/src/service/user_service.go",
+          "type_string": "service.UserResponse",
+          "underlying_type_string": "struct{User m.User}",
+          "fields": [
+            {
+              "definition_file_path": "48_conflicting_import_aliases/src/service/user_service.go",
+              "declaring_pkg_path": "testcase_48_conflicting_import_aliases/service",
+              "pkg_path": "testcase_48_conflicting_import_aliases/models",
+              "underlying_type_string": "struct{ID string}",
+              "declaring_type_name": "UserResponse",
+              "name": "User",
+              "type_string": "m.User",
+              "raw_tag": "",
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_48_conflicting_import_aliases/service",
+      "name": "service"
+    }
+  },
+  "file_to_package": {
+    "48_conflicting_import_aliases/src/service/product_service.go": "testcase_48_conflicting_import_aliases/service",
+    "48_conflicting_import_aliases/src/service/user_service.go": "testcase_48_conflicting_import_aliases/service"
+  }
+}

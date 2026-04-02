@@ -1,0 +1,92 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <!-- Emoji: simple smiley (explicit dims since font lacks emoji glyphs) -->
+  <div data-layout-id="emoji-simple" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x1F600; &#x1F44D; &#x2764;</div>
+
+  <!-- Emoji: ZWJ sequences (family emoji, explicit dims) -->
+  <div data-layout-id="emoji-zwj" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F467; &#x1F3F3;&#xFE0F;&#x200D;&#x1F308;</div>
+
+  <!-- Emoji: skin tone modifiers (explicit dims) -->
+  <div data-layout-id="emoji-skin-tone" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x1F44B;&#x1F3FB; &#x1F44B;&#x1F3FD; &#x1F44B;&#x1F3FF;</div>
+
+  <!-- Combining marks / diacritics (zalgo-style) -->
+  <div data-layout-id="combining-marks" style="box-sizing: content-box; width: 400px; height: 40px; margin: 0; padding: 0;">a&#x0300;&#x0301;&#x0302; e&#x0308;&#x030A; o&#x0303;&#x0327;</div>
+
+  <!-- Heavy combining marks (zalgo text, explicit height for overflow) -->
+  <div data-layout-id="zalgo" style="box-sizing: content-box; width: 400px; height: 60px; margin: 0; padding: 0; overflow: hidden;">H&#x0336;&#x0321;&#x034E;e&#x0337;&#x0322;&#x0352;l&#x0338;&#x0323;&#x0353;l&#x0335;&#x0324;&#x0354;o&#x0336;&#x0325;&#x0355;</div>
+
+  <!-- CJK characters (explicit dims since NotoSans lacks CJK glyphs) -->
+  <div data-layout-id="cjk" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x4F60;&#x597D;&#x4E16;&#x754C;</div>
+
+  <!-- Japanese hiragana (explicit dims) -->
+  <div data-layout-id="japanese" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x3053;&#x3093;&#x306B;&#x3061;&#x306F;</div>
+
+  <!-- Korean hangul (explicit dims) -->
+  <div data-layout-id="korean" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#xC548;&#xB155;&#xD558;&#xC138;&#xC694;</div>
+
+  <!-- Arabic text (explicit dims, RTL script) -->
+  <div data-layout-id="arabic" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x0645;&#x0631;&#x062D;&#x0628;&#x0627;</div>
+
+  <!-- Hebrew text (covered partially by NotoSans, explicit dims for safety) -->
+  <div data-layout-id="hebrew" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x05E9;&#x05DC;&#x05D5;&#x05DD;</div>
+
+  <!-- Thai text (explicit dims) -->
+  <div data-layout-id="thai" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x0E2A;&#x0E27;&#x0E31;&#x0E2A;&#x0E14;&#x0E35;</div>
+
+  <!-- Devanagari text (explicit dims) -->
+  <div data-layout-id="devanagari" style="box-sizing: content-box; width: 300px; height: 30px; margin: 0; padding: 0;">&#x0928;&#x092E;&#x0938;&#x094D;&#x0924;&#x0947;</div>
+
+  <!-- Mixed emoji and Latin -->
+  <div data-layout-id="mixed-emoji-latin" style="box-sizing: content-box; width: 400px; height: 30px; margin: 0; padding: 0;">Hello &#x1F600; World &#x1F30D;</div>
+
+  <!-- Unicode mathematical symbols -->
+  <div data-layout-id="math-symbols" style="box-sizing: content-box; width: 400px; height: 30px; margin: 0; padding: 0;">&#x2200;x &#x2208; &#x211D;: x&#xB2; &#x2265; 0</div>
+
+  <!-- Currency symbols from various scripts -->
+  <div data-layout-id="currency" style="box-sizing: content-box; width: 400px; height: 30px; margin: 0; padding: 0;">&#x24;100 &#x20AC;200 &#xA3;300 &#xA5;400 &#x20B9;500</div>
+
+  <!-- Stacked boxes to verify vertical flow is not disrupted by Unicode content -->
+  <div data-layout-id="flow-a" style="box-sizing: content-box; width: 200px; height: 25px; margin: 0; padding: 0; background: #eee;">&#x1F600;</div>
+  <div data-layout-id="flow-b" style="box-sizing: content-box; width: 200px; height: 25px; margin: 0; padding: 0; background: #ddd;">&#x4F60;&#x597D;</div>
+  <div data-layout-id="flow-c" style="box-sizing: content-box; width: 200px; height: 25px; margin: 0; padding: 0; background: #ccc;">Normal</div>
+
+  <!-- CSS attribute selector with Unicode content in data attribute -->
+  <div data-layout-id="attr-unicode" data-label="test" style="box-sizing: content-box; width: 200px; height: 25px; margin: 0; padding: 0;">Styled</div>
+
+  <style>
+    [data-label="test"] {
+      padding-left: 15px;
+    }
+  </style>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Complex Unicode Test"}, nil
+}
+</script>

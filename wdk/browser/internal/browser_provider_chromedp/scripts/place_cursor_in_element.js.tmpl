@@ -1,0 +1,39 @@
+(function() {
+	const childSelector = {{jsStr .ChildSelector}};
+
+	// Find the child element within this parent
+	const child = this.querySelector(childSelector);
+	if (!child) {
+		return false;
+	}
+
+	// Find the first text node or use the element itself
+	const textNode = child.firstChild || child;
+
+	// Create range and set cursor position
+	const range = document.createRange();
+	const offset = textNode.nodeType === Node.TEXT_NODE
+		? Math.min(1, textNode.length)
+		: 0;
+
+	try {
+		range.setStart(textNode, offset);
+		range.collapse(true);
+	} catch (e) {
+		// Fall back to selecting node contents if setStart fails
+		range.selectNodeContents(child);
+		range.collapse(true);
+	}
+
+	// Get the appropriate selection object
+	// For shadow DOM, use shadow root's getSelection if available
+	const root = this.getRootNode();
+	const sel = (root !== document && root.getSelection)
+		? root.getSelection()
+		: window.getSelection();
+
+	sel.removeAllRanges();
+	sel.addRange(range);
+
+	return true;
+})

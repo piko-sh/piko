@@ -1,0 +1,5 @@
+<template>
+    <div style="color: red; font-size: 16px;">
+        <p>Inherited styles</p>
+    </div>
+</template>

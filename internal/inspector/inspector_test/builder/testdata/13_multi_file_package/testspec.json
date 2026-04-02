@@ -1,0 +1,25 @@
+{
+  "description": "Tests that types are correctly resolved across multiple files within the same package.",
+  "moduleName": "testcase_13_multi_file_package",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_13_multi_file_package/models"
+  ],
+  "assertions": [
+    {
+      "description": "Both User and Profile types should be serialised in the 'models' package.",
+      "select": "packages.testcase_13_multi_file_package/models.named_types.Profile.name",
+      "expect": "Profile"
+    },
+    {
+      "description": "The 'Profile' field on 'User' should be correctly qualified.",
+      "select": "packages.testcase_13_multi_file_package/models.named_types.User.fields.0.type_string",
+      "expect": "models.Profile"
+    },
+    {
+      "description": "The PackagePath for the 'Profile' field should be the models package.",
+      "select": "packages.testcase_13_multi_file_package/models.named_types.User.fields.0.pkg_path",
+      "expect": "testcase_13_multi_file_package/models"
+    }
+  ]
+}

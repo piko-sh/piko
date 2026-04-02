@@ -1,0 +1,59 @@
+--- PACKAGE: testcase_07_aliased_and_dot_imports ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 07_aliased_and_dot_imports/src/main.go
+    - import "."                  -> testcase_07_aliased_and_dot_imports/timestamp
+    - import "u"                  -> testcase_07_aliased_and_dot_imports/uuid
+
+[Named Types]
+  > type Event
+    - Defined In:      07_aliased_and_dot_imports/src/main.go
+    - TypeString:      main.Event
+    - Underlying:      struct{EventID u.UUID; Created timestamp.Time}
+    - Stringability:   0
+    - Fields:
+      - EventID              u.UUID
+        (Canonical Package: testcase_07_aliased_and_dot_imports/uuid)
+      - Created              timestamp.Time
+        (Canonical Package: testcase_07_aliased_and_dot_imports/timestamp)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_07_aliased_and_dot_imports/timestamp ---
+[Package Info]
+  - Name:    timestamp
+
+[File-Scoped Imports]
+  > File: 07_aliased_and_dot_imports/src/timestamp/types.go
+    (no imports in this file)
+
+[Named Types]
+  > type Time
+    - Defined In:      07_aliased_and_dot_imports/src/timestamp/types.go
+    - TypeString:      timestamp.Time
+    - Underlying:      struct{}
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_07_aliased_and_dot_imports/uuid ---
+[Package Info]
+  - Name:    uuid
+
+[File-Scoped Imports]
+  > File: 07_aliased_and_dot_imports/src/uuid/types.go
+    (no imports in this file)
+
+[Named Types]
+  > type UUID
+    - Defined In:      07_aliased_and_dot_imports/src/uuid/types.go
+    - TypeString:      uuid.UUID
+    - Underlying:      struct{}
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)

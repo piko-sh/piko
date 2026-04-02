@@ -1,0 +1,7 @@
+{
+  "description": "Dynamic query safety validation for sortable parameters. Tests that a sortable parameter referencing a column not in the query output produces a Q011 diagnostic.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    { "severity": "warning", "code": "Q011", "messageContains": "nonexistent" }
+  ]
+}

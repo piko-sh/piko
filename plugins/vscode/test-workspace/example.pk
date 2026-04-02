@@ -1,0 +1,254 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+// Props defines the component properties
+type Props struct {
+	Title       string
+	Description string
+	Items       []Item
+	ShowFooter  bool
+}
+
+// Item represents a list item
+type Item struct {
+	Name  string
+	Value int
+	Tags  []string
+}
+
+// Render is the main rendering function for this component
+func Render(props Props) (data any) {
+	title := props.Title
+	items := props.Items
+	showButton := len(items) > 0
+	totalValue := 0
+
+	// Calculate total value
+	for _, item := range items {
+		totalValue += item.Value
+	}
+
+	return map[string]any{
+		"title":       title,
+		"items":       items,
+		"showButton":  showButton,
+		"totalValue":  totalValue,
+		"description": props.Description,
+		"showFooter":  props.ShowFooter,
+	}
+}
+</script>
+
+<template>
+	<div class="container">
+		<header class="header">
+			<h1>{{ title }}</h1>
+			<p class="description">{{ description }}</p>
+		</header>
+
+		<main class="content">
+			<div class="items-list" p-if="showButton">
+				<div class="item" p-for="item in items">
+					<div class="item-header">
+						<span class="item-name">{{ item.name }}</span>
+						<span class="item-value">{{ item.value }}</span>
+					</div>
+					<div class="item-tags" p-if="item.tags">
+						<span class="tag" p-for="tag in item.tags">
+							{{ tag }}
+						</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="empty-state" p-if="!showButton">
+				<p>No items to display</p>
+			</div>
+
+			<div class="summary">
+				<strong>Total Value:</strong> {{ totalValue }}
+			</div>
+		</main>
+
+		<footer class="footer" p-if="showFooter">
+			<p>&copy; 2025 Piko Example Component</p>
+			<button class="action-button" p-on:click="handleAction">
+				Perform Action
+			</button>
+		</footer>
+	</div>
+</template>
+
+<style>
+.container {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.header {
+	margin-bottom: 32px;
+	border-bottom: 2px solid #e0e0e0;
+	padding-bottom: 16px;
+}
+
+.header h1 {
+	color: #333333;
+	font-size: 32px;
+	font-weight: 700;
+	margin: 0 0 8px 0;
+}
+
+.description {
+	color: #666666;
+	font-size: 16px;
+	margin: 0;
+}
+
+.content {
+	margin-bottom: 32px;
+}
+
+.items-list {
+	display: grid;
+	gap: 16px;
+}
+
+.item {
+	background-color: #ffffff;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 16px;
+	transition: box-shadow 0.2s ease;
+}
+
+.item:hover {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.item-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.item-name {
+	font-weight: 600;
+	color: #333333;
+	font-size: 18px;
+}
+
+.item-value {
+	background-color: #4caf50;
+	color: #ffffff;
+	padding: 4px 12px;
+	border-radius: 16px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.item-tags {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.tag {
+	background-color: #f0f0f0;
+	color: #666666;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+.empty-state {
+	text-align: center;
+	padding: 48px 16px;
+	color: #999999;
+}
+
+.summary {
+	margin-top: 24px;
+	padding: 16px;
+	background-color: #f9f9f9;
+	border-radius: 8px;
+	font-size: 18px;
+}
+
+.footer {
+	margin-top: 32px;
+	padding-top: 16px;
+	border-top: 1px solid #e0e0e0;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.footer p {
+	color: #666666;
+	margin: 0;
+	font-size: 14px;
+}
+
+.action-button {
+	background-color: #2196f3;
+	color: #ffffff;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 6px;
+	font-size: 16px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.action-button:hover {
+	background-color: #1976d2;
+}
+
+.action-button:active {
+	background-color: #0d47a1;
+}
+</style>
+
+<i18n>
+{
+	"en": {
+		"title": "Example Component",
+		"description": "This is a demonstration of Piko template features",
+		"footer": "Built with Piko"
+	},
+	"es": {
+		"title": "Componente de Ejemplo",
+		"description": "Esta es una demostración de las características de plantilla de Piko",
+		"footer": "Construido con Piko"
+	},
+	"fr": {
+		"title": "Composant d'exemple",
+		"description": "Ceci est une démonstration des fonctionnalités de modèle Piko",
+		"footer": "Construit avec Piko"
+	}
+}
+</i18n>

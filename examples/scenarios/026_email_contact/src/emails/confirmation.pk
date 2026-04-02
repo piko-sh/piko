@@ -1,0 +1,175 @@
+<!--
+  Confirmation email sent after a contact form submission.
+  Uses PML elements for consistent rendering across email clients.
+-->
+
+<template>
+  <pml-container class="wrapper">
+    <pml-row class="header-row">
+      <pml-col>
+        <pml-p class="header-icon">&#9993;</pml-p>
+        <pml-p class="header-title">Message Received</pml-p>
+        <pml-p class="header-subtitle">We got your message and will be in touch soon.</pml-p>
+      </pml-col>
+    </pml-row>
+
+    <pml-row class="body-row">
+      <pml-col class="body-col">
+        <pml-p class="greeting">Hi {{ props.Name }},</pml-p>
+
+        <pml-br height="12px"></pml-br>
+
+        <pml-p class="body-text">Thank you for reaching out. We have received your message and our team will review it shortly. You can expect a response within 1-2 working days.</pml-p>
+
+        <pml-br height="20px"></pml-br>
+
+        <pml-p class="quote-label">Your message</pml-p>
+        <pml-p class="quote-text">{{ props.Message }}</pml-p>
+
+        <pml-br height="20px"></pml-br>
+
+        <pml-p class="sent-to">This confirmation was sent to {{ props.Email }}.</pml-p>
+      </pml-col>
+    </pml-row>
+
+    <pml-row class="footer-row">
+      <pml-col>
+        <pml-p class="footer-text">Sent by Piko Email Demo</pml-p>
+      </pml-col>
+    </pml-row>
+  </pml-container>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+
+    "testmodule/internal/dto"
+)
+
+func Render(r *piko.RequestData, props dto.ConfirmationEmailProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Message Received",
+    }, nil
+}
+
+func Preview() []piko.PreviewScenario {
+    return []piko.PreviewScenario{
+        {
+            Name: "default",
+            Props: dto.ConfirmationEmailProps{
+                Name:    "Jane Smith",
+                Email:   "jane.smith@example.com",
+                Message: "Hi there, I'd like to learn more about your services. Could you send me some information?",
+            },
+        },
+        {
+            Name:        "long message",
+            Description: "Tests layout with a lengthy multi-paragraph message",
+            Props: dto.ConfirmationEmailProps{
+                Name:    "Alexandra Worthington-Smythe",
+                Email:   "alexandra.ws@very-long-company-name.example.com",
+                Message: "Dear team,\n\nI have several questions about your platform that I'd like to discuss in detail.\n\nFirstly, I'm interested in understanding how the templating system handles internationalisation. We operate across twelve countries and need robust locale support.\n\nSecondly, could you provide documentation on the PDF generation pipeline? We produce around 50,000 invoices per month and need to ensure the system can handle that volume.\n\nLooking forward to hearing from you.\n\nBest regards,\nAlexandra",
+            },
+        },
+    }
+}
+</script>
+
+<style>
+  .wrapper {
+    max-width: 600px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    background-color: #f3f4f6;
+  }
+
+  .header-row {
+    background-color: #2563eb;
+    padding: 36px 32px;
+    text-align: center;
+  }
+
+  .header-icon {
+    font-size: 32px;
+    margin: 0 0 8px 0;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .header-title {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+  }
+
+  .header-subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  .body-row {
+    padding: 20px 16px;
+  }
+
+  .body-col {
+    padding: 32px;
+    background-color: #ffffff;
+  }
+
+  .greeting {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .body-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #4b5563;
+  }
+
+  .quote-label {
+    margin: 0 0 8px 0;
+    font-weight: 600;
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .quote-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    white-space: pre-wrap;
+    background-color: #f9fafb;
+    border-left: 3px solid #2563eb;
+    padding: 16px;
+  }
+
+  .sent-to {
+    font-size: 12px;
+    color: #9ca3af;
+    margin: 0;
+  }
+
+  .footer-row {
+    padding: 20px 32px;
+  }
+
+  .footer-text {
+    margin: 0;
+    font-size: 12px;
+    color: #9ca3af;
+    text-align: center;
+  }
+</style>

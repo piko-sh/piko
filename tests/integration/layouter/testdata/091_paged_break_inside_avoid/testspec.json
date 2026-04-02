@@ -1,0 +1,14 @@
+{
+    "description": "Verifies break-inside: avoid prevents splitting a box across pages.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 300,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "block-a": {"pageIndex": 0, "x": 0, "y": 0, "width": 400, "height": 150},
+        "block-b": {"pageIndex": 1, "x": 0, "y": 0, "width": 400, "height": 200}
+    }
+}

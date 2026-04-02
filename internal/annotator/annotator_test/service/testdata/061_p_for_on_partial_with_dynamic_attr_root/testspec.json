@@ -1,0 +1,28 @@
+{
+  "description": "Validates that when p-for is placed on a partial invocation, and the partial's root element has a dynamic attribute (like :href), no false positive precedence warning is emitted. The precedence warning should only apply when both directives are authored in the same file, not when merged from partial expansion.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Type 'models.Article' is not directly renderable"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "a[p-for]",
+      "description": "The expanded partial root element should have p-for merged from the invocation and :href from the partial itself.",
+      "assertOnDirective": [
+        {
+          "name": "p-for",
+          "rawExpression": "article in state.Articles"
+        }
+      ],
+      "assertOnDynamicAttribute": [
+        {
+          "name": "href",
+          "rawExpression": "`/articles/${props.Article.Slug}`"
+        }
+      ]
+    }
+  ]
+}

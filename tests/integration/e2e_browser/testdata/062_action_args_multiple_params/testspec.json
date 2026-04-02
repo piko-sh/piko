@@ -1,0 +1,50 @@
+{
+  "description": "Tests action with multiple typed input fields (string, int, float, bool)",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-string",
+      "expected": "hello"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-int",
+      "expected": "42"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-float",
+      "expected": "3.14"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-bool",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-summary",
+      "expected": "s=hello i=42 f=3.14 b=true"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_action.html"
+    }
+  ]
+}

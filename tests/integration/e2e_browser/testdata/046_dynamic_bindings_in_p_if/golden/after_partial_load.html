@@ -1,0 +1,80 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">Dynamic Bindings in p-if Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests that :src, :alt, :style bindings work correctly inside p-if blocks when loaded via RemoteRender</p>
+    <button
+      partial="pages_index_032f49b1"
+      p-key="r.0:2"
+      id="load-partial-btn"
+      p-on:click="eyJmIjoibG9hZFBhcnRpYWwiLCJhIjpbXX0"
+      pk-ev-bound="true"
+    >Load Partial with Conditional Bindings</button>
+    <div partial="pages_index_032f49b1" p-key="r.0:3" id="partial-container" class="partial-container">
+      <div
+        p-key="r.0"
+        class="conditional-bindings-partial"
+        partial="partials_conditional_bindings_aa1604ea"
+        partial_name="conditional_bindings"
+        partial_src="/_piko/partials/conditional_bindings"
+      >
+        <h3 partial="partials_conditional_bindings_aa1604ea" p-key="r.0:0">Conditional Bindings Test</h3>
+        <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:1" class="test-case" id="case-inside-pif">
+          <h4 partial="partials_conditional_bindings_aa1604ea" p-key="r.0:1:0">Case 1: Bindings INSIDE p-if (BUG)</h4>
+          <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:1:1" class="image-container">
+            <img
+              partial="partials_conditional_bindings_aa1604ea"
+              p-key="r.0:1:1:0"
+              p-ref="imgInsidePif"
+              data-pk-partial="partials_conditional_bindings_aa1604ea"
+              id="img-inside-pif"
+              class="test-img"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='20'%3ETEST IMAGE%3C/text%3E%3C/svg%3E"
+              alt="Test Image Alt Text"
+             />
+            <div
+              partial="partials_conditional_bindings_aa1604ea"
+              p-key="r.0:1:1:1"
+              p-ref="markerInsidePif"
+              data-pk-partial="partials_conditional_bindings_aa1604ea"
+              id="marker-inside-pif"
+              class="focal-marker"
+              style="left:75%;top:25%;"
+            ></div>
+          </div>
+        </div>
+        <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:2" class="test-case" id="case-outside-pif">
+          <h4 partial="partials_conditional_bindings_aa1604ea" p-key="r.0:2:0">Case 2: Bindings OUTSIDE p-if (should work)</h4>
+          <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:2:1" class="image-container">
+            <img
+              partial="partials_conditional_bindings_aa1604ea"
+              p-key="r.0:2:1:0"
+              p-ref="imgOutsidePif"
+              data-pk-partial="partials_conditional_bindings_aa1604ea"
+              id="img-outside-pif"
+              class="test-img"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='20'%3ETEST IMAGE%3C/text%3E%3C/svg%3E"
+              alt="Test Image Alt Text"
+             />
+            <div
+              partial="partials_conditional_bindings_aa1604ea"
+              p-key="r.0:2:1:1"
+              p-ref="markerOutsidePif"
+              data-pk-partial="partials_conditional_bindings_aa1604ea"
+              id="marker-outside-pif"
+              class="focal-marker"
+              style="left:75%;top:25%;"
+            ></div>
+          </div>
+        </div>
+        <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3" class="debug-info">
+          <strong partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:0">State values:</strong>
+          <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:1">ImageURL: <span partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:1:1" id="debug-url">data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='20'%3ETEST IMAGE%3C/text%3E%3C/svg%3E</span></div>
+          <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:2">ImageAlt: <span partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:2:1" id="debug-alt">Test Image Alt Text</span></div>
+          <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:3">MarkerX: <span partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:3:1" id="debug-x">75</span></div>
+          <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:4">MarkerY: <span partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:4:1" id="debug-y">25</span></div>
+          <div partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:5">ShowImage: <span partial="partials_conditional_bindings_aa1604ea" p-key="r.0:3:5:1" id="debug-show">true</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

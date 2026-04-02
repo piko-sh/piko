@@ -1,0 +1,31 @@
+[
+  {
+    "action": "checkText",
+    "selector": "slots-component >>> header",
+    "expected": "Default Header"
+  },
+  {
+    "action": "checkText",
+    "selector": "slots-component >>> main",
+    "expected": "Default Content"
+  },
+  {
+    "action": "eval",
+    "selector": "#test-harness > slots-component",
+    "value": "() => this.innerHTML = '<h1 slot=\"header\">Projected Header</h1><p>Projected Main Content</p>'"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkText",
+    "selector": "slots-component >>> header",
+    "expected": "Projected Header"
+  },
+  {
+    "action": "checkText",
+    "selector": "slots-component >>> main",
+    "expected": "Projected Main Content"
+  }
+]

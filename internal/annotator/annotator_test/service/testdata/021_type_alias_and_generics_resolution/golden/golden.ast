@@ -1,0 +1,23 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Total Users: "
+      {{ state.Users.TotalCount }}
+    </RichText>
+  </p>
+  <ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <li [p-for: user in state.Users.Items] [p-key: user.Name] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "\n                "
+        {{ user.Name }}
+        "\n            "
+      </RichText>
+    </li>
+  </ul>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when calling a function with an argument of the wrong type.",
+  "expression": "state.User.SetName(state.Count)",
+  "expectedType": "nil",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Cannot use type 'int' as argument 1 of type 'string' in call to 'state.User.SetName'"
+    }
+  ]
+}]

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies inline-block intrinsic width determined by text content with real font metrics.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

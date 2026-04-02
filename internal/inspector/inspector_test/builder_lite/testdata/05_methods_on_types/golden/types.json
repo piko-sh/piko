@@ -1,0 +1,174 @@
+{
+  "packages": {
+    "testcase_lite_05": {
+      "file_imports": {
+        "05_methods_on_types/src/main.go": {}
+      },
+      "named_types": {
+        "Counter": {
+          "name": "Counter",
+          "package_path": "testcase_lite_05",
+          "defined_in_file_path": "05_methods_on_types/src/main.go",
+          "type_string": "Counter",
+          "underlying_type_string": "int",
+          "fields": null,
+          "methods": [
+            {
+              "name": "Increment",
+              "type_string": "func()",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_05",
+              "declaring_type_name": "Counter",
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "signature": {
+                "params": null,
+                "results": null
+              },
+              "definition_line": 41,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            },
+            {
+              "name": "Value",
+              "type_string": "func() int",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_05",
+              "declaring_type_name": "Counter",
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "int"
+                ]
+              },
+              "definition_line": 45,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 39,
+          "definition_column": 6
+        },
+        "User": {
+          "name": "User",
+          "package_path": "testcase_lite_05",
+          "defined_in_file_path": "05_methods_on_types/src/main.go",
+          "type_string": "User",
+          "underlying_type_string": "struct{...}",
+          "fields": [
+            {
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "name": "FirstName",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 22,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "name": "LastName",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 23,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "name": "Email",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 24,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [
+            {
+              "name": "FullName",
+              "type_string": "func() string",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_05",
+              "declaring_type_name": "User",
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 27,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "String",
+              "type_string": "func() string",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_05",
+              "declaring_type_name": "User",
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 31,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "SetEmail",
+              "type_string": "func(string)",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_05",
+              "declaring_type_name": "User",
+              "definition_file_path": "05_methods_on_types/src/main.go",
+              "signature": {
+                "params": [
+                  "string"
+                ],
+                "param_names": [
+                  "email"
+                ],
+                "results": null
+              },
+              "definition_line": 35,
+              "definition_column": 1,
+              "is_pointer_receiver": true
+            }
+          ],
+          "type_params": null,
+          "stringability": 2,
+          "is_alias": false,
+          "definition_line": 21,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_lite_05",
+      "name": "main"
+    }
+  },
+  "file_to_package": {}
+}

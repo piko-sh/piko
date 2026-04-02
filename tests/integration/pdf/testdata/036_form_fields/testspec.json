@@ -1,0 +1,5 @@
+{
+    "description": "Interactive PDF form with text inputs, checkboxes, radio buttons, dropdowns, and buttons.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

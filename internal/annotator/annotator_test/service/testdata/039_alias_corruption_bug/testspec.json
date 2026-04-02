@@ -1,0 +1,26 @@
+{
+  "description": "Isolates the bug where conflicting import aliases within the same Go package cause type serialization corruption. A correct implementation will resolve types based on the import context of the defining file, not the package as a whole.",
+  "expectedDiagnostics": 0,
+  "shouldError": false,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#test-target",
+      "description": "The expression should resolve correctly despite the conflicting alias in a sibling file.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.ServiceData.Item",
+          "description": "The type of 'Item' must be resolved as 'models.Data', using the alias from 'service_a.go', not 'm_alt.Data' from 'service_b.go'.",
+          "resolvedTypeIs": "models.Data",
+          "baseCodeGenVarName": "pageData"
+        },
+        {
+          "rawExpression": "state.ServiceData.Item.Name",
+          "description": "Accessing '.Name' should succeed, resolving to a primitive string.",
+          "resolvedTypeIs": "string",
+          "baseCodeGenVarName": "pageData"
+        }
+      ]
+    }
+  ]
+}

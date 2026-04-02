@@ -1,0 +1,192 @@
+<!--
+  024: Order Creation Page
+
+  This page provides a form to create orders by selecting a product and
+  entering a quantity. The recent orders table is rendered as a public
+  partial that can be reloaded independently after placing an order
+  without refreshing the entire page.
+
+  The product selector dropdown requires page-level data, so it remains
+  in the page's Render function.
+-->
+
+<template>
+  <div id="app">
+    <h1>Create Order</h1>
+
+    <form id="order-form" p-on:submit.prevent="handleOrder($event, $form)">
+      <div class="form-group">
+        <label for="product_id">Product</label>
+        <select name="product_id" id="product_id" required>
+          <option value="">Select a product...</option>
+          <option
+            p-for="(i, product) in state.Products"
+            p-key="product.ID"
+            :value="product.ID"
+          >{{ product.Name }} ({{ product.Category }}) - {{ product.Price }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="quantity">Quantity</label>
+        <input
+          type="number"
+          name="quantity"
+          id="quantity"
+          min="1"
+          value="1"
+          required
+        />
+      </div>
+
+      <button type="submit">Place Order</button>
+    </form>
+
+    <!--
+      The order table is a public partial. After placing an order, we
+      reload it with piko.partials.reload("order-table") so only the
+      table re-renders from the server.
+    -->
+    <piko:partial is="order_table" />
+
+    <div class="nav-links">
+      <a href="/">Back to Dashboard</a>
+      <a href="/products">Manage Products</a>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/db"
+
+    order_table "testmodule/partials/order-table.pk"
+
+    "testmodule/db/generated"
+)
+
+// ProductOption holds the data needed for the product selector dropdown.
+type ProductOption struct {
+    ID       int32   `json:"id"`
+    Name     string  `json:"name"`
+    Category string  `json:"category"`
+    Price    float64 `json:"price"`
+}
+
+// Response holds the page-level state. The order table is fetched by the
+// partial's own Render function, so the page only provides the product
+// list for the create form.
+type Response struct {
+    Products []ProductOption `json:"products"`
+}
+
+// Render fetches the product list for the order form. The recent orders
+// table is handled by the order_table partial.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    reader, err := db.GetDatabaseReader("analytics")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(reader)
+
+    product_rows, err := queries.ListProducts(r.Context())
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    products := make([]ProductOption, len(product_rows))
+    for i, row := range product_rows {
+        products[i] = ProductOption{
+            ID:       row.ID,
+            Name:     row.Name,
+            Category: row.Category,
+            Price:    row.Price,
+        }
+    }
+
+    return Response{
+        Products: products,
+    }, piko.Metadata{
+        Title: "Create Order",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function handleOrder(_event: SubmitEvent, form: FormDataHandle): Promise<void> {
+    try {
+        await action.orders.Create(form).call();
+        piko.partials.reload("order-table");
+    } catch (e: any) {
+        console.error('Failed to create order:', e);
+    }
+}
+</script>
+
+<style>
+  #app {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #2563eb;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .form-group select,
+  .form-group input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+  }
+
+  button[type="submit"] {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+  }
+
+  button[type="submit"]:hover {
+    background-color: #1d4ed8;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .nav-links a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .nav-links a:hover {
+    text-decoration: underline;
+  }
+</style>

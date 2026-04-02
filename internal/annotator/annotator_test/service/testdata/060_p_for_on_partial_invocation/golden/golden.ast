@@ -1,0 +1,20 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="container" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div class="item-card" :item_id="item.ID" {P: item.ID, OriginPackage: main_aaf9a2e0} :item_name="item.Name" {P: item.Name, OriginPackage: main_aaf9a2e0} [p-for: item in state.Items] [p-key: item.ID] [ANNOTATIONS: OriginPackage: partials_item_card_e11b3960 OriginPath: partials/item_card.pk PARTIAL InvKey: card_item_id_item_id_item_name_item_name_a74f7f0f Package: partials_item_card_e11b3960 InvPackage: main_aaf9a2e0]>
+    <span class="item-id" [ANNOTATIONS: OriginPackage: partials_item_card_e11b3960 OriginPath: partials/item_card.pk]>
+      <RichText>
+        {{ state.DisplayID }}
+      </RichText>
+    </span>
+    <span class="item-name" [ANNOTATIONS: OriginPackage: partials_item_card_e11b3960 OriginPath: partials/item_card.pk]>
+      <RichText>
+        {{ state.DisplayName }}
+      </RichText>
+    </span>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,80 @@
+<!--
+  024: PostgreSQL Analytics Dashboard - CTEs, Window Functions, and Read-Write Split
+
+  This page provides the shell for the product analytics dashboard. The
+  analytics data (category summaries, top products, and daily revenue) is
+  rendered as a public partial that fetches its own data using read
+  replicas.
+-->
+
+<template>
+  <div id="app">
+    <h1>Product Analytics Dashboard</h1>
+
+    <!--
+      The analytics dashboard is a public partial. It fetches all
+      analytics data from the database using read replicas.
+    -->
+    <piko:partial is="analytics_dashboard" />
+
+    <div class="nav-links">
+      <a href="/products">Manage Products</a>
+      <a href="/orders">Create Orders</a>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+
+    analytics_dashboard "testmodule/partials/analytics-dashboard.pk"
+)
+
+// Response holds the page-level state. The analytics data is fetched by the
+// partial's own Render function, so the page itself has no database state.
+type Response struct{}
+
+// Render returns an empty response. The analytics_dashboard partial handles
+// its own data fetching.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Product Analytics Dashboard",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #2563eb;
+    margin-bottom: 1.5rem;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .nav-links a {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-size: 0.9375rem;
+  }
+
+  .nav-links a:hover {
+    background-color: #1d4ed8;
+  }
+</style>

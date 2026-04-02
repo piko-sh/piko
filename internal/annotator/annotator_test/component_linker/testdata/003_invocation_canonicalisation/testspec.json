@@ -1,0 +1,21 @@
+{
+  "description": "Checks that semantically identical invocations get the same canonical key.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 2,
+  "assertNodes": [
+    {
+      "select": "#card1",
+      "description": "Card 1 and Card 2 should have the same canonical invocation key",
+      "assert": {
+        "invocationKeyShouldMatch": "#card2"
+      }
+    },
+    {
+      "select": "#card3",
+      "description": "Card 3 should have a different key from Card 1",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#card1"
+      }
+    }
+  ]
+}

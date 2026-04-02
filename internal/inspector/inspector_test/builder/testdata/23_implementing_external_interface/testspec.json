@@ -1,0 +1,40 @@
+{
+  "description": "Tests serialisation of methods implementing stdlib interfaces and usage of predeclared aliases (byte, rune, any).",
+  "moduleName": "testcase_23_implementing_external_interface",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_23_implementing_external_interface"
+  ],
+  "assertions": [
+    {
+      "description": "MyWriter should have a 'Write' method.",
+      "select": "packages.testcase_23_implementing_external_interface.named_types.MyWriter.methods.0.name",
+      "expect": "Write"
+    },
+    {
+      "description": "The 'Write' method's parameter should be '[]byte', preserving the idiomatic alias.",
+      "select": "packages.testcase_23_implementing_external_interface.named_types.MyWriter.methods.0.signature.params.0",
+      "expect": "[]byte"
+    },
+    {
+      "description": "MyRuneReader should have a 'ReadRune' method.",
+      "select": "packages.testcase_23_implementing_external_interface.named_types.MyRuneReader.methods.0.name",
+      "expect": "ReadRune"
+    },
+    {
+      "description": "The 'ReadRune' method's first return value should be 'rune', preserving the idiomatic alias.",
+      "select": "packages.testcase_23_implementing_external_interface.named_types.MyRuneReader.methods.0.signature.results.0",
+      "expect": "rune"
+    },
+    {
+      "description": "The 'Container' struct should have a 'Data' field.",
+      "select": "packages.testcase_23_implementing_external_interface.named_types.Container.fields.0.name",
+      "expect": "Data"
+    },
+    {
+      "description": "The 'Data' field's type should be 'any', preserving the modern alias for interface{}.",
+      "select": "packages.testcase_23_implementing_external_interface.named_types.Container.fields.0.type_string",
+      "expect": "any"
+    }
+  ]
+}

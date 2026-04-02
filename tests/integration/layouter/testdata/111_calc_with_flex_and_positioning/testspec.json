@@ -1,0 +1,7 @@
+{
+    "description": "Verifies calc() expressions across flex layout and positioning: calc in container width, gap, relative offset, and min-width constraint.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

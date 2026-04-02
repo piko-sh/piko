@@ -1,0 +1,29 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">Complex Expressions Test</h1>
+    <expression-demo partial="pages_index_032f49b1" p-key="r.0:1" count="0">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.expression-demo{padding: 1rem}.controls{margin-bottom: 1rem}.controls button{margin-right: 0.5rem;padding: 0.5rem 1rem}.results{padding: 1rem;background: #f5f5f5;border: 1px solid #ddd;margin-bottom: 1rem}.results p{margin: 0.5rem 0}.results span{font-weight: bold;color: #1976d2}.state-display{padding: 0.5rem;background: #e3f2fd;font-size: 0.9rem}</style>
+        <div class="expression-demo">
+          <div class="controls"><button id="toggle-flag-btn">Toggle Flag</button><button id="increment-btn">Increment Count</button><button id="set-user-btn">Set User</button><button id="clear-user-btn">Clear User</button></div>
+          <div class="results">
+            <h3>Expression Results</h3>
+            <p class="ternary-result"> Ternary: <span id="ternary-value">No</span></p>
+            <p class="and-result"> AND (&&): <span id="and-value">Not both</span></p>
+            <p class="or-result"> OR (||): <span id="or-value">Neither</span></p>
+            <p class="comparison-result"> Comparison: <span id="comparison-value">Less than 3</span></p>
+            <p class="arithmetic-result"> Arithmetic: <span id="arithmetic-value">Sum: 10</span></p>
+            <p class="optional-chain-result"> Nested Ternary: <span id="optional-value">No user</span></p>
+            <p class="nullish-result"> Logical AND Chain: <span id="nullish-value">No email set</span></p>
+          </div>
+          <div class="state-display">
+            <p>Flag: <span id="flag-state">false</span></p>
+            <p>Count: <span id="count-state">0</span></p>
+            <p>Has User: <span id="has-user-state">no</span></p>
+          </div>
+        </div>
+      </template>
+    </expression-demo>
+  </div>
+</div>

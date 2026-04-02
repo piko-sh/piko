@@ -1,0 +1,6 @@
+{
+  "description": "Tests text content assertions: ContainsText, HasExactText, TextMatches",
+  "entryPoints": [
+    { "path": "pages/messages.pk", "isPage": true }
+  ]
+}

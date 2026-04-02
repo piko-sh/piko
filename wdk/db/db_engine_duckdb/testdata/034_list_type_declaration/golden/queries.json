@@ -1,0 +1,141 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "documents.sql",
+    "SQL": "-- piko.name: ListDocuments\n-- piko.command: many\nSELECT id, title, tags, scores FROM documents;",
+    "Name": "ListDocuments",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "Name": "id",
+        "SourceTable": "documents",
+        "SourceColumn": "id",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int4",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "title",
+        "SourceTable": "documents",
+        "SourceColumn": "title",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "varchar",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "tags",
+        "SourceTable": "documents",
+        "SourceColumn": "tags",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": {
+            "Precision": null,
+            "Scale": null,
+            "Length": null,
+            "ElementType": null,
+            "EngineName": "varchar",
+            "Schema": "",
+            "EnumValues": null,
+            "StructFields": null,
+            "KeyType": null,
+            "UnionMembers": null,
+            "Category": 4
+          },
+          "EngineName": "list",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 13
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "Name": "scores",
+        "SourceTable": "documents",
+        "SourceColumn": "scores",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": {
+            "Precision": null,
+            "Scale": null,
+            "Length": null,
+            "ElementType": null,
+            "EngineName": "int4",
+            "Schema": "",
+            "EnumValues": null,
+            "StructFields": null,
+            "KeyType": null,
+            "UnionMembers": null,
+            "Category": 0
+          },
+          "EngineName": "list",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 13
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "IsDynamic": false,
+    "Command": 1,
+    "DynamicRuntime": false,
+    "ReadOnly": true
+  }
+]

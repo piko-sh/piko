@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/themes.pk": {
+      "routePatterns": {
+        "en": "/themes"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_24_has_class/dist/pages/pages_themes_7f68f11d",
+      "originalSourcePath": "pages/themes.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Tests a struct field whose type is imported from another package.",
+  "moduleName": "testcase_03_cross_package_struct_field",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_03_cross_package_struct_field"
+  ],
+  "assertions": [
+    {
+      "description": "The 'UserData' field on the 'Request' type should be found.",
+      "select": "packages.testcase_03_cross_package_struct_field.named_types.Request.fields.0.name",
+      "expect": "UserData"
+    },
+    {
+      "description": "The field's TypeString must be qualified with the imported package's name.",
+      "select": "packages.testcase_03_cross_package_struct_field.named_types.Request.fields.0.type_string",
+      "expect": "models.User"
+    },
+    {
+      "description": "The field's PackagePath must contain the canonical import path of the 'models' package.",
+      "select": "packages.testcase_03_cross_package_struct_field.named_types.Request.fields.0.pkg_path",
+      "expect": "testcase_03_cross_package_struct_field/models"
+    },
+    {
+      "description": "The 'models' package itself should be serialised with its 'User' type.",
+      "select": "packages.testcase_03_cross_package_struct_field/models.named_types.User.name",
+      "expect": "User"
+    }
+  ]
+}

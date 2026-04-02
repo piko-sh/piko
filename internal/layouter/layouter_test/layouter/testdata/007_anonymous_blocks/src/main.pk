@@ -1,0 +1,3 @@
+<template>
+    <div>Text before <p>Block paragraph</p> text after</div>
+</template>

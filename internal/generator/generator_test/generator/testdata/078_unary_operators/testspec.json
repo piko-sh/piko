@@ -1,0 +1,4 @@
+{
+  "description": "Tests unary operators (!, -) including truthiness coercion",
+  "skip": false
+}

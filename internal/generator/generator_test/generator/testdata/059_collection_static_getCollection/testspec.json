@@ -1,0 +1,5 @@
+{
+  "description": "Tests that data.GetCollection() with static provider generates correct slice literal code",
+  "packageName": "collection_static_test",
+  "isPage": true
+}

@@ -1,0 +1,14 @@
+{
+  "description": "Test JSON configuration file loading with overridden values",
+  "expectError": false,
+  "configFiles": ["config.json"],
+  "expectedDefaults": false,
+  "validateFields": {
+    "I18nDefaultLocale": "es",
+    "CSRFSecret": "custom-secret-123",
+    "Network.Port": "9090",
+    "Network.PublicDomain": "example.com:9090",
+    "Paths.BaseDir": "/app",
+    "Otlp.Enabled": true
+  }
+}

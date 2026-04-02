@@ -1,0 +1,112 @@
+{
+  "description": "Tests that dynamic attribute bindings (:src, :alt, :style) work correctly inside p-if blocks when loaded via RemoteRender. Currently these bindings are silently ignored by the compiler.",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Dynamic Bindings in p-if Test"
+    },
+    {
+      "action": "click",
+      "selector": "#load-partial-btn"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".conditional-bindings-partial"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "comment",
+      "value": "Check that state values are correct (these should pass)"
+    },
+    {
+      "action": "checkText",
+      "selector": "#debug-url",
+      "expected": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='20'%3ETEST IMAGE%3C/text%3E%3C/svg%3E"
+    },
+    {
+      "action": "checkText",
+      "selector": "#debug-alt",
+      "expected": "Test Image Alt Text"
+    },
+    {
+      "action": "checkText",
+      "selector": "#debug-show",
+      "expected": "true"
+    },
+    {
+      "action": "comment",
+      "value": "BUG: Image inside p-if should have src attribute but doesn't"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#img-inside-pif",
+      "attribute": "src",
+      "expected": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='20'%3ETEST IMAGE%3C/text%3E%3C/svg%3E"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#img-inside-pif",
+      "attribute": "alt",
+      "expected": "Test Image Alt Text"
+    },
+    {
+      "action": "comment",
+      "value": "BUG: Focal marker inside p-if should have style attribute but doesn't"
+    },
+    {
+      "action": "checkAttributeContains",
+      "selector": "#marker-inside-pif",
+      "attribute": "style",
+      "expected": "left:75%"
+    },
+    {
+      "action": "checkAttributeContains",
+      "selector": "#marker-inside-pif",
+      "attribute": "style",
+      "expected": "top:25%"
+    },
+    {
+      "action": "comment",
+      "value": "Image outside p-if should work correctly"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#img-outside-pif",
+      "attribute": "src",
+      "expected": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='20'%3ETEST IMAGE%3C/text%3E%3C/svg%3E"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#img-outside-pif",
+      "attribute": "alt",
+      "expected": "Test Image Alt Text"
+    },
+    {
+      "action": "checkAttributeContains",
+      "selector": "#marker-outside-pif",
+      "attribute": "style",
+      "expected": "left:75%"
+    },
+    {
+      "action": "checkAttributeContains",
+      "selector": "#marker-outside-pif",
+      "attribute": "style",
+      "expected": "top:25%"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_partial_load.html"
+    }
+  ]
+}

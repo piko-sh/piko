@@ -1,0 +1,42 @@
+[
+  {
+    "action": "checkAttribute",
+    "selector": "attr-shorthand \u003e\u003e\u003e a",
+    "expected": "https://example.com/initial",
+    "name": "href"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "attr-shorthand \u003e\u003e\u003e a",
+    "expected": "123",
+    "name": "data-id"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "attr-shorthand \u003e\u003e\u003e img",
+    "expected": "/logo_initial.png",
+    "name": "src"
+  },
+  {
+    "action": "click",
+    "selector": "attr-shorthand \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "attr-shorthand \u003e\u003e\u003e a",
+    "expected": "https://example.com/updated",
+    "name": "href"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "attr-shorthand \u003e\u003e\u003e a",
+    "expected": "456",
+    "name": "data-id"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "attr-shorthand \u003e\u003e\u003e img",
+    "expected": "/logo_updated.png",
+    "name": "src"
+  }
+]

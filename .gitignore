@@ -1,0 +1,30 @@
+# Compiled output files
+bin
+compiled
+out
+.out
+dist
+# Re-include dist/ inside test golden directories (golden file snapshots)
+!**/golden/dist/
+plugins/idea/.kotlin
+plugins/idea/.intellijPlatform
+plugins/idea/.idea
+plugins/idea/build
+*.test
+*.out
+coverage
+
+# Dependencies
+node_modules
+
+# Golang
+gc-flags
+
+# Piko
+.piko
+
+# Generated benchmark caches
+internal/generator/generator_test_bench/testdata/*/cache/*.bin
+
+# Other
+tmp

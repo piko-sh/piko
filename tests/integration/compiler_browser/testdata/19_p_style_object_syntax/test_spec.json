@@ -1,0 +1,18 @@
+[
+  {
+    "action": "checkAttribute",
+    "selector": "p-style-object \u003e\u003e\u003e p",
+    "expected": "font-weight: bold; color: blue; font-size: 16px;",
+    "name": "style"
+  },
+  {
+    "action": "click",
+    "selector": "p-style-object \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "p-style-object \u003e\u003e\u003e p",
+    "expected": "font-weight: bold; color: red; font-size: 24px;",
+    "name": "style"
+  }
+]

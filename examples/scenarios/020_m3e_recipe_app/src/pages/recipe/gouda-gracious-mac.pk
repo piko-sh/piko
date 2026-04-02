@@ -1,0 +1,249 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Gouda Gracious Mac & Cheese"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-gouda-gracious-mac.jpg" alt="Gouda Gracious Mac &amp; Cheese" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">Gouda Gracious Mac &amp; Cheese</h1>
+                <p class="recipe-pun">Gouda gracious, that's creamy!</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Gouda + Gruy&egrave;re</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        45 mins
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Easy</m3e-chip>
+                    <m3e-chip variant="outlined">6 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="6" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="6" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>400g macaroni pasta</m3e-list-item>
+                    <m3e-list-item>200g aged Gouda, grated</m3e-list-item>
+                    <m3e-list-item>150g Gruy&egrave;re, grated</m3e-list-item>
+                    <m3e-list-item>50g unsalted butter</m3e-list-item>
+                    <m3e-list-item>50g plain flour</m3e-list-item>
+                    <m3e-list-item>750ml whole milk</m3e-list-item>
+                    <m3e-list-item>1 tsp Dijon mustard</m3e-list-item>
+                    <m3e-list-item>Pinch of freshly grated nutmeg</m3e-list-item>
+                    <m3e-list-item>60g breadcrumbs (panko works brilliantly)</m3e-list-item>
+                    <m3e-list-item>Salt, to taste</m3e-list-item>
+                    <m3e-list-item>Freshly ground black pepper, to taste</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>Preheat the oven to 190&deg;C. Cook the macaroni in salted boiling water for 2 minutes less than the packet says &mdash; it finishes cooking in the oven. Use this time to grate the Gouda. You&rsquo;ll need 200g. Grate 250g because you are going to eat at least 50g while you cook and that is simply the tax one pays for making mac and cheese.</li>
+                    <li>Make the roux. Melt the butter in a heavy-bottomed saucepan over medium heat. Add the flour and stir constantly for 1&ndash;2 minutes until it turns golden and smells biscuity. This is the boring bit, but it&rsquo;s the foundation of everything beautiful that follows. Think of it as the opening credits before the cheese blockbuster.</li>
+                    <li>Gradually add the milk, a splash at a time, whisking continuously. If you add it all at once you&rsquo;ll get lumps and the mice will be very disappointed in you. Once the sauce thickens and coats the back of a spoon (5&ndash;7 minutes), stir in the Dijon mustard and nutmeg. Taste it. Go on. Oh, that&rsquo;s already good and we haven&rsquo;t even added the cheese yet.</li>
+                    <li>Remove from the heat. Now. THIS is the moment. Stir in the grated Gouda and Gruy&egrave;re, reserving a handful for the topping. Watch it melt. Watch it become smooth and glossy and absolutely magnificent. Are you emotional? It&rsquo;s okay to be emotional. We cried the first time too. Season with salt and pepper.</li>
+                    <li>Drain the pasta and fold it into the cheese sauce. Pour into a large ovenproof dish. Scatter the reserved cheese and breadcrumbs over the top, then drizzle with melted butter. It should look like a golden landscape of cheesy promise.</li>
+                    <li>Bake for 20&ndash;25 minutes until the top is golden and crunchy and the sauce is bubbling round the edges. The smell at this point will be weapons-grade. Neighbours may appear uninvited. Let it rest for 5 minutes before serving &mdash; the hardest 5 minutes of your entire life.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 580 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 24g</m3e-list-item>
+                    <m3e-list-item>Fat: 32g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 52g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>MacAttack99</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Gouda gracious indeed! This is the creamiest, most flavourful mac and cheese I have ever made at home. The aged Gouda gives it such a rich, deep taste. My entire family fought over the last portion.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>CheeseNerd</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">The Gruy&egrave;re adds such depth to this dish. I was making basic cheddar mac and cheese for years and this has completely ruined me - I can never go back. The breadcrumb crust is perfection.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>FourCheesePhilosopher</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Recipe says three cheeses. I added a fourth. Then a fifth. Then I lost count. At some point it stopped being mac and cheese and became cheese with mac. My family staged an intervention. I told them they were welcome to leave. They stayed. They had seconds.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>EmotionalEater_xx</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I cried watching the cheese melt. Real tears. Actual human tears rolling down my face as I watched three cheeses become one glorious sauce. My partner asked if I was alright. I said &ldquo;I have never been more alright.&rdquo; This recipe changed me as a person.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>WeekdayWarrior</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Made this on a Tuesday night. It is now Thursday. I have done nothing but eat mac and cheese and think about mac and cheese. I have called in sick to work. Not because I&rsquo;m ill &mdash; because I made a second batch and someone needs to be here when it comes out of the oven.</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>Aged Gouda has more flavour than young Gouda - look for one that's been matured for at least 12 months for a deeper, more caramel-like taste.</m3e-list-item>
+                    <m3e-list-item>Don't over-cook the pasta - it finishes in the oven, so pull it while it's still slightly firm to avoid a mushy result.</m3e-list-item>
+                    <m3e-list-item>A pinch of nutmeg is the secret weapon in any b&eacute;chamel. It rounds out the flavour beautifully without being identifiable.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Gouda is named after the Dutch city where it was historically traded. It accounts for 50-60% of all cheese consumed worldwide.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Gouda Gracious Mac & Cheese - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        // In a real app this would open a time-picker dialog
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

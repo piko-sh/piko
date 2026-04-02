@@ -1,0 +1,35 @@
+--- PACKAGE: testcase_23_implementing_external_interface ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 23_implementing_external_interface/src/main.go
+    - import "io"                 -> io
+
+[Named Types]
+  > type Container
+    - Defined In:      23_implementing_external_interface/src/main.go
+    - TypeString:      main.Container
+    - Underlying:      struct{Data any}
+    - Stringability:   0
+    - Fields:
+      - Data                 any
+
+  > type MyRuneReader
+    - Defined In:      23_implementing_external_interface/src/main.go
+    - TypeString:      main.MyRuneReader
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (*T) ReadRune        func() (rune, int, error)
+
+  > type MyWriter
+    - Defined In:      23_implementing_external_interface/src/main.go
+    - TypeString:      main.MyWriter
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (*T) Write           func([]byte) (int, error)
+
+[Package-Level Functions]
+  (none)

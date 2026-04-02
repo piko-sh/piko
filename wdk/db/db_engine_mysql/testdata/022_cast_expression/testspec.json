@@ -1,0 +1,3 @@
+{
+  "description": "CAST and CONVERT expressions in MySQL. Tests type resolution through CAST(expr AS type) and CONVERT(expr, type) syntax."
+}

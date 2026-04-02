@@ -1,0 +1,74 @@
+<template>
+    <pml-row background-color="#1a1a2e" padding="40px 0">
+        <pml-col>
+            <pml-p color="#ffffff" font-size="28px" align="center" padding="10px 25px" font-weight="bold">DevSummit 2026</pml-p>
+            <pml-p color="#a0a0d0" font-size="16px" align="center" padding="5px 25px">April 15-17, 2026 - London</pml-p>
+            <pml-button href="https://devsummit.example.com/register" background-color="#e74c3c" color="#ffffff" font-size="16px" border-radius="4px" padding="20px 25px" inner-padding="14px 36px">Register Now</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="30px 0 10px 0">
+        <pml-col>
+            <pml-p font-size="22px" color="#2c3e50" align="center" padding="10px 25px">Featured Speakers</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0 30px 0">
+        <pml-col width="50%">
+            <pml-p font-size="28px" font-weight="bold" color="#ffffff" background-color="#9b59b6" align="center" padding="20px">AJ</pml-p>
+            <pml-p font-size="16px" color="#2c3e50" align="center" padding="5px 10px">Dr Alex Jordan</pml-p>
+            <pml-p font-size="13px" color="#888888" align="center" padding="0 10px">CTO, FutureStack - Distributed Systems</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="28px" font-weight="bold" color="#ffffff" background-color="#e67e22" align="center" padding="20px">SK</pml-p>
+            <pml-p font-size="16px" color="#2c3e50" align="center" padding="5px 10px">Sara Kim</pml-p>
+            <pml-p font-size="13px" color="#888888" align="center" padding="0 10px">VP Engineering, Lattice - Platform Engineering</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="22px" color="#2c3e50" align="center" padding="10px 25px">Agenda</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="0 0 20px 0">
+        <pml-col>
+            <pml-ol>
+                <pml-li><b>Day 1 - Keynotes:</b> Opening ceremony, industry keynotes, and networking reception</pml-li>
+                <pml-li><b>Day 2 - Workshops:</b> Hands-on technical workshops and breakout sessions</pml-li>
+                <pml-li><b>Day 3 - Hackathon:</b> Team hackathon, demos, and closing awards ceremony</pml-li>
+            </pml-ol>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-no-stack>
+            <pml-col width="10%">
+                <pml-p font-size="24px" color="#e74c3c" align="center" padding="5px 0">&#9906;</pml-p>
+            </pml-col>
+            <pml-col width="90%">
+                <pml-p font-size="14px" color="#2c3e50" padding="8px 10px">ExCeL London, Royal Victoria Dock, 1 Western Gateway, London E16 1XL</pml-p>
+            </pml-col>
+        </pml-no-stack>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://devsummit.example.com/register" background-color="#1a1a2e" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 40px">Reserve Your Spot</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px 25px">
+                DevSummit 2026 is organised by DevEvents Ltd.
+            </pml-p>
+            <pml-p font-size="11px" color="#bbbbbb" align="center" padding="0 25px">
+                You received this invitation because you attended a previous event.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.speaker-name { font-weight: bold; }
+</style>

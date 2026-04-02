@@ -1,0 +1,187 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <header class="site-header">
+    <div class="header-container">
+      <a href="/" class="brand">
+        🚀 my-piko-app
+      </a>
+      <nav class="main-nav">
+        <a href="/">Home</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <piko:slot></piko:slot>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <p>© {{ state.CurrentYear }} my-piko-app. All Rights Reserved.</p>
+      <div class="social-links">
+        <a href="#">Twitter</a>
+        <span>·</span>
+        <a href="#">GitHub</a>
+        <span>·</span>
+        <a href="#">LinkedIn</a>
+      </div>
+    </div>
+  </footer>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "time"
+)
+
+type Props struct {
+    PageTitle string `prop:"page_title"`
+}
+
+type Response struct {
+    PageTitle   string
+    CurrentYear int
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    title := "my-piko-app"
+    if props.PageTitle != "" {
+        title = props.PageTitle + " | my-piko-app"
+    }
+
+    metadata := piko.Metadata{
+        Title: title,
+    }
+
+    return Response{
+        PageTitle:   title,
+        CurrentYear: time.Now().Year(),
+    }, metadata, nil
+}
+</script>
+
+<style>
+  :host {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: var(--g-font-family, sans-serif);
+    background-color: var(--g-colour-grey-50, #f9fafb);
+    color: var(--g-colour-grey-800, #1f2937);
+  }
+
+  .site-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--g-colour-grey-200, #e5e7eb);
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1280px;
+    margin: 0 auto;
+    height: 4rem;
+  }
+
+  .brand {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--g-colour-grey-900, #111827);
+    text-decoration: none;
+  }
+
+  .main-nav {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .main-nav a {
+    color: var(--g-colour-grey-600, #4b5563);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease-in-out;
+  }
+
+  .main-nav a:hover {
+    color: var(--g-colour-primary, #6F47EB);
+  }
+
+  main {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .site-footer {
+    background-color: #ffffff;
+    border-top: 1px solid var(--g-colour-grey-200, #e5e7eb);
+    padding: 2rem 1.5rem;
+    font-size: 0.875rem;
+    color: var(--g-colour-grey-500, #6b7280);
+  }
+
+  .footer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .social-links {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .social-links a {
+    color: var(--g-colour-grey-500, #6b7280);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+  }
+
+  .social-links a:hover {
+    color: var(--g-colour-primary, #6F47EB);
+  }
+
+  @media (min-width: 768px) {
+    .footer-container {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+</style>

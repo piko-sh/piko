@@ -1,0 +1,144 @@
+<template>
+    <pml-row background-color="#ffffff" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="26px" color="#2c3e50" align="center" padding="10px 25px" font-weight="bold">TalentBridge</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="0">
+        <pml-col>
+            <pml-hr border-color="#1abc9c" border-width="3px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#2c3e50" align="center" padding="10px 25px" font-weight="bold">Good News About Your Application!</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="14px" color="#666666" line-height="1.6" padding="5px 25px">
+                Your application for Senior Engineer at Acme Corp has been moved to the next stage.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#e8f8f5" padding="15px 0">
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Position:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Senior Software Engineer</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Company:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Acme Corp</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Status:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#27ae60" padding="5px 25px" font-weight="bold">Interview Scheduled</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Updated:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">1 April 2026</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="20px" color="#2c3e50" padding="10px 25px" font-weight="bold">Interview Details</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#ffffff" padding="10px 0">
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Format:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Video Call (Google Meet)</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Date:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Thursday, 10 April 2026</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Time:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">14:00 - 15:00 BST</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row padding="5px 0">
+            <pml-col width="30%">
+                <pml-p font-size="14px" color="#666666" padding="5px 25px" font-weight="bold">Interviewers:</pml-p>
+            </pml-col>
+            <pml-col width="70%">
+                <pml-p font-size="14px" color="#2c3e50" padding="5px 25px">Jane Smith (Engineering Lead), Tom Brown (CTO)</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-br></pml-br>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="20px" color="#2c3e50" padding="10px 25px" font-weight="bold">How to Prepare</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-ol>
+                <pml-li>Review the job description and your application</pml-li>
+                <pml-li>Prepare examples of past projects and technical challenges</pml-li>
+                <pml-li>Test your camera and microphone before the call</pml-li>
+                <pml-li>Have questions ready about the team and role</pml-li>
+            </pml-ol>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="50%">
+            <pml-button href="https://talentbridge.example.com/interview/confirm" background-color="#1abc9c" color="#ffffff" font-size="14px" border-radius="4px" padding="10px 15px" inner-padding="12px 28px">Confirm Interview</pml-button>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-button href="https://talentbridge.example.com/interview/reschedule" background-color="#95a5a6" color="#ffffff" font-size="14px" border-radius="4px" padding="10px 15px" inner-padding="12px 28px">Request Reschedule</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px 25px">
+                You are receiving this email because you applied through TalentBridge.
+            </pml-p>
+            <pml-p font-size="11px" color="#bbbbbb" align="center" padding="0 25px">
+                TalentBridge Recruiting - Connecting talent with opportunity
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.interview-details { background-color: #ffffff; }
+</style>

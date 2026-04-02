@@ -1,0 +1,16 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">p-style Dynamic Binding Test</h1>
+    <dynamic-style partial="pages_main_594861c5" p-key="r.0:1" text-color="red" font-size="16">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.container{padding: 1rem}#styled-text{margin: 1rem 0;padding: 1rem;border: 1px solid #eee}button{padding: 0.5rem 1rem;margin-right: 0.5rem;background: #9c27b0;color: white;border: none;cursor: pointer}</style>
+        <div class="container">
+          <p id="styled-text" style="color: red; font-size: 16px;"> Dynamically Styled Text </p>
+          <div class="controls"><button id="change-color">Change Color</button><button id="increase-size">Increase Size</button></div>
+          <p id="status">Color: red, Size: 16px</p>
+        </div>
+      </template>
+    </dynamic-style>
+  </div>
+</div>

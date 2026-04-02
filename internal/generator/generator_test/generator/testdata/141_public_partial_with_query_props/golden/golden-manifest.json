@@ -1,0 +1,26 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_141_public_partial_with_query_props/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {
+    "partials/search.pk": {
+      "packagePath": "testcase_141_public_partial_with_query_props/dist/partials/partials_search_064086ef",
+      "originalSourcePath": "partials/search.pk",
+      "partialName": "search",
+      "partialSrc": "/_piko/partial/search",
+      "routePattern": "/_piko/partial/search"
+    }
+  },
+  "emails": {},
+  "pdfs": {}
+}

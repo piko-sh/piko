@@ -1,0 +1,102 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Elevation"
+            server.current-page="foundations/elevation">
+
+            <p class="demo-description">Elevation creates a sense of depth and hierarchy using shadow. M3 defines six levels (0-5).</p>
+
+            <div class="demo-grid">
+                <!-- Level 0 -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Level 0 - Flat</h3>
+                    <div class="demo-preview">
+                        <m3e-elevation level="0" style="width: 120px; height: 80px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fffbfe;">Level 0</m3e-elevation>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-elevation level="0"&gt;Level 0&lt;/m3e-elevation&gt;</code></pre>
+                </section>
+
+                <!-- Level 1 -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Level 1</h3>
+                    <div class="demo-preview">
+                        <m3e-elevation level="1" style="width: 120px; height: 80px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fffbfe;">Level 1</m3e-elevation>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-elevation level="1"&gt;Level 1&lt;/m3e-elevation&gt;</code></pre>
+                </section>
+
+                <!-- Level 2 -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Level 2</h3>
+                    <div class="demo-preview">
+                        <m3e-elevation level="2" style="width: 120px; height: 80px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fffbfe;">Level 2</m3e-elevation>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-elevation level="2"&gt;Level 2&lt;/m3e-elevation&gt;</code></pre>
+                </section>
+
+                <!-- Level 3 -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Level 3</h3>
+                    <div class="demo-preview">
+                        <m3e-elevation level="3" style="width: 120px; height: 80px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fffbfe;">Level 3</m3e-elevation>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-elevation level="3"&gt;Level 3&lt;/m3e-elevation&gt;</code></pre>
+                </section>
+
+                <!-- Level 4 -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Level 4</h3>
+                    <div class="demo-preview">
+                        <m3e-elevation level="4" style="width: 120px; height: 80px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fffbfe;">Level 4</m3e-elevation>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-elevation level="4"&gt;Level 4&lt;/m3e-elevation&gt;</code></pre>
+                </section>
+
+                <!-- Level 5 -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Level 5</h3>
+                    <div class="demo-preview">
+                        <m3e-elevation level="5" style="width: 120px; height: 80px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fffbfe;">Level 5</m3e-elevation>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-elevation level="5"&gt;Level 5&lt;/m3e-elevation&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Elevation - M3E Components",
+    }, nil
+}
+</script>

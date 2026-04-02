@@ -1,0 +1,21 @@
+{
+  "description": "Tests serialisation of a map where the key is a named type and the value is a primitive. This is the specific pattern that caused the integration test failure.",
+  "moduleName": "testcase_55_map_named_key_primitive_value",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_55_map_named_key_primitive_value",
+    "testcase_55_map_named_key_primitive_value/models"
+  ],
+  "assertions": [
+    {
+      "description": "The field's TypeString should be correct for the map.",
+      "select": "packages.testcase_55_map_named_key_primitive_value.named_types.Response.fields.0.type_string",
+      "expect": "map[models.UserKey]int"
+    },
+    {
+      "description": "The field's PackagePath MUST be populated from the key's package, as the value is primitive.",
+      "select": "packages.testcase_55_map_named_key_primitive_value.named_types.Response.fields.0.pkg_path",
+      "expect": "testcase_55_map_named_key_primitive_value/models"
+    }
+  ]
+}

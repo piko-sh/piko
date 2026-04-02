@@ -1,0 +1,6 @@
+{
+  "title": "Responsive Columns",
+  "description": "Multi-column layout with responsive stacking",
+  "metadata": {"title": "Responsive Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

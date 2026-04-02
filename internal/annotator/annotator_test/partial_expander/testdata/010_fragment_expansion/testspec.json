@@ -1,0 +1,41 @@
+{
+  "specs": [
+    {
+      "description": "The first child of the section should be the h1 from the partial",
+      "select": "section > h1:first-child",
+      "assert": {
+        "originalPackageAlias": "partials/multi_root.pk",
+        "textContentContains": "Title"
+      }
+    },
+    {
+      "description": "The last child of the section should be the second p tag from the partial",
+      "select": "section > p:last-child",
+      "assert": {
+        "originalPackageAlias": "partials/multi_root.pk",
+        "textContentContains": "Paragraph two."
+      }
+    },
+    {
+      "description": "The first root element (h1) should NOT have PartialInfo directly on it",
+      "select": "h1",
+      "assert": {
+        "hasPartialInfo": false
+      }
+    },
+    {
+      "description": "The second root element (p) should also not have PartialInfo",
+      "select": "p:first-of-type",
+      "assert": {
+        "hasPartialInfo": false
+      }
+    },
+    {
+      "description": "PartialInfo should be attached to the parent Fragment of the h1, which we can check via its parent in the AST",
+      "select": "h1",
+      "assert": {
+        "parentShouldHavePartialInfo": true
+      }
+    }
+  ]
+}

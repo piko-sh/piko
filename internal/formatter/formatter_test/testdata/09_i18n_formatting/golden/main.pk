@@ -1,0 +1,37 @@
+<template>
+  <div>
+    <h1>{{ T("local.greeting") }}</h1>
+    <p>{{ T("local.description") }}</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+	Message string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{Message: "Hello"}, piko.Metadata{}, nil
+}
+</script>
+
+<i18n lang="json">
+{
+  "en": {
+    "local": {
+      "description": "This component demonstrates i18n",
+      "greeting": "Hello from component"
+    }
+  },
+  "fr": {
+    "local": {
+      "description": "Ce composant démontre l'i18n",
+      "greeting": "Bonjour du composant"
+    }
+  }
+}
+</i18n>

@@ -1,0 +1,220 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="file-list">
+  <div class="file-list-component">
+    <div class="controls">
+      <button id="add-file-push" p-on:click="addFilePush">Add File (push)</button>
+      <button id="add-file-spread" p-on:click="addFileSpread">Add File (spread)</button>
+      <button id="clear-files" p-on:click="clearFiles">Clear All</button>
+    </div>
+
+    <div class="file-grid">
+      <div
+          p-for="file in state.files"
+          p-key="file.id"
+          class="file-item"
+          :data-file-id="file.id"
+      >
+        <div p-if="file.isImage" class="thumbnail image">
+          <span p-text="'IMG: ' + file.name"></span>
+        </div>
+        <div p-if="!file.isImage" class="thumbnail document">
+          <span class="filetype" p-text="file.extension"></span>
+        </div>
+        <p class="filename" p-text="file.name"></p>
+        <p class="filesize" p-text="file.size + ' bytes'"></p>
+        <button class="remove-btn" p-on:click="removeFile(file.id)">Remove</button>
+      </div>
+    </div>
+
+    <p id="file-count" p-text="state.files.length + ' files selected'"></p>
+    <p id="last-action" p-text="'Last action: ' + state.lastAction"></p>
+  </div>
+</template>
+
+<script lang="ts">
+    interface FileInfo {
+        id: string;
+        name: string;
+        size: number;
+        type: string;
+        extension: string;
+        isImage: boolean;
+    }
+
+    const state = {
+        files: [] as FileInfo[],
+        nextId: 1 as number,
+        lastAction: 'none' as string
+    };
+
+    const generateId = (): string => {
+        const id = 'file-' + state.nextId;
+        state.nextId = state.nextId + 1;
+        return id;
+    };
+
+    const getFileExtension = (filename: string): string => {
+        const ext = filename.split('.').pop();
+        return ext ? ext.toUpperCase() : 'FILE';
+    };
+
+    const isImageFile = (type: string): boolean => {
+        return type.startsWith('image/');
+    };
+
+    const createFileInfo = (name: string, type: string, size: number): FileInfo => {
+        return {
+            id: generateId(),
+            name: name,
+            size: size,
+            type: type,
+            extension: getFileExtension(name),
+            isImage: isImageFile(type),
+        };
+    };
+
+    function addFilePush() {
+        const fileNum = state.files.length + 1;
+        const isImg = fileNum % 2 === 0;
+        const name = isImg ? `photo${fileNum}.jpg` : `document${fileNum}.pdf`;
+        const type = isImg ? 'image/jpeg' : 'application/pdf';
+        const newFile = createFileInfo(name, type, fileNum * 1024);
+
+        state.files.push(newFile);
+        state.lastAction = 'push: ' + name;
+    }
+
+    function addFileSpread() {
+        const fileNum = state.files.length + 1;
+        const isImg = fileNum % 2 === 1;
+        const name = isImg ? `image${fileNum}.png` : `report${fileNum}.docx`;
+        const type = isImg ? 'image/png' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        const newFile = createFileInfo(name, type, fileNum * 2048);
+
+        state.files = [...state.files, newFile];
+        state.lastAction = 'spread: ' + name;
+    }
+
+    function removeFile(fileId: string) {
+        const fileToRemove = state.files.find(f => f.id === fileId);
+        if (fileToRemove) {
+            state.files = state.files.filter(f => f.id !== fileId);
+            state.lastAction = 'removed: ' + fileToRemove.name;
+        }
+    }
+
+    function clearFiles() {
+        state.files = [];
+        state.lastAction = 'cleared all';
+    }
+</script>
+
+<style>
+.file-list-component {
+    padding: 20px;
+}
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.controls button {
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+    min-height: 50px;
+    border: 2px dashed #ccc;
+    padding: 10px;
+}
+
+.file-item {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+
+.thumbnail {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.thumbnail.image {
+    background: #e8f5e9;
+    border: 1px solid #4caf50;
+}
+
+.thumbnail.document {
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+}
+
+.filetype {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1976d2;
+}
+
+.filename {
+    font-size: 0.875rem;
+    word-break: break-word;
+    margin-bottom: 4px;
+}
+
+.filesize {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.remove-btn {
+    width: 100%;
+    padding: 5px;
+    background: #ff5252;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.remove-btn:hover {
+    background: #d32f2f;
+}
+
+#file-count, #last-action {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f5f5f5;
+}
+</style>

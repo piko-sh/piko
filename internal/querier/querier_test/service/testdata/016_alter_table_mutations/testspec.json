@@ -1,0 +1,3 @@
+{
+  "description": "ALTER TABLE mutations: RENAME COLUMN and ADD COLUMN. Tests that catalogue correctly reflects column renames and additions after multiple DDL operations."
+}

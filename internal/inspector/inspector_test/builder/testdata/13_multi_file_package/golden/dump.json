@@ -1,0 +1,80 @@
+{
+  "packages": {
+    "testcase_13_multi_file_package/models": {
+      "file_imports": {
+        "13_multi_file_package/src/models/profile.go": {},
+        "13_multi_file_package/src/models/user.go": {}
+      },
+      "named_types": {
+        "Profile": {
+          "name": "Profile",
+          "package_path": "testcase_13_multi_file_package/models",
+          "defined_in_file_path": "13_multi_file_package/src/models/profile.go",
+          "type_string": "models.Profile",
+          "underlying_type_string": "struct{Email string}",
+          "fields": [
+            {
+              "definition_file_path": "13_multi_file_package/src/models/profile.go",
+              "declaring_pkg_path": "testcase_13_multi_file_package/models",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "declaring_type_name": "Profile",
+              "name": "Email",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 23,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        },
+        "User": {
+          "name": "User",
+          "package_path": "testcase_13_multi_file_package/models",
+          "defined_in_file_path": "13_multi_file_package/src/models/user.go",
+          "type_string": "models.User",
+          "underlying_type_string": "struct{Profile models.Profile}",
+          "fields": [
+            {
+              "definition_file_path": "13_multi_file_package/src/models/user.go",
+              "declaring_pkg_path": "testcase_13_multi_file_package/models",
+              "pkg_path": "testcase_13_multi_file_package/models",
+              "underlying_type_string": "struct{Email string}",
+              "declaring_type_name": "User",
+              "name": "Profile",
+              "type_string": "models.Profile",
+              "raw_tag": "",
+              "definition_line": 24,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_13_multi_file_package/models",
+      "name": "models"
+    }
+  },
+  "file_to_package": {
+    "13_multi_file_package/src/models/profile.go": "testcase_13_multi_file_package/models",
+    "13_multi_file_package/src/models/user.go": "testcase_13_multi_file_package/models"
+  }
+}

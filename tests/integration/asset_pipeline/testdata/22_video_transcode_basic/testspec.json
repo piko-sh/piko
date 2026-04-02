@@ -1,0 +1,12 @@
+{
+  "description": "Basic video transcode: MOV to H.264 MP4 with capability params",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/videos/sample.mov",
+      "expectedArtefactID": "testmodule/lib/videos/sample.mov"
+    }
+  ],
+  "requestURL": "/main",
+  "expectedStatus": 200
+}

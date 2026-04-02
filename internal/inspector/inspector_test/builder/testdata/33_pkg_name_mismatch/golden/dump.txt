@@ -1,0 +1,38 @@
+--- PACKAGE: testcase_33_pkg_name_mismatch ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 33_pkg_name_mismatch/src/main.go
+    - import "api"                -> testcase_33_pkg_name_mismatch/api/v1
+
+[Named Types]
+  > type Request
+    - Defined In:      33_pkg_name_mismatch/src/main.go
+    - TypeString:      main.Request
+    - Underlying:      struct{APIResponse api.Response}
+    - Stringability:   0
+    - Fields:
+      - APIResponse          api.Response
+        (Canonical Package: testcase_33_pkg_name_mismatch/api/v1)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_33_pkg_name_mismatch/api/v1 ---
+[Package Info]
+  - Name:    api
+
+[File-Scoped Imports]
+  > File: 33_pkg_name_mismatch/src/api/v1/handler.go
+    (no imports in this file)
+
+[Named Types]
+  > type Response
+    - Defined In:      33_pkg_name_mismatch/src/api/v1/handler.go
+    - TypeString:      api.Response
+    - Underlying:      struct{}
+    - Stringability:   0
+
+[Package-Level Functions]
+  (none)

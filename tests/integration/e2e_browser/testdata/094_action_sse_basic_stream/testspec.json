@@ -1,0 +1,33 @@
+{
+  "description": "Tests SSE via POST fetch with Accept: text/event-stream header. Action sends 3 progress events + complete.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#start-btn"
+    },
+    {
+      "action": "wait",
+      "value": "5000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status",
+      "expected": "complete"
+    },
+    {
+      "action": "checkText",
+      "selector": "#event-count",
+      "expected": "3"
+    }
+  ]
+}

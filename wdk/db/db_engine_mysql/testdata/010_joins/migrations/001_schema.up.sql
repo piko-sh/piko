@@ -1,0 +1,11 @@
+CREATE TABLE departments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE employees (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

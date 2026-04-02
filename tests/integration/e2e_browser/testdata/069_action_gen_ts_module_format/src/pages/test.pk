@@ -1,0 +1,76 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>TypeScript Module Format Test</h1>
+    <p>Tests that pk/actions.gen.ts is valid ES module format</p>
+
+    <button id="test-btn" p-on:click="runTest()">Run Test</button>
+
+    <div id="module-check">
+      <p>Module Loaded: <span id="module-loaded" p-ref="moduleLoaded">false</span></p>
+      <p>Has Action Object: <span id="has-action" p-ref="hasAction">false</span></p>
+      <p>Has Demo Namespace: <span id="has-demo" p-ref="hasDemo">false</span></p>
+      <p>Has Hello Function: <span id="has-hello" p-ref="hasHello">false</span></p>
+    </div>
+
+    <div id="result-container" p-ref="resultContainer" style="display: none;">
+      <h2>Action Result:</h2>
+      <p id="result-greeting" p-ref="resultGreeting"></p>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "TypeScript Module Format Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function runTest(): Promise<void> {
+  try {
+    pk.refs.moduleLoaded.textContent = 'true';
+    pk.refs.hasAction.textContent = action ? 'true' : 'false';
+    pk.refs.hasDemo.textContent = (action && action.demo) ? 'true' : 'false';
+    pk.refs.hasHello.textContent = (action && action.demo && typeof action.demo.Hello === 'function')
+      ? 'true'
+      : 'false';
+
+    if (action && action.demo && action.demo.Hello) {
+      const result = await action.demo.Hello({ name: 'Module Test' }).call();
+      pk.refs.resultGreeting.textContent = result.greeting;
+      pk.refs.resultContainer.style.display = 'block';
+    }
+  } catch (e: any) {
+    console.error('Module test failed:', e);
+    pk.refs.moduleLoaded.textContent = 'error: ' + e.message;
+  }
+}
+</script>

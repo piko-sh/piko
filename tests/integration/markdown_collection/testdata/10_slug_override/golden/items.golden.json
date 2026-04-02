@@ -1,0 +1,51 @@
+[
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Long Filename",
+          "Slug": "long-filename",
+          "Level": 1
+        }
+      ],
+      "Title": "A Post With a Long Filename",
+      "WordCount": 10,
+      "date": "2024-01-15"
+    },
+    "id": "2024-01-15-my-long-filename",
+    "slug": "2024-01-15-my-long-filename",
+    "locale": "en",
+    "translationKey": "blog/2024-01-15-my-long-filename",
+    "url": "/blog/2024-01-15-my-long-filename",
+    "publishedAt": "2024-01-15T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Custom Slug",
+          "Slug": "custom-slug",
+          "Level": 1
+        }
+      ],
+      "Title": "Custom Slug Post",
+      "WordCount": 9,
+      "date": "2024-02-01",
+      "slug": "my-custom-slug"
+    },
+    "id": "my-custom-slug",
+    "slug": "my-custom-slug",
+    "locale": "en",
+    "translationKey": "blog/custom-slug-post",
+    "url": "/blog/my-custom-slug",
+    "publishedAt": "2024-02-01T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

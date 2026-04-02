@@ -1,0 +1,3 @@
+{
+  "description": "Multiple migrations: table, indexes (regular + unique), fulltext index with MATCH AGAINST on MariaDB"
+}

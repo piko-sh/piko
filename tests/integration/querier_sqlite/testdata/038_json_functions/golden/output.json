@@ -1,0 +1,12 @@
+{
+  "item_tags": [
+    {
+      "ItemID": 1,
+      "TagList": "[\"red\",\"large\"]"
+    },
+    {
+      "ItemID": 2,
+      "TagList": "[\"blue\",\"small\",\"sale\"]"
+    }
+  ]
+}

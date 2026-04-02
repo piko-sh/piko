@@ -1,0 +1,5 @@
+{
+  "description": "Tests that nested partials each calling their own exported functions generate correct code.",
+  "packageName": "nested_partial_self_functions_test",
+  "isPage": true
+}

@@ -1,0 +1,7 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (el) {
+        el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+    }
+})()

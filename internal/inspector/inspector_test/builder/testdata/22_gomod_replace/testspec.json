@@ -1,0 +1,21 @@
+{
+  "description": "Tests that a 'replace' directive in go.mod is respected, loading a local package instead of the remote one.",
+  "moduleName": "testcase_22_gomod_replace",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_22_gomod_replace",
+    "github.com/google/uuid" 
+  ],
+  "assertions": [
+    {
+      "description": "The serialised UUID type must be the one from our local 'replace' directory.",
+      "select": "packages.github.com/google/uuid.named_types.UUID.fields.0.name",
+      "expect": "CustomField"
+    },
+    {
+      "description": "The PackagePath on the field should still be the canonical import path.",
+      "select": "packages.testcase_22_gomod_replace.named_types.Request.fields.0.pkg_path",
+      "expect": "github.com/google/uuid"
+    }
+  ]
+}

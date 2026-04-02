@@ -1,0 +1,85 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" },
+    "numeric": { "category": "decimal", "engineName": "numeric" },
+    "boolean": { "category": "boolean", "engineName": "boolean" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE items ( id int4 PRIMARY KEY, name text NOT NULL, category text, price numeric(10,2) NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "items",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "category", "sqlType": { "category": "text", "engineName": "text" }, "nullable": true },
+          { "name": "price", "sqlType": { "category": "decimal", "engineName": "numeric", "precision": 10, "scale": 2 }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, name, category IS NULL as is_uncategorised, name IS NOT NULL as has_name, category IN ('electronics', 'books', 'toys') as is_popular_category, price BETWEEN 10 AND 100 as is_mid_range FROM items",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "items",
+            "columnName": "id"
+          },
+          {
+            "name": "name",
+            "tableAlias": "items",
+            "columnName": "name"
+          },
+          {
+            "name": "is_uncategorised",
+            "expression": {
+              "kind": "is_null",
+              "expression": { "kind": "column_ref", "tableAlias": "items", "columnName": "category" },
+              "negated": false
+            }
+          },
+          {
+            "name": "has_name",
+            "expression": {
+              "kind": "is_null",
+              "expression": { "kind": "column_ref", "tableAlias": "items", "columnName": "name" },
+              "negated": true
+            }
+          },
+          {
+            "name": "is_popular_category",
+            "expression": {
+              "kind": "in_list",
+              "expression": { "kind": "column_ref", "tableAlias": "items", "columnName": "category" },
+              "values": [
+                { "kind": "literal", "typeName": "text" },
+                { "kind": "literal", "typeName": "text" },
+                { "kind": "literal", "typeName": "text" }
+              ]
+            }
+          },
+          {
+            "name": "is_mid_range",
+            "expression": {
+              "kind": "between",
+              "expression": { "kind": "column_ref", "tableAlias": "items", "columnName": "price" },
+              "low": { "kind": "literal", "typeName": "int4" },
+              "high": { "kind": "literal", "typeName": "int4" }
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "items" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

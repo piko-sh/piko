@@ -1,0 +1,96 @@
+{
+  "description": "Transformation chaining: multiple sequential transformations on same source",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/mercury.bmp",
+      "expectedArtefactID": "testmodule/lib/images/mercury.bmp"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "step1-resize",
+      "capabilityName": "image-transform",
+      "description": "Step 1: Resize to 800x568",
+      "params": {
+        "width": "800",
+        "height": "568",
+        "format": "png",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/png",
+        "outputNotEmpty": true,
+        "exactWidth": 800,
+        "exactHeight": 568
+      },
+      "goldenFile": "step1-resize.png"
+    },
+    {
+      "profileName": "step2-greyscale",
+      "capabilityName": "image-transform",
+      "description": "Step 2: Apply greyscale filter",
+      "params": {
+        "width": "800",
+        "height": "568",
+        "format": "jpeg",
+        "quality": "90",
+        "fit": "fill",
+        "greyscale": "true"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 800,
+        "exactHeight": 568
+      },
+      "goldenFile": "step2-greyscale.jpg"
+    },
+    {
+      "profileName": "step3-blur-small",
+      "capabilityName": "image-transform",
+      "description": "Step 3: Blur and resize smaller",
+      "params": {
+        "width": "400",
+        "height": "284",
+        "format": "webp",
+        "quality": "85",
+        "fit": "fill",
+        "blur": "2.0"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 284
+      },
+      "goldenFile": "step3-blur-small.webp"
+    },
+    {
+      "profileName": "step4-artistic-final",
+      "capabilityName": "image-transform",
+      "description": "Step 4: Artistic combo (greyscale + sharpen + contrast)",
+      "params": {
+        "width": "600",
+        "height": "426",
+        "format": "jpeg",
+        "quality": "95",
+        "fit": "fill",
+        "greyscale": "true",
+        "sharpen": "1.5",
+        "contrast": "20"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 600,
+        "exactHeight": 426
+      },
+      "goldenFile": "step4-artistic-final.jpg"
+    }
+  ]
+}

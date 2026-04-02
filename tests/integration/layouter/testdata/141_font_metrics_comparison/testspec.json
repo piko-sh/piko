@@ -1,0 +1,7 @@
+{
+    "description": "Font metrics comparison: documents known differences between Piko's go-text and Chrome's Skia text measurement for NotoSans Regular. Base text is ~4% wider in Piko. Letter-spacing is under-applied (missing inter-word gaps). Table column widths compound the base difference.",
+    "requestURL": "/main",
+    "tolerance": 160.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

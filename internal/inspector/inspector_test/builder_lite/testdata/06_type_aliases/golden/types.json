@@ -1,0 +1,84 @@
+{
+  "packages": {
+    "testcase_lite_06": {
+      "file_imports": {
+        "06_type_aliases/src/main.go": {}
+      },
+      "named_types": {
+        "Config": {
+          "name": "Config",
+          "package_path": "testcase_lite_06",
+          "defined_in_file_path": "06_type_aliases/src/main.go",
+          "type_string": "Config",
+          "underlying_type_string": "struct{...}",
+          "fields": [
+            {
+              "definition_file_path": "06_type_aliases/src/main.go",
+              "pkg_path": "testcase_lite_06",
+              "underlying_type_string": "UserID",
+              "name": "Owner",
+              "type_string": "UserID",
+              "raw_tag": "",
+              "definition_line": 26,
+              "definition_column": 2,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            },
+            {
+              "definition_file_path": "06_type_aliases/src/main.go",
+              "pkg_path": "testcase_lite_06",
+              "underlying_type_string": "Score",
+              "name": "MaxScore",
+              "type_string": "Score",
+              "raw_tag": "",
+              "definition_line": 27,
+              "definition_column": 2,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": null,
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 25,
+          "definition_column": 6
+        },
+        "Score": {
+          "name": "Score",
+          "package_path": "testcase_lite_06",
+          "defined_in_file_path": "06_type_aliases/src/main.go",
+          "type_string": "Score",
+          "underlying_type_string": "int",
+          "fields": null,
+          "methods": null,
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": true,
+          "definition_line": 23,
+          "definition_column": 6
+        },
+        "UserID": {
+          "name": "UserID",
+          "package_path": "testcase_lite_06",
+          "defined_in_file_path": "06_type_aliases/src/main.go",
+          "type_string": "UserID",
+          "underlying_type_string": "string",
+          "fields": null,
+          "methods": null,
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": true,
+          "definition_line": 21,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_lite_06",
+      "name": "main"
+    }
+  },
+  "file_to_package": {}
+}

@@ -1,0 +1,75 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="contact-form">
+  <div class="contact-form">
+    <form id="the-contact-form" p-show="!state.submitted">
+      <div class="form-row">
+        <input type="text" name="firstName" id="input-firstname" placeholder="First Name" />
+        <input type="text" name="lastName" id="input-lastname" placeholder="Last Name" />
+      </div>
+      <input type="email" name="email" id="input-email" placeholder="Email" />
+      <input type="text" name="subject" id="input-subject" placeholder="Subject" />
+      <textarea name="message" id="input-message" placeholder="Your message"></textarea>
+      <button type="button" id="submit-btn" p-on:click="handleSubmit">Send Message</button>
+    </form>
+    <div id="form-result" p-show="state.submitted">
+      <h3>Submission Confirmed</h3>
+      <p>Ticket ID: <span id="result-ticket" p-text="state.ticketId"></span></p>
+      <p>Name: <span id="result-name" p-text="state.fullName"></span></p>
+      <p>Confirmation: <span id="result-confirmation" p-text="state.confirmation"></span></p>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+const state = {
+  submitted: false,
+  ticketId: '' as string,
+  fullName: '' as string,
+  confirmation: '' as string,
+};
+
+async function handleSubmit() {
+  const firstNameInput = this.shadowRoot?.querySelector('#input-firstname') as HTMLInputElement;
+  const lastNameInput = this.shadowRoot?.querySelector('#input-lastname') as HTMLInputElement;
+  const emailInput = this.shadowRoot?.querySelector('#input-email') as HTMLInputElement;
+  const subjectInput = this.shadowRoot?.querySelector('#input-subject') as HTMLInputElement;
+  const messageInput = this.shadowRoot?.querySelector('#input-message') as HTMLTextAreaElement;
+
+  const data = {
+    firstName: firstNameInput?.value || '',
+    lastName: lastNameInput?.value || '',
+    email: emailInput?.value || '',
+    subject: subjectInput?.value || '',
+    message: messageInput?.value || '',
+  };
+
+  try {
+    const result = await action.contact.Submit(data).call();
+    state.ticketId = result.ticketId;
+    state.fullName = result.fullName;
+    state.confirmation = result.confirmation;
+    state.submitted = true;
+  } catch (err) {
+    console.error('Form submission failed:', err);
+  }
+}
+</script>

@@ -1,0 +1,21 @@
+[
+  {
+    "action": "eval",
+    "selector": "body",
+    "value": "() =\u003e this.className = 'test-class'"
+  },
+  {
+    "action": "checkText",
+    "selector": "async-globals \u003e\u003e\u003e p",
+    "expected": "Body class: unknown"
+  },
+  {
+    "action": "click",
+    "selector": "async-globals \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "async-globals \u003e\u003e\u003e p",
+    "expected": "Body class: test-class"
+  }
+]

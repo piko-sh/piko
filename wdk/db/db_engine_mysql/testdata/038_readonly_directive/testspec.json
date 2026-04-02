@@ -1,0 +1,1 @@
+{"description": "piko.readonly directive: bare=true, piko.readonly(true), piko.readonly(false) at query level; piko.readonly override in migrations before CREATE FUNCTION"}

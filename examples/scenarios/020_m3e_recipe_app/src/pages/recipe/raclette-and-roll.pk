@@ -1,0 +1,247 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Raclette & Roll"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-raclette-and-roll.jpg" alt="Raclette &amp; Roll" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">Raclette &amp; Roll</h1>
+                <p class="recipe-pun">Ready to raclette and roll!</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Raclette</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        40 mins
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Medium</m3e-chip>
+                    <m3e-chip variant="outlined">4 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="6" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="4" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>400g raclette cheese (half wheel or sliced)</m3e-list-item>
+                    <m3e-list-item>800g baby potatoes</m3e-list-item>
+                    <m3e-list-item>A handful of cornichons</m3e-list-item>
+                    <m3e-list-item>12 pickled onions</m3e-list-item>
+                    <m3e-list-item>100g bresaola, thinly sliced</m3e-list-item>
+                    <m3e-list-item>100g coppa, thinly sliced</m3e-list-item>
+                    <m3e-list-item>200g cherry tomatoes</m3e-list-item>
+                    <m3e-list-item>A large handful of mixed salad leaves</m3e-list-item>
+                    <m3e-list-item>Freshly ground black pepper</m3e-list-item>
+                    <m3e-list-item>A pinch of freshly grated nutmeg</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>Place the baby potatoes in a large pan of salted water. Bring to the boil and cook for 15&ndash;20 minutes until tender. While you wait, unwrap the raclette. Breathe it in. Yes, it&rsquo;s pungent. Yes, your housemates may complain. This is the smell of Alpine greatness. They&rsquo;ll thank you in 20 minutes.</li>
+                    <li>Slice the raclette into pieces about 5mm thick. Now here is where things go wrong for most people. You slice a piece. You look at it. It&rsquo;s just sitting there. You eat it. You slice another. You eat that too. Suddenly you&rsquo;ve eaten half the cheese and your guests are arriving in ten minutes. DO NOT PANIC. Slice faster. Hide the evidence. If the worst happens, you can shave some parmesan or IKEA furniture and claim it&rsquo;s &ldquo;a modern interpretation.&rdquo; Or just own it and order more cheese. We won&rsquo;t tell.</li>
+                    <li>If using a raclette grill, heat it up per the manufacturer&rsquo;s instructions. If you don&rsquo;t have one (and honestly, it should be a legal requirement), preheat the oven grill to high with a cast iron pan on the middle shelf. Cast iron is the next best thing to a proper Swiss mountain setup.</li>
+                    <li>Place the raclette slices in the pans (or cast iron). Melt for 3&ndash;4 minutes until bubbling and golden at the edges. The moment the cheese starts to bubble, you will understand why the Swiss have been doing this for centuries. This is not cooking. This is a religious experience.</li>
+                    <li>Scrape &mdash; SCRAPE! &mdash; the molten cheese over the warm potatoes. The scraping is half the fun. Season with black pepper and a pinch of nutmeg. If cheese falls on the table during scraping, that is the chef&rsquo;s portion and you are honour-bound to eat it immediately.</li>
+                    <li>Arrange the accompaniments on a big board: cornichons, pickled onions, bresaola, coppa, tomatoes, and salad leaves. Put it in the middle of the table. Keep melting more cheese. Raclette isn&rsquo;t a meal, it&rsquo;s a lifestyle. The evening ends when the cheese runs out, and the cheese should never run out. Buy more cheese than you think you need. Then buy more. You&rsquo;re welcome.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 480 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 28g</m3e-list-item>
+                    <m3e-list-item>Fat: 30g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 26g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>AlpineAppetite</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Raclette night is the best night! We've started doing this every Friday - it's become a proper tradition. The smell fills the whole house and everyone crowds round the table.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SwissMissCheeseKiss</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">So communal and fun - the whole table was involved. Even the kids got in on the action, scraping their own cheese. It's less of a recipe and more of an experience.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>RacletteRegret</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Ate half the raclette while slicing it for the grill. Panicked. Guests arriving in 10 minutes. Considered shaving the IKEA bookshelf. Sent my partner on an emergency cheese run. They came back with Edam. EDAM. We are now in couples therapy. The raclette (what was left of it) was incredible.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>ThreeGrillsDeep</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Bought a raclette grill after making this. Then a second one because the first one was too small. Then a third because &ldquo;what if we have people over.&rdquo; We have not had people over. It is just me. With three raclette grills. I am living my best life.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SmellComplaint</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">The smell. Oh god the smell. My neighbours knocked on the door and asked if everything was alright. Then they smelled it properly. Then they sat down. Then they stayed for dinner. Then they bought their own raclette grill. Minus one star because I can still smell it three days later and I&rsquo;ve opened every window in the house.</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>If you don't have a raclette grill, use your oven's grill setting with a cast iron pan. Place the cheese slices in the pan and grill for 3&ndash;4 minutes until bubbling.</m3e-list-item>
+                    <m3e-list-item>Pre-boil the potatoes and keep them warm in foil. Cold potatoes and hot cheese is a disappointing combination - you want everything warm.</m3e-list-item>
+                    <m3e-list-item>The smell is strong but the taste is heavenly. Open a window if you must, but don't let it put you off - this is one of the greatest cheese experiences on earth.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Raclette comes from the French word 'racler' meaning 'to scrape'. Swiss shepherds would melt cheese by the fire and scrape it onto bread - the original cheese pull.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Raclette & Roll - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

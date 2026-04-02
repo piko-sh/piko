@@ -1,0 +1,64 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	template_dto "piko.sh/piko/internal/templater/templater_dto"
+	card "partials/card.pk"
+)
+
+type Response struct {
+	Title string
+	Users []string
+}
+
+type Props struct {
+	IsAdmin bool `prop:"is-admin"`
+}
+
+func Render(r *template_dto.RequestData, props Props) (Response, template_dto.Metadata, error) {
+	return Response{}, template_dto.Metadata{}, nil
+}
+
+func Middlewares() []string {
+	return []string{"auth"}
+}
+
+func CachePolicy() template_dto.CachePolicy {
+	return template_dto.CachePolicy{MaxAgeSeconds: 60}
+}
+</script>
+
+<template>
+	<div>Hello</div>
+</template>
+
+<style>
+	div { color: red; }
+</style>
+
+<i18n lang="json">
+{
+  "en": { "greeting": "Hello" },
+  "fr": { "greeting": "Bonjour" }
+}
+</i18n>

@@ -1,0 +1,122 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+    <div class="content-area">
+        <h3>Content Area (from partial)</h3>
+        <p>Status: <span id="status-display" p-ref="statusDisplay">idle</span></p>
+        <p>Counter: <span id="counter-display" p-ref="counterDisplay">0</span></p>
+    </div>
+
+    <div slot="actions" class="actions-area">
+        <button id="increment-btn" p-ref="incrementBtn" p-on:click="incrementCounter()">
+            Increment
+        </button>
+        <button id="reset-btn" p-ref="resetBtn" p-on:click="resetCounter()">
+            Reset
+        </button>
+    </div>
+</template>
+
+<style>
+.content-area h3 {
+    margin: 0 0 1rem;
+    color: #1e40af;
+}
+.content-area p {
+    margin: 0.5rem 0;
+}
+#status-display, #counter-display {
+    font-weight: bold;
+    color: #2563eb;
+}
+.actions-area button {
+    padding: 0.5rem 1rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}
+.actions-area button:hover {
+    background: #2563eb;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+/**
+ * Test case: Refs across slots in a partial.
+ *
+ * This partial provides content for two slots of a parent multi-slot-card:
+ * - Default slot: contains statusDisplay and counterDisplay refs
+ * - Actions slot: contains incrementBtn and resetBtn refs
+ *
+ * When this partial is rendered, each top-level element gets partial_name attribute.
+ * They become siblings inside the parent component (not nested).
+ *
+ * BUG: When clicking incrementBtn (in actions slot), __getScope__ finds
+ * the .actions-area element (closest [partial_name]), but counterDisplay
+ * is in .content-area (a sibling), so pk.refs.counterDisplay is null.
+ */
+let counter = 0;
+
+export function incrementCounter() {
+    counter++;
+
+    if (pk.refs.counterDisplay) {
+        pk.refs.counterDisplay.textContent = String(counter);
+    }
+
+    if (pk.refs.statusDisplay) {
+        pk.refs.statusDisplay.textContent = 'incremented';
+    }
+
+    if (pk.refs.incrementBtn) {
+        pk.refs.incrementBtn.textContent = `Increment (${counter})`;
+    }
+}
+
+export function resetCounter() {
+    counter = 0;
+
+    if (pk.refs.counterDisplay) {
+        pk.refs.counterDisplay.textContent = '0';
+    }
+
+    if (pk.refs.statusDisplay) {
+        pk.refs.statusDisplay.textContent = 'reset';
+    }
+
+    if (pk.refs.incrementBtn) {
+        pk.refs.incrementBtn.textContent = 'Increment';
+    }
+}
+</script>

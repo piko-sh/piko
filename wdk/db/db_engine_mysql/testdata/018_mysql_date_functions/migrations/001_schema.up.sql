@@ -1,0 +1,6 @@
+CREATE TABLE appointments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    scheduled_at DATETIME NOT NULL,
+    duration_minutes INT NOT NULL DEFAULT 60
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

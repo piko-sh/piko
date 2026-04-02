@@ -1,0 +1,25 @@
+{
+  "description": "Tests method promotion from an embedded type from an external library.",
+  "moduleName": "testcase_18_promotion_external_method",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_18_promotion_external_method"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Price' type should have the promoted 'Add' method.",
+      "select": "packages.testcase_18_promotion_external_method.named_types.Price.methods.0.name",
+      "expect": "Add"
+    },
+    {
+      "description": "The method's declaring package path must be the external library's canonical path.",
+      "select": "packages.testcase_18_promotion_external_method.named_types.Price.methods.0.declaring_pkg_path",
+      "expect": "github.com/bojanz/currency"
+    },
+    {
+      "description": "The method's declaring type name must be 'Amount'.",
+      "select": "packages.testcase_18_promotion_external_method.named_types.Price.methods.0.declaring_type_name",
+      "expect": "Amount"
+    }
+  ]
+}

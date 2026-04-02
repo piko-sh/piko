@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".title[partial~=pages_main_594861c5]{color:#00f;font-size:32px}.card[partial~=pages_main_594861c5]{background:#ff0;padding:20px}.page-section[partial~=pages_main_594861c5]{margin:40px 0}\n.title[partial~=partials_layout_ee037d9a]{color:red;font-weight:700}.layout-header[partial~=partials_layout_ee037d9a]{background:#333;padding:20px}.layout-main[partial~=partials_layout_ee037d9a]{min-height:400px}.card[partial~=partials_layout_ee037d9a]{border:5px solid green}",
+      "packagePath": "testcase_091_slotted_content_scoping/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,117 @@
+<!-- Blog listing page. Fetches all posts from the "blog" markdown collection
+     and renders them as a list of cards with title, description, and date. -->
+<template>
+  <piko:partial is="layout">
+    <h1>Posts</h1>
+
+    <div class="post-list">
+      <article class="post-card" p-for="post in state.Posts" p-key="post.Slug">
+        <piko:a :href="post.URL" class="post-link">
+          <h2 class="post-title" p-text="post.Title"></h2>
+        </piko:a>
+        <p class="post-description" p-text="post.Description"></p>
+        <time class="post-date" p-text="post.Date"></time>
+      </article>
+    </div>
+  </piko:partial>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+type Post struct {
+    Title       string
+    Description string
+    Date        string
+    Slug        string
+    URL         string
+}
+
+type Response struct {
+    Posts []Post
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    items, err := piko.GetAllCollectionItems("blog")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    posts := make([]Post, 0, len(items))
+    for _, item := range items {
+        posts = append(posts, Post{
+            Title:       stringField(item, "Title"),
+            Description: stringField(item, "Description"),
+            Date:        stringField(item, "date"),
+            Slug:        stringField(item, "Slug"),
+            URL:         stringField(item, "URL"),
+        })
+    }
+
+    return Response{Posts: posts}, piko.Metadata{
+        Title:       "Piko Blog",
+        Description: "A simple blog built with Piko and markdown collections.",
+    }, nil
+}
+
+func stringField(item map[string]any, key string) string {
+    if value, ok := item[key]; ok {
+        if str, ok := value.(string); ok {
+            return str
+        }
+    }
+    return ""
+}
+</script>
+
+<style>
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+  }
+
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .post-card {
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+  }
+
+  .post-link {
+    text-decoration: none;
+  }
+
+  .post-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 0.5rem;
+  }
+
+  .post-link:hover .post-title {
+    color: #2563eb;
+  }
+
+  .post-description {
+    font-size: 0.9375rem;
+    color: #4b5563;
+    margin: 0 0 0.75rem;
+  }
+
+  .post-date {
+    font-size: 0.8125rem;
+    color: #9ca3af;
+  }
+</style>

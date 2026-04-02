@@ -1,0 +1,44 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Testing Complex Scripts"
+  </h1>
+  <p dir="rtl" id="static-arabic" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "مرحباً بالعالم"
+  </p>
+  <p dir="rtl" id="static-hebrew" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "שלום עולם"
+  </p>
+  <p id="static-thai" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "สวัสดีชาวโลก"
+  </p>
+  <p id="static-georgian" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "გამარჯობა მსოფლიო"
+  </p>
+  <hr [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <p dir="rtl" id="dynamic-arabic" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.ArabicText }}
+    </RichText>
+  </p>
+  <p dir="rtl" id="dynamic-hebrew" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.HebrewText }}
+    </RichText>
+  </p>
+  <p id="dynamic-thai" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.ThaiText }}
+    </RichText>
+  </p>
+  <p id="dynamic-georgian" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.GeorgianText }}
+    </RichText>
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

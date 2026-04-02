@@ -1,0 +1,28 @@
+{
+  "description": "Tests the generated action.namespace.function() pattern works correctly from TypeScript in pk file",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "debug_state.html"
+    }
+  ]
+}

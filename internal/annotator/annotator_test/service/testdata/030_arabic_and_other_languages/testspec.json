@@ -1,0 +1,60 @@
+{
+  "description": "Validates that the pipeline correctly handles various complex language scripts (RTL, etc.) in both static content and dynamic interpolations without corruption.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#static-arabic",
+      "description": "Static Arabic (RTL) text should be preserved.",
+      "assert": {
+        "textContent": "مرحباً بالعالم"
+      }
+    },
+    {
+      "select": "#static-hebrew",
+      "description": "Static Hebrew (RTL) text should be preserved.",
+      "assert": {
+        "textContent": "שלום עולם"
+      }
+    },
+    {
+      "select": "#static-thai",
+      "description": "Static Thai text should be preserved.",
+      "assert": {
+        "textContent": "สวัสดีชาวโลก"
+      }
+    },
+    {
+      "select": "#dynamic-arabic",
+      "description": "Dynamic Arabic text should be correctly typed.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.ArabicText",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#dynamic-hebrew",
+      "description": "Dynamic Hebrew text should be correctly typed.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.HebrewText",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#dynamic-thai",
+      "description": "Dynamic Thai text should be correctly typed.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.ThaiText",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#dynamic-georgian",
+      "description": "Dynamic Georgian text should be correctly typed.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.GeorgianText",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

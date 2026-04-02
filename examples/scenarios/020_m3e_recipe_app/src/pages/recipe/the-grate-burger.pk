@@ -1,0 +1,256 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="The Grate Burger"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-the-grate-burger.jpg" alt="The Grate Burger" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">The Grate Burger</h1>
+                <p class="recipe-pun">The gratest burger you'll ever taste</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Aged Cheddar</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        25 mins
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Easy</m3e-chip>
+                    <m3e-chip variant="outlined">4 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="7" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="4" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>500g beef mince (20% fat)</m3e-list-item>
+                    <m3e-list-item>4 slices aged cheddar cheese</m3e-list-item>
+                    <m3e-list-item>4 brioche buns</m3e-list-item>
+                    <m3e-list-item>4 leaves cos lettuce</m3e-list-item>
+                    <m3e-list-item>1 large tomato, sliced</m3e-list-item>
+                    <m3e-list-item>1 red onion, sliced into rings</m3e-list-item>
+                    <m3e-list-item>2 onions, thinly sliced (for caramelising)</m3e-list-item>
+                    <m3e-list-item>8 rashers smoked bacon</m3e-list-item>
+                    <m3e-list-item>4 tbsp burger sauce</m3e-list-item>
+                    <m3e-list-item>Salt, to taste</m3e-list-item>
+                    <m3e-list-item>Freshly ground black pepper, to taste</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>Season the beef mince generously with salt and pepper. Divide into 4 equal portions and shape into patties slightly wider than your buns &mdash; they&rsquo;ll shrink as they cook. Resist the urge to overwork the mince. Treat it gently. Like a baby Gouda. You wouldn&rsquo;t squeeze a baby Gouda, would you?</li>
+                    <li>Heat a cast-iron skillet or griddle over high heat until it&rsquo;s properly smoking. Cook the patties for 3&ndash;4 minutes per side for medium. In the last minute, place a slice of aged cheddar on each patty and cover with a lid to melt. Do not lift the lid early. This is cheese time. Cheese time is sacred.</li>
+                    <li>While the patties rest (they need a moment, they&rsquo;ve been through a lot), slice the brioche buns in half and toast them cut-side down in the same pan for about a minute. The buns should soak up all those beefy, cheesy pan juices. We just drooled on the keyboard writing that.</li>
+                    <li>For the caramelised onions, cook the thinly sliced onions in a knob of butter over medium-low heat for 15&ndash;20 minutes, stirring occasionally. Yes, 20 minutes. No, you can&rsquo;t rush it. Go have a nibble of the cheddar while you wait. Just a small &mdash; okay, a medium &mdash; okay, cut another slice, we won&rsquo;t judge.</li>
+                    <li>Assemble the burgers: spread burger sauce on both bun halves, then layer lettuce, tomato, the cheesy patty, caramelised onions, crispy bacon, and red onion rings. Stand back. Admire your work. This is art. The Mona Lisa wishes she had this much cheddar.</li>
+                    <li>Serve immediately with chips or a side salad. Take one bite. Close your eyes. That&rsquo;s the taste of victory. That&rsquo;s the taste of aged cheddar doing what it was born to do. The mice salute you.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 650 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 38g</m3e-list-item>
+                    <m3e-list-item>Fat: 42g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 35g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>CheeseWhisperer42</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Un-brie-lievable! The caramelised onions with the aged cheddar are a match made in heaven. I've made this four times already and it gets better every time.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>GoudaVibes</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Gouda job on this one! The brioche buns really make it. Only took off a star because I wish there were more sauce options listed. Otherwise, top-notch.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>MightyMouse</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">The mice approve! Seriously though, covering the patty to melt the cheddar was a game-changer. So gooey and delicious. Will be making this every weekend.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>TotallyNormalChef</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I replaced the bun with cheese, the patty with cheese, the cheese with cheese, and the lettuce with cheese. It was the best burger I&rsquo;ve ever made. My doctor says I need to &ldquo;talk to someone&rdquo; but I think he just wants the recipe.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SmokeAlarmSimon</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Followed the recipe exactly. My smoke alarm went off three times, my cat left home, and the neighbours called the fire brigade. Burger was absolutely banging though. 4 stars because the fire brigade didn&rsquo;t even try it.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>HonestDave</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Made this for my wife&rsquo;s birthday. She asked for steak. I told her this was better. She didn&rsquo;t speak to me for two hours. Then she tried it. Then she didn&rsquo;t speak to me because she was too busy eating. Marriage saved by cheese.</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>Don't press the patty while cooking - you'll squeeze out all the lovely juices and end up with a dry burger.</m3e-list-item>
+                    <m3e-list-item>Use a lid to melt the cheddar on the patty. The steam creates a perfect, even melt every time.</m3e-list-item>
+                    <m3e-list-item>Room temperature cheese melts better and more evenly, so take it out of the fridge 15 minutes before cooking.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Cheddar cheese originated in the village of Cheddar in Somerset, England, as early as the 12th century.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "The Grate Burger - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        // In a real app this would open a time-picker dialog
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

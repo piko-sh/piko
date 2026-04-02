@@ -1,0 +1,379 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Data Table"
+            server.current-page="containment/data-table">
+
+            <p class="demo-description">Data tables display sets of data across rows and columns. They organise information in a way that is easy to scan, so that users can look for patterns and develop insights from data.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- Basic Table -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Basic Table</h3>
+                    <div class="demo-preview">
+                        <m2-data-table aria-label="Nutrition data">
+                            <m2-data-table-header slot="header">
+                                <m2-data-table-cell header>Dessert</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Calories</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Fat (g)</m2-data-table-cell>
+                            </m2-data-table-header>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Frozen yoghurt</m2-data-table-cell>
+                                <m2-data-table-cell numeric>159</m2-data-table-cell>
+                                <m2-data-table-cell numeric>6.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Ice cream sandwich</m2-data-table-cell>
+                                <m2-data-table-cell numeric>237</m2-data-table-cell>
+                                <m2-data-table-cell numeric>9.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Eclair</m2-data-table-cell>
+                                <m2-data-table-cell numeric>262</m2-data-table-cell>
+                                <m2-data-table-cell numeric>16.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Cupcake</m2-data-table-cell>
+                                <m2-data-table-cell numeric>305</m2-data-table-cell>
+                                <m2-data-table-cell numeric>3.7</m2-data-table-cell>
+                            </m2-data-table-row>
+                        </m2-data-table>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m2-data-table aria-label="Nutrition data"&gt;
+  &lt;m2-data-table-header slot="header"&gt;
+    &lt;m2-data-table-cell header&gt;Dessert&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric&gt;Calories&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric&gt;Fat (g)&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-header&gt;
+  &lt;m2-data-table-row&gt;
+    &lt;m2-data-table-cell&gt;Frozen yoghurt&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;159&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;6.0&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-row&gt;
+&lt;/m2-data-table&gt;</code></pre>
+                </section>
+
+                <!-- Sortable Columns -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Sortable Columns</h3>
+                    <div class="demo-preview">
+                        <m2-data-table aria-label="Sortable nutrition data">
+                            <m2-data-table-header slot="header">
+                                <m2-data-table-cell header sortable column="dessert">Dessert</m2-data-table-cell>
+                                <m2-data-table-cell header numeric sortable column="calories" sort-direction="asc">Calories</m2-data-table-cell>
+                                <m2-data-table-cell header numeric sortable column="fat">Fat (g)</m2-data-table-cell>
+                            </m2-data-table-header>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Frozen yoghurt</m2-data-table-cell>
+                                <m2-data-table-cell numeric>159</m2-data-table-cell>
+                                <m2-data-table-cell numeric>6.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Ice cream sandwich</m2-data-table-cell>
+                                <m2-data-table-cell numeric>237</m2-data-table-cell>
+                                <m2-data-table-cell numeric>9.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Eclair</m2-data-table-cell>
+                                <m2-data-table-cell numeric>262</m2-data-table-cell>
+                                <m2-data-table-cell numeric>16.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Cupcake</m2-data-table-cell>
+                                <m2-data-table-cell numeric>305</m2-data-table-cell>
+                                <m2-data-table-cell numeric>3.7</m2-data-table-cell>
+                            </m2-data-table-row>
+                        </m2-data-table>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m2-data-table&gt;
+  &lt;m2-data-table-header slot="header"&gt;
+    &lt;m2-data-table-cell header sortable column="dessert"&gt;
+      Dessert
+    &lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric sortable
+      column="calories" sort-direction="asc"&gt;
+      Calories
+    &lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-header&gt;
+  &lt;!-- rows... --&gt;
+&lt;/m2-data-table&gt;</code></pre>
+                </section>
+
+                <!-- Row Selection -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Row Selection</h3>
+                    <div class="demo-preview">
+                        <m2-data-table selectable aria-label="Selectable nutrition data">
+                            <m2-data-table-header slot="header" selectable>
+                                <m2-data-table-cell header>Dessert</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Calories</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Fat (g)</m2-data-table-cell>
+                            </m2-data-table-header>
+                            <m2-data-table-row selectable row-id="yoghurt">
+                                <m2-data-table-cell>Frozen yoghurt</m2-data-table-cell>
+                                <m2-data-table-cell numeric>159</m2-data-table-cell>
+                                <m2-data-table-cell numeric>6.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row selectable row-id="sandwich" selected>
+                                <m2-data-table-cell>Ice cream sandwich</m2-data-table-cell>
+                                <m2-data-table-cell numeric>237</m2-data-table-cell>
+                                <m2-data-table-cell numeric>9.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row selectable row-id="eclair">
+                                <m2-data-table-cell>Eclair</m2-data-table-cell>
+                                <m2-data-table-cell numeric>262</m2-data-table-cell>
+                                <m2-data-table-cell numeric>16.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row selectable row-id="cupcake">
+                                <m2-data-table-cell>Cupcake</m2-data-table-cell>
+                                <m2-data-table-cell numeric>305</m2-data-table-cell>
+                                <m2-data-table-cell numeric>3.7</m2-data-table-cell>
+                            </m2-data-table-row>
+                        </m2-data-table>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m2-data-table selectable&gt;
+  &lt;m2-data-table-header slot="header" selectable&gt;
+    &lt;m2-data-table-cell header&gt;Dessert&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric&gt;Calories&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-header&gt;
+  &lt;m2-data-table-row selectable row-id="yoghurt"&gt;
+    &lt;m2-data-table-cell&gt;Frozen yoghurt&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;159&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-row&gt;
+  &lt;m2-data-table-row selectable row-id="sandwich" selected&gt;
+    &lt;m2-data-table-cell&gt;Ice cream sandwich&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;237&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-row&gt;
+&lt;/m2-data-table&gt;</code></pre>
+                </section>
+
+                <!-- Loading State -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Loading State</h3>
+                    <div class="demo-preview">
+                        <m2-data-table loading aria-label="Loading data">
+                            <m2-data-table-header slot="header">
+                                <m2-data-table-cell header>Dessert</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Calories</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Fat (g)</m2-data-table-cell>
+                            </m2-data-table-header>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Frozen yoghurt</m2-data-table-cell>
+                                <m2-data-table-cell numeric>159</m2-data-table-cell>
+                                <m2-data-table-cell numeric>6.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Ice cream sandwich</m2-data-table-cell>
+                                <m2-data-table-cell numeric>237</m2-data-table-cell>
+                                <m2-data-table-cell numeric>9.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Eclair</m2-data-table-cell>
+                                <m2-data-table-cell numeric>262</m2-data-table-cell>
+                                <m2-data-table-cell numeric>16.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                        </m2-data-table>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m2-data-table loading&gt;
+  &lt;m2-data-table-header slot="header"&gt;
+    &lt;m2-data-table-cell header&gt;Dessert&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric&gt;Calories&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-header&gt;
+  &lt;!-- rows... --&gt;
+&lt;/m2-data-table&gt;</code></pre>
+                </section>
+
+                <!-- Pagination -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Pagination</h3>
+                    <div class="demo-preview">
+                        <m2-data-table aria-label="Paginated data">
+                            <m2-data-table-header slot="header">
+                                <m2-data-table-cell header>Dessert</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Calories</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Fat (g)</m2-data-table-cell>
+                            </m2-data-table-header>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Frozen yoghurt</m2-data-table-cell>
+                                <m2-data-table-cell numeric>159</m2-data-table-cell>
+                                <m2-data-table-cell numeric>6.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Ice cream sandwich</m2-data-table-cell>
+                                <m2-data-table-cell numeric>237</m2-data-table-cell>
+                                <m2-data-table-cell numeric>9.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Eclair</m2-data-table-cell>
+                                <m2-data-table-cell numeric>262</m2-data-table-cell>
+                                <m2-data-table-cell numeric>16.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-pagination slot="pagination"
+                                total-rows="100"
+                                rows-per-page="25"
+                                rows-per-page-options="10,25,50,100">
+                            </m2-data-table-pagination>
+                        </m2-data-table>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m2-data-table&gt;
+  &lt;!-- header and rows... --&gt;
+  &lt;m2-data-table-pagination slot="pagination"
+    total-rows="100"
+    rows-per-page="25"
+    rows-per-page-options="10,25,50,100"&gt;
+  &lt;/m2-data-table-pagination&gt;
+&lt;/m2-data-table&gt;</code></pre>
+                </section>
+
+                <!-- Numeric Alignment -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Numeric Alignment</h3>
+                    <div class="demo-preview">
+                        <m2-data-table aria-label="Financial data">
+                            <m2-data-table-header slot="header">
+                                <m2-data-table-cell header>Description</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Amount</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Quantity</m2-data-table-cell>
+                            </m2-data-table-header>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>RedPay Credit</m2-data-table-cell>
+                                <m2-data-table-cell numeric>43.46</m2-data-table-cell>
+                                <m2-data-table-cell numeric>1,059</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>Rent</m2-data-table-cell>
+                                <m2-data-table-cell numeric>1,200.00</m2-data-table-cell>
+                                <m2-data-table-cell numeric>1,474</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>TabFine Credit</m2-data-table-cell>
+                                <m2-data-table-cell numeric>87.33</m2-data-table-cell>
+                                <m2-data-table-cell numeric>2,177</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row>
+                                <m2-data-table-cell>ABC Loans</m2-data-table-cell>
+                                <m2-data-table-cell numeric>400.00</m2-data-table-cell>
+                                <m2-data-table-cell numeric>2,789</m2-data-table-cell>
+                            </m2-data-table-row>
+                        </m2-data-table>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m2-data-table-cell header numeric&gt;Amount&lt;/m2-data-table-cell&gt;
+&lt;!-- ... --&gt;
+&lt;m2-data-table-cell numeric&gt;1,200.00&lt;/m2-data-table-cell&gt;</code></pre>
+                </section>
+
+                <!-- Full Featured -->
+                <section class="demo-section" style="grid-column: 1 / -1;">
+                    <h3 class="demo-subtitle">Full Featured</h3>
+                    <div class="demo-preview">
+                        <m2-data-table selectable aria-label="Full featured nutrition data">
+                            <m2-data-table-header slot="header" selectable>
+                                <m2-data-table-cell header sortable column="dessert">Dessert</m2-data-table-cell>
+                                <m2-data-table-cell header numeric sortable column="calories" sort-direction="asc">Calories</m2-data-table-cell>
+                                <m2-data-table-cell header numeric sortable column="fat">Fat (g)</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Carbs (g)</m2-data-table-cell>
+                                <m2-data-table-cell header numeric>Protein (g)</m2-data-table-cell>
+                            </m2-data-table-header>
+                            <m2-data-table-row selectable row-id="yoghurt">
+                                <m2-data-table-cell>Frozen yoghurt</m2-data-table-cell>
+                                <m2-data-table-cell numeric>159</m2-data-table-cell>
+                                <m2-data-table-cell numeric>6.0</m2-data-table-cell>
+                                <m2-data-table-cell numeric>24</m2-data-table-cell>
+                                <m2-data-table-cell numeric>4.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row selectable row-id="sandwich" selected>
+                                <m2-data-table-cell>Ice cream sandwich</m2-data-table-cell>
+                                <m2-data-table-cell numeric>237</m2-data-table-cell>
+                                <m2-data-table-cell numeric>9.0</m2-data-table-cell>
+                                <m2-data-table-cell numeric>37</m2-data-table-cell>
+                                <m2-data-table-cell numeric>4.3</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row selectable row-id="eclair">
+                                <m2-data-table-cell>Eclair</m2-data-table-cell>
+                                <m2-data-table-cell numeric>262</m2-data-table-cell>
+                                <m2-data-table-cell numeric>16.0</m2-data-table-cell>
+                                <m2-data-table-cell numeric>24</m2-data-table-cell>
+                                <m2-data-table-cell numeric>6.0</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row selectable row-id="cupcake">
+                                <m2-data-table-cell>Cupcake</m2-data-table-cell>
+                                <m2-data-table-cell numeric>305</m2-data-table-cell>
+                                <m2-data-table-cell numeric>3.7</m2-data-table-cell>
+                                <m2-data-table-cell numeric>67</m2-data-table-cell>
+                                <m2-data-table-cell numeric>4.3</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-row selectable row-id="gingerbread">
+                                <m2-data-table-cell>Gingerbread</m2-data-table-cell>
+                                <m2-data-table-cell numeric>356</m2-data-table-cell>
+                                <m2-data-table-cell numeric>16.0</m2-data-table-cell>
+                                <m2-data-table-cell numeric>49</m2-data-table-cell>
+                                <m2-data-table-cell numeric>3.9</m2-data-table-cell>
+                            </m2-data-table-row>
+                            <m2-data-table-pagination slot="pagination"
+                                total-rows="100"
+                                rows-per-page="25"
+                                rows-per-page-options="10,25,50,100">
+                            </m2-data-table-pagination>
+                        </m2-data-table>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m2-data-table selectable&gt;
+  &lt;m2-data-table-header slot="header" selectable&gt;
+    &lt;m2-data-table-cell header sortable column="dessert"&gt;Dessert&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric sortable column="calories" sort-direction="asc"&gt;Calories&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric sortable column="fat"&gt;Fat (g)&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric&gt;Carbs (g)&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell header numeric&gt;Protein (g)&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-header&gt;
+  &lt;m2-data-table-row selectable row-id="yoghurt"&gt;
+    &lt;m2-data-table-cell&gt;Frozen yoghurt&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;159&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;6.0&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;24&lt;/m2-data-table-cell&gt;
+    &lt;m2-data-table-cell numeric&gt;4.0&lt;/m2-data-table-cell&gt;
+  &lt;/m2-data-table-row&gt;
+  &lt;m2-data-table-pagination slot="pagination"
+    total-rows="100" rows-per-page="25"
+    rows-per-page-options="10,25,50,100"&gt;
+  &lt;/m2-data-table-pagination&gt;
+&lt;/m2-data-table&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Data Table - M3E Components",
+    }, nil
+}
+</script>

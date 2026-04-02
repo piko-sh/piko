@@ -1,0 +1,13 @@
+{
+    "description": "Element with only self scope (no parents) - should just replace self scope",
+    "options": {
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".item",
+            "attributes": { "partial": "new_scope" },
+            "description": "Self scope should be replaced, no parent scopes to preserve"
+        }
+    ]
+}

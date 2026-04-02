@@ -1,0 +1,33 @@
+<template>
+  <div>
+
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+  Title string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+  return Response{
+    Title: "${NAME}",
+  }, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+</style>
+
+<i18n lang="json">
+{
+  "en": {
+  },
+  "fr": {
+  }
+}
+</i18n>

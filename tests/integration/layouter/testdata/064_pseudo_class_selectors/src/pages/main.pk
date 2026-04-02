@@ -1,0 +1,72 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <style>
+    .parent-a > div:first-child { margin-top: 10px; }
+    .parent-a > div:last-child { margin-bottom: 10px; }
+    .parent-b > div:nth-child(odd) { padding-left: 20px; }
+    .parent-b > div:nth-child(even) { padding-left: 40px; }
+    .parent-c > div:only-child { width: 100px; }
+    .empty-target:empty { height: 25px; }
+    .parent-d > div:not(:first-child) { margin-left: 30px; }
+  </style>
+
+  <!-- :first-child and :last-child -->
+  <div class="parent-a" data-layout-id="parent-a" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">
+    <div data-layout-id="first" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="middle" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="last" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+  </div>
+
+  <!-- :nth-child -->
+  <div class="parent-b" data-layout-id="parent-b" style="box-sizing: content-box; width: 300px; margin: 0; padding: 0;">
+    <div data-layout-id="nth-1" style="box-sizing: content-box; height: 15px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="nth-2" style="box-sizing: content-box; height: 15px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="nth-3" style="box-sizing: content-box; height: 15px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="nth-4" style="box-sizing: content-box; height: 15px; margin: 0; padding: 0;"></div>
+  </div>
+
+  <!-- :only-child -->
+  <div class="parent-c" data-layout-id="parent-c" style="box-sizing: content-box; width: 200px; margin: 0; padding: 0;">
+    <div data-layout-id="only" style="box-sizing: content-box; height: 30px; margin: 0; padding: 0;"></div>
+  </div>
+
+  <!-- :empty -->
+  <div class="empty-target" data-layout-id="empty-test" style="box-sizing: content-box; width: 50px; height: 50px; margin: 0; padding: 0;"></div>
+
+  <!-- :not -->
+  <div class="parent-d" data-layout-id="parent-d" style="box-sizing: content-box; width: 300px; margin: 0; padding: 0;">
+    <div data-layout-id="not-first" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="not-second" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Pseudo Class Selectors Test"}, nil
+}
+</script>

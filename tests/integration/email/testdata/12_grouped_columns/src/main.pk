@@ -1,0 +1,12 @@
+<template>
+    <pml-row padding="10px 0">
+        <pml-no-stack>
+            <pml-col width="50%">
+                <pml-p font-size="14px" padding="5px 10px">Left stays</pml-p>
+            </pml-col>
+            <pml-col width="50%">
+                <pml-p font-size="14px" padding="5px 10px">Right stays</pml-p>
+            </pml-col>
+        </pml-no-stack>
+    </pml-row>
+</template>

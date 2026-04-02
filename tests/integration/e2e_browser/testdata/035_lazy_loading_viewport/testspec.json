@@ -1,0 +1,94 @@
+{
+  "description": "Tests scroll-based state changes and lazy content visibility simulation",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Lazy Loading Viewport Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "lazy-content"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "lazy-content >>> #visibility-status",
+      "expected": "Initial"
+    },
+    {
+      "action": "checkText",
+      "selector": "lazy-content >>> #load-count",
+      "expected": "Load count: 0"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "lazy-content >>> #simulate-visible"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "lazy-content >>> #visibility-status",
+      "expected": "Visible!"
+    },
+    {
+      "action": "checkText",
+      "selector": "lazy-content >>> #load-count",
+      "expected": "Load count: 1"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "lazy-content >>> #loaded-message"
+    },
+    {
+      "action": "checkText",
+      "selector": "lazy-content >>> #loaded-message",
+      "expected": "Content loaded when visible!"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_visible.html"
+    },
+    {
+      "action": "click",
+      "selector": "lazy-content >>> #simulate-hidden"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "lazy-content >>> #visibility-status",
+      "expected": "Hidden"
+    },
+    {
+      "action": "checkText",
+      "selector": "lazy-content >>> #load-count",
+      "expected": "Load count: 1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_hidden.html"
+    }
+  ]
+}

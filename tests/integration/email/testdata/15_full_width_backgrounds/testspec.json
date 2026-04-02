@@ -1,0 +1,6 @@
+{
+  "title": "Full Width Backgrounds",
+  "description": "Full-width row background colours",
+  "metadata": {"title": "Full Width Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

@@ -1,0 +1,45 @@
+{
+  "description": "Validates that action.* calls are correctly identified, validated, and transformed.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Action 'nonExistent.Action' not found for action call"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#btn-delete",
+      "description": "The valid action call button should be transformed correctly.",
+      "assert": {
+        "attr": {
+          "data-pk-action-method": "POST"
+        },
+        "needsCSRF": true
+      },
+      "assertOnDirective": [
+        {
+          "name": "p-on",
+          "rawExpression": "action.actions.DeleteUser(state.UserID)",
+          "resolvedTypeIs": "any"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.UserID",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    },
+    {
+      "select": "#btn-invalid",
+      "description": "The invalid action call button should not be transformed.",
+      "assert": {
+        "attr": {
+          "data-pk-action-method": "null"
+        },
+        "needsCSRF": false
+      }
+    }
+  ]
+}

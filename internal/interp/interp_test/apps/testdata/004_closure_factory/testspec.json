@@ -1,0 +1,5 @@
+{
+  "description": "Closures created in one file and invoked in another",
+  "shouldError": false,
+  "expected": "50"
+}

@@ -1,0 +1,108 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-ripple">
+    <div class="ripple-surface" p-ref="surface">
+        <slot></slot>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        disabled: false as boolean,
+    };
+
+    pkc.onConnected(() => {
+        const surface = pkc.refs.surface;
+        surface.addEventListener('pointerdown', handlePointerDown);
+    });
+
+    pkc.onDisconnected(() => {
+        const surface = pkc.refs.surface;
+        surface.removeEventListener('pointerdown', handlePointerDown);
+    });
+
+    const handlePointerDown = function(event) {
+        if (state.disabled) return;
+
+        const surface = pkc.refs.surface;
+        const rect = surface.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const size = Math.max(rect.width, rect.height) * 2;
+
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple-circle');
+        ripple.style.width = size + 'px';
+        ripple.style.height = size + 'px';
+        ripple.style.left = (x - size / 2) + 'px';
+        ripple.style.top = (y - size / 2) + 'px';
+
+        surface.appendChild(ripple);
+
+        const removeRipple = () => {
+            ripple.classList.add('fade-out');
+            ripple.addEventListener('animationend', () => {
+                ripple.remove();
+            });
+        };
+
+        surface.addEventListener('pointerup', removeRipple, { once: true });
+        surface.addEventListener('pointerleave', removeRipple, { once: true });
+    };
+</script>
+
+<style>
+    :host {
+        display: contents;
+        --_ripple-colour: var(--m3e-ripple-colour, var(--m3e-primary, #6750a4));
+    }
+
+    .ripple-surface {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ripple-circle {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--_ripple-colour);
+        opacity: 0.12;
+        transform: scale(0);
+        animation: ripple-expand 450ms cubic-bezier(0.2, 0, 0, 1) forwards;
+        pointer-events: none;
+
+        &.fade-out {
+            animation: ripple-fade 300ms cubic-bezier(0.2, 0, 0, 1) forwards;
+        }
+    }
+
+    @keyframes ripple-expand {
+        to {
+            transform: scale(1);
+        }
+    }
+
+    @keyframes ripple-fade {
+        to {
+            opacity: 0;
+        }
+    }
+</style>

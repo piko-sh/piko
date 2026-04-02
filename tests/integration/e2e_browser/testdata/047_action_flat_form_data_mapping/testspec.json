@@ -1,0 +1,69 @@
+{
+  "description": "Verifies flat form data maps correctly to action struct parameters without nested wrapping",
+  "requestURL": "/contact",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "form"
+    },
+    {
+      "action": "fill",
+      "selector": "#firstname",
+      "value": "John"
+    },
+    {
+      "action": "fill",
+      "selector": "#lastname",
+      "value": "Doe"
+    },
+    {
+      "action": "fill",
+      "selector": "#email",
+      "value": "john.doe@example.com"
+    },
+    {
+      "action": "fill",
+      "selector": "#message",
+      "value": "This is a test message"
+    },
+    {
+      "action": "comment",
+      "value": "Submit form via the pk TypeScript handler which sends FormData"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-firstname",
+      "expected": "John"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-lastname",
+      "expected": "Doe"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-email",
+      "expected": "john.doe@example.com"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-message",
+      "expected": "This is a test message"
+    }
+  ]
+}

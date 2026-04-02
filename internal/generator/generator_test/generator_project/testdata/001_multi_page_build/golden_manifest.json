@@ -1,0 +1,29 @@
+{
+  "pages": {
+    "pages/about.pk": {
+      "routePatterns": {
+        "en": "/about"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_001_multi_page_build/dist/pages/pages_about_32009128",
+      "originalSourcePath": "pages/about.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    },
+    "pages/home.pk": {
+      "routePatterns": {
+        "en": "/home"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_001_multi_page_build/dist/pages/pages_home_dab9c3dd",
+      "originalSourcePath": "pages/home.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

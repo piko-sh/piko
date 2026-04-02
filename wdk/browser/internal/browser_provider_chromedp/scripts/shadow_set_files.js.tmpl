@@ -1,0 +1,10 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el || el.tagName !== 'INPUT' || el.type !== 'file') return false;
+    // Focus and prepare the element for file setting
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+    el.focus();
+    return true;
+})()

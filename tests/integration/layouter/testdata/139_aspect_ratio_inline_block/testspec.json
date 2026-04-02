@@ -1,0 +1,7 @@
+{
+    "description": "Verifies aspect-ratio on inline-block elements within text flow, with height derived from width and max-height constraints applied.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

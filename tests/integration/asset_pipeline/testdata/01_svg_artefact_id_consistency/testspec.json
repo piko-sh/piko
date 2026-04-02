@@ -1,0 +1,18 @@
+{
+  "description": "SVG artefact ID consistency: watcher stores with module prefix, render looks up with same ID",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/icons/arrow.svg",
+      "expectedArtefactID": "testmodule/lib/icons/arrow.svg"
+    }
+  ],
+  "renderChecks": [
+    {
+      "templateSrc": "testmodule/lib/icons/arrow.svg",
+      "expectLookupID": "testmodule/lib/icons/arrow.svg"
+    }
+  ],
+  "requestURL": "/main",
+  "expectedStatus": 200
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies fit-content() function in grid-template-columns track sizing.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

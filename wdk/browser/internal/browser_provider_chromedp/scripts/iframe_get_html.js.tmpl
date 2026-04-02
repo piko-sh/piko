@@ -1,0 +1,8 @@
+(() => {
+    const frame = document.querySelector({{jsStr .Selector}});
+    if (!frame || frame.tagName.toLowerCase() !== 'iframe') {
+        throw new Error('iframe not found');
+    }
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    return doc.documentElement.outerHTML;
+})()

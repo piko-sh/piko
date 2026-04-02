@@ -1,0 +1,238 @@
+{
+  "Schemas": {
+    "": {
+      "Tables": {
+        "products": {
+          "Name": "products",
+          "Schema": "",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "int",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": true,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "name",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": 100,
+                "ElementType": null,
+                "EngineName": "varchar",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "price",
+              "Comment": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "SQLType": {
+                "Precision": 10,
+                "Scale": 2,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "decimal",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 2
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {
+        "add_tax": [
+          {
+            "Name": "add_tax",
+            "Schema": "",
+            "Language": "sql",
+            "BodySQL": "base_price + ( base_price * tax_rate / 100 )",
+            "Arguments": [
+              {
+                "Name": "base_price",
+                "Type": {
+                  "Precision": 10,
+                  "Scale": 2,
+                  "Length": null,
+                  "ElementType": null,
+                  "EngineName": "decimal",
+                  "Schema": "",
+                  "EnumValues": null,
+                  "StructFields": null,
+                  "KeyType": null,
+                  "UnionMembers": null,
+                  "Category": 2
+                },
+                "IsOptional": false
+              },
+              {
+                "Name": "tax_rate",
+                "Type": {
+                  "Precision": 5,
+                  "Scale": 2,
+                  "Length": null,
+                  "ElementType": null,
+                  "EngineName": "decimal",
+                  "Schema": "",
+                  "EnumValues": null,
+                  "StructFields": null,
+                  "KeyType": null,
+                  "UnionMembers": null,
+                  "Category": 2
+                },
+                "IsOptional": false
+              }
+            ],
+            "CalledFunctions": null,
+            "Origin": {
+              "Filename": "001_schema.up.sql",
+              "Index": 0
+            },
+            "ReturnType": {
+              "Precision": 10,
+              "Scale": 2,
+              "Length": null,
+              "ElementType": null,
+              "EngineName": "decimal",
+              "Schema": "",
+              "EnumValues": null,
+              "StructFields": null,
+              "KeyType": null,
+              "UnionMembers": null,
+              "Category": 2
+            },
+            "MinArguments": 0,
+            "ReturnsSet": false,
+            "IsAggregate": false,
+            "IsStrict": false,
+            "NullableBehaviour": 0,
+            "DataAccess": 1,
+            "IsVariadic": false
+          }
+        ],
+        "double_price": [
+          {
+            "Name": "double_price",
+            "Schema": "",
+            "Language": "sql",
+            "BodySQL": "val * 2",
+            "Arguments": [
+              {
+                "Name": "val",
+                "Type": {
+                  "Precision": 10,
+                  "Scale": 2,
+                  "Length": null,
+                  "ElementType": null,
+                  "EngineName": "decimal",
+                  "Schema": "",
+                  "EnumValues": null,
+                  "StructFields": null,
+                  "KeyType": null,
+                  "UnionMembers": null,
+                  "Category": 2
+                },
+                "IsOptional": false
+              }
+            ],
+            "CalledFunctions": null,
+            "Origin": {
+              "Filename": "001_schema.up.sql",
+              "Index": 0
+            },
+            "ReturnType": {
+              "Precision": 10,
+              "Scale": 2,
+              "Length": null,
+              "ElementType": null,
+              "EngineName": "decimal",
+              "Schema": "",
+              "EnumValues": null,
+              "StructFields": null,
+              "KeyType": null,
+              "UnionMembers": null,
+              "Category": 2
+            },
+            "MinArguments": 0,
+            "ReturnsSet": false,
+            "IsAggregate": false,
+            "IsStrict": false,
+            "NullableBehaviour": 0,
+            "DataAccess": 1,
+            "IsVariadic": false
+          }
+        ]
+      },
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": ""
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": ""
+}

@@ -1,0 +1,915 @@
+{
+  "application": {
+    "metadata": {
+      "name": "Enterprise Management System",
+      "version": "5.2.1",
+      "build": "20250123",
+      "environment": "Production",
+      "copyright": "© 2025 Enterprise Corp. All rights reserved."
+    },
+    "branding": {
+      "logo": {
+        "alt": "Company Logo",
+        "title": "Enterprise Management System"
+      },
+      "tagline": "Streamline Your Business Operations",
+      "motto": "Innovation Through Technology"
+    }
+  },
+  "navigation": {
+    "primary": {
+      "dashboard": {
+        "label": "Dashboard",
+        "icon": "dashboard",
+        "tooltip": "View your main dashboard"
+      },
+      "analytics": {
+        "label": "Analytics",
+        "icon": "chart",
+        "tooltip": "View analytics and reports",
+        "submenu": {
+          "overview": "Overview",
+          "realtime": "Real-time Analytics",
+          "historical": "Historical Data",
+          "predictions": "Predictive Analytics"
+        }
+      },
+      "customers": {
+        "label": "Customers",
+        "icon": "users",
+        "tooltip": "Manage customer relationships",
+        "submenu": {
+          "list": "Customer List",
+          "segments": "Customer Segments",
+          "communications": "Communications",
+          "feedback": "Feedback & Reviews"
+        }
+      },
+      "inventory": {
+        "label": "Inventory",
+        "icon": "warehouse",
+        "tooltip": "Manage inventory and stock",
+        "submenu": {
+          "products": "Products",
+          "stock": "Stock Levels",
+          "suppliers": "Suppliers",
+          "orders": "Purchase Orders",
+          "warehouse": "Warehouse Management"
+        }
+      },
+      "sales": {
+        "label": "Sales",
+        "icon": "shopping_cart",
+        "tooltip": "Manage sales operations",
+        "submenu": {
+          "orders": "Orders",
+          "quotes": "Quotes",
+          "invoices": "Invoices",
+          "payments": "Payments",
+          "returns": "Returns & Refunds"
+        }
+      },
+      "marketing": {
+        "label": "Marketing",
+        "icon": "campaign",
+        "tooltip": "Marketing campaigns and tools",
+        "submenu": {
+          "campaigns": "Campaigns",
+          "email": "Email Marketing",
+          "social": "Social Media",
+          "seo": "SEO Tools",
+          "analytics": "Marketing Analytics"
+        }
+      },
+      "hr": {
+        "label": "Human Resources",
+        "icon": "people",
+        "tooltip": "HR management tools",
+        "submenu": {
+          "employees": "Employees",
+          "recruitment": "Recruitment",
+          "payroll": "Payroll",
+          "performance": "Performance Reviews",
+          "training": "Training & Development"
+        }
+      },
+      "finance": {
+        "label": "Finance",
+        "icon": "account_balance",
+        "tooltip": "Financial management",
+        "submenu": {
+          "accounts": "Accounts",
+          "budgets": "Budgets",
+          "expenses": "Expenses",
+          "revenue": "Revenue",
+          "reports": "Financial Reports",
+          "audit": "Audit Trail"
+        }
+      },
+      "projects": {
+        "label": "Projects",
+        "icon": "folder",
+        "tooltip": "Project management",
+        "submenu": {
+          "active": "Active Projects",
+          "completed": "Completed",
+          "archived": "Archived",
+          "milestones": "Milestones",
+          "resources": "Resources"
+        }
+      },
+      "reports": {
+        "label": "Reports",
+        "icon": "description",
+        "tooltip": "Generate and view reports",
+        "submenu": {
+          "standard": "Standard Reports",
+          "custom": "Custom Reports",
+          "scheduled": "Scheduled Reports",
+          "exports": "Export History"
+        }
+      },
+      "settings": {
+        "label": "Settings",
+        "icon": "settings",
+        "tooltip": "System settings and preferences"
+      }
+    },
+    "secondary": {
+      "help": "Help & Documentation",
+      "support": "Contact Support",
+      "notifications": "Notifications",
+      "messages": "Messages"
+    },
+    "user": {
+      "profile": {
+        "view": "View Profile",
+        "edit": "Edit Profile",
+        "avatar": "Change Avatar",
+        "preferences": "Preferences"
+      },
+      "account": {
+        "settings": "Account Settings",
+        "security": "Security",
+        "billing": "Billing & Subscription",
+        "api": "API Keys"
+      },
+      "actions": {
+        "logout": "Log Out",
+        "switch": "Switch Account",
+        "lock": "Lock Screen"
+      }
+    }
+  },
+  "authentication": {
+    "login": {
+      "title": "Sign In to Your Account",
+      "subtitle": "Enter your credentials to continue",
+      "fields": {
+        "email": {
+          "label": "Email Address",
+          "placeholder": "you@example.com",
+          "error": {
+            "required": "Email is required",
+            "invalid": "Please enter a valid email address"
+          }
+        },
+        "password": {
+          "label": "Password",
+          "placeholder": "Enter your password",
+          "error": {
+            "required": "Password is required",
+            "minlength": "Password must be at least 8 characters"
+          }
+        },
+        "remember": {
+          "label": "Remember me for 30 days"
+        }
+      },
+      "actions": {
+        "submit": "Sign In",
+        "forgot": "Forgot your password?",
+        "signup": "Don't have an account? Sign up",
+        "sso": "Sign in with SSO"
+      },
+      "messages": {
+        "success": "Login successful. Redirecting...",
+        "error": "Invalid credentials. Please try again.",
+        "locked": "Account is locked. Contact support.",
+        "suspended": "Account is suspended."
+      }
+    },
+    "register": {
+      "title": "Create Your Account",
+      "subtitle": "Join thousands of satisfied users",
+      "fields": {
+        "firstname": {
+          "label": "First Name",
+          "placeholder": "John",
+          "error": {
+            "required": "First name is required"
+          }
+        },
+        "lastname": {
+          "label": "Last Name",
+          "placeholder": "Doe",
+          "error": {
+            "required": "Last name is required"
+          }
+        },
+        "email": {
+          "label": "Email Address",
+          "placeholder": "you@example.com",
+          "error": {
+            "required": "Email is required",
+            "invalid": "Invalid email format",
+            "taken": "This email is already registered"
+          }
+        },
+        "password": {
+          "label": "Password",
+          "placeholder": "Create a strong password",
+          "hints": {
+            "length": "At least 8 characters",
+            "uppercase": "Include uppercase letter",
+            "lowercase": "Include lowercase letter",
+            "number": "Include a number",
+            "special": "Include a special character"
+          },
+          "strength": {
+            "weak": "Weak password",
+            "fair": "Fair password",
+            "good": "Good password",
+            "strong": "Strong password",
+            "excellent": "Excellent password"
+          },
+          "error": {
+            "required": "Password is required",
+            "weak": "Password is too weak"
+          }
+        },
+        "confirm": {
+          "label": "Confirm Password",
+          "placeholder": "Re-enter your password",
+          "error": {
+            "required": "Please confirm your password",
+            "mismatch": "Passwords do not match"
+          }
+        },
+        "terms": {
+          "label": "I agree to the {terms} and {privacy}",
+          "terms": "Terms of Service",
+          "privacy": "Privacy Policy",
+          "error": {
+            "required": "You must accept the terms to continue"
+          }
+        },
+        "newsletter": {
+          "label": "Send me updates and newsletters"
+        }
+      },
+      "actions": {
+        "submit": "Create Account",
+        "login": "Already have an account? Sign in",
+        "google": "Sign up with Google",
+        "github": "Sign up with GitHub"
+      },
+      "messages": {
+        "success": "Account created successfully!",
+        "verification": "Please check your email to verify your account."
+      }
+    },
+    "reset": {
+      "title": "Reset Your Password",
+      "subtitle": "Enter your email to receive reset instructions",
+      "fields": {
+        "email": {
+          "label": "Email Address",
+          "placeholder": "you@example.com",
+          "error": {
+            "required": "Email is required",
+            "invalid": "Invalid email address",
+            "notfound": "No account found with this email"
+          }
+        }
+      },
+      "actions": {
+        "submit": "Send Reset Link",
+        "back": "Back to Sign In"
+      },
+      "messages": {
+        "success": "Password reset link sent to your email",
+        "info": "If an account exists, you will receive an email shortly"
+      }
+    },
+    "verify": {
+      "title": "Verify Your Email",
+      "subtitle": "We've sent a verification link to your email",
+      "messages": {
+        "success": "Email verified successfully!",
+        "expired": "Verification link has expired",
+        "invalid": "Invalid verification link"
+      },
+      "actions": {
+        "resend": "Resend verification email",
+        "change": "Change email address"
+      }
+    },
+    "twoFactor": {
+      "title": "Two-Factor Authentication",
+      "subtitle": "Enter the code from your authenticator app",
+      "fields": {
+        "code": {
+          "label": "Authentication Code",
+          "placeholder": "000000",
+          "error": {
+            "required": "Code is required",
+            "invalid": "Invalid code",
+            "expired": "Code has expired"
+          }
+        }
+      },
+      "actions": {
+        "submit": "Verify",
+        "backup": "Use backup code",
+        "cancel": "Cancel"
+      },
+      "messages": {
+        "success": "Authentication successful",
+        "remaining": "{count} attempts remaining"
+      }
+    }
+  },
+  "dashboard": {
+    "header": {
+      "welcome": "Welcome back, {name}!",
+      "subtitle": "Here's what's happening with your business today"
+    },
+    "widgets": {
+      "quickStats": {
+        "title": "Quick Stats",
+        "metrics": {
+          "revenue": {
+            "label": "Total Revenue",
+            "change": "{percent}% from last month",
+            "trend": "up"
+          },
+          "orders": {
+            "label": "Orders",
+            "change": "{percent}% from last week",
+            "trend": "up"
+          },
+          "customers": {
+            "label": "Active Customers",
+            "change": "{percent}% from last month",
+            "trend": "down"
+          },
+          "conversion": {
+            "label": "Conversion Rate",
+            "change": "{percent}% from last week",
+            "trend": "stable"
+          }
+        }
+      },
+      "recentActivity": {
+        "title": "Recent Activity",
+        "subtitle": "Latest events from your account",
+        "types": {
+          "order": "New order #{id}",
+          "customer": "New customer registered",
+          "payment": "Payment received",
+          "refund": "Refund processed",
+          "review": "New review posted"
+        },
+        "empty": "No recent activity",
+        "viewAll": "View all activity"
+      },
+      "salesChart": {
+        "title": "Sales Overview",
+        "subtitle": "Last 30 days performance",
+        "labels": {
+          "revenue": "Revenue",
+          "orders": "Orders",
+          "average": "Average Order Value"
+        },
+        "periods": {
+          "today": "Today",
+          "week": "This Week",
+          "month": "This Month",
+          "quarter": "This Quarter",
+          "year": "This Year"
+        }
+      },
+      "topProducts": {
+        "title": "Top Selling Products",
+        "subtitle": "Best performers this month",
+        "columns": {
+          "product": "Product",
+          "sales": "Sales",
+          "revenue": "Revenue",
+          "trend": "Trend"
+        },
+        "empty": "No sales data available"
+      },
+      "pendingTasks": {
+        "title": "Pending Tasks",
+        "subtitle": "{count} tasks require attention",
+        "types": {
+          "order": "Process order",
+          "support": "Customer support ticket",
+          "approval": "Approval required",
+          "inventory": "Low stock alert"
+        },
+        "empty": "All caught up!",
+        "viewAll": "View all tasks"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "tabs": {
+          "all": "All",
+          "unread": "Unread",
+          "important": "Important"
+        },
+        "types": {
+          "info": "Information",
+          "warning": "Warning",
+          "error": "Error",
+          "success": "Success"
+        },
+        "empty": "No notifications",
+        "markRead": "Mark as read",
+        "markAllRead": "Mark all as read",
+        "clear": "Clear all"
+      }
+    }
+  },
+  "forms": {
+    "common": {
+      "buttons": {
+        "save": "Save",
+        "saveAndContinue": "Save & Continue",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "update": "Update",
+        "submit": "Submit",
+        "reset": "Reset",
+        "clear": "Clear",
+        "search": "Search",
+        "filter": "Filter",
+        "export": "Export",
+        "import": "Import",
+        "download": "Download",
+        "upload": "Upload",
+        "preview": "Preview",
+        "print": "Print",
+        "copy": "Copy",
+        "duplicate": "Duplicate",
+        "archive": "Archive",
+        "restore": "Restore",
+        "back": "Back",
+        "next": "Next",
+        "previous": "Previous",
+        "finish": "Finish"
+      },
+      "labels": {
+        "required": "Required",
+        "optional": "Optional",
+        "recommended": "Recommended"
+      },
+      "messages": {
+        "unsavedChanges": "You have unsaved changes",
+        "confirmLeave": "Are you sure you want to leave? Changes will be lost.",
+        "saving": "Saving...",
+        "saved": "Saved successfully",
+        "loading": "Loading...",
+        "processing": "Processing..."
+      }
+    },
+    "validation": {
+      "general": {
+        "required": "This field is required",
+        "invalid": "This field contains invalid data",
+        "tooShort": "Must be at least {min} characters",
+        "tooLong": "Must not exceed {max} characters",
+        "min": "Must be at least {min}",
+        "max": "Must not exceed {max}",
+        "pattern": "Does not match required format",
+        "unique": "This value must be unique"
+      },
+      "text": {
+        "alphanumeric": "Only letters and numbers allowed",
+        "alphabetic": "Only letters allowed",
+        "numeric": "Only numbers allowed",
+        "whitespace": "Whitespace not allowed"
+      },
+      "email": {
+        "invalid": "Please enter a valid email address",
+        "format": "Email format: user@example.com"
+      },
+      "phone": {
+        "invalid": "Please enter a valid phone number",
+        "format": "Format: (XXX) XXX-XXXX"
+      },
+      "url": {
+        "invalid": "Please enter a valid URL",
+        "format": "URL must start with http:// or https://"
+      },
+      "date": {
+        "invalid": "Please enter a valid date",
+        "past": "Date must be in the past",
+        "future": "Date must be in the future",
+        "range": "Date must be between {min} and {max}"
+      },
+      "password": {
+        "tooWeak": "Password is too weak",
+        "requirements": "Password must meet all requirements",
+        "mismatch": "Passwords do not match",
+        "current": "Current password is incorrect"
+      },
+      "file": {
+        "required": "Please select a file",
+        "tooLarge": "File size exceeds {max} MB",
+        "invalidType": "File type not allowed",
+        "allowedTypes": "Allowed types: {types}"
+      }
+    }
+  },
+  "tables": {
+    "headers": {
+      "common": {
+        "id": "ID",
+        "name": "Name",
+        "description": "Description",
+        "status": "Status",
+        "type": "Type",
+        "category": "Category",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "createdBy": "Created By",
+        "updatedBy": "Updated By",
+        "actions": "Actions"
+      },
+      "customer": {
+        "customerId": "Customer ID",
+        "fullName": "Full Name",
+        "email": "Email",
+        "phone": "Phone",
+        "company": "Company",
+        "country": "Country",
+        "totalOrders": "Total Orders",
+        "totalSpent": "Total Spent",
+        "lastOrder": "Last Order",
+        "joinDate": "Join Date"
+      },
+      "product": {
+        "sku": "SKU",
+        "productName": "Product Name",
+        "price": "Price",
+        "stock": "Stock",
+        "sold": "Sold",
+        "revenue": "Revenue",
+        "margin": "Margin"
+      },
+      "order": {
+        "orderId": "Order ID",
+        "customer": "Customer",
+        "items": "Items",
+        "total": "Total",
+        "payment": "Payment",
+        "shipping": "Shipping",
+        "orderDate": "Order Date"
+      }
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "archive": "Archive",
+      "restore": "Restore",
+      "export": "Export",
+      "print": "Print",
+      "email": "Email",
+      "download": "Download"
+    },
+    "pagination": {
+      "showing": "Showing {start} to {end} of {total} results",
+      "page": "Page {current} of {total}",
+      "rowsPerPage": "Rows per page:",
+      "previous": "Previous",
+      "next": "Next",
+      "first": "First",
+      "last": "Last",
+      "goto": "Go to page"
+    },
+    "filters": {
+      "title": "Filters",
+      "apply": "Apply Filters",
+      "clear": "Clear Filters",
+      "reset": "Reset",
+      "search": "Search...",
+      "showMore": "Show more filters",
+      "showLess": "Show fewer filters"
+    },
+    "sorting": {
+      "sortBy": "Sort by",
+      "ascending": "Ascending",
+      "descending": "Descending",
+      "clear": "Clear sorting"
+    },
+    "selection": {
+      "selectAll": "Select all",
+      "selectNone": "Select none",
+      "selected": "{count} selected",
+      "bulkActions": "Bulk Actions"
+    },
+    "states": {
+      "loading": "Loading data...",
+      "empty": "No records found",
+      "error": "Error loading data",
+      "retry": "Retry"
+    }
+  },
+  "notifications": {
+    "types": {
+      "success": {
+        "title": "Success",
+        "created": "{item} created successfully",
+        "updated": "{item} updated successfully",
+        "deleted": "{item} deleted successfully",
+        "saved": "Changes saved successfully",
+        "imported": "Data imported successfully",
+        "exported": "Data exported successfully",
+        "uploaded": "File uploaded successfully",
+        "sent": "Message sent successfully"
+      },
+      "error": {
+        "title": "Error",
+        "general": "An error occurred",
+        "network": "Network error. Please check your connection.",
+        "server": "Server error. Please try again later.",
+        "unauthorized": "You are not authorised to perform this action",
+        "forbidden": "Access denied",
+        "notFound": "Requested resource not found",
+        "validation": "Please check your input and try again",
+        "timeout": "Request timed out. Please try again.",
+        "conflict": "A conflict occurred. Please refresh and try again."
+      },
+      "warning": {
+        "title": "Warning",
+        "unsaved": "You have unsaved changes",
+        "confirm": "Are you sure you want to continue?",
+        "irreversible": "This action cannot be undone",
+        "lowStock": "Low stock alert: {product}",
+        "expiring": "{item} expiring soon",
+        "overdue": "{item} is overdue"
+      },
+      "info": {
+        "title": "Information",
+        "processing": "Processing your request...",
+        "wait": "Please wait...",
+        "loading": "Loading...",
+        "updating": "Updating...",
+        "maintenance": "System maintenance scheduled",
+        "newFeature": "New feature available!"
+      }
+    },
+    "actions": {
+      "dismiss": "Dismiss",
+      "undo": "Undo",
+      "viewDetails": "View Details",
+      "retry": "Retry",
+      "learnMore": "Learn More"
+    }
+  },
+  "dialogs": {
+    "confirm": {
+      "delete": {
+        "title": "Confirm Deletion",
+        "message": "Are you sure you want to delete {item}?",
+        "warning": "This action cannot be undone.",
+        "confirm": "Yes, Delete",
+        "cancel": "Cancel"
+      },
+      "discard": {
+        "title": "Discard Changes?",
+        "message": "You have unsaved changes. Do you want to discard them?",
+        "confirm": "Discard",
+        "cancel": "Keep Editing"
+      },
+      "logout": {
+        "title": "Confirm Logout",
+        "message": "Are you sure you want to log out?",
+        "confirm": "Log Out",
+        "cancel": "Cancel"
+      }
+    },
+    "prompts": {
+      "title": "Input Required",
+      "placeholder": "Enter value...",
+      "submit": "Submit",
+      "cancel": "Cancel"
+    }
+  },
+  "errors": {
+    "pages": {
+      "notFound": {
+        "code": "404",
+        "title": "Page Not Found",
+        "message": "The page you're looking for doesn't exist or has been moved.",
+        "action": "Go to Homepage"
+      },
+      "unauthorized": {
+        "code": "401",
+        "title": "Unauthorized",
+        "message": "You need to be logged in to access this page.",
+        "action": "Sign In"
+      },
+      "forbidden": {
+        "code": "403",
+        "title": "Access Denied",
+        "message": "You don't have permission to access this resource.",
+        "action": "Go Back"
+      },
+      "serverError": {
+        "code": "500",
+        "title": "Server Error",
+        "message": "Something went wrong on our end. We're working to fix it.",
+        "action": "Try Again"
+      },
+      "maintenance": {
+        "title": "Under Maintenance",
+        "message": "We're performing scheduled maintenance. We'll be back shortly.",
+        "eta": "Estimated time: {time}"
+      }
+    }
+  },
+  "settings": {
+    "categories": {
+      "general": "General Settings",
+      "profile": "Profile",
+      "account": "Account",
+      "security": "Security",
+      "notifications": "Notifications",
+      "privacy": "Privacy",
+      "billing": "Billing",
+      "integrations": "Integrations",
+      "advanced": "Advanced"
+    },
+    "profile": {
+      "title": "Profile Settings",
+      "sections": {
+        "personal": {
+          "title": "Personal Information",
+          "fields": {
+            "avatar": "Profile Picture",
+            "firstname": "First Name",
+            "lastname": "Last Name",
+            "email": "Email Address",
+            "phone": "Phone Number",
+            "birthday": "Date of Birth",
+            "bio": "Biography"
+          }
+        },
+        "address": {
+          "title": "Address Information",
+          "fields": {
+            "street": "Street Address",
+            "city": "City",
+            "state": "State/Province",
+            "postal": "Postal Code",
+            "country": "Country"
+          }
+        },
+        "preferences": {
+          "title": "Preferences",
+          "fields": {
+            "language": "Language",
+            "timezone": "Timezone",
+            "dateFormat": "Date Format",
+            "timeFormat": "Time Format",
+            "currency": "Currency"
+          }
+        }
+      }
+    },
+    "security": {
+      "title": "Security Settings",
+      "sections": {
+        "password": {
+          "title": "Change Password",
+          "fields": {
+            "current": "Current Password",
+            "new": "New Password",
+            "confirm": "Confirm New Password"
+          },
+          "lastChanged": "Last changed: {date}"
+        },
+        "twoFactor": {
+          "title": "Two-Factor Authentication",
+          "status": {
+            "enabled": "Enabled",
+            "disabled": "Disabled"
+          },
+          "actions": {
+            "enable": "Enable 2FA",
+            "disable": "Disable 2FA",
+            "configure": "Configure"
+          }
+        },
+        "sessions": {
+          "title": "Active Sessions",
+          "current": "Current session",
+          "lastActive": "Last active: {time}",
+          "location": "Location: {location}",
+          "device": "Device: {device}",
+          "actions": {
+            "revoke": "Revoke",
+            "revokeAll": "Revoke all other sessions"
+          }
+        },
+        "apiKeys": {
+          "title": "API Keys",
+          "create": "Create New Key",
+          "columns": {
+            "name": "Name",
+            "key": "Key",
+            "created": "Created",
+            "lastUsed": "Last Used"
+          }
+        }
+      }
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "channels": {
+        "email": {
+          "title": "Email Notifications",
+          "frequency": {
+            "immediate": "Immediate",
+            "daily": "Daily Digest",
+            "weekly": "Weekly Summary",
+            "never": "Never"
+          }
+        },
+        "push": {
+          "title": "Push Notifications",
+          "status": {
+            "enabled": "Enabled",
+            "disabled": "Disabled",
+            "blocked": "Blocked by browser"
+          }
+        },
+        "sms": {
+          "title": "SMS Notifications",
+          "phone": "Phone number for SMS"
+        }
+      },
+      "categories": {
+        "orders": "Order updates",
+        "marketing": "Marketing emails",
+        "system": "System notifications",
+        "security": "Security alerts",
+        "social": "Social interactions"
+      }
+    }
+  },
+  "reports": {
+    "types": {
+      "sales": "Sales Report",
+      "revenue": "Revenue Report",
+      "customer": "Customer Report",
+      "inventory": "Inventory Report",
+      "financial": "Financial Report",
+      "performance": "Performance Report"
+    },
+    "periods": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This Week",
+      "lastWeek": "Last Week",
+      "thisMonth": "This Month",
+      "lastMonth": "Last Month",
+      "thisQuarter": "This Quarter",
+      "lastQuarter": "Last Quarter",
+      "thisYear": "This Year",
+      "lastYear": "Last Year",
+      "custom": "Custom Range"
+    },
+    "formats": {
+      "pdf": "PDF",
+      "excel": "Excel",
+      "csv": "CSV",
+      "json": "JSON"
+    },
+    "actions": {
+      "generate": "Generate Report",
+      "schedule": "Schedule Report",
+      "export": "Export",
+      "share": "Share",
+      "print": "Print"
+    }
+  }
+}

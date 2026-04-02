@@ -1,0 +1,17 @@
+{
+  "description": "Validates that the compiler produces a clear error when attempting to p-for over a non-iterable type like a struct.",
+  "shouldError": true,
+  "expectedDiagnostics": 2,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding",
+      "onLine": 40
+    },
+    {
+      "severity": "error",
+      "messageContains": "Cannot loop over type 'models.User'",
+      "onLine": 40
+    }
+  ]
+}

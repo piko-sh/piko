@@ -1,0 +1,19 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p id="target-field" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.Root.Item.Ranges[0].To }}
+    </RichText>
+  </p>
+  <p id="target-method" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.Root.Item.Ranges[0].Charge.MustNumber() }}
+    </RichText>
+  </p>
+  <div id="target-subexpressions" :c="state.Root.Item.Ranges[0].Charge" {P: state.Root.Item.Ranges[0].Charge} :e="state.Root.Item.Ranges[0]" {P: state.Root.Item.Ranges[0]} :f="state.Root.Item.Ranges[0].To" {P: state.Root.Item.Ranges[0].To} :i="state.Root.Item" {P: state.Root.Item} :m="state.Root.Item.Ranges[0].Charge.MustNumber" {P: state.Root.Item.Ranges[0].Charge.MustNumber} :r="state.Root" {P: state.Root} :s="state.Root.Item.Ranges" {P: state.Root.Item.Ranges} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+</div>
+
+--- END AST DUMP ---
+*/

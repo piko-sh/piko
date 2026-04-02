@@ -1,0 +1,19 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="level-a" [ANNOTATIONS: OriginPackage: partials_level_a_ff5866cb OriginPath: partials/level_a.pk PARTIAL InvKey: a_d24ec4f1 Package: partials_level_a_ff5866cb InvPackage: main_aaf9a2e0]>
+  <h2 [ANNOTATIONS: OriginPackage: partials_level_a_ff5866cb OriginPath: partials/level_a.pk]>
+    "Level A Header"
+  </h2>
+  <div class="level-b" [ANNOTATIONS: OriginPackage: partials_level_b_cf948762 OriginPath: partials/level_b.pk PARTIAL InvKey: b_78452aa1 Package: partials_level_b_cf948762 InvPackage: partials_level_a_ff5866cb]>
+    <h3 [ANNOTATIONS: OriginPackage: partials_level_b_cf948762 OriginPath: partials/level_b.pk]>
+      "Level B Content"
+    </h3>
+    <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Content from main"
+    </p>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

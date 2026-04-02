@@ -1,0 +1,44 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">p-model Input Types Test</h1>
+    <input-types-demo
+      partial="pages_index_032f49b1"
+      p-key="r.0:1"
+      text-value="user typed text"
+      number-value="99"
+      textarea-value="initial\nmultiline"
+      select-value="option1"
+      radio-value="red"
+      checkbox-value
+    >
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.input-types-demo{padding: 1rem}.form-section{margin-bottom: 1rem;padding: 0.5rem;border: 1px solid #eee;display: flex;align-items: center;gap: 1rem}.form-section label{min-width: 120px}input[type=text],input[type=number],textarea,select{padding: 0.5rem;min-width: 200px}textarea{resize: vertical;min-height: 60px}.display{color: #1976d2;font-weight: bold;padding: 0.25rem 0.5rem;background: #e3f2fd;border-radius: 4px}.radio-group{display: flex;gap: 1rem}.radio-group label{min-width: auto}.controls{margin-top: 1rem;display: flex;gap: 0.5rem}.controls button{padding: 0.5rem 1rem}</style>
+        <div class="input-types-demo">
+          <h3>p-model Input Types Test</h3>
+          <div class="form-section"><label for="text-input">Text Input:</label><input id="text-input" type="text" />
+            <span id="text-display" class="display">user typed text</span></div>
+          <div class="form-section"><label for="number-input">Number Input:</label><input id="number-input" type="number" />
+            <span id="number-display" class="display">99</span></div>
+          <div class="form-section">
+            <label for="textarea-input">Textarea:</label>
+            <textarea id="textarea-input"></textarea>
+            <span id="textarea-display" class="display">initial multiline</span>
+          </div>
+          <div class="form-section"><label><input id="checkbox-input" type="checkbox" checked />
+ Checkbox </label>            <span id="checkbox-display" class="display">checked</span></div>
+          <div class="form-section"><label for="select-input">Select:</label><select id="select-input"><option value="option1">Option 1</option><option value="option2">Option 2</option><option value="option3">Option 3</option></select><span id="select-display" class="display">option1</span></div>
+          <div class="form-section">
+            <label>Radio Buttons:</label>
+            <div class="radio-group"><label><input name="color" type="radio" value="red" />
+ Red </label>              <label><input name="color" type="radio" value="red" />
+ Green </label>              <label><input name="color" type="radio" value="red" />
+ Blue </label>            </div>
+            <span id="radio-display" class="display">red</span>
+          </div>
+          <div class="controls"><button id="reset-btn">Reset All</button><button id="set-btn">Set Programmatically</button></div>
+        </div>
+      </template>
+    </input-types-demo>
+  </div>
+</div>

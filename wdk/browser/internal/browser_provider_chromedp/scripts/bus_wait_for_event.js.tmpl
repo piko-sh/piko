@@ -1,0 +1,9 @@
+window.__pikoEventPromise = new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => reject(new Error('timeout waiting for event: ' + {{jsStr .EventName}})), {{.TimeoutMS}});
+    import('/_piko/dist/ppframework.core.es.js').then(({ bus }) => {
+        bus.once({{jsStr .EventName}}, (detail) => {
+            clearTimeout(timeoutId);
+            resolve(detail);
+        });
+    });
+});

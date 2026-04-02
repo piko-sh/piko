@@ -1,0 +1,36 @@
+{
+  "event_duration": [
+    {
+      "Duration": "08:00:00",
+      "ID": 1,
+      "Name": "Conference"
+    },
+    {
+      "Duration": "02:30:00",
+      "ID": 2,
+      "Name": "Workshop"
+    },
+    {
+      "Duration": "02:00:00",
+      "ID": 3,
+      "Name": "Meetup"
+    }
+  ],
+  "extract_parts": {
+    "EventDay": 15,
+    "ID": 1,
+    "Name": "Conference",
+    "StartMonth": 3,
+    "StartYear": 2025
+  },
+  "truncate_to_month": [
+    {
+      "EventCount": 2,
+      "Month": "2025-03-01T00:00:00Z"
+    },
+    {
+      "EventCount": 1,
+      "Month": "2025-04-01T00:00:00Z"
+    }
+  ]
+}

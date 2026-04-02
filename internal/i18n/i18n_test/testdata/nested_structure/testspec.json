@@ -1,0 +1,3 @@
+{
+  "description": "Test flattening of nested JSON structures into dot-separated keys"
+}

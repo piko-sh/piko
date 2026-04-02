@@ -1,0 +1,23 @@
+{
+  "get_event_data": {
+    "Data": "{\"amount\": 42, \"currency\": \"USD\"}",
+    "ID": 1
+  },
+  "get_json_type": {
+    "ValueType": "JSON"
+  },
+  "list_json_keys": [
+    {
+      "ID": 1,
+      "Keys": "[amount, currency]"
+    },
+    {
+      "ID": 2,
+      "Keys": "[amount, reason]"
+    },
+    {
+      "ID": 3,
+      "Keys": "[plan, trial]"
+    }
+  ]
+}

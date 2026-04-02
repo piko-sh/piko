@@ -1,0 +1,22 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Shopping List"
+  </h1>
+  <ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <li :data-index="idx" {P: idx} [p-for: (idx, item) in state.Items] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Item"
+      <span [p-text: (idx + 1)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+      ":"
+      <span [p-text: item] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+    </li>
+  </ul>
+  <p [p-if: (len(state.Items) == 0)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Your list is empty."
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies floats coexist with absolute/fixed positioned elements without interference, float clearing ignores positioned elements, and absolute elements inside floats position relative to the float.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

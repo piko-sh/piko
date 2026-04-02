@@ -1,0 +1,7 @@
+{
+  "description": "Query file with directives but no SQL body produces a Q010 error for empty query.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    { "severity": "error", "code": "Q010", "messageContains": "no SQL statements" }
+  ]
+}

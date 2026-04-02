@@ -1,0 +1,39 @@
+--- PACKAGE: testcase_39_mutually_recursive_types ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 39_mutually_recursive_types/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type A
+    - Defined In:      39_mutually_recursive_types/src/main.go
+    - TypeString:      main.A
+    - Underlying:      struct{B *main.B}
+    - Stringability:   0
+    - Fields:
+      - B                    *main.B
+        (Canonical Package: testcase_39_mutually_recursive_types)
+
+  > type B
+    - Defined In:      39_mutually_recursive_types/src/main.go
+    - TypeString:      main.B
+    - Underlying:      struct{A *main.A}
+    - Stringability:   0
+    - Fields:
+      - A                    *main.A
+        (Canonical Package: testcase_39_mutually_recursive_types)
+
+  > type Node
+    - Defined In:      39_mutually_recursive_types/src/main.go
+    - TypeString:      main.Node
+    - Underlying:      struct{Value string; Next *main.Node}
+    - Stringability:   0
+    - Fields:
+      - Value                string
+      - Next                 *main.Node
+        (Canonical Package: testcase_39_mutually_recursive_types)
+
+[Package-Level Functions]
+  (none)

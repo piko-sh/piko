@@ -1,0 +1,33 @@
+{
+    "description": "Basic morph patch should update content correctly",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/partial",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#content"
+    },
+    "assertions": [
+        {
+            "selector": "#content",
+            "exists": true,
+            "description": "Content container should exist"
+        },
+        {
+            "selector": "#content h1",
+            "textContent": "Updated Title",
+            "description": "Title should be updated"
+        },
+        {
+            "selector": "#content p",
+            "textContent": "This is the updated content from the server.",
+            "description": "Paragraph content should be updated"
+        }
+    ]
+}

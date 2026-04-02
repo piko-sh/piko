@@ -1,0 +1,14 @@
+{
+  "with_precision": {
+    "ID": 1,
+    "IntegerValue": 42,
+    "NullableNumeric": 3.14,
+    "NumericValue": 42.5
+  },
+  "without_precision": {
+    "ID": 2,
+    "IntegerValue": 100,
+    "NullableNumeric": null,
+    "NumericValue": 100
+  }
+}

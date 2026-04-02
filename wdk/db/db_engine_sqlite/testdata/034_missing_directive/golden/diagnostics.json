@@ -1,0 +1,24 @@
+[
+  {
+    "Filename": "missing_command.sql",
+    "Message": "missing piko.command directive",
+    "Code": "Q008",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  },
+  {
+    "Filename": "missing_name.sql",
+    "Message": "missing piko.name directive",
+    "Code": "Q008",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  }
+]

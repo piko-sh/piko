@@ -1,0 +1,6 @@
+{
+  "title": "Event Invitation",
+  "description": "Conference invitation with hero banner, speakers, and agenda",
+  "metadata": {"title": "You're Invited: DevSummit 2026"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

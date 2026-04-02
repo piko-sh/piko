@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<main [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div class="btn from-partial from-parent primary" id="my-button" [ANNOTATIONS: OriginPackage: partials_button_6b4e1a5a OriginPath: partials/button.pk PARTIAL InvKey: btn_0d50974e Package: partials_button_6b4e1a5a InvPackage: main_aaf9a2e0]>
+    "Click Me"
+  </div>
+</main>
+
+--- END AST DUMP ---
+*/

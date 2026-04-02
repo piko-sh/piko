@@ -1,0 +1,15 @@
+{
+  "description": "Checks prop validation for correct types, unknown props, and mismatched types.",
+  "expectedDiagnostics": 2,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Type mismatch for prop 'count'. Component <card> expects type 'int', but received type 'string'"
+    },
+    {
+      "severity": "error",
+      "messageContains": "Type mismatch for prop 'title'. Component <card> expects type 'string', but received type 'int'"
+    }
+  ],
+  "expectedUniqueInvocations": 2
+}

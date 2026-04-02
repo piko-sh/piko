@@ -1,0 +1,7 @@
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    sku CHAR(16) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT 1
+);

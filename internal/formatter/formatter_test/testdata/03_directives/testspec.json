@@ -1,0 +1,3 @@
+{
+  "description": "Tests formatting of Piko directives (p-if, p-for, p-bind, p-on, etc.)"
+}

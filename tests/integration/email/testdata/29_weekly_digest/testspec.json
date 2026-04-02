@@ -1,0 +1,6 @@
+{
+  "title": "Weekly Digest",
+  "description": "Content digest with article cards, images, and quick links",
+  "metadata": {"title": "The Morning Brief - Week of 31 March"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

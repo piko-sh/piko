@@ -1,0 +1,5 @@
+{
+  "description": "Tests declarative p-collection directive with type inference from Response struct",
+  "packageName": "collection_declarative_test",
+  "isPage": true
+}

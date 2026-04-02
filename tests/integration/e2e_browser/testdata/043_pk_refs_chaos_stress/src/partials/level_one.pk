@@ -1,0 +1,142 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+    <div class="level-one">
+        <h2>Level 1 Partial</h2>
+        <p>L1 Value: <span id="l1-value" p-ref="l1Value">starting</span></p>
+        <button id="l1-toggle" p-ref="l1ToggleBtn" p-on:click="l1Toggle()">L1 Toggle</button>
+
+        <div id="l2-container" class="l2-container" p-ref="l2Container">
+            <p class="placeholder">Click "Load L2" to load level 2</p>
+        </div>
+        <button id="l1-load-l2" p-ref="l1LoadL2Btn" p-on:click="loadL2()">Load L2</button>
+
+        <div id="l1-remote-container" class="l1-remote" p-ref="l1RemoteContainer">
+            <p class="placeholder">L1 Remote area empty</p>
+        </div>
+        <button id="l1-load-remote" p-ref="l1LoadRemoteBtn" p-on:click="loadRemoteAtL1()">Load Remote at L1</button>
+    </div>
+</template>
+
+<style>
+.level-one {
+    background: #fce7f3;
+    border: 2px solid #ec4899;
+    border-radius: 8px;
+    padding: 1rem;
+}
+.level-one h2 {
+    margin: 0 0 0.5rem;
+    color: #be185d;
+}
+.l2-container {
+    margin: 1rem 0;
+    min-height: 50px;
+}
+.l1-remote {
+    border: 2px dashed #f9a8d4;
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin: 1rem 0;
+    min-height: 50px;
+}
+.placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    text-align: center;
+}
+button {
+    padding: 0.5rem 1rem;
+    background: #ec4899;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+/**
+ * Level 1 - Top-level partial that loads level_two via RemoteRender and can load remote content.
+ */
+let l1Toggled = false;
+
+export function l1Toggle() {
+    l1Toggled = !l1Toggled;
+    if (pk.refs.l1Value) {
+        pk.refs.l1Value.textContent = l1Toggled ? 'TOGGLED' : 'starting';
+    }
+    if (pk.refs.l1ToggleBtn) {
+        pk.refs.l1ToggleBtn.textContent = l1Toggled ? 'L1 Toggled!' : 'L1 Toggle';
+    }
+}
+
+export async function loadL2() {
+    const container = pk.refs.l2Container;
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = '';
+
+    await piko.partials.render({
+        src: '/_piko/partials/level_two',
+        patchLocation: container,
+        patchMethod: 'replace',
+        childrenOnly: false
+    });
+
+    if (pk.refs.l1LoadL2Btn) {
+        pk.refs.l1LoadL2Btn.textContent = 'L2 Loaded!';
+    }
+}
+
+export async function loadRemoteAtL1() {
+    const container = pk.refs.l1RemoteContainer;
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = '';
+
+    await piko.partials.render({
+        src: '/_piko/partials/remote_inject',
+        patchLocation: container,
+        patchMethod: 'replace',
+        childrenOnly: false
+    });
+
+    if (pk.refs.l1LoadRemoteBtn) {
+        pk.refs.l1LoadRemoteBtn.textContent = 'Loaded at L1!';
+    }
+}
+</script>

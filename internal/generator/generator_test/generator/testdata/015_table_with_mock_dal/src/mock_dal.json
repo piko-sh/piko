@@ -1,0 +1,11 @@
+{
+  "ListCustomersPaginated": [
+    {
+      "TotalPages": 1,
+      "Customers": [
+        { "ID": 1, "CompanyName": "ACME Corp" },
+        { "ID": 2, "CompanyName": "Stark Industries" }
+      ]
+    }
+  ]
+}

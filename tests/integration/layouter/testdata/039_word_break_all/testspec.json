@@ -1,0 +1,7 @@
+{
+    "description": "Verifies word-break: break-all breaks words at any character.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

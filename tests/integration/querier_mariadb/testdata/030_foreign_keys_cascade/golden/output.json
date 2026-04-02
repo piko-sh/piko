@@ -1,0 +1,29 @@
+{
+  "after_delete": [
+    {
+      "DeptID": 2,
+      "ID": 3,
+      "Name": "Charlie"
+    }
+  ],
+  "before_delete": [
+    {
+      "DeptID": 1,
+      "ID": 1,
+      "Name": "Alice"
+    },
+    {
+      "DeptID": 1,
+      "ID": 2,
+      "Name": "Bob"
+    },
+    {
+      "DeptID": 2,
+      "ID": 3,
+      "Name": "Charlie"
+    }
+  ],
+  "count_after": {
+    "Total": 1
+  }
+}

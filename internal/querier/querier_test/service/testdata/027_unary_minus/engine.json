@@ -1,0 +1,56 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "float4": { "category": "float", "engineName": "float4" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE measurements ( id int4 PRIMARY KEY, value int4 NOT NULL, offset_val float4 )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "measurements",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "value", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false },
+          { "name": "offset_val", "sqlType": { "category": "float", "engineName": "float4" }, "nullable": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, -value as negated_value, -offset_val as negated_offset FROM measurements",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "measurements",
+            "columnName": "id"
+          },
+          {
+            "name": "negated_value",
+            "expression": {
+              "kind": "unary_op",
+              "operator": "-",
+              "operand": { "kind": "column_ref", "tableAlias": "measurements", "columnName": "value" }
+            }
+          },
+          {
+            "name": "negated_offset",
+            "expression": {
+              "kind": "unary_op",
+              "operator": "-",
+              "operand": { "kind": "column_ref", "tableAlias": "measurements", "columnName": "offset_val" }
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "measurements" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

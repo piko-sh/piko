@@ -1,0 +1,96 @@
+{
+  "description": "Validates that generic methods returning *T (pointer to type parameter) correctly resolve. Ref[TeamMember].GetPtr() should return *TeamMember, not *T.",
+  "expectedDiagnostics": 2,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.Data.Member.GetPtr().FirstName' on potentially nil pointer 'props.Data.Member.GetPtr()'",
+      "onLine": 45
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.Data.Optional.Value().Email' on potentially nil pointer 'props.Data.Optional.Value()'",
+      "onLine": 51
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "p.ptr-check",
+      "description": "GetPtr() returns *T which should be *TeamMember, nil check should work.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.Member.GetPtr() != nil",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.ptr-field",
+      "description": "CRITICAL: GetPtr() returns *TeamMember, dereferencing and accessing field should work.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.GetPtr()",
+          "resolvedTypeIs": "*dto.TeamMember"
+        },
+        {
+          "rawExpression": "props.Data.Member.GetPtr().FirstName",
+          "resolvedTypeIs": "fields.Text"
+        },
+        {
+          "rawExpression": "props.Data.Member.GetPtr().FirstName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.ptr-method",
+      "description": "Calling method on dereferenced pointer should work.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.GetPtr().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.optional-check",
+      "description": "Optional.Value() returns *T which should be *TeamMember.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.Optional.Value() != nil",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.optional-field",
+      "description": "CRITICAL: Optional.Value() returns *TeamMember, field access should work.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Optional.Value()",
+          "resolvedTypeIs": "*dto.TeamMember"
+        },
+        {
+          "rawExpression": "props.Data.Optional.Value().Email.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.both-methods",
+      "description": "Both Get() returning T and GetPtr() returning *T should work correctly.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Get().FullName()",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "props.Data.Member.GetPtr().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

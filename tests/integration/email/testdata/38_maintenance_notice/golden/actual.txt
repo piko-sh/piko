@@ -1,0 +1,46 @@
+Scheduled Maintenance
+
+Planned Maintenance Window
+
+We're performing scheduled maintenance to improve performance and reliability.
+
+**Date:**
+
+Saturday, 5 April 2026
+
+**Time:**
+
+02:00 - 06:00 UTC
+
+**Duration:**
+
+Up to 4 hours
+
+**Impact:**
+
+Intermittent downtime
+
+Affected Services
+
+* API Gateway (v2 and v3 endpoints)
+* Dashboard and web console
+* Webhook deliveries (will be queued and retried)
+* CDN edge nodes (partial, region-dependent)
+
+Not Affected
+
+* DNS resolution
+* SSL certificate management
+* Billing and account portal
+
+What You Should Do
+
+1. Save any in-progress work before the maintenance window
+2. Set up monitoring alerts if you haven't already
+3. Check our status page for real-time updates during the window
+
+ View Status Page (https://status.uplink.example.com)
+
+Uplink Cloud Hosting - 99.99% uptime SLA
+
+You're receiving this because you're an account administrator.

@@ -1,0 +1,20 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Active Users:"
+  </h2>
+  <div [p-for: (__pikoLoopIdx, user) in state.Users] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span class="badge" :name="user.Name" {P: user.Name, OriginPackage: main_aaf9a2e0} :title="user.Name" {P: user.Name, OriginPackage: main_aaf9a2e0} [p-if: user.IsActive] [ANNOTATIONS: OriginPackage: partials_user_badge_2e143ad8 OriginPath: partials/user_badge.pk PARTIAL InvKey: badge_name_user_name_0f53860a Package: partials_user_badge_2e143ad8 InvPackage: main_aaf9a2e0]>
+      <RichText>
+        "\n        "
+        {{ props.Name }}
+        "\n    "
+      </RichText>
+    </span>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

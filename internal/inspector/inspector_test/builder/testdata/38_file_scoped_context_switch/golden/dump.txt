@@ -1,0 +1,19 @@
+--- PACKAGE: testcase_38_file_scoped_context_switch/services ---
+[Package Info]
+  - Name:    services
+
+[File-Scoped Imports]
+  > File: 38_file_scoped_context_switch/src/services/service.go
+    - import "models"             -> testcase_38_file_scoped_context_switch/models
+
+[Named Types]
+  > type UserService
+    - Defined In:      38_file_scoped_context_switch/src/services/service.go
+    - TypeString:      services.UserService
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (*T) GetUser         func() *models.User
+
+[Package-Level Functions]
+  (none)

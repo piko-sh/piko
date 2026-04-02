@@ -1,0 +1,5 @@
+CREATE TABLE flags (
+  id INTEGER PRIMARY KEY,
+  mask INTEGER NOT NULL,
+  bits INTEGER NOT NULL
+);

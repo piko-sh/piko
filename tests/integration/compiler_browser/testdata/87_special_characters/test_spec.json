@@ -1,0 +1,12 @@
+[
+  {
+    "action": "checkText",
+    "selector": "special-characters >>> #html-entities",
+    "expected": "<div> & \"quotes\""
+  },
+  {
+    "action": "checkText",
+    "selector": "special-characters >>> #from-state",
+    "expected": "Text with <special> & \"chars\""
+  }
+]

@@ -1,0 +1,5 @@
+{
+    "description": "Tests that an action with an invalid Call signature is skipped (not discovered as an action)",
+    "packageName": "action_bad_signature_error_test",
+    "isPage": true
+}

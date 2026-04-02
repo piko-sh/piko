@@ -1,0 +1,6 @@
+{
+  "title": "VML Backgrounds",
+  "description": "Row with background image and VML fallback for Outlook",
+  "metadata": {"title": "VML Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

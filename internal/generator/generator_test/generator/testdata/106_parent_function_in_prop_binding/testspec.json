@@ -1,0 +1,4 @@
+{
+  "name": "parent_function_in_prop_binding",
+  "description": "Verifies that a parent page can define a function and use it in a prop binding expression when invoking a child partial."
+}

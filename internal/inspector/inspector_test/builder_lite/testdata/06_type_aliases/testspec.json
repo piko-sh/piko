@@ -1,0 +1,32 @@
+{
+  "description": "Type aliases (type X = Y)",
+  "moduleName": "testcase_lite_06",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "UserID is marked as alias",
+      "select": "packages.testcase_lite_06.named_types.UserID.is_alias",
+      "expect": true
+    },
+    {
+      "description": "UserID underlying type is string",
+      "select": "packages.testcase_lite_06.named_types.UserID.underlying_type_string",
+      "expect": "string"
+    },
+    {
+      "description": "Score is marked as alias",
+      "select": "packages.testcase_lite_06.named_types.Score.is_alias",
+      "expect": true
+    },
+    {
+      "description": "Score underlying type is int",
+      "select": "packages.testcase_lite_06.named_types.Score.underlying_type_string",
+      "expect": "int"
+    },
+    {
+      "description": "Config is not an alias",
+      "select": "packages.testcase_lite_06.named_types.Config.is_alias",
+      "expect": false
+    }
+  ]
+}

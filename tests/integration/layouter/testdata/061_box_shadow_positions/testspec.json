@@ -1,0 +1,7 @@
+{
+    "description": "Verifies box-shadow does not affect layout positions of elements.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

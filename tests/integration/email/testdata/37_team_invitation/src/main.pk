@@ -1,0 +1,122 @@
+<template>
+    <pml-row background-color="#667eea" padding="0">
+        <pml-col>
+            <pml-p font-size="4px" line-height="4px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#764ba2" padding="0">
+        <pml-col>
+            <pml-p font-size="4px" line-height="4px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#9b59b6" padding="0">
+        <pml-col>
+            <pml-p font-size="4px" line-height="4px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="30px 0">
+        <pml-col>
+            <pml-p font-size="28px" color="#2c3e50" align="center" padding="10px 25px">You've Been Invited!</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-p font-size="15px" color="#555555" line-height="1.6" align="center" padding="10px 25px">
+                Alex Morgan has invited you to join the <b>Engineering</b> team on Collab.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#f0ebf8" padding="15px 0">
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Workspace:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Acme Corp</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Team:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Engineering</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Your Role:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Member</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Invited By:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Alex Morgan (alex@acme.io)</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px">What you'll have access to:</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-ol>
+                <pml-li>Shared project boards and task lists</pml-li>
+                <pml-li>Team chat channels and direct messages</pml-li>
+                <pml-li>Shared file storage (50 GB)</pml-li>
+                <pml-li>Weekly standup reports</pml-li>
+            </pml-ol>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="25px 0">
+        <pml-col>
+            <pml-button href="https://collab.example.com/invite/accept" background-color="#667eea" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 45px">Accept Invitation</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px 25px">
+                This invitation expires in 48 hours.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="13px" color="#888888" align="center" padding="5px 25px">
+                Collab - Where teams do their best work
+            </pml-p>
+            <pml-p font-size="11px" color="#bbbbbb" align="center" padding="0 25px">
+                You received this email because someone invited you to a workspace.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.invite-details { line-height: 1.4; }
+</style>

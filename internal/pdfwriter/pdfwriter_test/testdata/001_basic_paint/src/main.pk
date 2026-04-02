@@ -1,0 +1,8 @@
+<template>
+    <div style="background-color: #cc3333; padding: 10px; border: 2px solid #000000;">
+        <div style="background-color: #3366cc; margin-top: 10px;">
+            <p>Hello World</p>
+            <p style="font-size: 16px; color: #555555;">Piko Paint POC</p>
+        </div>
+    </div>
+</template>

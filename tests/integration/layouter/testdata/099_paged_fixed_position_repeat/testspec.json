@@ -1,0 +1,16 @@
+{
+    "description": "Verifies position:fixed elements do not interfere with pagination of body content.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "fixed-banner": {"pageIndex": 0, "x": 0, "y": 0, "width": 800, "height": 30},
+        "div1": {"pageIndex": 0, "x": 0, "y": 0, "width": 800, "height": 200},
+        "div2": {"pageIndex": 1, "x": 0, "y": 0, "width": 800, "height": 200},
+        "div3": {"pageIndex": 2, "x": 0, "y": 0, "width": 800, "height": 200}
+    }
+}

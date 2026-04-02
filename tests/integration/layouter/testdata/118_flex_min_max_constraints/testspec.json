@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that flex-grow respects max-width and flex-shrink respects min-width constraints, with excess space redistributed to unconstrained items.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,12 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const padding = {{.Padding}};
+    return {
+        x: rect.left - padding,
+        y: rect.top - padding,
+        width: rect.width + (padding * 2),
+        height: rect.height + (padding * 2)
+    };
+})()

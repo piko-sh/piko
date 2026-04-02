@@ -1,0 +1,4 @@
+{
+  "isErrorCase": true,
+  "expectedErrorType": "*annotator_domain.ParseDiagnosticError"
+}

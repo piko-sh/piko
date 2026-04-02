@@ -1,0 +1,302 @@
+{
+  "description": "Vips transformer: comprehensive modifier tests (blur, sharpen, greyscale, rotate, flip, brightness, contrast, saturation)",
+  "moduleName": "testmodule",
+  "transformer": "vips",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jersey.jpg"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "vips-blur",
+      "capabilityName": "image-transform",
+      "description": "Vips: Gaussian blur effect",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "blur": "3.0"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 50000
+      }
+    },
+    {
+      "profileName": "vips-sharpen",
+      "capabilityName": "image-transform",
+      "description": "Vips: Sharpen effect",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "sharpen": "2.0"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-greyscale",
+      "capabilityName": "image-transform",
+      "description": "Vips: Greyscale conversion",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "greyscale": "true"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 50000
+      }
+    },
+    {
+      "profileName": "vips-rotate-90",
+      "capabilityName": "image-transform",
+      "description": "Vips: Rotate 90 degrees",
+      "params": {
+        "width": "314",
+        "height": "400",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "rotate": "90"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-rotate-180",
+      "capabilityName": "image-transform",
+      "description": "Vips: Rotate 180 degrees",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "rotate": "180"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-flip-horizontal",
+      "capabilityName": "image-transform",
+      "description": "Vips: Horizontal flip",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "flip": "horizontal"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-flip-vertical",
+      "capabilityName": "image-transform",
+      "description": "Vips: Vertical flip",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "flip": "vertical"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-brightness",
+      "capabilityName": "image-transform",
+      "description": "Vips: Brightness increase (+20)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "brightness": "20"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-contrast",
+      "capabilityName": "image-transform",
+      "description": "Vips: Contrast increase (+30)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "contrast": "30"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-saturation-high",
+      "capabilityName": "image-transform",
+      "description": "Vips: Saturation increase (+50)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "saturation": "50"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-saturation-low",
+      "capabilityName": "image-transform",
+      "description": "Vips: Saturation decrease (-50)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "saturation": "-50"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 100000
+      }
+    },
+    {
+      "profileName": "vips-combined-artistic",
+      "capabilityName": "image-transform",
+      "description": "Vips: Combined effects (greyscale + sharpen + contrast)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "webp",
+        "quality": "90",
+        "fit": "fill",
+        "greyscale": "true",
+        "sharpen": "1.5",
+        "contrast": "25"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 10000,
+        "maxSizeBytes": 150000
+      }
+    },
+    {
+      "profileName": "vips-blur-greyscale",
+      "capabilityName": "image-transform",
+      "description": "Vips: Combined blur + greyscale",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "blur": "2.0",
+        "greyscale": "true"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314,
+        "minSizeBytes": 5000,
+        "maxSizeBytes": 50000
+      }
+    }
+  ]
+}

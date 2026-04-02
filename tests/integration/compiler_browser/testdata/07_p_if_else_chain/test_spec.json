@@ -1,0 +1,34 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-if-else-chain \u003e\u003e\u003e .content",
+    "expected": "Block A"
+  },
+  {
+    "action": "click",
+    "selector": "p-if-else-chain \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-if-else-chain \u003e\u003e\u003e .content",
+    "expected": "Block B"
+  },
+  {
+    "action": "click",
+    "selector": "p-if-else-chain \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-if-else-chain \u003e\u003e\u003e .content",
+    "expected": "Block C"
+  },
+  {
+    "action": "click",
+    "selector": "p-if-else-chain \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-if-else-chain \u003e\u003e\u003e .content",
+    "expected": "Block A"
+  }
+]

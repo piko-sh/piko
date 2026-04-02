@@ -1,0 +1,3 @@
+{
+  "description": "Tests SQLite type affinity rules: various type names mapped to the five storage classes plus special cases for boolean, temporal, and JSON."
+}

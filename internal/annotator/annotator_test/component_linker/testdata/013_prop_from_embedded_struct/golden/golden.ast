@@ -1,0 +1,8 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div id="valid" [ANNOTATIONS: OriginPackage: partials_list_31e141af OriginPath: partials/list.pk PARTIAL InvKey: list_page_1_per_page_25_863a033a Package: partials_list_31e141af InvPackage: main_aaf9a2e0] />
+<div id="invalid" [ANNOTATIONS: OriginPackage: partials_list_31e141af OriginPath: partials/list.pk PARTIAL InvKey: list_page_1_e1bf6ad3 Package: partials_list_31e141af InvPackage: main_aaf9a2e0] />
+
+--- END AST DUMP ---
+*/

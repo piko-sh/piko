@@ -1,0 +1,28 @@
+{
+  "description": "Tests per-action response caching. Calls a timestamp action twice in succession - both should return the same cached timestamp.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result",
+      "expected": "cache_hit"
+    }
+  ]
+}

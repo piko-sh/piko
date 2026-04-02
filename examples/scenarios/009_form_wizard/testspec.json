@@ -1,0 +1,95 @@
+{
+  "description": "Verifies a multi-step form wizard with validation and conditional rendering",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "pkcComponents": [
+    { "tagName": "pp-signup-wizard" }
+  ],
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "pp-signup-wizard"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-signup-wizard >>> .step-dot.active",
+      "expected": "1"
+    },
+    {
+      "action": "click",
+      "selector": "pp-signup-wizard >>> #next-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-signup-wizard >>> .error",
+      "expected": "Please enter your name"
+    },
+    {
+      "action": "fill",
+      "selector": "pp-signup-wizard >>> #name-input",
+      "value": "Jane Smith"
+    },
+    {
+      "action": "fill",
+      "selector": "pp-signup-wizard >>> #email-input",
+      "value": "jane@example.com"
+    },
+    {
+      "action": "click",
+      "selector": "pp-signup-wizard >>> #next-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-signup-wizard >>> .step-dot.active",
+      "expected": "2"
+    },
+    {
+      "action": "click",
+      "selector": "pp-signup-wizard >>> #next-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-signup-wizard >>> .step-dot.active",
+      "expected": "3"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-signup-wizard >>> #summary-name",
+      "expected": "Jane Smith"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-signup-wizard >>> #summary-email",
+      "expected": "jane@example.com"
+    },
+    {
+      "action": "click",
+      "selector": "pp-signup-wizard >>> #submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-signup-wizard >>> .success-message",
+      "expected": "Registration complete!"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+    "description": "Tests that validation tags on input fields are correctly extracted and propagated",
+    "packageName": "action_validation_tags_test",
+    "isPage": true
+}

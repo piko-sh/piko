@@ -1,0 +1,67 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <m3e-card variant="elevated" clickable>
+        <piko:img :src="props.Image" :alt="props.Title" class="recipe-card-image"></piko:img>
+        <div class="recipe-card-body">
+            <div class="recipe-card-title" p-text="props.Title"></div>
+            <div class="recipe-card-pun" p-text="props.Pun"></div>
+            <div class="recipe-card-desc" p-text="props.Description"></div>
+            <div class="recipe-card-meta">
+                <m3e-chip p-text="props.Cheese" size="s"></m3e-chip>
+                <span p-text="props.CookTime"></span>
+                <span p-text="props.Difficulty"></span>
+            </div>
+        </div>
+        <div class="recipe-card-actions">
+            <m3e-button variant="filled" size="s" :href="props.Href">View Recipe</m3e-button>
+            <m3e-tooltip text="Add to favourites">
+                <m3e-icon-button toggle>
+                    <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                </m3e-icon-button>
+            </m3e-tooltip>
+        </div>
+        <m3e-badge value="New" p-if="props.IsNew"></m3e-badge>
+    </m3e-card>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+    Title       string `prop:"title"`
+    Slug        string `prop:"slug"`
+    Pun         string `prop:"pun"`
+    Description string `prop:"description"`
+    Image       string `prop:"image"`
+    CookTime    string `prop:"cook-time"`
+    Cheese      string `prop:"cheese"`
+    Difficulty  string `prop:"difficulty"`
+    IsNew       bool   `prop:"is-new"`
+    Href        string `prop:"href"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

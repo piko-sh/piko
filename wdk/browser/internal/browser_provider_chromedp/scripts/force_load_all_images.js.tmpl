@@ -1,0 +1,59 @@
+new Promise((resolve) => {
+    const timeout = {{.Timeout}};
+    const start = Date.now();
+
+    const allImages = document.querySelectorAll('img');
+    for (const img of allImages) {
+        img.removeAttribute('loading');
+
+        if (!img.src || img.src.startsWith('data:') || img.naturalWidth <= 1) {
+            const dataSrc = img.getAttribute('data-src')
+                || img.getAttribute('data-lazy-src')
+                || img.getAttribute('data-original');
+            if (dataSrc) {
+                img.src = dataSrc;
+            }
+        }
+
+        const style = window.getComputedStyle(img);
+        if (style.display === 'none') {
+            img.style.display = '';
+        }
+        if (style.visibility === 'hidden') {
+            img.style.visibility = 'visible';
+        }
+        if (parseFloat(style.opacity) === 0) {
+            img.style.opacity = '1';
+        }
+
+        const src = img.src;
+        if (src && !src.startsWith('data:')) {
+            img.src = '';
+            img.src = src;
+        }
+    }
+
+    const check = () => {
+        if (Date.now() - start > timeout) {
+            resolve(false);
+            return;
+        }
+
+        let pending = 0;
+        const imgs = document.querySelectorAll('img[src]');
+        for (const img of imgs) {
+            if (!img.src || img.src.startsWith('data:')) continue;
+            if (!img.complete) {
+                pending++;
+            }
+        }
+
+        if (pending === 0) {
+            resolve(true);
+        } else {
+            setTimeout(check, 200);
+        }
+    };
+
+    setTimeout(check, 300);
+})

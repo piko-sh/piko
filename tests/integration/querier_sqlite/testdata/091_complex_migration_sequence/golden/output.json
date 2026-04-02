@@ -1,0 +1,34 @@
+{
+  "post_counts": [
+    {
+      "ID": 1,
+      "Name": "Alice",
+      "PostCount": 2,
+      "Role": "admin"
+    },
+    {
+      "ID": 2,
+      "Name": "Bob",
+      "PostCount": 2,
+      "Role": "user"
+    },
+    {
+      "ID": 3,
+      "Name": "Charlie",
+      "PostCount": 1,
+      "Role": "user"
+    }
+  ],
+  "regular_users": [
+    {
+      "Email": "bob@example.com",
+      "ID": 2,
+      "Name": "Bob"
+    },
+    {
+      "Email": "charlie@example.com",
+      "ID": 3,
+      "Name": "Charlie"
+    }
+  ]
+}

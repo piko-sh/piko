@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_59_generic_struct_with_generic_map ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 59_generic_struct_with_generic_map/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Cache
+    - Defined In:      59_generic_struct_with_generic_map/src/main.go
+    - TypeString:      main.Cache[K, V]
+    - Underlying:      struct{Items map[K]V}
+    - Stringability:   0
+    - Type Params:     [K, V]
+    - Fields:
+      - Items                map[K]V
+
+[Package-Level Functions]
+  (none)

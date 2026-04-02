@@ -1,0 +1,59 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "float4": { "category": "float", "engineName": "float4" },
+    "boolean": { "category": "boolean", "engineName": "boolean" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE tasks ( id int4 PRIMARY KEY, priority int4 NOT NULL, score float4 )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "tasks",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "priority", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false },
+          { "name": "score", "sqlType": { "category": "float", "engineName": "float4" }, "nullable": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, priority > 5 as is_high_priority, score <> 0.0 as has_score FROM tasks",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "tasks",
+            "columnName": "id"
+          },
+          {
+            "name": "is_high_priority",
+            "expression": {
+              "kind": "comparison",
+              "operator": ">",
+              "left": { "kind": "column_ref", "tableAlias": "tasks", "columnName": "priority" },
+              "right": { "kind": "literal", "typeName": "int4" }
+            }
+          },
+          {
+            "name": "has_score",
+            "expression": {
+              "kind": "comparison",
+              "operator": "<>",
+              "left": { "kind": "column_ref", "tableAlias": "tasks", "columnName": "score" },
+              "right": { "kind": "literal", "typeName": "float4" }
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "tasks" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

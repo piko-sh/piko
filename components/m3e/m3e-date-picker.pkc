@@ -1,0 +1,267 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-date-picker">
+    <div class="date-picker">
+        <div class="header">
+            <button class="nav-btn" p-on:click="prevMonth" aria-label="Previous month">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-left.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </button>
+            <span class="month-year" p-text="state.monthLabel"></span>
+            <button class="nav-btn" p-on:click="nextMonth" aria-label="Next month">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-right.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </button>
+        </div>
+        <div class="weekdays">
+            <span class="weekday">S</span>
+            <span class="weekday">M</span>
+            <span class="weekday">T</span>
+            <span class="weekday">W</span>
+            <span class="weekday">T</span>
+            <span class="weekday">F</span>
+            <span class="weekday">S</span>
+        </div>
+        <div class="days" p-ref="daysGrid">
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        value: '' as string,
+        min: '' as string,
+        max: '' as string,
+        monthLabel: '' as string,
+    };
+
+    let viewYear = new Date().getFullYear();
+    let viewMonth = new Date().getMonth();
+
+    pkc.onConnected(() => {
+        if (state.value) {
+            const d = new Date(state.value + 'T00:00:00');
+            if (!isNaN(d.getTime())) {
+                viewYear = d.getFullYear();
+                viewMonth = d.getMonth();
+            }
+        }
+        renderCalendar();
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('value')) {
+            renderCalendar();
+        }
+    });
+
+    function prevMonth() {
+        viewMonth--;
+        if (viewMonth < 0) {
+            viewMonth = 11;
+            viewYear--;
+        }
+        renderCalendar();
+    }
+
+    function nextMonth() {
+        viewMonth++;
+        if (viewMonth > 11) {
+            viewMonth = 0;
+            viewYear++;
+        }
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+        state.monthLabel = months[viewMonth] + ' ' + viewYear;
+
+        const grid = pkc.refs.daysGrid;
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+        const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+        const selectedDate = state.value;
+        const today = new Date();
+        const todayStr = today.getFullYear() + '-' +
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(today.getDate()).padStart(2, '0');
+
+        for (let i = 0; i < firstDay; i++) {
+            const empty = document.createElement('span');
+            empty.classList.add('day', 'empty');
+            grid.appendChild(empty);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = viewYear + '-' +
+                           String(viewMonth + 1).padStart(2, '0') + '-' +
+                           String(day).padStart(2, '0');
+
+            const btn = document.createElement('button');
+            btn.classList.add('day');
+            btn.textContent = String(day);
+            btn.type = 'button';
+
+            if (dateStr === selectedDate) btn.classList.add('selected');
+            if (dateStr === todayStr) btn.classList.add('today');
+
+            let disabled = false;
+            if (state.min && dateStr < state.min) disabled = true;
+            if (state.max && dateStr > state.max) disabled = true;
+            if (disabled) {
+                btn.disabled = true;
+                btn.classList.add('disabled');
+            }
+
+            btn.addEventListener('click', () => {
+                if (disabled) return;
+                state.value = dateStr;
+                renderCalendar();
+                pkc.dispatchEvent(new CustomEvent('change', {
+                    detail: { value: dateStr },
+                    bubbles: true,
+                    composed: true,
+                }));
+            });
+
+            grid.appendChild(btn);
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: inline-block;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_surface-container-high: var(--m3e-surface-container-high, #ece6f0);
+        --_primary-container: var(--m3e-primary-container, #eaddff);
+        --_on-primary-container: var(--m3e-on-primary-container, #21005d);
+        --_outline: var(--m3e-outline, #79747e);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_shape-xl: var(--m3e-shape-xl, 28px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .date-picker {
+        background: var(--_surface-container-high);
+        border-radius: var(--_shape-xl);
+        padding: 16px;
+        width: 328px;
+        box-shadow: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.30);
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0 16px;
+    }
+
+    .month-year {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--_on-surface);
+    }
+
+    .nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_on-surface-variant);
+        cursor: pointer;
+        outline: none;
+
+        &:hover {
+            background: rgba(73, 69, 79, 0.08);
+        }
+    }
+
+    .weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        padding-bottom: 8px;
+    }
+
+    .weekday {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--_on-surface-variant);
+        line-height: 40px;
+    }
+
+    .days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0;
+    }
+
+    .day {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        margin: 0 auto;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_on-surface);
+        font-size: 0.875rem;
+        cursor: pointer;
+        outline: none;
+        font-family: inherit;
+        transition: background var(--_duration-short), color var(--_duration-short);
+
+        &:hover:not(.empty):not(.disabled) {
+            background: rgba(73, 69, 79, 0.08);
+        }
+
+        &.empty {
+            cursor: default;
+        }
+
+        &.today {
+            border: 1px solid var(--_primary);
+        }
+
+        &.selected {
+            background: var(--_primary);
+            color: var(--_on-primary);
+        }
+
+        &.disabled {
+            opacity: 0.38;
+            cursor: default;
+        }
+    }
+</style>

@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/profile.pk": {
+      "routePatterns": {
+        "en": "/profile"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_17_request_headers/dist/pages/pages_profile_bf01f4b0",
+      "originalSourcePath": "pages/profile.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

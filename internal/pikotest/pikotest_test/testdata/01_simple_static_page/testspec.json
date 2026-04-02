@@ -1,0 +1,7 @@
+{
+  "description": "Tests a simple static page with title, h1 text, status code, and no JS",
+  "entryPoints": [
+    { "path": "pages/home.pk", "isPage": true }
+  ],
+  "shouldFail": false
+}

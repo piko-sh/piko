@@ -1,0 +1,17 @@
+--- PACKAGE: testcase_32_func_returning_func ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 32_func_returning_func/src/main.go
+    - import "http"               -> net/http
+
+[Named Types]
+  > type Middleware
+    - Defined In:      32_func_returning_func/src/main.go
+    - TypeString:      main.Middleware
+    - Underlying:      func(http.Handler) http.Handler
+    - Stringability:   0
+
+[Package-Level Functions]
+  - func NewMiddleware        func() func(string) (int, error)

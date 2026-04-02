@@ -1,0 +1,5 @@
+{
+  "description": "Basic cross-package function call",
+  "modulePath": "testpkg",
+  "expected": "hello from helpers"
+}

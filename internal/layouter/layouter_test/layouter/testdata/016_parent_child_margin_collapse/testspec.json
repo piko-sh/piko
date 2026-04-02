@@ -1,0 +1,1 @@
+{"description": "Parent-child margin collapsing. Verifies that a parent with no border/padding collapses margins with its first and last children."}

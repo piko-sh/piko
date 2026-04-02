@@ -1,0 +1,4 @@
+<template>
+    <pml-row background-color="#4A90D9" padding="20px 0" text-align="center">
+    </pml-row>
+</template>

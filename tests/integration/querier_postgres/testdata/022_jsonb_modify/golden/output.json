@@ -1,0 +1,17 @@
+{
+  "merge_metadata": {
+    "ID": 1,
+    "Metadata": "{\"author\": \"Alice\", \"draft\": true, \"status\": \"published\", \"version\": 1, \"priority\": \"high\", \"reviewer\": \"Bob\"}",
+    "Title": "Report"
+  },
+  "remove_key": {
+    "ID": 1,
+    "Metadata": "{\"author\": \"Alice\", \"status\": \"published\", \"version\": 1, \"priority\": \"high\", \"reviewer\": \"Bob\"}",
+    "Title": "Report"
+  },
+  "set_nested_field": {
+    "ID": 1,
+    "Metadata": "{\"author\": \"Alice\", \"draft\": true, \"status\": \"published\", \"version\": 1}",
+    "Title": "Report"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "en": {
+    "farewell": "Goodbye",
+    "greeting": "Hello"
+  },
+  "es": {
+    "farewell": "Adiós",
+    "greeting": "Hola"
+  },
+  "fr": {
+    "farewell": "Au revoir",
+    "greeting": "Bonjour"
+  }
+}

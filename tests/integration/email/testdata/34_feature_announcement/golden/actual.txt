@@ -1,0 +1,39 @@
+Prism
+
+Introducing Prism 3.0
+
+The biggest update yet. Faster, smarter, more powerful.
+
+ See What's New (https://example.com/whats-new)
+
+App Screenshot
+
+⚡
+
+2x Faster
+
+Rebuilt rendering engine for instant previews
+
+⚫
+
+Enterprise Security
+
+SOC 2 compliance and SSO support
+
+Thumbs Up
+
+Easier Than Ever
+
+Redesigned interface with guided workflows
+
+Getting Started
+
+1. Update to the latest version
+2. Explore the new dashboard
+3. Join our live walkthrough on 5 April
+
+ Update Now (https://example.com/update)
+
+You received this email because you are a Prism user.
+
+© 2026 Prism Design Inc. All rights reserved.

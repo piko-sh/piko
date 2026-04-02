@@ -1,0 +1,257 @@
+<!--
+  027: PDF Invoice Generator
+
+  Demonstrates Piko's PDF rendering pipeline with two modes:
+  1. Standard invoice: rendered from a template with typed props
+  2. Secure invoice: AES-256 encrypted, password-protected, with a watermark
+-->
+
+<template>
+  <div id="app">
+    <h1>Invoice Generator</h1>
+    <p class="subtitle">Generate a standard or encrypted PDF invoice from form data.</p>
+
+    <!-- Standard invoice -->
+    <section class="section">
+      <h2>Standard Invoice</h2>
+      <form id="standard-form" p-on:submit.prevent="handleGenerate($event, $form)">
+        <div class="field">
+          <label for="customerName">Customer name</label>
+          <input type="text" id="customerName" name="customerName" placeholder="Acme Corp" required />
+        </div>
+        <div class="field">
+          <label for="itemName">Item description</label>
+          <input type="text" id="itemName" name="itemName" placeholder="Consulting services" required />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="quantity">Quantity</label>
+            <input type="number" id="quantity" name="quantity" value="1" min="1" required />
+          </div>
+          <div class="field">
+            <label for="unitPrice">Unit price ($)</label>
+            <input type="text" id="unitPrice" name="unitPrice" placeholder="150.00" required />
+          </div>
+        </div>
+        <button type="submit" id="generate-btn">Generate PDF</button>
+      </form>
+      <div p-ref="result" class="result" style="display: none;">
+        <p>Invoice <span p-ref="invoice_no"></span> generated.</p>
+        <a p-ref="download_link" target="_blank" class="download-btn">Download PDF</a>
+      </div>
+    </section>
+
+    <!-- Secure invoice -->
+    <section class="section">
+      <h2>Secure Invoice (AES-256 Encrypted)</h2>
+      <p class="hint">The PDF will be password-protected and watermarked "CONFIDENTIAL".</p>
+      <form id="secure-form" p-on:submit.prevent="handleSecure($event, $form)">
+        <div class="field">
+          <label for="secCustomerName">Customer name</label>
+          <input type="text" id="secCustomerName" name="customerName" placeholder="Acme Corp" required />
+        </div>
+        <div class="field">
+          <label for="secItemName">Item description</label>
+          <input type="text" id="secItemName" name="itemName" placeholder="Consulting services" required />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="secQuantity">Quantity</label>
+            <input type="number" id="secQuantity" name="quantity" value="1" min="1" required />
+          </div>
+          <div class="field">
+            <label for="secUnitPrice">Unit price ($)</label>
+            <input type="text" id="secUnitPrice" name="unitPrice" placeholder="150.00" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="password">PDF password</label>
+          <input type="password" id="password" name="password" placeholder="Min 4 characters" minlength="4" required />
+        </div>
+        <button type="submit" id="generate-secure-btn" class="btn-secure">Generate Encrypted PDF</button>
+      </form>
+      <div p-ref="sec_result" class="result result-secure" style="display: none;">
+        <p>Encrypted invoice <span p-ref="sec_invoice_no"></span> generated.</p>
+        <a p-ref="sec_download_link" target="_blank" class="download-btn btn-secure">Download Encrypted PDF</a>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Invoice Generator - PDF Demo",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+function downloadPDF(base64: string, filename: string): string {
+    const raw = atob(base64);
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) {
+        bytes[i] = raw.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    return URL.createObjectURL(blob);
+}
+
+async function handleGenerate(_event: SubmitEvent, form: FormDataHandle): Promise<void> {
+    try {
+        const data = await action.invoice.Generate(form).call();
+        const url = downloadPDF(data.pdf, data.invoiceNo);
+
+        const link = pk.refs.download_link as HTMLAnchorElement;
+        link.href = url;
+        link.download = data.invoiceNo + '.pdf';
+        pk.refs.invoice_no!.textContent = data.invoiceNo;
+        pk.refs.result!.style!.display = 'block';
+    } catch (err: any) {
+        console.error('Failed to generate PDF:', err);
+    }
+}
+
+async function handleSecure(_event: SubmitEvent, form: FormDataHandle): Promise<void> {
+    try {
+        const data = await action.invoice.GenerateSecure(form).call();
+        const url = downloadPDF(data.pdf, data.invoiceNo);
+
+        const link = pk.refs.sec_download_link as HTMLAnchorElement;
+        link.href = url;
+        link.download = data.invoiceNo + '.pdf';
+        pk.refs.sec_invoice_no!.textContent = data.invoiceNo;
+        pk.refs.sec_result!.style!.display = 'block';
+    } catch (err: any) {
+        console.error('Failed to generate secure PDF:', err);
+    }
+}
+</script>
+
+<style>
+  #app {
+    max-width: 560px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #1e40af;
+    margin-bottom: 0.25rem;
+  }
+
+  h2 {
+    color: #374151;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+
+  .hint {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .section {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .field {
+    margin-bottom: 1rem;
+    flex: 1;
+  }
+
+  .row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #374151;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+  }
+
+  button {
+    background-color: #1e40af;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #1e3a8a;
+    }
+  }
+
+  .btn-secure {
+    background-color: #991b1b;
+
+    &:hover {
+      background-color: #7f1d1d;
+    }
+  }
+
+  .result {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.375rem;
+    color: #1e3a8a;
+
+    p {
+      margin: 0 0 0.75rem 0;
+    }
+  }
+
+  .result-secure {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+  }
+
+  .download-btn {
+    display: inline-block;
+    background-color: #1e40af;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+
+    &:hover {
+      background-color: #1e3a8a;
+    }
+  }
+</style>

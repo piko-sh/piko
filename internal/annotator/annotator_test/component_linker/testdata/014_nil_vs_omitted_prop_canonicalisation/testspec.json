@@ -1,0 +1,26 @@
+{
+  "description": "Tests that an explicitly passed 'nil' prop and an omitted prop with a 'nil' default are correctly canonicalized to the SAME invocation key, as they are semantically identical.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1,
+  "assertNodes": [
+    {
+      "select": "#explicit-nil",
+      "description": "The key for the explicitly nil prop should be the same as the key for the omitted prop.",
+      "assert": {
+        "invocationKeyShouldMatch": "#omitted"
+      }
+    }
+  ],
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "profile",
+      "assert": {
+        "passedPropsCount": 1,
+        "hasProp": "user",
+        "propValueIs": {
+          "user": "nil"
+        }
+      }
+    }
+  ]
+}

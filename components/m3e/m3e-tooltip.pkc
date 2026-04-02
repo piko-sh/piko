@@ -1,0 +1,238 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-tooltip">
+    <div class="tooltip-anchor"
+         p-ref="anchor"
+         p-on:mouseenter="show"
+         p-on:mouseleave="hide"
+         p-on:focus="show"
+         p-on:blur="hide">
+        <slot></slot>
+        <div class="tooltip"
+             p-class="{
+                 'visible': state.visible,
+                 'rich': state.variant == 'rich',
+                 'top': state.position == 'top',
+                 'bottom': state.position == 'bottom',
+                 'left': state.position == 'left',
+                 'right': state.position == 'right'
+             }"
+             role="tooltip"
+             p-on:mouseenter="onTooltipMouseEnter"
+             p-on:mouseleave="onTooltipMouseLeave">
+            <div class="tooltip-title" p-if="state.variant == 'rich' && state.title" p-text="state.title"></div>
+            <div class="tooltip-body" p-text="state.text"></div>
+            <div class="tooltip-actions" p-if="state.variant == 'rich'"><slot name="actions"></slot></div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        text: '' as string,
+        title: '' as string,
+        position: 'top' as string,
+        variant: 'plain' as string,
+        visible: false as boolean,
+        show_delay: 500 as number,
+        hide_delay: 0 as number,
+    };
+
+    let showTimeout = null;
+    let hideTimeout = null;
+
+    function resolvePosition(anchorRect) {
+        const pos = state.position;
+
+        if (pos === 'top' && anchorRect.top < 60) {
+            return 'bottom';
+        }
+        if (pos === 'bottom' && (window.innerHeight - anchorRect.bottom) < 60) {
+            return 'top';
+        }
+        if (pos === 'left' && anchorRect.left < 60) {
+            return 'right';
+        }
+        if (pos === 'right' && (window.innerWidth - anchorRect.right) < 60) {
+            return 'left';
+        }
+
+        return pos;
+    }
+
+    function show() {
+        if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+        }
+        const delay = state.show_delay >= 0 ? state.show_delay : 500;
+        showTimeout = setTimeout(() => {
+            const anchor = pkc.refs.anchor;
+            if (anchor) {
+                const rect = anchor.getBoundingClientRect();
+                state.position = resolvePosition(rect);
+            }
+            state.visible = true;
+        }, delay);
+    }
+
+    function hide() {
+        if (showTimeout) {
+            clearTimeout(showTimeout);
+            showTimeout = null;
+        }
+        const delay = state.hide_delay >= 0 ? state.hide_delay : (state.variant === 'rich' ? 200 : 0);
+        hideTimeout = setTimeout(() => {
+            state.visible = false;
+        }, delay || 1);
+    }
+
+    function onTooltipMouseEnter() {
+        if (state.variant === 'rich') {
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+                hideTimeout = null;
+            }
+        }
+    }
+
+    function onTooltipMouseLeave() {
+        if (state.variant === 'rich') {
+            hide();
+        }
+    }
+
+    pkc.onDisconnected(() => {
+        if (showTimeout) clearTimeout(showTimeout);
+        if (hideTimeout) clearTimeout(hideTimeout);
+    });
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        --_inverse-surface: var(--m3e-inverse-surface, #313033);
+        --_inverse-on-surface: var(--m3e-inverse-on-surface, #f4eff4);
+        --_surface-container: var(--m3e-surface-container, #f3edf7);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-xs: var(--m3e-shape-xs, 4px);
+        --_shape-md: var(--m3e-shape-md, 12px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .tooltip-anchor {
+        position: relative;
+        display: inline-flex;
+    }
+
+    .tooltip {
+        position: absolute;
+        z-index: 1000;
+        padding: 4px 8px;
+        background: var(--_inverse-surface);
+        color: var(--_inverse-on-surface);
+        font-size: 0.75rem;
+        line-height: 1.333;
+        border-radius: var(--_shape-xs);
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transform: scale(0.9);
+        transition: opacity var(--_duration-short) var(--_easing-standard),
+                    transform var(--_duration-short) var(--_easing-standard);
+
+        &.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        &.rich {
+            max-width: 320px;
+            white-space: normal;
+            padding: 12px 16px;
+            background: var(--_surface-container, #f3edf7);
+            color: var(--_on-surface, #1c1b1f);
+            border-radius: var(--_shape-md, 12px);
+            pointer-events: auto;
+            box-shadow: 0px 1px 3px 1px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.30);
+        }
+    }
+
+    .top {
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) scale(0.9);
+
+        &.visible {
+            transform: translateX(-50%) scale(1);
+        }
+    }
+
+    .bottom {
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) scale(0.9);
+
+        &.visible {
+            transform: translateX(-50%) scale(1);
+        }
+    }
+
+    .left {
+        right: calc(100% + 8px);
+        top: 50%;
+        transform: translateY(-50%) scale(0.9);
+
+        &.visible {
+            transform: translateY(-50%) scale(1);
+        }
+    }
+
+    .right {
+        left: calc(100% + 8px);
+        top: 50%;
+        transform: translateY(-50%) scale(0.9);
+
+        &.visible {
+            transform: translateY(-50%) scale(1);
+        }
+    }
+
+    .tooltip-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .tooltip-body {
+        font-size: 0.75rem;
+        line-height: 1.333;
+    }
+
+    .tooltip-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+    }
+</style>

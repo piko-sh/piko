@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated for an undefined identifier and a fallback 'any' type is returned.",
+  "expression": "undefinedVariable",
+  "expectedType": "any",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Undefined variable: undefinedVariable"
+    }
+  ]
+}]

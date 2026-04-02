@@ -1,0 +1,7 @@
+{
+    "description": "Verifies font-size keywords (small, medium, large, x-large) affect text height correctly against browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

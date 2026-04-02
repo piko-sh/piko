@@ -1,0 +1,3 @@
+{
+  "description": "Multi-column VALUES CTE joined with a base table. Validates column type inference for integer and text literals in VALUES rows."
+}

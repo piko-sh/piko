@@ -1,0 +1,13 @@
+[{
+  "description": "Validates that a loop variable identifier is correctly resolved from the SymbolTable.",
+  "expression": "item",
+  "scope": {
+    "for": {
+      "expression": "item in state.Items",
+      "inNode": "div"
+    }
+  },
+  "expectedType": "main_aaf9a2e0.Item",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies CSS Grid explicit placement: grid-column and grid-row spanning across multiple tracks.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

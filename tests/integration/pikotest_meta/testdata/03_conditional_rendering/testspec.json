@@ -1,0 +1,6 @@
+{
+  "description": "Tests p-if conditional rendering directive",
+  "entryPoints": [
+    { "path": "pages/alerts.pk", "isPage": true }
+  ]
+}

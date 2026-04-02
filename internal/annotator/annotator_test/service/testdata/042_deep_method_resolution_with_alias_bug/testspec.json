@@ -1,0 +1,6 @@
+{
+  "description": "Tests that deep method resolution works correctly when an intermediate type is defined in a package that uses an alias for another package's type. The resolver must correctly switch to the file context of 'services/transaction.go' to understand the 'dto_alias' before resolving members of 'TransactionDto'. This test verifies the fix for import alias access detection.",
+  "expectedDiagnostics": 0,
+  "shouldError": false,
+  "diagnostics": []
+}

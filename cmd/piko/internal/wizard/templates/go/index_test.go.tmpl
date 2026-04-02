@@ -1,0 +1,68 @@
+package pages
+
+import (
+	"testing"
+
+	"piko.sh/piko"
+
+	index "{{ .ModuleName }}/dist/pages/pages_index_032f49b1"
+)
+
+func TestIndex_DefaultTitle(t *testing.T) {
+	tester := piko.NewComponentTester(t, index.BuildAST)
+	req := piko.NewTestRequest("GET", "/").Build()
+	view := tester.Render(req, piko.NoProps{})
+
+	view.QueryAST(".hero-title").Exists().HasText("Welcome to Piko")
+}
+
+func TestIndex_PersonalizedTitle(t *testing.T) {
+	tester := piko.NewComponentTester(t, index.BuildAST)
+	req := piko.NewTestRequest("GET", "/").
+		WithQueryParam("name", "Alice").Build()
+	view := tester.Render(req, piko.NoProps{})
+
+	view.QueryAST(".hero-title").Exists().HasText("Welcome, Alice")
+}
+
+func TestIndex_GreetingConditional(t *testing.T) {
+	tester := piko.NewComponentTester(t, index.BuildAST)
+
+	// Without name: no greeting
+	req := piko.NewTestRequest("GET", "/").Build()
+	view := tester.Render(req, piko.NoProps{})
+	view.QueryAST(".hero-greeting").NotExists()
+
+	// With name: greeting appears
+	req = piko.NewTestRequest("GET", "/").
+		WithQueryParam("name", "Bob").Build()
+	view = tester.Render(req, piko.NoProps{})
+	view.QueryAST(".hero-greeting").Exists().ContainsText("Bob")
+}
+
+func TestIndex_FeatureCards(t *testing.T) {
+	tester := piko.NewComponentTester(t, index.BuildAST)
+	req := piko.NewTestRequest("GET", "/").Build()
+	view := tester.Render(req, piko.NoProps{})
+
+	view.QueryAST(".features-grid > div").Count(4)
+}
+
+func TestIndex_QuickstartSteps(t *testing.T) {
+	tester := piko.NewComponentTester(t, index.BuildAST)
+	req := piko.NewTestRequest("GET", "/").Build()
+	view := tester.Render(req, piko.NoProps{})
+
+	view.QueryAST(".step").Count(3)
+}
+
+func TestIndex_HeroStructure(t *testing.T) {
+	tester := piko.NewComponentTester(t, index.BuildAST)
+	req := piko.NewTestRequest("GET", "/").Build()
+	view := tester.Render(req, piko.NoProps{})
+
+	view.QueryAST(".hero-badge").Exists()
+	view.QueryAST(".hero-subtitle").Exists().ContainsText("Go web framework")
+	view.QueryAST(".btn-primary").Exists().ContainsText("Get Started")
+	view.QueryAST(".btn-secondary").Exists().ContainsText("Documentation")
+}

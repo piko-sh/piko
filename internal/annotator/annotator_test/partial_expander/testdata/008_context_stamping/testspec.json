@@ -1,0 +1,18 @@
+{
+  "specs": [
+    {
+      "description": "The h1 tag must originate from the 'wrapper' partial",
+      "select": "h1",
+      "assert": {
+        "originalPackageAlias": "partials/wrapper.pk"
+      }
+    },
+    {
+      "description": "The p tag (slotted content) must originate from the 'main' component",
+      "select": "p",
+      "assert": {
+        "originalPackageAlias": "main.pk"
+      }
+    }
+  ]
+}

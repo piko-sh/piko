@@ -1,0 +1,95 @@
+{
+  "builtinFunctions": {
+    "sum": [
+      {
+        "arguments": [{ "name": "value", "type": { "category": "decimal", "engineName": "numeric" } }],
+        "returnType": { "category": "decimal", "engineName": "numeric" },
+        "isAggregate": true,
+        "nullableBehaviour": "calledOnNull"
+      }
+    ],
+    "row_number": [
+      {
+        "arguments": [],
+        "returnType": { "category": "integer", "engineName": "int8" },
+        "isAggregate": false,
+        "nullableBehaviour": "neverNull"
+      }
+    ]
+  },
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "int8": { "category": "integer", "engineName": "int8" },
+    "text": { "category": "text", "engineName": "text" },
+    "numeric": { "category": "decimal", "engineName": "numeric" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE sales ( id int4 PRIMARY KEY, region text NOT NULL, amount numeric(10,2) NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "sales",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "region", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "amount", "sqlType": { "category": "decimal", "engineName": "numeric", "precision": 10, "scale": 2 }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, region, amount, SUM(amount) OVER (PARTITION BY region) as region_total, ROW_NUMBER() OVER (ORDER BY amount DESC) as rank FROM sales",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "sales",
+            "columnName": "id"
+          },
+          {
+            "name": "region",
+            "tableAlias": "sales",
+            "columnName": "region"
+          },
+          {
+            "name": "amount",
+            "tableAlias": "sales",
+            "columnName": "amount"
+          },
+          {
+            "name": "region_total",
+            "expression": {
+              "kind": "window_function",
+              "function": {
+                "kind": "function_call",
+                "functionName": "sum",
+                "schema": "",
+                "arguments": [
+                  { "kind": "column_ref", "tableAlias": "sales", "columnName": "amount" }
+                ]
+              }
+            }
+          },
+          {
+            "name": "rank",
+            "expression": {
+              "kind": "window_function",
+              "function": {
+                "kind": "function_call",
+                "functionName": "row_number",
+                "schema": "",
+                "arguments": []
+              }
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "sales" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

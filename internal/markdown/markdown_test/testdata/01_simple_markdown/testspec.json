@@ -1,0 +1,35 @@
+{
+  "specs": [
+    {
+      "description": "The main content wrapper should exist",
+      "select": "virtual-root > content",
+      "assert": {
+        "childCount": 2
+      }
+    },
+    {
+      "description": "The main content should contain an H1 with the correct text",
+      "select": "virtual-root > content > h1",
+      "assert": {
+        "textContentContains": "Hello World"
+      }
+    },
+    {
+      "description": "The paragraph should contain a strong tag",
+      "select": "virtual-root > content > p > strong",
+      "assert": {
+        "textContentContains": "bold text"
+      }
+    },
+    {
+      "description": "The link inside the paragraph should have the correct href attribute",
+      "select": "virtual-root > content > p > a",
+      "assert": {
+        "attr": {
+          "href": "https://piko.sh"
+        },
+        "textContentContains": "link to the Piko project"
+      }
+    }
+  ]
+}

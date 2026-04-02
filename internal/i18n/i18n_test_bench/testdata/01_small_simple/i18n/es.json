@@ -1,0 +1,17 @@
+{
+  "app.title": "Mi Aplicación",
+  "app.version": "Versión 1.0",
+  "nav.home": "Inicio",
+  "nav.about": "Acerca de",
+  "nav.contact": "Contacto",
+  "nav.profile": "Perfil",
+  "button.submit": "Enviar",
+  "button.cancel": "Cancelar",
+  "button.save": "Guardar",
+  "button.delete": "Eliminar",
+  "message.welcome": "Bienvenido a nuestra aplicación",
+  "message.goodbye": "Gracias por su visita",
+  "error.required": "Este campo es obligatorio",
+  "error.invalid": "Entrada inválida",
+  "error.network": "Ocurrió un error de red"
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "mismatched_union.sql",
+    "Message": "compound query branch has 3 columns, expected 2 to match primary SELECT",
+    "Code": "Q020",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "stats": [
+    {
+      "CustomerID": 1,
+      "OrderCount": 2,
+      "Tier": "high",
+      "TotalAmount": 125
+    },
+    {
+      "CustomerID": 2,
+      "OrderCount": 1,
+      "Tier": "low",
+      "TotalAmount": 30
+    },
+    {
+      "CustomerID": 3,
+      "OrderCount": 1,
+      "Tier": "high",
+      "TotalAmount": 200
+    }
+  ]
+}

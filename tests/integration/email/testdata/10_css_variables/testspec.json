@@ -1,0 +1,10 @@
+{
+  "title": "CSS Variables",
+  "description": "CSS custom properties resolved via theme",
+  "metadata": {"title": "Variables Test"},
+  "premailerOptions": {
+    "expandShorthands": true,
+    "makeLeftoverImportant": true,
+    "theme": {"--primary-color": "#3498db", "--text-color": "#2c3e50", "--bg-color": "#ecf0f1"}
+  }
+}

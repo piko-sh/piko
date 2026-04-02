@@ -1,0 +1,3 @@
+{
+  "description": "MySQL index hints (USE INDEX, FORCE INDEX, IGNORE INDEX) in SELECT queries. Tests that index hint clauses are correctly skipped during FROM clause parsing."
+}

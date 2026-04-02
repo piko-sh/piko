@@ -1,0 +1,7 @@
+<template>
+  <div style="width: 300px;">
+    <div style="float: left; width: 100px; height: 80px;">Floated</div>
+    <p>Wrapping text</p>
+    <div style="clear: both;">Cleared element</div>
+  </div>
+</template>

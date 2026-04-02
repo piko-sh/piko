@@ -1,0 +1,22 @@
+--- PACKAGE: testcase_64_function_types ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 64_function_types/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type FunctionHolder
+    - Defined In:      64_function_types/src/main.go
+    - TypeString:      main.FunctionHolder
+    - Underlying:      struct{SimpleFunc func(); HigherOrderFunc func(fn func()); ArrayOfFuncs [0]func(); MapOfFuncs map[string]func()}
+    - Stringability:   0
+    - Fields:
+      - SimpleFunc           func()
+      - HigherOrderFunc      func(fn func())
+      - ArrayOfFuncs         [0]func()
+      - MapOfFuncs           map[string]func()
+
+[Package-Level Functions]
+  (none)

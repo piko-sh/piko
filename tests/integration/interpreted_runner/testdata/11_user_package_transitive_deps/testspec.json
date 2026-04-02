@@ -1,0 +1,7 @@
+{
+  "description": "Tests that unrelated user packages with unregistered imports do not break interpreted mode. The interpreter should only compile packages that the generated code actually imports, not all Go packages found in the project.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

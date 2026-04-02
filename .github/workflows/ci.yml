@@ -1,0 +1,231 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION_FILE: go.mod
+  NODE_VERSION: "22"
+  JAVA_VERSION: "21"
+
+jobs:
+  lint-go:
+    name: Lint Go
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: v2.10.1
+          args: --timeout=10m
+          verify: false
+
+  lint-scripts:
+    name: Lint Scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run shellcheck
+        run: make lint-scripts
+
+  lint-licences:
+    name: Check Licences
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses/v2@v2.0.1
+
+      - name: Install npm dependencies
+        run: |
+          for dir in frontend/core frontend/playground frontend/extensions/analytics plugins/vscode; do
+            if [ -f "$dir/package-lock.json" ]; then
+              (cd "$dir" && npm ci --ignore-scripts)
+            fi
+          done
+
+      - name: Check licences
+        run: make lint-licences
+
+  go-mod-verify:
+    name: Verify go.mod
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - name: Verify all go.mod files are tidy
+        run: make go-mod-verify
+
+  test-go:
+    name: Test Go
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - name: Run unit tests with race detector
+        run: go test -short -race -count=1 -shuffle=on piko.sh/piko/...
+
+  test-go-safe:
+    name: Test Go (safe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - name: Run unit tests with safe build tag
+        run: go test -short -tags safe -count=1 -shuffle=on piko.sh/piko/...
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/core/package-lock.json
+
+      - name: Install and test
+        working-directory: frontend/core
+        run: |
+          npm ci
+          npm test
+
+  test-vscode:
+    name: Test VSCode Plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: plugins/vscode/package-lock.json
+
+      - name: Install and test
+        working-directory: plugins/vscode
+        run: |
+          npm ci
+          npm test
+
+  test-idea:
+    name: Test IntelliJ Plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Run Gradle tests
+        working-directory: plugins/idea
+        run: ./gradlew test --no-daemon
+
+  build-verify:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - name: Build CLI
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -ldflags="-s -w" -o /dev/null ./cmd/piko
+
+      - name: Build LSP
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -ldflags="-s -w" -o /dev/null ./cmd/lsp
+
+  ci-ok:
+    name: CI
+    if: always()
+    needs:
+      - lint-go
+      - lint-scripts
+      - lint-licences
+      - go-mod-verify
+      - test-go
+      - test-go-safe
+      - test-frontend
+      - test-vscode
+      - test-idea
+      - build-verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          for result in $results; do
+            if [ "$result" != "success" ]; then
+              echo "::error::One or more CI jobs did not succeed: $results"
+              exit 1
+            fi
+          done
+          echo "All CI checks passed"

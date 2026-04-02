@@ -1,0 +1,6 @@
+{
+  "description": "Tests a page with state response data rendered in the template",
+  "entryPoints": [
+    { "path": "pages/profile.pk", "isPage": true }
+  ]
+}

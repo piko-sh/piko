@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button [Events: p-on:click.="save(state.Name, state.Age)" {P: save(state.Name, state.Age)}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Save"
+  </button>
+</div>
+
+--- END AST DUMP ---
+*/

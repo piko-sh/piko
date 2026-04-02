@@ -1,0 +1,43 @@
+{
+    "description": "The _style object and static style string should combine correctly",
+    "initialState": {
+        "colour": "red"
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.el('span', 'styled', { style: 'font-size: 14px', _style: { color: state.colour } }, [dom.txt('Styled text', 'txt')])])",
+    "steps": [
+        {
+            "description": "Initial render with red color and font-size",
+            "assertions": [
+                {
+                    "selector": "span",
+                    "exists": true,
+                    "description": "Span element should exist"
+                },
+                {
+                    "selector": "span",
+                    "textContent": "Styled text",
+                    "description": "Span should contain Styled text"
+                }
+            ]
+        },
+        {
+            "description": "Change color to blue",
+            "stateChanges": [
+                { "path": "colour", "value": "blue" }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('span', 'styled', { style: 'font-size: 14px', _style: { color: state.colour } }, [dom.txt('Styled text', 'txt')])])",
+            "assertions": [
+                {
+                    "selector": "span",
+                    "exists": true,
+                    "description": "Span element should still exist"
+                },
+                {
+                    "selector": "span",
+                    "textContent": "Styled text",
+                    "description": "Span should still contain Styled text"
+                }
+            ]
+        }
+    ]
+}

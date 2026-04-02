@@ -1,0 +1,312 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-dialog">
+    <div class="dialog-backdrop"
+         p-class="{
+             'visible': state.open,
+             'fullscreen': state.fullscreen
+         }"
+         p-on:click="handleBackdropClick">
+        <div class="dialog"
+             role="dialog"
+             aria-modal="true"
+             :aria-labelledby="state.headline ? 'dialog-headline' : null"
+             p-on:click="stopPropagation">
+            <div class="icon-slot" p-show="!state.fullscreen && state.has_icon">
+                <slot name="icon"></slot>
+            </div>
+            <div class="header" p-if="state.fullscreen">
+                <button class="close-button" p-on:click="close" aria-label="Close">
+                    <piko:svg src="piko.sh/piko/lib/icons/close.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                </button>
+                <h2 class="headline" id="dialog-headline"
+                    p-if="state.headline"
+                    p-text="state.headline"></h2>
+                <div class="header-actions">
+                    <slot name="actions"></slot>
+                </div>
+            </div>
+            <h2 class="headline centered" id="dialog-headline"
+                p-if="state.headline && !state.fullscreen"
+                p-text="state.headline"></h2>
+            <div class="content">
+                <slot></slot>
+            </div>
+            <div class="actions" p-if="!state.fullscreen">
+                <slot name="actions"></slot>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        open: false as boolean,
+        headline: '' as string,
+        fullscreen: false as boolean,
+        has_icon: false as boolean,
+    };
+
+    let escHandler = null;
+    let previouslyFocused = null;
+
+    pkc.attachSlotListener('icon', (elements) => {
+        state.has_icon = elements.length > 0;
+    });
+
+    function handleBackdropClick() {
+        close();
+    }
+
+    function stopPropagation(event) {
+        event.stopPropagation();
+    }
+
+    function close() {
+        state.open = false;
+        pkc.dispatchEvent(new CustomEvent('close', {
+            detail: { returnValue: pkc.returnValue },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function getFocusableElements() {
+        const dialog = pkc.shadowRoot?.querySelector('.dialog');
+        if (!dialog) return [];
+        const selectors = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        const shadowFocusable = Array.from(dialog.querySelectorAll(selectors));
+        const slotElements = Array.from(dialog.querySelectorAll('slot'));
+        const slottedFocusable = [];
+        for (const slot of slotElements) {
+            const assigned = slot.assignedElements({ flatten: true });
+            for (const el of assigned) {
+                if (el.matches(selectors)) slottedFocusable.push(el);
+                slottedFocusable.push(...Array.from(el.querySelectorAll(selectors)));
+            }
+        }
+        return [...shadowFocusable, ...slottedFocusable];
+    }
+
+    function trapFocus(event) {
+        if (event.key !== 'Tab') return;
+        const focusable = getFocusableElements();
+        if (focusable.length === 0) {
+            event.preventDefault();
+            return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey) {
+            if (document.activeElement === first || pkc.shadowRoot?.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            }
+        } else {
+            if (document.activeElement === last || pkc.shadowRoot?.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+    }
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('open')) {
+            if (state.open) {
+                previouslyFocused = document.activeElement;
+                document.body.style.overflow = 'hidden';
+                escHandler = (e) => {
+                    if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        close();
+                    }
+                    trapFocus(e);
+                };
+                document.addEventListener('keydown', escHandler);
+                setTimeout(() => {
+                    const focusable = getFocusableElements();
+                    if (focusable.length > 0) focusable[0].focus();
+                }, 0);
+            } else {
+                document.body.style.overflow = '';
+                if (escHandler) {
+                    document.removeEventListener('keydown', escHandler);
+                    escHandler = null;
+                }
+                if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+                    previouslyFocused.focus();
+                    previouslyFocused = null;
+                }
+            }
+        }
+    });
+
+    pkc.onDisconnected(() => {
+        document.body.style.overflow = '';
+        if (escHandler) {
+            document.removeEventListener('keydown', escHandler);
+            escHandler = null;
+        }
+        previouslyFocused = null;
+    });
+
+    pkc.returnValue = '';
+    pkc.show = () => { state.open = true; };
+    pkc.close = (returnValue) => {
+        if (returnValue !== undefined) pkc.returnValue = returnValue;
+        close();
+    };
+    pkc.toggle = () => { state.open ? close() : state.open = true; };
+</script>
+
+<style>
+    :host {
+        --_surface-container-high: var(--m3e-surface-container-high, #ece6f0);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_primary: var(--m3e-primary, #6750a4);
+        --_surface: var(--m3e-surface, #fffbfe);
+        --_duration-medium: var(--m3e-duration-medium, 400ms);
+        --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
+        --_shape-xl: var(--m3e-shape-xl, 28px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .dialog-backdrop {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.32);
+        z-index: 10000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--_duration-medium) var(--_easing-emphasized);
+
+        &.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        &.fullscreen .dialog {
+            min-width: 100vw;
+            min-height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+            border-radius: 0;
+            background: var(--_surface);
+        }
+
+        &.fullscreen .content {
+            padding: 0 24px 24px;
+        }
+    }
+
+    .dialog {
+        display: flex;
+        flex-direction: column;
+        background: var(--_surface-container-high);
+        color: var(--_on-surface);
+        border-radius: var(--_shape-xl);
+        min-width: 280px;
+        max-width: 560px;
+        max-height: calc(100vh - 96px);
+        box-shadow: 0px 8px 12px 6px rgba(0,0,0,0.15), 0px 4px 4px 0px rgba(0,0,0,0.30);
+        transform: scale(0.9);
+        transition: transform var(--_duration-medium) var(--_easing-emphasized);
+    }
+
+    .visible .dialog {
+        transform: scale(1);
+    }
+
+    .icon-slot {
+        display: flex;
+        justify-content: center;
+        padding: 24px 24px 0;
+        color: var(--_primary);
+    }
+
+    .headline {
+        margin: 0;
+        padding: 24px 24px 16px;
+        font-size: 1.5rem;
+        font-weight: 400;
+        line-height: 1.333;
+        color: var(--_on-surface);
+
+        &.centered {
+            text-align: center;
+        }
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 8px 8px 16px;
+
+        & .headline {
+            flex: 1;
+            padding: 0;
+            font-size: 1.375rem;
+        }
+    }
+
+    .header-actions {
+        margin-left: auto;
+    }
+
+    .close-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_on-surface);
+        cursor: pointer;
+        outline: none;
+
+        &:hover {
+            background: rgba(28, 27, 31, 0.08);
+        }
+    }
+
+    .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 24px;
+        font-size: 0.875rem;
+        line-height: 1.43;
+        color: var(--_on-surface-variant);
+    }
+
+    .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 16px 24px 24px;
+    }
+</style>

@@ -1,0 +1,44 @@
+{
+  "description": "Tests that .prevent modifier calls preventDefault, preventing link navigation while handler still fires",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Click the link with .prevent modifier"
+    },
+    {
+      "action": "click",
+      "selector": "#link"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Handler should have fired (text changed) but page should not have navigated"
+    },
+    {
+      "action": "checkText",
+      "selector": "#link-result",
+      "expected": "clicked"
+    },
+    {
+      "action": "comment",
+      "value": "The app container should still be present (no navigation occurred)"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    }
+  ]
+}

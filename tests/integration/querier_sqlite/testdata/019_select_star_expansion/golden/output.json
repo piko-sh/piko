@@ -1,0 +1,12 @@
+{
+  "widget": {
+    "ID": 1,
+    "Name": "Sprocket",
+    "Weight": 2.5
+  },
+  "widget_qualified": {
+    "ID": 1,
+    "Name": "Sprocket",
+    "Weight": 2.5
+  }
+}

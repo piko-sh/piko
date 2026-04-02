@@ -1,0 +1,10 @@
+{
+  "description": "Validates that passing an object literal with a missing required field to an action emits a warning diagnostic.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Missing required field 'email' (Go: Email) in action 'actions.UpdateProfile' input type 'UpdateProfileInput'"
+    }
+  ]
+}

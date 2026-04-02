@@ -1,0 +1,16 @@
+{
+  "description": "Page should be able to reference its own exported functions in template expressions.",
+  "shouldError": false,
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#price",
+      "description": "The interpolation should resolve FormatPrice as a function call returning string.",
+      "assertOnInterpolation": {
+        "rawExpression": "FormatPrice(state.Price)",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">p-for with Index Test</h1>
+    <item-list partial="pages_main_594861c5" p-key="r.0:1" next-id="5">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.list-container{padding: 1rem}.controls{margin-bottom: 1rem}button{padding: 0.5rem 1rem;margin-right: 0.5rem;background: #4caf50;color: white;border: none;cursor: pointer}#remove-btn{background: #f44336}.list-item{padding: 0.5rem;border-bottom: 1px solid #eee}.index{color: #888;font-weight: bold}</style>
+        <div class="list-container">
+          <div class="controls"><button id="add-btn">Add Item</button><button id="remove-btn">Remove First</button></div>
+          <p id="count">Item count: 4</p>
+          <ul id="item-list">
+            <li class="list-item"><span class="index">0</span>: <span class="text">First Item</span></li>
+            <li class="list-item"><span class="index">1</span>: <span class="text">Second Item</span></li>
+            <li class="list-item"><span class="index">2</span>: <span class="text">Third Item</span></li>
+            <li class="list-item"><span class="index">3</span>: <span class="text">Item 4</span></li>
+          </ul>
+        </div>
+      </template>
+    </item-list>
+  </div>
+</div>

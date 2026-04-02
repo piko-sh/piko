@@ -1,0 +1,34 @@
+{
+    "description": "Simulates pp-dynamic-list adding items",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/partials/lists/contacts",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "[slot=list]",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".input-group:first-child",
+            "attributes": { "partial": "contact1_scope list_scope modal_scope" },
+            "description": "First contact preserves scope chain"
+        },
+        {
+            "selector": ".input-group:nth-child(2)",
+            "attributes": { "partial": "contact2_scope list_scope modal_scope" },
+            "description": "Second contact (new) inherits parent scopes"
+        },
+        {
+            "selector": ".input-group:nth-child(2) input",
+            "attributes": { "partial": "contact2_scope list_scope modal_scope", "name": "contacts[1].name" },
+            "description": "New input has correct scope and name"
+        }
+    ]
+}

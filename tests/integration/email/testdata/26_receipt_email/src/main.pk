@@ -1,0 +1,115 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" font-weight="bold" color="#ffffff" background-color="#2c3e50" align="center" padding="10px 25px">Ember &amp; Oak</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#2c3e50" align="center" padding="10px 25px">Thank you for your order!</pml-p>
+            <pml-p font-size="14px" color="#666666" align="center" padding="5px 25px">Order #ORD-7842 has been confirmed.</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="20px 0">
+        <pml-col width="30%">
+            <pml-p background-color="#e8e8e8" color="#999999" font-size="12px" align="center" padding="30px 10px">Item 1</pml-p>
+        </pml-col>
+        <pml-col width="70%">
+            <pml-p font-size="15px" color="#2c3e50" padding="10px 15px 0 0">Ceramic Vase - Sunset</pml-p>
+            <pml-p font-size="13px" color="#888888" padding="2px 15px 0 0">Qty: 1</pml-p>
+            <pml-p font-size="15px" color="#2c3e50" padding="2px 15px 10px 0">£45.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="0">
+        <pml-col>
+            <pml-hr border-color="#e0e0e0" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="10px 0">
+        <pml-col width="30%">
+            <pml-p background-color="#e8e8e8" color="#999999" font-size="12px" align="center" padding="30px 10px">Item 2</pml-p>
+        </pml-col>
+        <pml-col width="70%">
+            <pml-p font-size="15px" color="#2c3e50" padding="10px 15px 0 0">Linen Throw - Sage</pml-p>
+            <pml-p font-size="13px" color="#888888" padding="2px 15px 0 0">Qty: 2</pml-p>
+            <pml-p font-size="15px" color="#2c3e50" padding="2px 15px 10px 0">£68.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="0">
+        <pml-col>
+            <pml-hr border-color="#e0e0e0" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="10px 0">
+        <pml-col width="30%">
+            <pml-p background-color="#e8e8e8" color="#999999" font-size="12px" align="center" padding="30px 10px">Item 3</pml-p>
+        </pml-col>
+        <pml-col width="70%">
+            <pml-p font-size="15px" color="#2c3e50" padding="10px 15px 0 0">Oak Candle Holder</pml-p>
+            <pml-p font-size="13px" color="#888888" padding="2px 15px 0 0">Qty: 1</pml-p>
+            <pml-p font-size="15px" color="#2c3e50" padding="2px 15px 10px 0">£32.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="15px 0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Subtotal</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#666666" align="right" padding="5px 25px">£145.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Shipping</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#666666" align="right" padding="5px 25px">£5.99</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#cccccc" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="5px 0 20px 0">
+        <pml-col width="50%">
+            <pml-p font-size="16px" color="#2c3e50" padding="5px 25px"><b>Total</b></pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="16px" color="#2c3e50" align="right" padding="5px 25px"><b>£150.99</b></pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px"><b>Shipping Address</b></pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">Jane Doe</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">42 Elm Street</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">Bristol, BS1 4DJ</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px"><b>Billing Address</b></pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">Jane Doe</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">42 Elm Street</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="2px 25px">Bristol, BS1 4DJ</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-button href="https://shop.emberandoak.example.com/orders/ORD-7842" background-color="#2c3e50" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 36px">View Order</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px 25px">
+                Need help? Contact us at support@emberandoak.example.com
+            </pml-p>
+            <pml-p font-size="11px" color="#bbbbbb" align="center" padding="0 25px">
+                Ember &amp; Oak Ltd, 10 High Street, London, EC1A 1BB
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.order-total { font-weight: bold; }
+</style>

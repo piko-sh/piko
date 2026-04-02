@@ -1,0 +1,56 @@
+{
+  "description": "Tests debounce collapses rapid successive clicks into a single server call",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Rapidly click 3 times within 300ms debounce window"
+    },
+    {
+      "action": "click",
+      "selector": "#rapid-btn"
+    },
+    {
+      "action": "wait",
+      "value": "50"
+    },
+    {
+      "action": "click",
+      "selector": "#rapid-btn"
+    },
+    {
+      "action": "wait",
+      "value": "50"
+    },
+    {
+      "action": "click",
+      "selector": "#rapid-btn"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for debounce to fire and server to respond"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify only 1 server call was made (debounce collapsed 3 clicks)"
+    },
+    {
+      "action": "checkText",
+      "selector": "#call-count",
+      "expected": "1"
+    }
+  ]
+}

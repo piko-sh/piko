@@ -1,0 +1,12 @@
+[
+  {
+    "action": "checkText",
+    "selector": "empty-minimal-component >>> #root",
+    "expected": "Minimal"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "empty-minimal-component >>> div",
+    "expected": "1"
+  }
+]

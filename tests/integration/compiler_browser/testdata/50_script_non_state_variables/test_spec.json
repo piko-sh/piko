@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "non-state-lookup \u003e\u003e\u003e p",
+    "expected": "Icon: ✅"
+  },
+  {
+    "action": "click",
+    "selector": "non-state-lookup \u003e\u003e\u003e button:first-of-type"
+  },
+  {
+    "action": "checkText",
+    "selector": "non-state-lookup \u003e\u003e\u003e p",
+    "expected": "Icon: ❌"
+  },
+  {
+    "action": "click",
+    "selector": "non-state-lookup \u003e\u003e\u003e button:last-of-type"
+  },
+  {
+    "action": "checkText",
+    "selector": "non-state-lookup \u003e\u003e\u003e p",
+    "expected": "Icon: ✅"
+  }
+]

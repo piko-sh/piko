@@ -1,0 +1,162 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <pml-container class="body-container">
+    <pml-row class="header-row">
+      <pml-col>
+        <pml-p class="header-title">The Norman Kitchen</pml-p>
+        <pml-p class="header-subtitle">New Contact Form Submission</pml-p>
+      </pml-col>
+    </pml-row>
+
+    <pml-row>
+      <pml-col class="content-card">
+        <pml-p class="section-title">Contact Details</pml-p>
+
+        <pml-p class="field-row">
+          <strong>Name:</strong> {{ props.Name }}
+        </pml-p>
+
+        <pml-p class="field-row">
+          <strong>Email:</strong> {{ props.Email }}
+        </pml-p>
+
+        <pml-p class="field-row">
+          <strong>Reason:</strong> {{ props.Reason }}
+        </pml-p>
+
+        <pml-br height="20px"></pml-br>
+
+        <pml-p class="section-title">Message</pml-p>
+        <pml-p class="message-text" style="white-space: pre-line;">{{ props.Message }}</pml-p>
+
+        <pml-br height="20px"></pml-br>
+
+        <pml-p class="timestamp">Submitted: {{ props.SubmittedAt }}</pml-p>
+      </pml-col>
+    </pml-row>
+
+    <pml-row class="footer">
+      <pml-col>
+        <pml-p class="footer-text">
+          This is an automated notification from The Norman Kitchen website contact form.
+        </pml-p>
+      </pml-col>
+    </pml-row>
+  </pml-container>
+</template>
+
+<style>
+  .body-container {
+    background-color: #7B5E2E;
+    color: white;
+    padding: 20px;
+  }
+
+  .header-row {
+    padding: 25px 0;
+    text-align: center;
+  }
+
+  .header-title {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 28px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 5px;
+  }
+
+  .header-subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    color: #FFDEA6;
+  }
+
+  .content-card {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 30px 25px;
+  }
+
+  .section-title {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    color: #D4881C;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #D4881C;
+    padding-bottom: 5px;
+  }
+
+  .field-row {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #4a5568;
+    margin-bottom: 8px;
+  }
+
+  .message-text {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333333;
+    background-color: #FFFDF7;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #D4881C;
+  }
+
+  .timestamp {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    color: #718096;
+    font-style: italic;
+  }
+
+  .footer {
+    padding: 30px 0;
+    text-align: center;
+  }
+
+  .footer-text {
+    font-size: 12px;
+    color: #FFDEA6;
+    line-height: 1.5;
+  }
+</style>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "testmodule/internal/dto"
+    "piko.sh/piko"
+  )
+
+  func Render(r *piko.RequestData, props dto.ContactInternalEmailProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{Title: "New Contact Form Submission - The Norman Kitchen"}, nil
+  }
+</script>

@@ -1,0 +1,39 @@
+{
+  "description": "Verifies single struct input is NOT wrapped with numeric index - args should be {name, value} not {0: {name, value}}",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Submit action via action builder pattern"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-name",
+      "expected": "TestName"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-value",
+      "expected": "42"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_action.html"
+    }
+  ]
+}

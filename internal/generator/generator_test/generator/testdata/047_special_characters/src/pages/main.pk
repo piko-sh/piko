@@ -1,0 +1,97 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div>© copyright</div>
+    <div>🚀 rocket</div>
+    <div>&nbsp; non-breaking space</div>
+    <div>&centerdot; center dot</div>
+    <div>&lt;/div&gt;&lt;img src=&quot;https://harmless.com&quot; /&gt;&lt;div&gt;</div>
+
+    <hr />
+    <h2>Testing Text Interpolation (Should be Escaped)</h2>
+
+    <div id="interpolation-simple">{{ state.SimpleHTML }}</div>
+
+    <div id="interpolation-malicious">{{ state.MaliciousString }}</div>
+
+    <p id="rich-text">Static Prefix &gt; {{ state.SimpleHTML }} &lt; Static Suffix</p>
+
+    <div id="interpolation-delimiters">{{ state.TemplateDelimiters }}</div>
+
+    <div id="interpolation-unicode">{{ state.UnicodeContent }}</div>
+
+    <hr />
+    <h2>Testing Directives (p-text vs p-html)</h2>
+
+    <div id="p-text-malicious" p-text="state.MaliciousString">This content will be replaced.</div>
+
+    <div id="p-html-safe" p-html="state.SafeHTML"></div>
+    <div id="p-html-malicious" p-html="state.MaliciousString"></div>
+
+    <hr />
+    <h2>Testing Dynamic Attributes (Should be Escaped)</h2>
+
+    <div id="attr-title" :title="state.QuotesAndBackticks">Hover me to see escaped quotes.</div>
+
+    <a id="attr-href" :href="state.MaliciousString">This link should be harmless.</a>
+
+    <div id="attr-data" :data-payload="state.MaliciousString"></div>
+
+    <div id="attr-class" :class="state.DynamicClassData">Dynamic classes</div>
+
+    <hr />
+    <h2>Testing Event Handlers</h2>
+
+    <button id="event-handler" p-on:click="helpers.alert(state.MaliciousString)">Click to see escaped alert</button>
+
+</template>
+
+<script type="application/x-go">
+package test_escaping
+
+import "piko.sh/piko"
+
+type Response struct {
+    SimpleHTML         string
+    MaliciousString    string
+    QuotesAndBackticks string
+    UnicodeContent     string
+    TemplateDelimiters string
+    DynamicClassData   map[string]bool
+    SafeHTML           string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        SimpleHTML:         "<div>Hello</div>",
+        MaliciousString:    `&lt;/div&gt;&lt;img src=&quot;https://malicious.com&quot; onerror=&quot;alert('XSS')&quot; /&gt;&lt;div&gt;`,
+        QuotesAndBackticks: `" ' ` + "`" + ` onload="alert('pwned')"`,
+        UnicodeContent:     "🚀 Rocket & ✔️ Checkmark",
+        TemplateDelimiters: "This is not a {{ template }} variable",
+        DynamicClassData: map[string]bool{
+            "<script>":      true,
+            "is-active":     true,
+            "not-active":    false,
+        },
+        SafeHTML: "<strong>This is safe, trusted HTML.</strong>",
+    }, piko.Metadata{Title: "Escaping Test"}, nil
+}
+</script>

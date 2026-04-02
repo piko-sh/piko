@@ -1,0 +1,39 @@
+<template>
+  <div class="counter">
+    <h1>{{ state.Title }}</h1>
+    <p>Count: {{ state.Count }}</p>
+    <button p-on:click="increment">Increment</button>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+	Title string
+	Count int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{Title: "Counter", Count: 0}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+.counter {
+  text-align: center;
+  padding: 2rem;
+}
+h1 {
+  color: #333;
+  font-size: 2rem;
+}
+button {
+  background: blue;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+}
+</style>

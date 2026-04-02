@@ -1,0 +1,73 @@
+{
+  "description": "Tests full form submission flow using PKC component with action",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Fill in the contact form"
+    },
+    {
+      "action": "fill",
+      "selector": "contact-form >>> #input-firstname",
+      "value": "Jane"
+    },
+    {
+      "action": "fill",
+      "selector": "contact-form >>> #input-lastname",
+      "value": "Smith"
+    },
+    {
+      "action": "fill",
+      "selector": "contact-form >>> #input-email",
+      "value": "jane.smith@example.com"
+    },
+    {
+      "action": "fill",
+      "selector": "contact-form >>> #input-subject",
+      "value": "Product Inquiry"
+    },
+    {
+      "action": "fill",
+      "selector": "contact-form >>> #input-message",
+      "value": "I would like more information about your services."
+    },
+    {
+      "action": "click",
+      "selector": "contact-form >>> #submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "contact-form >>> #form-result",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "contact-form >>> #result-ticket",
+      "expected": "TKT-2024-001"
+    },
+    {
+      "action": "checkText",
+      "selector": "contact-form >>> #result-name",
+      "expected": "Jane Smith"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "contact-form >>> #result-confirmation",
+      "expected": "Product Inquiry"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    }
+  ]
+}

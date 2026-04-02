@@ -1,0 +1,3 @@
+{
+  "description": "ON CONFLICT upsert: insert or update with version tracking"
+}

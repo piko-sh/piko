@@ -1,0 +1,6 @@
+{
+  "title": "Security Alert",
+  "description": "Security alert for suspicious login activity",
+  "metadata": {"title": "Security Alert: New Login Detected"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

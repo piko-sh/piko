@@ -1,0 +1,11 @@
+{
+  "description": "Validates that PK client-side event handlers are validated against exported functions from the client script.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Event handler 'nonExistentHandler' not found in client script exports"
+    }
+  ]
+}

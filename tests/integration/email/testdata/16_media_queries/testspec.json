@@ -1,0 +1,6 @@
+{
+  "title": "Media Queries",
+  "description": "Media query generation for responsive columns",
+  "metadata": {"title": "Media Query Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

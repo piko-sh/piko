@@ -1,0 +1,6 @@
+{
+  "title": "CSS Product Launch",
+  "description": "Product launch email styled entirely with CSS classes",
+  "metadata": {"title": "Introducing Orbit 2.0"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

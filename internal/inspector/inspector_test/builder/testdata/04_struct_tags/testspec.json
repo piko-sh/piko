@@ -1,0 +1,20 @@
+{
+  "description": "Tests the serialisation of struct tags, specifically 'prop' and 'validate'.",
+  "moduleName": "testcase_04_struct_tags",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_04_struct_tags"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Email' field should have its RawTag captured correctly.",
+      "select": "packages.testcase_04_struct_tags.named_types.User.fields.0.raw_tag",
+      "expect": "prop:\"user_email\" validate:\"required,email\""
+    },
+    {
+      "description": "The 'FullName' field should be the second field.",
+      "select": "packages.testcase_04_struct_tags.named_types.User.fields.1.name",
+      "expect": "FullName"
+    }
+  ]
+}

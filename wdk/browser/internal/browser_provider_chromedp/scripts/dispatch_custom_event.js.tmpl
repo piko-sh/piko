@@ -1,0 +1,4 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (el) el.dispatchEvent(new CustomEvent({{jsStr .EventName}}, { detail: {{jsRaw .DetailJSON}}, bubbles: true }));
+})()

@@ -1,0 +1,7 @@
+{
+  "description": "Test validation errors for invalid configuration values",
+  "expectError": true,
+  "useValidator": true,
+  "configFiles": ["config.json"],
+  "errorContains": "validation failed"
+}

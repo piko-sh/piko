@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "customer_totals.sql",
+    "Message": "Q001: unknown column \"status\"",
+    "Code": "Q004",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

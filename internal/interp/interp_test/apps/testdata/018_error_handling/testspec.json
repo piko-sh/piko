@@ -1,0 +1,5 @@
+{
+  "description": "Error interface pattern across files",
+  "shouldError": false,
+  "expected": "15"
+}

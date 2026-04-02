@@ -1,0 +1,1 @@
+{"description": "CREATE TABLE AS SELECT is parsed without error and adds an empty table to the catalogue"}

@@ -1,0 +1,6 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return false;
+    el.scrollIntoView({behavior: 'instant', block: 'center', inline: 'center'});
+    return true;
+})()

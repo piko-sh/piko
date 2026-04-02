@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that the special 'state' identifier correctly resolves to the component's Response struct.",
+  "expression": "state",
+  "expectedType": "main_aaf9a2e0.Response",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

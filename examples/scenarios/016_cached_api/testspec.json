@@ -1,0 +1,28 @@
+{
+  "description": "Action response caching - two rapid calls return the same cached timestamp",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='result']",
+      "expected": "cache_hit"
+    }
+  ]
+}

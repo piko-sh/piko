@@ -1,0 +1,28 @@
+{
+  "messages": [
+    {
+      "ID": 1,
+      "MessageDate": "2025-01-01",
+      "Source": "inbox",
+      "Subject": "Hello"
+    },
+    {
+      "ID": 1,
+      "MessageDate": "2025-01-02",
+      "Source": "sent",
+      "Subject": "Reply"
+    },
+    {
+      "ID": 2,
+      "MessageDate": "2025-01-03",
+      "Source": "inbox",
+      "Subject": "Meeting"
+    },
+    {
+      "ID": 2,
+      "MessageDate": "2025-01-04",
+      "Source": "sent",
+      "Subject": "Follow-up"
+    }
+  ]
+}

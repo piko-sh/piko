@@ -1,0 +1,5 @@
+CREATE TABLE queue (
+    id INTEGER PRIMARY KEY,
+    payload TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 0
+);

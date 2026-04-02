@@ -1,0 +1,12 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="icons" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <piko:svg class="icon-arrow" src="testmodule/lib/icons/arrow.svg" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+</div>
+<div class="images" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <piko:img alt="Logo" src="testmodule/lib/images/logo.png" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+</div>
+
+--- END AST DUMP ---
+*/

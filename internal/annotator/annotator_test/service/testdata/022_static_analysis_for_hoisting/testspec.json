@@ -1,0 +1,42 @@
+{
+  "description": "Validates the static analysis pass, ensuring nodes are correctly flagged for potential hoisting by the emitter.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#static-header",
+      "description": "A node with no dynamic children or attributes should be marked as static.",
+      "assert": {
+        "isStatic": true
+      }
+    },
+    {
+      "select": "#static-header > h1",
+      "description": "A child of a static node with no dynamic features should also be static.",
+      "assert": {
+        "isStatic": true
+      }
+    },
+    {
+      "select": "#dynamic-content",
+      "description": "A node containing an interpolation is not static.",
+      "assert": {
+        "isStatic": false
+      }
+    },
+    {
+      "select": "#dynamic-parent",
+      "description": "A node containing a dynamic child is not static.",
+      "assert": {
+        "isStatic": false
+      }
+    },
+    {
+      "select": "#static-footer",
+      "description": "A static node that is a sibling of a dynamic node should remain static.",
+      "assert": {
+        "isStatic": true
+      }
+    }
+  ]
+}

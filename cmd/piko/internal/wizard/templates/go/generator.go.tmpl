@@ -1,0 +1,26 @@
+package main
+
+import (
+	"context"
+	"os"
+
+	"piko.sh/piko"
+	"piko.sh/piko/wdk/logger"
+)
+
+func main() {
+	logger.AddPrettyOutput() // Uses LOG_LEVEL env var, defaults to INFO
+
+	command := piko.GenerateModeManifest
+	if len(os.Args) > 1 {
+		command = os.Args[1]
+	}
+
+	ssr := piko.New(
+		piko.WithCSSReset(piko.WithCSSResetComplete()),
+	)
+
+	if err := ssr.Generate(context.Background(), command); err != nil {
+		panic(err)
+	}
+}

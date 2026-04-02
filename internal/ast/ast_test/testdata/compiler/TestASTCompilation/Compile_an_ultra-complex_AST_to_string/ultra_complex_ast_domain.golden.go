@@ -1,0 +1,1389 @@
+package testgolden
+
+import (
+	goast "go/ast"
+	"go/parser"
+
+	"piko.sh/piko/internal/ast/ast_domain"
+)
+
+var GeneratedAST = func() *ast_domain.TemplateAST {
+	typeExprFromString := func(s string) goast.Expr {
+		expr, err := parser.ParseExpr(s)
+		if err != nil {
+			return nil
+		}
+		return expr
+	}
+	_ = typeExprFromString
+	return &ast_domain.TemplateAST{
+		RootNodes: []*ast_domain.TemplateNode{
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeElement,
+				Location: ast_domain.Location{
+					Line:   2,
+					Column: 1,
+				},
+				TagName: "div",
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+					ResolvedType: &ast_domain.ResolvedTypeInfo{
+						TypeExpression:       typeExprFromString("map[string][]pkg.MyType"),
+						PackageAlias:         "models",
+						CanonicalPackagePath: "",
+					},
+					Symbol: &ast_domain.ResolvedSymbol{
+						Name: "KitchenSinkComponent",
+						ReferenceLocation: ast_domain.Location{
+							Line:   100,
+							Column: 1,
+						},
+						DeclarationLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+					OriginalPackageAlias: new("main"),
+					OriginalSourcePath:   new("/path/to/ultra_complex.pkc"),
+					PartialInfo: &ast_domain.PartialInvocationInfo{
+						InvocationKey:       "partial-1",
+						PartialAlias:        "widgets",
+						PartialPackageName:  "github.com/user/widgets",
+						InvokerPackageAlias: "main",
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						RequestOverrides: map[string]ast_domain.PropValue{
+							"override_prop": ast_domain.PropValue{
+								Expression: &ast_domain.BooleanLiteral{
+									Value: true,
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+								},
+								Location: ast_domain.Location{
+									Line:   1,
+									Column: 1,
+								},
+								GoFieldName: "",
+							},
+						},
+						PassedProps: map[string]ast_domain.PropValue{
+							"passed_prop": ast_domain.PropValue{
+								Expression: &ast_domain.StringLiteral{
+									Value: "value",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+								},
+								Location: ast_domain.Location{
+									Line:   1,
+									Column: 1,
+								},
+								GoFieldName: "",
+							},
+						},
+					},
+					NeedsCSRF: true,
+					DynamicAttributeOrigins: map[string]string{
+						"aria-label": "local",
+						"data-state": "parent-component",
+					},
+				},
+				DirIf: &ast_domain.Directive{
+					Type: ast_domain.DirectiveIf,
+					Location: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					NameLocation: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					Expression: &ast_domain.UnaryExpression{
+						Operator: "!",
+						Right: &ast_domain.Identifier{
+							Name: "isLoading",
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						RelativeLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						GoAnnotations: nil,
+					},
+				},
+				DirShow: &ast_domain.Directive{
+					Type: ast_domain.DirectiveShow,
+					Location: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					NameLocation: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					Expression: &ast_domain.Identifier{
+						Name: "shouldDisplay",
+						RelativeLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				DirClass: &ast_domain.Directive{
+					Type: ast_domain.DirectiveClass,
+					Location: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					NameLocation: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					Expression: &ast_domain.ObjectLiteral{
+						Pairs: map[string]ast_domain.Expression{
+							"has-warning": &ast_domain.TernaryExpression{
+								Condition: &ast_domain.Identifier{
+									Name: "errorCount",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Consequent: &ast_domain.BooleanLiteral{
+									Value: true,
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+								},
+								Alternate: &ast_domain.BooleanLiteral{
+									Value: false,
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+								},
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+							"is-active": &ast_domain.MemberExpression{
+								Base: &ast_domain.Identifier{
+									Name: "user",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Property: &ast_domain.Identifier{
+									Name: "isActive",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Optional: false,
+								Computed: false,
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+						RelativeLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						GoAnnotations: nil,
+					},
+				},
+				DirStyle: &ast_domain.Directive{
+					Type: ast_domain.DirectiveStyle,
+					Location: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					NameLocation: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					Expression: &ast_domain.ObjectLiteral{
+						Pairs: map[string]ast_domain.Expression{
+							"background": &ast_domain.StringLiteral{
+								Value: "blue",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+							"color": &ast_domain.Identifier{
+								Name: "fontColor",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							"fontSize": &ast_domain.StringLiteral{
+								Value: "16px",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+						},
+						RelativeLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						GoAnnotations: nil,
+					},
+				},
+				Attributes: []ast_domain.HTMLAttribute{
+					ast_domain.HTMLAttribute{
+						Name:  "id",
+						Value: "kitchen-sink",
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+					ast_domain.HTMLAttribute{
+						Name:  "class",
+						Value: "container theme-dark",
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+					ast_domain.HTMLAttribute{
+						Name:  "disabled",
+						Value: "",
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+					ast_domain.HTMLAttribute{
+						Name:  "data-ação",
+						Value: "teste",
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				DynamicAttributes: []ast_domain.DynamicAttribute{
+					ast_domain.DynamicAttribute{
+						Name:          "aria-label",
+						RawExpression: "",
+						Expression: &ast_domain.StringLiteral{
+							Value: "Main container",
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							GoAnnotations: nil,
+						},
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+					ast_domain.DynamicAttribute{
+						Name:          "data-state",
+						RawExpression: "",
+						Expression: &ast_domain.TernaryExpression{
+							Condition: &ast_domain.MemberExpression{
+								Base: &ast_domain.Identifier{
+									Name: "user",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Property: &ast_domain.Identifier{
+									Name: "isActive",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Optional: false,
+								Computed: false,
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Consequent: &ast_domain.StringLiteral{
+								Value: "active",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+							Alternate: &ast_domain.StringLiteral{
+								Value: "inactive",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							GoAnnotations: nil,
+						},
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+					ast_domain.DynamicAttribute{
+						Name:          "data-dynamic-string",
+						RawExpression: "",
+						Expression: &ast_domain.TemplateLiteral{
+							Parts: []ast_domain.TemplateLiteralPart{
+								ast_domain.TemplateLiteralPart{
+									IsLiteral: true,
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+									Literal:       "Outer: ",
+								},
+								ast_domain.TemplateLiteralPart{
+									IsLiteral: false,
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+									GoAnnotations: nil,
+									Expression: &ast_domain.TemplateLiteral{
+										Parts: []ast_domain.TemplateLiteralPart{
+											ast_domain.TemplateLiteralPart{
+												IsLiteral: true,
+												RelativeLocation: ast_domain.Location{
+													Line:   0,
+													Column: 0,
+												},
+												GoAnnotations: nil,
+												Literal:       "Inner: ",
+											},
+											ast_domain.TemplateLiteralPart{
+												IsLiteral: false,
+												RelativeLocation: ast_domain.Location{
+													Line:   0,
+													Column: 0,
+												},
+												GoAnnotations: nil,
+												Expression: &ast_domain.Identifier{
+													Name: "user",
+													RelativeLocation: ast_domain.Location{
+														Line:   0,
+														Column: 0,
+													},
+												},
+											},
+										},
+										RelativeLocation: ast_domain.Location{
+											Line:   0,
+											Column: 0,
+										},
+									},
+								},
+							},
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				Binds: map[string]*ast_domain.Directive{
+					"data-user-id": &ast_domain.Directive{
+						Type: ast_domain.DirectiveBind,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						Arg: "data-user-id",
+						Expression: &ast_domain.MemberExpression{
+							Base: &ast_domain.Identifier{
+								Name: "user",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Property: &ast_domain.Identifier{
+								Name: "id",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Optional: false,
+							Computed: false,
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+					},
+					"title": &ast_domain.Directive{
+						Type: ast_domain.DirectiveBind,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						Arg: "title",
+						Expression: &ast_domain.MemberExpression{
+							Base: &ast_domain.Identifier{
+								Name: "page",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Property: &ast_domain.Identifier{
+								Name: "title",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Optional: false,
+							Computed: false,
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+					},
+				},
+				OnEvents: map[string][]ast_domain.Directive{
+					"click": []ast_domain.Directive{
+						ast_domain.Directive{
+							Type: ast_domain.DirectiveOn,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Arg: "click",
+							Expression: &ast_domain.Identifier{
+								Name: "handleClick",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+						ast_domain.Directive{
+							Type: ast_domain.DirectiveOn,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Arg: "click",
+							Expression: &ast_domain.Identifier{
+								Name: "trackClick",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+					"submit": []ast_domain.Directive{
+						ast_domain.Directive{
+							Type: ast_domain.DirectiveOn,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Arg:      "submit",
+							Modifier: "prevent",
+							Expression: &ast_domain.Identifier{
+								Name: "handleSubmit",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+				},
+				CustomEvents: map[string][]ast_domain.Directive{
+					"custom-update": []ast_domain.Directive{
+						ast_domain.Directive{
+							Type: ast_domain.DirectiveEvent,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Arg: "custom-update",
+							Expression: &ast_domain.Identifier{
+								Name: "onCustomUpdate",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+				},
+				Children: []*ast_domain.TemplateNode{
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TagName: "div",
+						Children: []*ast_domain.TemplateNode{
+							&ast_domain.TemplateNode{
+								NodeType: ast_domain.NodeElement,
+								Location: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								TagName: "div",
+								Children: []*ast_domain.TemplateNode{
+									&ast_domain.TemplateNode{
+										NodeType: ast_domain.NodeElement,
+										Location: ast_domain.Location{
+											Line:   0,
+											Column: 0,
+										},
+										TagName: "p",
+										DirIf: &ast_domain.Directive{
+											Type: ast_domain.DirectiveIf,
+											Location: ast_domain.Location{
+												Line:   0,
+												Column: 0,
+											},
+											NameLocation: ast_domain.Location{
+												Line:   0,
+												Column: 0,
+											},
+											Expression: &ast_domain.Identifier{
+												Name: "showParagraph",
+												RelativeLocation: ast_domain.Location{
+													Line:   0,
+													Column: 0,
+												},
+											},
+										},
+										Children: []*ast_domain.TemplateNode{
+											&ast_domain.TemplateNode{
+												NodeType: ast_domain.NodeElement,
+												Location: ast_domain.Location{
+													Line:   0,
+													Column: 0,
+												},
+												TagName: "span",
+												Children: []*ast_domain.TemplateNode{
+													&ast_domain.TemplateNode{
+														NodeType: ast_domain.NodeText,
+														Location: ast_domain.Location{
+															Line:   0,
+															Column: 0,
+														},
+														RichText: []ast_domain.TextPart{
+															ast_domain.TextPart{
+																IsLiteral: true,
+																Location: ast_domain.Location{
+																	Line:   0,
+																	Column: 0,
+																},
+																Literal: "Link: ",
+															},
+															ast_domain.TextPart{
+																IsLiteral: false,
+																Location: ast_domain.Location{
+																	Line:   0,
+																	Column: 0,
+																},
+																RawExpression: "",
+																Expression: &ast_domain.TemplateLiteral{
+																	Parts: []ast_domain.TemplateLiteralPart{
+																		ast_domain.TemplateLiteralPart{
+																			IsLiteral: true,
+																			RelativeLocation: ast_domain.Location{
+																				Line:   0,
+																				Column: 0,
+																			},
+																			GoAnnotations: nil,
+																			Literal:       "/users/",
+																		},
+																		ast_domain.TemplateLiteralPart{
+																			IsLiteral: false,
+																			RelativeLocation: ast_domain.Location{
+																				Line:   0,
+																				Column: 0,
+																			},
+																			GoAnnotations: nil,
+																			Expression: &ast_domain.Identifier{
+																				Name: "userId",
+																				RelativeLocation: ast_domain.Location{
+																					Line:   0,
+																					Column: 0,
+																				},
+																			},
+																		},
+																	},
+																	RelativeLocation: ast_domain.Location{
+																		Line:   0,
+																		Column: 0,
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeComment,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TextContent: " this is a comment ",
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TagName: "section",
+						Directives: []ast_domain.Directive{
+							ast_domain.Directive{
+								Type: ast_domain.DirectiveIf,
+								Location: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								NameLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+				},
+			},
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeFragment,
+				Location: ast_domain.Location{
+					Line:   20,
+					Column: 1,
+				},
+				Children: []*ast_domain.TemplateNode{
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TagName: "template",
+						DirFor: &ast_domain.Directive{
+							Type: ast_domain.DirectiveFor,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Expression: &ast_domain.ForInExpression{
+								IndexVariable: nil,
+								ItemVariable: &ast_domain.Identifier{
+									Name: "item",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Collection: &ast_domain.Identifier{
+									Name: "items",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+						},
+						Children: []*ast_domain.TemplateNode{
+							&ast_domain.TemplateNode{
+								NodeType: ast_domain.NodeElement,
+								Location: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								TagName: "h2",
+								Children: []*ast_domain.TemplateNode{
+									&ast_domain.TemplateNode{
+										NodeType: ast_domain.NodeText,
+										Location: ast_domain.Location{
+											Line:   0,
+											Column: 0,
+										},
+										TextContent: "Title",
+									},
+								},
+							},
+							&ast_domain.TemplateNode{
+								NodeType: ast_domain.NodeElement,
+								Location: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								TagName: "p",
+								Children: []*ast_domain.TemplateNode{
+									&ast_domain.TemplateNode{
+										NodeType: ast_domain.NodeText,
+										Location: ast_domain.Location{
+											Line:   0,
+											Column: 0,
+										},
+										TextContent: "Content",
+									},
+								},
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TagName: "template",
+						DirIf: &ast_domain.Directive{
+							Type: ast_domain.DirectiveIf,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Expression: &ast_domain.Identifier{
+								Name: "condition",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TagName: "div",
+						DirElse: &ast_domain.Directive{
+							Type: ast_domain.DirectiveElse,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TagName: "div",
+						DirIf: &ast_domain.Directive{
+							Type: ast_domain.DirectiveIf,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Expression: &ast_domain.Identifier{
+								Name: "c1",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TagName: "div",
+						DirElseIf: &ast_domain.Directive{
+							Type: ast_domain.DirectiveElseIf,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Expression: &ast_domain.Identifier{
+								Name: "c2",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+						DirFor: &ast_domain.Directive{
+							Type: ast_domain.DirectiveFor,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Expression: &ast_domain.ForInExpression{
+								IndexVariable: nil,
+								ItemVariable: &ast_domain.Identifier{
+									Name: "i",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Collection: &ast_domain.Identifier{
+									Name: "items",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+						},
+						DirKey: &ast_domain.Directive{
+							Type: ast_domain.DirectiveKey,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Expression: &ast_domain.Identifier{
+								Name: "i",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+						DirContext: &ast_domain.Directive{
+							Type: ast_domain.DirectiveContext,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Expression: &ast_domain.StringLiteral{
+								Value: "loop",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								GoAnnotations: nil,
+							},
+						},
+					},
+				},
+			},
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeElement,
+				Location: ast_domain.Location{
+					Line:   30,
+					Column: 1,
+				},
+				TagName: "input",
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+					ResolvedType: &ast_domain.ResolvedTypeInfo{
+						TypeExpression:       typeExprFromString("int"),
+						PackageAlias:         "",
+						CanonicalPackagePath: "",
+					},
+					Symbol: &ast_domain.ResolvedSymbol{
+						Name: "formInput",
+						ReferenceLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						DeclarationLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				DirModel: &ast_domain.Directive{
+					Type: ast_domain.DirectiveModel,
+					Location: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					NameLocation: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					Expression: &ast_domain.Identifier{
+						Name: "form.value",
+						RelativeLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				DirKey: &ast_domain.Directive{
+					Type: ast_domain.DirectiveKey,
+					Location: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					NameLocation: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					Expression: &ast_domain.MemberExpression{
+						Base: &ast_domain.Identifier{
+							Name: "form",
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Property: &ast_domain.Identifier{
+							Name: "id",
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Optional: false,
+						Computed: false,
+						RelativeLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				DynamicAttributes: []ast_domain.DynamicAttribute{
+					ast_domain.DynamicAttribute{
+						Name:          "data-calc",
+						RawExpression: "",
+						Expression: &ast_domain.BinaryExpression{
+							Left: &ast_domain.BinaryExpression{
+								Left: &ast_domain.Identifier{
+									Name: "a",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								Operator: "-",
+								Right: &ast_domain.Identifier{
+									Name: "b",
+									RelativeLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Operator: "-",
+							Right: &ast_domain.Identifier{
+								Name: "c",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+					ast_domain.DynamicAttribute{
+						Name:          "data-for",
+						RawExpression: "",
+						Expression: &ast_domain.MemberExpression{
+							Base: &ast_domain.Identifier{
+								Name: "data",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Property: &ast_domain.Identifier{
+								Name: "for",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							Optional: false,
+							Computed: false,
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+			},
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeComment,
+				Location: ast_domain.Location{
+					Line:   0,
+					Column: 0,
+				},
+				TextContent: " Final Section ",
+			},
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeText,
+				Location: ast_domain.Location{
+					Line:   0,
+					Column: 0,
+				},
+				RichText: []ast_domain.TextPart{
+					ast_domain.TextPart{
+						IsLiteral: false,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						RawExpression: "  finalMessage  ",
+						Expression: &ast_domain.Identifier{
+							Name: "finalMessage",
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+					},
+				},
+			},
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeElement,
+				Location: ast_domain.Location{
+					Line:   0,
+					Column: 0,
+				},
+				TagName: "textarea",
+				Children: []*ast_domain.TemplateNode{
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeText,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						TextContent: "  Line 1\n  <span>not a tag</span>",
+					},
+				},
+			},
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeElement,
+				Location: ast_domain.Location{
+					Line:   40,
+					Column: 1,
+				},
+				TagName: "p",
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+					ResolvedType: &ast_domain.ResolvedTypeInfo{
+						TypeExpression:       typeExprFromString("*string"),
+						PackageAlias:         "",
+						CanonicalPackagePath: "",
+					},
+					Symbol: &ast_domain.ResolvedSymbol{
+						Name: "optionalMessage",
+						ReferenceLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						DeclarationLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+				DirText: &ast_domain.Directive{
+					Type: ast_domain.DirectiveText,
+					Location: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					NameLocation: ast_domain.Location{
+						Line:   0,
+						Column: 0,
+					},
+					Expression: &ast_domain.Identifier{
+						Name: "optionalMessage",
+						RelativeLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+					},
+				},
+			},
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeElement,
+				Location: ast_domain.Location{
+					Line:   41,
+					Column: 1,
+				},
+				TagName: "span",
+				Directives: []ast_domain.Directive{
+					ast_domain.Directive{
+						Type: ast_domain.DirectiveOn,
+						Location: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						NameLocation: ast_domain.Location{
+							Line:   0,
+							Column: 0,
+						},
+						Arg: "load",
+						Expression: &ast_domain.Identifier{
+							Name: "loadData",
+							RelativeLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+						},
+						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+							ResolvedType: &ast_domain.ResolvedTypeInfo{
+								TypeExpression:       typeExprFromString("io.Reader"),
+								PackageAlias:         "io",
+								CanonicalPackagePath: "",
+							},
+							Symbol: &ast_domain.ResolvedSymbol{
+								Name: "dataSource",
+								ReferenceLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+								DeclarationLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							PartialInfo: &ast_domain.PartialInvocationInfo{
+								InvocationKey:       "",
+								PartialAlias:        "",
+								PartialPackageName:  "",
+								InvokerPackageAlias: "",
+								Location: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+						},
+					},
+				},
+				OnEvents: map[string][]ast_domain.Directive{
+					"load": []ast_domain.Directive{
+						ast_domain.Directive{
+							Type: ast_domain.DirectiveOn,
+							Location: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							NameLocation: ast_domain.Location{
+								Line:   0,
+								Column: 0,
+							},
+							Arg: "load",
+							Expression: &ast_domain.Identifier{
+								Name: "loadData",
+								RelativeLocation: ast_domain.Location{
+									Line:   0,
+									Column: 0,
+								},
+							},
+							GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+								ResolvedType: &ast_domain.ResolvedTypeInfo{
+									TypeExpression:       typeExprFromString("io.Reader"),
+									PackageAlias:         "io",
+									CanonicalPackagePath: "",
+								},
+								Symbol: &ast_domain.ResolvedSymbol{
+									Name: "dataSource",
+									ReferenceLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+									DeclarationLocation: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+								PartialInfo: &ast_domain.PartialInvocationInfo{
+									InvocationKey:       "",
+									PartialAlias:        "",
+									PartialPackageName:  "",
+									InvokerPackageAlias: "",
+									Location: ast_domain.Location{
+										Line:   0,
+										Column: 0,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Diagnostics: []*ast_domain.Diagnostic{
+			&ast_domain.Diagnostic{
+				Message:  "Root-level diagnostic message.",
+				Severity: ast_domain.Info,
+				Location: ast_domain.Location{
+					Line:   1,
+					Column: 1,
+				},
+				Expression:    "",
+				SFCSourcePath: "",
+			},
+		},
+	}
+}()

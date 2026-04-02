@@ -1,0 +1,15 @@
+{
+  "description": "Tests how the builder handles ambiguous selectors from multiple embedded types. It should not promote the ambiguous method.",
+  "moduleName": "testcase_12_ambiguity",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_12_ambiguity"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Service' type should have no methods serialised, as 'Log' is ambiguous.",
+      "select": "packages.testcase_12_ambiguity.named_types.Service.methods",
+      "expect": []
+    }
+  ]
+}

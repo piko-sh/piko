@@ -1,0 +1,21 @@
+<template>
+  <div>
+    <h1>Other Page</h1>
+    <nav>
+      <a href="/main" id="nav-main">Go to Main Page</a>
+    </nav>
+    <p>This page tests that keyboard listeners are cleaned up on navigation away.</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Other Page",
+    }, nil
+}
+</script>

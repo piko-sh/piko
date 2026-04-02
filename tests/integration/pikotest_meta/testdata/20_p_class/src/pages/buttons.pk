@@ -1,0 +1,79 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package buttons
+
+import "piko.sh/piko"
+
+type Response struct {
+	IsActive   bool
+	IsDisabled bool
+	IsPrimary  bool
+	IsLarge    bool
+	HasError   bool
+	Status     string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	isActive := r.QueryParam("active") == "true"
+	isDisabled := r.QueryParam("disabled") == "true"
+	isPrimary := r.QueryParam("primary") == "true"
+	isLarge := r.QueryParam("large") == "true"
+	hasError := r.QueryParam("error") == "true"
+	status := r.QueryParam("status")
+
+	if status == "" {
+		status = "default"
+	}
+
+	return Response{
+		IsActive:   isActive,
+		IsDisabled: isDisabled,
+		IsPrimary:  isPrimary,
+		IsLarge:    isLarge,
+		HasError:   hasError,
+		Status:     status,
+	}, piko.Metadata{
+		Title: "Button Styles",
+	}, nil
+}
+</script>
+<template>
+	<div class="button-demo">
+		<h1>Button Component</h1>
+		<section class="buttons">
+			<button class="btn" p-class:active="state.IsActive" p-class:disabled="state.IsDisabled">
+				Basic Button
+			</button>
+			<button class="btn" p-class:primary="state.IsPrimary" p-class:large="state.IsLarge">
+				Styled Button
+			</button>
+			<button class="btn" p-class:error="state.HasError" p-class:success="state.Status == 'success'" p-class:warning="state.Status == 'warning'">
+				Status Button
+			</button>
+		</section>
+		<section class="status-display">
+			<span class="status-badge" p-class:active="state.IsActive" p-class:inactive="!state.IsActive">
+				Status Indicator
+			</span>
+		</section>
+	</div>
+</template>

@@ -1,0 +1,46 @@
+{
+  "description": "Validates generic embedded types with named Data field can be resolved and methods called correctly.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "h1.title",
+      "description": "Direct field access on PropertyData should resolve to string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.Title",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.receptions",
+      "description": "Method call through generic Embedded[T].Data field should resolve to int.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.RoomSetup.Data.ReceptionsInt()",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    },
+    {
+      "select": "p.bedrooms",
+      "description": "Another method call through generic Embedded[T].Data field should resolve to int.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.RoomSetup.Data.BedroomsInt()",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    },
+    {
+      "select": "p.receptions-raw",
+      "description": "Chained field access and method call through generic type should resolve to int.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.RoomSetup.Data.Receptions.Int()",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    }
+  ]
+}

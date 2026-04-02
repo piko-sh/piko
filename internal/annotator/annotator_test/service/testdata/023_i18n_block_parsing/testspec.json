@@ -1,0 +1,31 @@
+{
+  "description": "Validates that the <i18n> block is parsed and that the T() and LT() built-in translation function calls are correctly type-checked.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#main-greeting",
+      "description": "The simple T() translation call should be resolved as a string.",
+      "assertOnInterpolation": {
+        "rawExpression": "T(\"greeting\")",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#user-greeting",
+      "description": "The nested-key T() translation call should be resolved as a string.",
+      "assertOnInterpolation": {
+        "rawExpression": "T(\"user.greeting\")",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#user-greeting2",
+      "description": "The local LT() translation call should be resolved as a string.",
+      "assertOnInterpolation": {
+        "rawExpression": "LT(\"user.greeting\")",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

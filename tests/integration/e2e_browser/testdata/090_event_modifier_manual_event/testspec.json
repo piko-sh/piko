@@ -1,0 +1,53 @@
+{
+  "description": "Tests that users can manually handle $event by calling preventDefault and stopPropagation themselves without modifiers",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Click the link that manually prevents default and stops propagation"
+    },
+    {
+      "action": "click",
+      "selector": "#manual-link"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Handler should have fired"
+    },
+    {
+      "action": "checkText",
+      "selector": "#manual-result",
+      "expected": "clicked"
+    },
+    {
+      "action": "comment",
+      "value": "Outer handler should NOT have fired because stopPropagation was called manually"
+    },
+    {
+      "action": "checkText",
+      "selector": "#outer-result",
+      "expected": "not clicked"
+    },
+    {
+      "action": "comment",
+      "value": "Page should not have navigated because preventDefault was called manually"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    }
+  ]
+}

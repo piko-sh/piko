@@ -1,0 +1,103 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+namespace search_schema_gen;
+
+enum SearchMode : byte {
+    Fast = 0,
+
+    Smart = 1,
+}
+
+struct Posting {
+    document_id: uint32;
+
+    term_frequency: uint16;
+
+    field_id: uint8;
+
+    _reserved: uint8;
+}
+
+table Term {
+    text: string (key);
+
+    original: string;
+
+    phonetic: string;
+
+    postings: [Posting];
+
+    inverse_document_frequency: float32;
+}
+
+table DocumentMetadata {
+    document_id: uint32;
+
+    field_length: uint32;
+
+    field_lengths_packed: uint32;
+
+    route: string;
+}
+
+table PhoneticMapping {
+    code: string (key);
+
+    term_indices: [uint32];
+}
+
+table SearchIndex {
+    mode: SearchMode;
+
+    terms: [Term];
+
+    documents: [DocumentMetadata];
+
+    phonetic_map: [PhoneticMapping];
+
+    total_documents: uint32;
+
+    average_field_length: float32;
+
+    vocabulary_size: uint32;
+
+    collection_name: string;
+
+    language: string;
+
+    version: uint32;
+
+    params: IndexParams;
+}
+
+table IndexParams {
+    bm25_k1: float32 = 1.2;
+
+    bm25_b: float32 = 0.75;
+
+    min_token_length: uint16 = 2;
+
+    max_token_length: uint16 = 50;
+
+    stop_words_enabled: bool = true;
+
+    field_weights: [float32];
+}
+
+root_type SearchIndex;

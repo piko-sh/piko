@@ -1,0 +1,38 @@
+{
+    "description": "Replace patch should completely replace content",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/replace-partial",
+        "patchMethod": "replace",
+        "childrenOnly": true,
+        "querySelector": "#content"
+    },
+    "assertions": [
+        {
+            "selector": "#content",
+            "exists": true,
+            "description": "Content container should exist"
+        },
+        {
+            "selector": "#content .new-structure",
+            "exists": true,
+            "description": "New structure should exist"
+        },
+        {
+            "selector": "#content .old-structure",
+            "exists": false,
+            "description": "Old structure should be gone"
+        },
+        {
+            "selector": "#content .new-structure span",
+            "textContent": "Completely new content",
+            "description": "New span content should be correct"
+        }
+    ]
+}

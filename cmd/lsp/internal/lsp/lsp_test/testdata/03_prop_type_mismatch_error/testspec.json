@@ -1,0 +1,26 @@
+{
+  "description": "Tests that passing a prop of the wrong type generates a clear error diagnostic during both build and LSP analysis.",
+  "generate": {
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "compilation failed with errors",
+    "expectDiagnostics": [
+      {
+        "severity": "error",
+        "messageContains": "Type mismatch for prop 'title'. Component <card> expects type 'string', but received type 'int'",
+        "line": 2
+      }
+    ]
+  },
+  "lsp": {
+    "actions": [
+      {
+        "action": "didOpen",
+        "file": "pages/main.pk"
+      },
+      {
+        "action": "expectDiagnostics"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of a basic struct with one primitive, exported field and one unexported field.",
+  "moduleName": "testcase_01_basic_struct",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_01_basic_struct"
+  ],
+  "assertions": [
+    {
+      "description": "The 'User' type should be present in the 'main' package.",
+      "select": "packages.testcase_01_basic_struct.named_types.User.name",
+      "expect": "User"
+    },
+    {
+      "description": "The 'User' type should have exactly one serialised field (the exported one).",
+      "select": "packages.testcase_01_basic_struct.named_types.User.fields.0.name",
+      "expect": "Name"
+    },
+    {
+      "description": "The 'Name' field's type should be correctly identified as 'string'.",
+      "select": "packages.testcase_01_basic_struct.named_types.User.fields.0.type_string",
+      "expect": "string"
+    },
+    {
+      "description": "The 'Name' field's underlying type should also be 'string'.",
+      "select": "packages.testcase_01_basic_struct.named_types.User.fields.0.underlying_type_string",
+      "expect": "string"
+    }
+  ]
+}

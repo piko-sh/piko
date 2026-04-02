@@ -1,0 +1,376 @@
+version: "2"
+
+run:
+  timeout: 10m
+  go: "1.26"
+
+linters:
+  default: none
+  enable:
+    - revive
+    - staticcheck
+    - gocritic
+    - gosec
+    - godoclint
+    - exhaustruct
+    - govet
+    - dupl
+    - modernize
+    - funcorder
+    - goheader
+    - decorder
+    - misspell
+    - errorlint
+    - bidichk
+    - iotamixing
+    - unused
+#    - prealloc
+
+  settings:
+    revive:
+      severity: warning
+      confidence: 0.8
+      rules:
+        - name: waitgroup-by-value
+        - name: use-waitgroup-go
+        - name: atomic
+        - name: unreachable-code
+        - name: identical-branches
+        - name: identical-ifelseif-branches
+        - name: identical-switch-branches
+        - name: identical-ifelseif-conditions
+        - name: identical-switch-conditions
+        - name: useless-fallthrough
+        - name: constant-logical-expr
+        - name: range-val-address
+        - name: range-val-in-closure
+        - name: unchecked-type-assertion
+        - name: redefines-builtin-id
+        - name: error-return
+        - name: errorf
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: defer
+        - name: time-equal
+        - name: duplicated-imports
+        - name: call-to-gc
+        - name: datarace
+        - name: unconditional-recursion
+        - name: struct-tag
+        - name: import-shadowing
+        - name: string-of-int
+        - name: forbidden-call-in-wg-go
+        - name: line-length-limit
+          arguments: [200]
+        - name: file-length-limit
+          arguments:
+            - max: 1000
+              skip-comments: true
+              skip-blank-lines: true
+        - name: function-length
+          arguments: [90, 60]
+        - name: argument-limit
+          arguments: [7]
+        - name: function-result-limit
+          arguments: [4]
+        - name: cyclomatic
+          arguments: [20]
+        - name: cognitive-complexity
+          arguments: [15]
+        - name: max-public-structs
+          arguments: [25]
+        - name: max-control-nesting
+          arguments: [3]
+        - name: add-constant
+          arguments:
+            - max-lit-count: "3"
+              allow-strs: "\"\",\"/\",\".\",\"\\n\",\"\\n\\n\""
+              allow-ints: "0,1,2,-1"
+              allow-floats: "0.0,1.0"
+              ignore-funcs: "strconv\\.Parse.*,strconv\\.Format.*,time\\.Date"
+        - name: empty-lines
+        - name: superfluous-else
+        - name: early-return
+        - name: indent-error-flow
+        - name: unnecessary-stmt
+        - name: var-declaration
+        - name: comment-spacings
+        - name: use-any
+        - name: increment-decrement
+        - name: bare-return
+        - name: bool-literal-in-expr
+        - name: empty-block
+        - name: var-naming
+          arguments: [[], [], [{"skip-initialism-name-checks": false, "skip-package-name-checks": true}]]
+        - name: receiver-naming
+        - name: error-naming
+        - name: exported
+          arguments: ["disableStutteringCheck"]
+        - name: package-comments
+        - name: package-directory-mismatch
+        - name: time-naming
+        - name: unhandled-error
+          arguments:
+            - "^fmt\\.Fprintf$"
+            - "^fmt\\.Println$"
+            - "^fmt\\.Printf$"
+            - "^strings\\.Builder\\.WriteString$"
+            - "^strings\\.Builder\\.WriteByte$"
+            - "^strings\\.Builder\\.Write$"
+            - "^os\\.Stdout\\.Write$"
+            - "^\\(\\*os\\.File\\)\\.Close$"
+        - name: error-strings
+        - name: blank-imports
+        - name: dot-imports
+        - name: unused-parameter
+        - name: unused-receiver
+        - name: confusing-results
+        - name: unexported-return
+        - name: modifies-parameter
+        - name: confusing-naming
+          disabled: true
+        - name: modifies-value-receiver
+        - name: use-slices-sort
+        - name: epoch-naming
+        - name: use-errors-new
+        - name: use-fmt-print
+        - name: unnecessary-format
+        - name: unnecessary-if
+        - name: if-return
+        - name: useless-break
+        - name: redundant-import-alias
+        - name: redundant-build-tag
+        - name: redundant-test-main-exit
+        - name: inefficient-map-lookup
+        - name: time-date
+        - name: range
+        - name: optimize-operands-order
+
+    misspell:
+      locale: UK
+      mode: "restricted"
+      ignore-rules:
+        - color
+        - center
+        - initialize
+        - initialized
+
+    gocritic:
+      enable-all: true
+      disabled-tags:
+        - opinionated
+        - style
+      settings:
+        hugeParam:
+          sizeThreshold: 256
+
+    gosec:
+      excludes:
+        - G103
+        - G117
+        - G402
+        - G704
+        - G705
+
+    godoclint:
+      default: all
+      disable:
+        - require-stdlib-doclink
+        - single-pkg-doc
+      options:
+        max-len:
+          length: 90
+        start-with-name:
+          include-unexported: true
+
+    govet:
+      enable:
+        - fieldalignment
+
+    exhaustruct:
+      include:
+        - '^piko\.sh/piko/'
+      exclude:
+        - '\.component_dto\.ComponentDefinition$'
+        - '\.css_ast\.'
+        - '\.config\.TSOptions$'
+        - '\.js_ast\.'
+        - '\.js\.'
+        - '\.css_printer\.'
+        - '\.logger\.Source$'
+        - '\.ast\.'
+        - '\.token\.'
+        - '\.printer\.'
+        - '\.es_logger\.'
+        - '\.syscall\.'
+        - '\.logger\.Path$'
+        - '\.logger\.PrettyPaths$'
+        - '\.js_parser\.Options$'
+        - '\.js_printer\.Options$'
+        - '\.config\.Options$'
+        - '\.ast\.ImportRecord$'
+
+    goheader:
+      template: |-
+        Copyright 2026 PolitePixels Limited
+
+        Licensed under the Apache License, Version 2.0 (the "License");
+        you may not use this file except in compliance with the License.
+        You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+        Unless required by applicable law or agreed to in writing, software
+        distributed under the License is distributed on an "AS IS" BASIS,
+        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        See the License for the specific language governing permissions and
+        limitations under the License.
+
+    decorder:
+      dec-order:
+        - const
+        - var
+      disable-dec-order-check: false
+      disable-init-func-first-check: true
+      disable-dec-num-check: true
+      ignore-underscore-vars: true
+
+    dupl:
+      threshold: 100
+
+  exclusions:
+    generated: strict
+
+    paths:
+      - internal/esbuild
+      - third_party
+      - vendor
+      - node_modules
+
+    rules:
+      - path: internal/config/
+        linters: [revive]
+        text: "line-length-limit"
+
+
+      - path: _test\.go$
+        linters:
+          - gocritic
+          - gosec
+          - godoclint
+          - funcorder
+          - dupl
+          - exhaustruct
+          - goheader
+          - decorder
+          - unused
+
+      - path: _test\.go$
+        linters: [staticcheck]
+        text: "QF1011|SA1012|SA1029|S1040|SA2001"
+
+      - path: _test\.go$
+        linters: [revive]
+        text: "line-length-limit|file-length-limit|function-length|argument-limit|function-result-limit|cyclomatic|cognitive-complexity|max-public-structs|max-control-nesting|empty-lines|superfluous-else|early-return|indent-error-flow|unnecessary-stmt|var-declaration|comment-spacings|use-any|increment-decrement|bare-return|bool-literal-in-expr|empty-block|var-naming|receiver-naming|error-naming|exported|package-comments|package-directory-mismatch|time-naming|unhandled-error|error-strings|blank-imports|dot-imports|unused-parameter|unused-receiver|confusing-results|unexported-return|modifies-parameter|confusing-naming|modifies-value-receiver|add-constant|use-slices-sort|epoch-naming|use-errors-new|use-fmt-print|unnecessary-format|unnecessary-if|if-return|useless-break|redundant-import-alias|redundant-build-tag|redundant-test-main-exit|inefficient-map-lookup|time-date|range|optimize-operands-order|struct-tag|context-as-argument"
+
+      - path: _test/
+        linters:
+          - revive
+          - godoclint
+
+      - path: testdata/
+        linters: [revive]
+        text: "line-length-limit|file-length-limit|function-length|argument-limit|function-result-limit|cyclomatic|cognitive-complexity|max-public-structs|max-control-nesting|empty-lines|superfluous-else|early-return|indent-error-flow|unnecessary-stmt|var-declaration|comment-spacings|use-any|increment-decrement|bare-return|bool-literal-in-expr|empty-block|var-naming|receiver-naming|error-naming|exported|package-comments|package-directory-mismatch|time-naming|unhandled-error|error-strings|blank-imports|dot-imports|unused-parameter|unused-receiver|confusing-results|unexported-return|modifies-parameter|confusing-naming|modifies-value-receiver|add-constant|use-slices-sort|epoch-naming|use-errors-new|use-fmt-print|unnecessary-format|unnecessary-if|if-return|useless-break|redundant-import-alias|redundant-build-tag|redundant-test-main-exit|inefficient-map-lookup|time-date|range|optimize-operands-order|context-as-argument"
+
+      - path: /test/
+        linters: [revive]
+        text: "line-length-limit|file-length-limit|function-length|argument-limit|function-result-limit|cyclomatic|cognitive-complexity|max-public-structs|max-control-nesting|empty-lines|superfluous-else|early-return|indent-error-flow|unnecessary-stmt|var-declaration|comment-spacings|use-any|increment-decrement|bare-return|bool-literal-in-expr|empty-block|var-naming|receiver-naming|error-naming|exported|package-comments|package-directory-mismatch|time-naming|unhandled-error|error-strings|blank-imports|dot-imports|unused-parameter|unused-receiver|confusing-results|unexported-return|modifies-parameter|confusing-naming|modifies-value-receiver|add-constant|use-slices-sort|epoch-naming|use-errors-new|use-fmt-print|unnecessary-format|unnecessary-if|if-return|useless-break|redundant-import-alias|redundant-build-tag|redundant-test-main-exit|inefficient-map-lookup|time-date|range|optimize-operands-order|context-as-argument"
+
+      - path: apitest/
+        linters:
+          - revive
+          - godoclint
+
+      - path: wdk/monitoring/monitoring_api/gen/
+        linters:
+          - revive
+
+      - path: fortunes\.go$
+        linters:
+          - revive
+
+      - path: otel\.go$
+        linters:
+          - revive
+
+      - path: wasm_domain/orchestrator\.go$
+        linters: [dupl]
+
+      - path: facade\.go$
+        linters: [revive]
+        text: "max-public-structs"
+
+      - path: ^(piko|actions|options|health|lifecycle|collections|secrets)\.go$
+        linters: [revive]
+        text: "max-public-structs"
+
+      - linters: [revive]
+        text: "don't use an underscore in package name"
+
+      - linters: [revive]
+        text: "conflict with Go standard library"
+
+      - linters: [revive]
+        text: "stutters"
+
+      - linters: [decorder]
+        text: "var must not be placed after var"
+
+      - linters: [decorder]
+        text: "const must not be placed after const"
+
+      - linters: [dupl]
+        text: "_test\\.go"
+
+      - linters: [dupl]
+        path: "internal/interp/interp_domain/asm/"
+
+      - linters: [dupl]
+        path: "internal/vectormaths/asm/"
+
+      - linters: [dupl]
+        path: "wdk/asmgen/asmgen_arch_"
+
+      - path: _test\.go$
+        linters: [govet]
+        text: "fieldalignment"
+
+      - linters: [gosec]
+        text: "G101"
+
+      - linters: [staticcheck]
+        text: "SA6002"
+
+      - linters: [staticcheck]
+        text: "SA4006" # False positives: staticcheck does not yet recognise Go 1.26 new(value) syntax.
+
+      - path: tests/integration/testutil/
+        linters:
+          - gosec
+
+      - path: internal/pikotest/
+        linters:
+          - gosec
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: false
+
+output:
+  formats:
+    colored-line-number: {}
+  sort-results: true
+  sort-order:
+    - linter
+    - file

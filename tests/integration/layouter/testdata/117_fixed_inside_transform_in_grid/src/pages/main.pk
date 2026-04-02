@@ -1,0 +1,45 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div data-layout-id="fixed-viewport" style="box-sizing: content-box; position: fixed; top: 10px; left: 10px; width: 50px; height: 30px; margin: 0; padding: 0;"></div>
+  <div data-layout-id="grid-tf" style="box-sizing: content-box; display: grid; grid-template-columns: 200px 1fr; gap: 10px; width: 600px; height: 200px; margin: 50px 0 0 0; padding: 0;">
+    <div data-layout-id="cell-transform" style="box-sizing: content-box; transform: translate(0px, 0px); margin: 0; padding: 15px;">
+      <div data-layout-id="fixed-in-tf" style="box-sizing: content-box; position: fixed; top: 10px; left: 10px; width: 60px; height: 40px; margin: 0; padding: 0;"></div>
+      <div data-layout-id="fixed-pct" style="box-sizing: content-box; position: fixed; top: 10%; left: 10%; width: 50px; height: 30px; margin: 0; padding: 0;"></div>
+      <div data-layout-id="tf-content" style="box-sizing: content-box; width: 100px; height: 60px; margin: 0; padding: 0;"></div>
+    </div>
+    <div data-layout-id="cell-normal" style="box-sizing: content-box; margin: 0; padding: 10px;">
+      <div data-layout-id="normal-child" style="box-sizing: content-box; height: 80px; margin: 0; padding: 0;"></div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Fixed Inside Transform In Grid Test"}, nil
+}
+</script>

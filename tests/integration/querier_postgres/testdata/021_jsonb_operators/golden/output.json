@@ -1,0 +1,21 @@
+{
+  "build_object_from_columns": {
+    "ID": 2,
+    "Info": "{\"profile_data\": {\"age\": 25, \"city\": \"Paris\", \"active\": true}, \"profile_name\": \"Bob\"}"
+  },
+  "extract_string_field": {
+    "City": "London",
+    "ID": 1,
+    "Name": "Alice"
+  },
+  "find_by_containment": [
+    {
+      "ID": 1,
+      "Name": "Alice"
+    },
+    {
+      "ID": 3,
+      "Name": "Charlie"
+    }
+  ]
+}

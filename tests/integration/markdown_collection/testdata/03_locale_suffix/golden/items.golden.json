@@ -1,0 +1,52 @@
+[
+  {
+    "metadata": {
+      "Alternates": {
+        "fr": "/fr/pages/contact"
+      },
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Contact",
+          "Slug": "contact",
+          "Level": 1
+        }
+      ],
+      "Title": "Contact Us",
+      "WordCount": 6
+    },
+    "id": "contact",
+    "slug": "contact",
+    "locale": "en",
+    "translationKey": "pages/contact",
+    "url": "/pages/contact",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Alternates": {
+        "en": "/pages/contact"
+      },
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Contact",
+          "Slug": "contact",
+          "Level": 1
+        }
+      ],
+      "Title": "Contactez-nous",
+      "WordCount": 5
+    },
+    "id": "contact",
+    "slug": "contact",
+    "locale": "fr",
+    "translationKey": "pages/contact",
+    "url": "/fr/pages/contact",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "description": "Tests that external module components can import and use Go packages from their own module's pkg/ directory, verifying cross-module type resolution",
+  "packageName": "testcase_063_external_module_with_pkg_code",
+  "isPage": true,
+  "shouldError": false
+}

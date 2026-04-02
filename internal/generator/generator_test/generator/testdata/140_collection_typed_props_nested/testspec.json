@@ -1,0 +1,5 @@
+{
+  "description": "Tests collection page with nested struct Props recursively populated from frontmatter metadata",
+  "packageName": "collection_typed_props_nested_test",
+  "isPage": true
+}

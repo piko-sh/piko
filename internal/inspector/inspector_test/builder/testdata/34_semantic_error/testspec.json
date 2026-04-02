@@ -1,0 +1,6 @@
+{
+  "description": "Tests that the builder fails gracefully with a descriptive error when the source code has a semantic (type-checking) error.",
+  "moduleName": "testcase_34_semantic_error",
+  "shouldError": true,
+  "errorContains": "undefined: models"
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Tests query parameter access and conditional rendering",
+  "entryPoints": [
+    { "path": "pages/search.pk", "isPage": true }
+  ]
+}

@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that a numeric comparison (>, <, >=, <=) results in a bool type.",
+  "expression": "state.Age >= 18",
+  "expectedType": "bool",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

@@ -1,0 +1,19 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return false;
+
+    // Use the native change event trigger for file inputs
+    // This ensures the browser's native file change handling is invoked
+    if (typeof el.dispatchEvent === 'function') {
+        // Create a proper InputEvent for compatibility
+        try {
+            el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, composed: true }));
+        } catch (e) {
+            el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true, composed: true }));
+        }
+        el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true, composed: true }));
+    }
+    return true;
+})()

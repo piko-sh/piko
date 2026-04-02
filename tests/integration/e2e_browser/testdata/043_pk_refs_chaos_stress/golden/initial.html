@@ -1,0 +1,91 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">PK Refs Chaos Stress Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests deeply nested partials, multiple RemoteRenders, cross-slot refs, and general chaos.</p>
+    <div partial="pages_index_032f49b1" p-key="r.0:2" class="page-controls">
+      <p partial="pages_index_032f49b1" p-key="r.0:2:0">Page Status: <span
+          partial="pages_index_032f49b1"
+          p-key="r.0:2:0:1"
+          p-ref="pageStatus"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-status"
+        >ready</span></p>
+      <button
+        partial="pages_index_032f49b1"
+        p-key="r.0:2:1"
+        p-ref="pageActionBtn"
+        data-pk-partial="pages_index_032f49b1"
+        id="page-action"
+        p-on:click="eyJmIjoicGFnZUFjdGlvbiIsImEiOltdfQ"
+        pk-ev-bound="true"
+      >Page Action</button>
+      <button
+        partial="pages_index_032f49b1"
+        p-key="r.0:2:2"
+        p-ref="loadEverythingBtn"
+        data-pk-partial="pages_index_032f49b1"
+        id="load-everything"
+        p-on:click="eyJmIjoibG9hZEV2ZXJ5dGhpbmciLCJhIjpbXX0"
+        pk-ev-bound="true"
+      >Load Everything</button>
+    </div>
+    <div
+      partial="pages_index_032f49b1"
+      p-key="r.0:3"
+      p-ref="mainContainer"
+      data-pk-partial="pages_index_032f49b1"
+      id="main-container"
+      class="main-container"
+    >
+      <p partial="pages_index_032f49b1" p-key="r.0:3:0" class="placeholder">Click "Load Everything" to begin the chaos...</p>
+    </div>
+    <chaos-card partial="pages_index_032f49b1" p-key="r.0:4" id="page-chaos-card">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.chaos-card{border: 3px solid #8b5cf6;border-radius: 12px;margin: 1rem 0;overflow: hidden}.chaos-header{background: #ede9fe;padding: 0.75rem 1rem;border-bottom: 2px solid #c4b5fd;font-weight: bold;color: #5b21b6}.chaos-body{padding: 1rem;background: #faf5ff}.chaos-footer{background: #ede9fe;padding: 0.75rem 1rem;border-top: 2px solid #c4b5fd}</style>
+        <div class="chaos-card">
+          <div class="chaos-header">
+            <slot name="header"><span>Default Header</span></slot>
+          </div>
+          <div class="chaos-body">
+            <slot></slot>
+          </div>
+          <div class="chaos-footer">
+            <slot name="footer"></slot>
+          </div>
+        </div>
+      </template>
+      <div partial="pages_index_032f49b1" p-key="r.0:4:0">
+        <p partial="pages_index_032f49b1" p-key="r.0:4:0:0">Page Card Body: <span
+            partial="pages_index_032f49b1"
+            p-key="r.0:4:0:0:1"
+            p-ref="pageCardBody"
+            data-pk-partial="pages_index_032f49b1"
+            id="page-card-body"
+          >empty</span></p>
+      </div>
+      <div partial="pages_index_032f49b1" p-key="r.0:4:1" slot="header"><span
+          partial="pages_index_032f49b1"
+          p-key="r.0:4:1:0"
+          p-ref="pageCardHeader"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-card-header"
+        >Page Header</span><button
+          partial="pages_index_032f49b1"
+          p-key="r.0:4:1:1"
+          p-ref="pageHeaderBtn"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-header-btn"
+          p-on:click="eyJmIjoidXBkYXRlUGFnZUNhcmQiLCJhIjpbXX0"
+          pk-ev-bound="true"
+        >Update Card</button></div>
+      <div partial="pages_index_032f49b1" p-key="r.0:4:2" slot="footer"><span
+          partial="pages_index_032f49b1"
+          p-key="r.0:4:2:0"
+          p-ref="pageCardFooter"
+          data-pk-partial="pages_index_032f49b1"
+          id="page-card-footer"
+        >Page Footer</span></div>
+    </chaos-card>
+  </div>
+</div>

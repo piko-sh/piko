@@ -1,0 +1,9 @@
+{
+    "description": "AES-256 encrypted PDF with password protection and CONFIDENTIAL watermark.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/",
+    "encryption": {
+        "userPassword": "hello",
+        "ownerPassword": "owner-secret"
+    }
+}

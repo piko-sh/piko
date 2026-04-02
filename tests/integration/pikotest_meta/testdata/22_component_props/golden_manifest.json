@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/greeting.pk": {
+      "routePatterns": {
+        "en": "/greeting"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_22_component_props/dist/pages/pages_greeting_bead2026",
+      "originalSourcePath": "pages/greeting.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,5 @@
+{
+    "description": "Tests that action input types with multiple fields are correctly resolved and mapped",
+    "packageName": "action_input_type_test",
+    "isPage": true
+}

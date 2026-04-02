@@ -1,0 +1,62 @@
+<template>
+    <pml-row class="header-bar">
+        <pml-col>
+            <pml-p class="brand-name">Orbit</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="hero-section">
+        <pml-col>
+            <pml-p class="hero-title">Orbit 2.0 is Here</pml-p>
+            <pml-p class="hero-subtitle">A completely reimagined experience, built for the way you work.</pml-p>
+            <pml-button href="https://example.com/orbit2" class="hero-cta">Explore Now</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col width="33.33%">
+            <pml-p class="feature-title">Redesigned UI</pml-p>
+            <pml-p class="feature-desc">Cleaner, faster, and more intuitive than ever before.</pml-p>
+        </pml-col>
+        <pml-col width="33.33%">
+            <pml-p class="feature-title">Smart Search</pml-p>
+            <pml-p class="feature-desc">Find anything across all your projects in milliseconds.</pml-p>
+        </pml-col>
+        <pml-col width="33.34%">
+            <pml-p class="feature-title">Integrations</pml-p>
+            <pml-p class="feature-desc">Connect with 200+ tools your team already uses.</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-hr class="section-divider"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-p class="body-text">We have been working on this for over a year, and we cannot wait for you to try it. Every feature has been rethought from the ground up.</pml-p>
+            <pml-button href="https://example.com/changelog" class="secondary-cta">View Changelog</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row class="footer-bar">
+        <pml-col>
+            <pml-p class="footer-text">Orbit Software Ltd - London, UK</pml-p>
+            <pml-p class="footer-text">You are receiving this because you are an Orbit user.</pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.header-bar { background-color: #ffffff; padding: 20px 0; }
+.brand-name { font-size: 22px; font-weight: bold; color: #2c3e50; text-align: center; padding: 10px 25px; }
+.hero-section { background-color: #0f3460; padding: 50px 0; }
+.hero-title { font-size: 36px; font-weight: bold; color: #ffffff; text-align: center; padding: 10px 25px; }
+.hero-subtitle { font-size: 16px; color: #a8c5e2; text-align: center; line-height: 1.6; padding: 10px 40px; }
+.hero-cta { background-color: #e94560; color: #ffffff; font-size: 16px; border-radius: 6px; padding: 15px 25px; inner-padding: 12px 35px; }
+.content-section { padding: 25px 0; }
+.feature-title { font-size: 18px; font-weight: bold; color: #2c3e50; text-align: center; padding: 10px 15px; }
+.feature-desc { font-size: 13px; color: #7f8c8d; text-align: center; line-height: 1.5; padding: 5px 15px; }
+.section-divider { border-color: #eeeeee; border-width: 1px; padding: 0 25px; }
+.body-text { font-size: 15px; color: #555555; line-height: 1.7; padding: 10px 30px; text-align: center; }
+.secondary-cta { background-color: #ecf0f1; color: #2c3e50; font-size: 14px; border-radius: 4px; padding: 10px 25px; inner-padding: 10px 25px; }
+.footer-bar { background-color: #2c3e50; padding: 20px 0; }
+.footer-text { font-size: 11px; color: #95a5a6; text-align: center; padding: 3px 25px; }
+</style>

@@ -1,0 +1,205 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Button"
+            server.current-page="actions/button">
+
+            <p class="demo-description">Buttons communicate actions that users can take. M3E buttons support five variants: elevated, filled, filled-tonal, outlined, and text.</p>
+
+            <div class="demo-grid">
+                <!-- Elevated -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Elevated</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="elevated">Elevated</m3e-button>
+                        <m3e-button variant="elevated" disabled>Disabled</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="elevated"&gt;Elevated&lt;/m3e-button&gt;
+&lt;m3e-button variant="elevated" disabled&gt;Disabled&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="filled">Filled</m3e-button>
+                        <m3e-button variant="filled" disabled>Disabled</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled"&gt;Filled&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled" disabled&gt;Disabled&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Filled Tonal -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled Tonal</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="filled-tonal">Tonal</m3e-button>
+                        <m3e-button variant="filled-tonal" disabled>Disabled</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled-tonal"&gt;Tonal&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled-tonal" disabled&gt;Disabled&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="outlined">Outlined</m3e-button>
+                        <m3e-button variant="outlined" disabled>Disabled</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="outlined"&gt;Outlined&lt;/m3e-button&gt;
+&lt;m3e-button variant="outlined" disabled&gt;Disabled&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Text -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Text</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="text">Text</m3e-button>
+                        <m3e-button variant="text" disabled>Disabled</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="text"&gt;Text&lt;/m3e-button&gt;
+&lt;m3e-button variant="text" disabled&gt;Disabled&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- As Link -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">As Link (href)</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" href="#">Navigate</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled" href="/destination"&gt;Navigate&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- With Icon - Elevated -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Icon - Elevated</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="elevated">
+                            <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                            Create
+                        </m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="elevated"&gt;
+  &lt;piko:svg src="@/lib/icons/add.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Create
+&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- With Icon - Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Icon - Filled</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled">
+                            <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                            Create
+                        </m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled"&gt;
+  &lt;piko:svg src="@/lib/icons/add.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Create
+&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- With Icon - Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Icon - Outlined</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="outlined">
+                            <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                            Create
+                        </m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="outlined"&gt;
+  &lt;piko:svg src="@/lib/icons/add.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Create
+&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Sizes -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Sizes</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="filled" size="xs">Extra Small</m3e-button>
+                        <m3e-button variant="filled" size="s">Small</m3e-button>
+                        <m3e-button variant="filled" size="m">Medium (Default)</m3e-button>
+                        <m3e-button variant="filled" size="l">Large</m3e-button>
+                        <m3e-button variant="filled" size="xl">Extra Large</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled" size="xs"&gt;Extra Small&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled" size="s"&gt;Small&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled" size="m"&gt;Medium (Default)&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled" size="l"&gt;Large&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled" size="xl"&gt;Extra Large&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Shapes -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Shapes</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="filled" shape="round">Round (Default)</m3e-button>
+                        <m3e-button variant="filled" shape="square">Square</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled" shape="round"&gt;Round (Default)&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled" shape="square"&gt;Square&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle Mode -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle Mode</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-button variant="filled" toggle>Toggle (Unselected)</m3e-button>
+                        <m3e-button variant="filled" toggle selected>Toggle (Selected)</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled" toggle&gt;Toggle (Unselected)&lt;/m3e-button&gt;
+&lt;m3e-button variant="filled" toggle selected&gt;Toggle (Selected)&lt;/m3e-button&gt;</code></pre>
+                </section>
+
+                <!-- Soft-Disabled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Soft-Disabled</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" soft-disabled>Soft-Disabled</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-button variant="filled" soft-disabled&gt;Soft-Disabled&lt;/m3e-button&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Button - M3E Components",
+    }, nil
+}
+</script>

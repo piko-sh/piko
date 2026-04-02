@@ -1,0 +1,27 @@
+{
+  "isErrorCase": false,
+  "pikoImportCount": 0,
+  "asserts": {
+    "hasTemplate": true,
+    "hasScript": true,
+    "hasStyle": false,
+    "hasI18n": false
+  },
+  "sourcesContain": null,
+  "expectedTranslations": null,
+  "script": {
+    "goPackageName": "component",
+    "hasMiddleware": false,
+    "middlewaresFuncName": "",
+    "hasCachePolicy": false,
+    "cachePolicyFuncName": "",
+    "goImportCount": 1,
+    "expectedGoImportsContain": [
+      "piko.sh/piko/internal/templater/templater_dto"
+    ],
+    "asserts": {
+      "hasPropsTypeExpr": true,
+      "hasRenderReturnTypeExpr": true
+    }
+  }
+}

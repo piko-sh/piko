@@ -1,0 +1,38 @@
+<template>
+    <pml-row background-color="#2c3e50" padding="20px 0">
+        <pml-col>
+            <pml-img src="https://example.com/logo.png" alt="Logo" width="150px" align="center" padding="10px 0"></pml-img>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="30px 0">
+        <pml-col width="60%">
+            <pml-p font-size="22px" color="#2c3e50" padding="10px 25px">Main Headline</pml-p>
+            <pml-p font-size="14px" color="#666666" line-height="1.6" padding="10px 25px">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </pml-p>
+            <pml-button href="https://example.com/action" background-color="#27ae60" color="#ffffff" border-radius="4px" padding="15px 25px" inner-padding="12px 30px">
+                Take Action
+            </pml-button>
+        </pml-col>
+        <pml-col width="40%">
+            <pml-img src="https://example.com/feature.jpg" alt="Feature" width="220px" padding="10px"></pml-img>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="20px 0">
+        <pml-col width="33.33%">
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px">Column A</pml-p>
+        </pml-col>
+        <pml-col width="33.33%">
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px">Column B</pml-p>
+        </pml-col>
+        <pml-col width="33.34%">
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px">Column C</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

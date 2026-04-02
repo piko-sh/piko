@@ -1,0 +1,75 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Loading Indicator"
+            server.current-page="communication/loading-indicator">
+
+            <p class="demo-description">Loading indicators display a brief animation for short loading states under two seconds.</p>
+
+            <div class="demo-grid">
+                <!-- Small -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Small</h3>
+                    <div class="demo-preview">
+                        <m3e-loading-indicator size="small"></m3e-loading-indicator>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-loading-indicator size="small"&gt;&lt;/m3e-loading-indicator&gt;</code></pre>
+                </section>
+
+                <!-- Medium (Default) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Medium (Default)</h3>
+                    <div class="demo-preview">
+                        <m3e-loading-indicator size="medium"></m3e-loading-indicator>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-loading-indicator size="medium"&gt;&lt;/m3e-loading-indicator&gt;</code></pre>
+                </section>
+
+                <!-- Large -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Large</h3>
+                    <div class="demo-preview">
+                        <m3e-loading-indicator size="large"></m3e-loading-indicator>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-loading-indicator size="large"&gt;&lt;/m3e-loading-indicator&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Loading Indicator - M3E Components",
+    }, nil
+}
+</script>

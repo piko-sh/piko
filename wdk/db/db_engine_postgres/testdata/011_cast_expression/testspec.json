@@ -1,0 +1,3 @@
+{
+  "description": "PostgreSQL :: cast expressions: type casting parameters with :: syntax. Tests DATE type casting and range comparisons with cast parameters."
+}

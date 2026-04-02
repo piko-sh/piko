@@ -1,0 +1,8 @@
+{
+  "name": "Test Site",
+  "i18n": {
+    "defaultLocale": "en",
+    "strategy": "prefix_except_default",
+    "locales": ["en", "fr", "de"]
+  }
+}

@@ -1,0 +1,169 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <section id="test1-single-loop">
+      <h2>Single Loop</h2>
+      <ul>
+        <li p-for="item in state.Fruits" p-text="item"></li>
+      </ul>
+    </section>
+
+    <section id="test2-multiple-loops">
+      <h2>Multiple Loops</h2>
+      <div>
+        <span p-for="fruit in state.Fruits" p-text="fruit"></span>
+        <span p-for="veggie in state.Vegetables" p-text="veggie"></span>
+      </div>
+    </section>
+
+    <section id="test3-static-before">
+      <h2>Static Before Loop</h2>
+      <div>
+        <span>Static First</span>
+        <span p-for="item in state.Fruits" p-text="item"></span>
+      </div>
+    </section>
+
+    <section id="test4-static-after">
+      <h2>Static After Loop</h2>
+      <div>
+        <span p-for="item in state.Fruits" p-text="item"></span>
+        <span>Static Last</span>
+      </div>
+    </section>
+
+    <section id="test5-static-around">
+      <h2>Static Around Loop</h2>
+      <div>
+        <span>Static First</span>
+        <span p-for="item in state.Fruits" p-text="item"></span>
+        <span>Static Last</span>
+      </div>
+    </section>
+
+    <section id="test6-mixed">
+      <h2>Mixed Static and Loops</h2>
+      <div>
+        <span>Header</span>
+        <span p-for="fruit in state.Fruits" p-text="fruit"></span>
+        <span>Separator</span>
+        <span p-for="veggie in state.Vegetables" p-text="veggie"></span>
+        <span>Footer</span>
+      </div>
+    </section>
+
+    <section id="test7-nested">
+      <h2>Nested Loops</h2>
+      <div p-for="category in state.Categories">
+        <h3 p-text="category.Name"></h3>
+        <ul>
+          <li p-for="item in category.Items" p-text="item"></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="test8-map-loop">
+      <h2>Map Loop</h2>
+      <dl>
+        <div p-for="(key, value) in state.Prices">
+          <dt p-text="key"></dt>
+          <dd p-text="value"></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="test9-multiple-maps">
+      <h2>Multiple Map Loops</h2>
+      <div>
+        <span p-for="(k, v) in state.Prices">{{ k }}: {{ v }}</span>
+        <span p-for="(k, v) in state.Stock">{{ k }}: {{ v }}</span>
+      </div>
+    </section>
+
+    <section id="test10-mixed-types">
+      <h2>Mixed Types</h2>
+      <div>
+        <span>Fruits:</span>
+        <span p-for="fruit in state.Fruits" p-text="fruit"></span>
+        <span>Prices:</span>
+        <span p-for="(item, price) in state.Prices">{{ item }}=${{ price }}</span>
+        <span>End</span>
+      </div>
+    </section>
+
+    <section id="test11-no-loops">
+      <h2>No Loops</h2>
+      <div>
+        <span>Static Only 1</span>
+        <span>Static Only 2</span>
+        <span>Static Only 3</span>
+      </div>
+    </section>
+
+    <section id="test12-three-loops">
+      <h2>Three Loops</h2>
+      <div>
+        <span p-for="f in state.Fruits" p-text="f"></span>
+        <span p-for="v in state.Vegetables" p-text="v"></span>
+        <span p-for="(k, p) in state.Prices">{{ k }}</span>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Category struct {
+    Name  string
+    Items []string
+  }
+
+  type Response struct {
+    Fruits     []string
+    Vegetables []string
+    Categories []Category
+    Prices     map[string]float64
+    Stock      map[string]int
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      Fruits:     []string{"Apple", "Banana", "Cherry"},
+      Vegetables: []string{"Carrot", "Broccoli"},
+      Categories: []Category{
+        {Name: "Produce", Items: []string{"Tomato", "Lettuce"}},
+        {Name: "Dairy", Items: []string{"Milk", "Cheese", "Yogurt"}},
+      },
+      Prices: map[string]float64{
+        "Apple":  1.50,
+        "Banana": 0.75,
+      },
+      Stock: map[string]int{
+        "Apple":  100,
+        "Banana": 50,
+      },
+    }, piko.Metadata{}, nil
+  }
+</script>

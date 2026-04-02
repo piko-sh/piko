@@ -1,0 +1,5 @@
+{
+  "description": "Tests that Go package imports from embedded partials are propagated to parent templates.",
+  "packageName": "partial_external_pkg_import_test",
+  "isPage": true
+}

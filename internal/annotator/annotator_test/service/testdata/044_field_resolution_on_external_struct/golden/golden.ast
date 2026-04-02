@@ -1,0 +1,35 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Users (from p-for loop over map):"
+  </h1>
+  <ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <li [p-for: (key, address) in state.User.Addresses] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ key }}
+        ": "
+        {{ address.Name }}
+      </RichText>
+    </li>
+  </ul>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Direct Access:"
+  </h1>
+  <p id="safe" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Home Address: "
+      {{ state.User.Addresses["home"].Name }}
+    </RichText>
+  </p>
+  <p id="unsafe" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Nonexistent Address: "
+      {{ state.User.Addresses["nonexistent"].Name }}
+    </RichText>
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

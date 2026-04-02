@@ -1,0 +1,5 @@
+{
+  "description": "Tests logical OR (||) vs nullish coalescing (??) operators in dynamic attributes. || returns first truthy value, ?? returns first non-null value.",
+  "packageName": "testcase_74",
+  "isPage": true
+}

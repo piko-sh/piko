@@ -1,0 +1,95 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" font-weight="bold" color="#ffffff" background-color="#2c3e50" align="center" padding="10px 25px">Helix</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="26px" color="#2c3e50" align="center" padding="10px 25px">How Was Your Experience?</pml-p>
+            <pml-p font-size="15px" color="#666666" align="center" line-height="1.6" padding="5px 30px">
+                We'd love to hear about your recent purchase. Your feedback helps us improve.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-no-stack>
+            <pml-col width="20%">
+                <pml-p color="#f1c40f" font-size="28px" align="center" padding="5px">&#9733;</pml-p>
+            </pml-col>
+            <pml-col width="20%">
+                <pml-p color="#f1c40f" font-size="28px" align="center" padding="5px">&#9733;</pml-p>
+            </pml-col>
+            <pml-col width="20%">
+                <pml-p color="#f1c40f" font-size="28px" align="center" padding="5px">&#9733;</pml-p>
+            </pml-col>
+            <pml-col width="20%">
+                <pml-p color="#f1c40f" font-size="28px" align="center" padding="5px">&#9733;</pml-p>
+            </pml-col>
+            <pml-col width="20%">
+                <pml-p color="#f1c40f" font-size="28px" align="center" padding="5px">&#9733;</pml-p>
+            </pml-col>
+        </pml-no-stack>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-button href="https://example.com/survey?rating=1" background-color="#95a5a6" color="#ffffff" font-size="14px" border-radius="4px" padding="5px 25px" inner-padding="10px 30px">
+                1 - Poor
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-button href="https://example.com/survey?rating=2" background-color="#e67e22" color="#ffffff" font-size="14px" border-radius="4px" padding="5px 25px" inner-padding="10px 30px">
+                2 - Fair
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-button href="https://example.com/survey?rating=3" background-color="#f1c40f" color="#ffffff" font-size="14px" border-radius="4px" padding="5px 25px" inner-padding="10px 30px">
+                3 - Good
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-button href="https://example.com/survey?rating=4" background-color="#2ecc71" color="#ffffff" font-size="14px" border-radius="4px" padding="5px 25px" inner-padding="10px 30px">
+                4 - Great
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-button href="https://example.com/survey?rating=5" background-color="#27ae60" color="#ffffff" font-size="14px" border-radius="4px" padding="5px 25px" inner-padding="10px 30px">
+                5 - Excellent
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-br></pml-br>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="13px" color="#999999" align="center" padding="5px 25px">
+                Or reply to this email with your feedback.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f5f5f5" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#999999" align="center" padding="5px 25px">
+                You received this email because you recently made a purchase with Helix Support.
+            </pml-p>
+            <pml-p font-size="11px" color="#999999" align="center" padding="0 25px">
+                © 2026 Helix Support. All rights reserved.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.rating-section { text-align: center; }
+</style>

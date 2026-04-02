@@ -1,0 +1,124 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <dashboard_layout is="dashboard_layout" :page_title="state.PageTitle" :username="state.CurrentUser">
+    <div class="dashboard-widgets">
+      <div class="metrics-grid">
+        <div class="metric-card" p-for="metric in state.Metrics" p-key="metric.Label">
+          <span class="label">{{ metric.Label }}</span>
+          <span class="value">{{ metric.Value }}</span>
+          <span class="delta" p-if="metric.IsPositive">+{{ metric.Delta }}</span>
+          <span class="delta negative" p-else>{{ metric.Delta }}</span>
+        </div>
+      </div>
+
+      <div class="user-list" p-if="len(state.ActiveUsers) > 0">
+        <h3>Active Users</h3>
+        <ul>
+          <li p-for="user in state.ActiveUsers" p-key="user.ID">
+            <span class="name">{{ user.Name }}</span>
+            <span class="email">{{ user.Email }}</span>
+            <span class="status active" p-if="user.IsActive">Active</span>
+            <span class="status inactive" p-else>Inactive</span>
+            <div class="user-roles" p-if="len(user.Roles) > 0">
+              <span class="role" p-for="role in user.Roles" p-key="role">{{ role }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <p class="no-users" p-else>No active users found.</p>
+
+      <div class="recent-activity" p-if="state.ShowActivity">
+        <h3>Recent Activity</h3>
+        <ul>
+          <li p-for="activity in state.Activities" p-key="activity.Timestamp">
+            <span class="activity-user">{{ activity.UserName }}</span>
+            <span class="activity-action">{{ activity.Action }}</span>
+            <span class="activity-time">{{ activity.Timestamp }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </dashboard_layout>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko"
+  dashboard_layout "testcase_large_complex_dashboard/partials/layout.pk"
+)
+
+type User struct {
+  ID       int
+  Name     string
+  Email    string
+  IsActive bool
+  Roles    []string
+}
+
+type Metric struct {
+  Label      string
+  Value      string
+  Delta      string
+  IsPositive bool
+}
+
+type Activity struct {
+  UserName  string
+  Action    string
+  Timestamp string
+}
+
+type Response struct {
+  PageTitle    string
+  CurrentUser  string
+  Metrics      []Metric
+  ActiveUsers  []User
+  Activities   []Activity
+  ShowActivity bool
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+  return Response{
+    PageTitle:   "Admin Dashboard",
+    CurrentUser: "admin@example.com",
+    Metrics: []Metric{
+      {Label: "Revenue", Value: "$1,234", Delta: "5.2%", IsPositive: true},
+      {Label: "New Users", Value: "89", Delta: "12%", IsPositive: true},
+      {Label: "Active Sessions", Value: "345", Delta: "2.1%", IsPositive: false},
+      {Label: "Bounce Rate", Value: "23%", Delta: "0.5%", IsPositive: true},
+    },
+    ActiveUsers: []User{
+      {ID: 1, Name: "Alice Williams", Email: "alice@example.com", IsActive: true, Roles: []string{"admin", "editor"}},
+      {ID: 2, Name: "Bob Smith", Email: "bob@example.com", IsActive: true, Roles: []string{"viewer"}},
+      {ID: 3, Name: "Carol White", Email: "carol@example.com", IsActive: false, Roles: []string{"editor", "reviewer"}},
+    },
+    Activities: []Activity{
+      {UserName: "Alice", Action: "Updated dashboard", Timestamp: "2024-01-15 10:30"},
+      {UserName: "Bob", Action: "Viewed reports", Timestamp: "2024-01-15 10:25"},
+      {UserName: "Carol", Action: "Created new user", Timestamp: "2024-01-15 10:20"},
+    },
+    ShowActivity: true,
+  }, piko.Metadata{}, nil
+}
+</script>

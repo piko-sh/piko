@@ -1,0 +1,15 @@
+{
+  "description": "Verifies default plain text 404 when no custom error page exists",
+  "requestURL": "/nonexistent",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "body"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "body",
+      "expected": "404 page not found"
+    }
+  ]
+}

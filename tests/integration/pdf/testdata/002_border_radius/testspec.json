@@ -1,0 +1,5 @@
+{
+    "description": "Div with background colour and border-radius, verifying rounded corners in PDF output.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

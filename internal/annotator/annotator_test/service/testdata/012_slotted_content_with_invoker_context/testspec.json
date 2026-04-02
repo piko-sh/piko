@@ -1,0 +1,21 @@
+{
+  "description": "Validates that expressions within slotted content are resolved using the invoker's (parent's) context, not the partial's context.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#slotted-content",
+      "description": "The slotted paragraph should correctly resolve its interpolation against the parent's state.",
+      "assert": {
+        "originalPackageAlias": "main.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.ParentMessage",
+          "resolvedTypeIs": "string",
+          "baseCodeGenVarName": "pageData"
+        }
+      ]
+    }
+  ]
+}

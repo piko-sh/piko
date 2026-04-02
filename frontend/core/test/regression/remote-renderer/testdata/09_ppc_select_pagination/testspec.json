@@ -1,0 +1,34 @@
+{
+    "description": "pp-select style paginated content - options refresh while preserving parent scopes",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/partials/options?page=2",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".dropdown",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".dropdown",
+            "attributes": { "partial": "dropdown_scope select_scope form_scope" },
+            "description": "Dropdown container preserves parent scopes"
+        },
+        {
+            "selector": ".option:first-child",
+            "attributes": { "partial": "opt1_scope dropdown_scope select_scope form_scope" },
+            "description": "First option has full scope chain"
+        },
+        {
+            "selector": ".option:nth-child(2)",
+            "attributes": { "partial": "opt2_scope dropdown_scope select_scope form_scope" },
+            "description": "Second option has full scope chain"
+        }
+    ]
+}

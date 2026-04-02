@@ -1,0 +1,6 @@
+{
+  "title": "Promotional Email",
+  "description": "Realistic promotional email template",
+  "metadata": {"title": "Spring Sale - 30% Off Everything"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

@@ -1,0 +1,155 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Snackbar"
+            server.current-page="communication/snackbar">
+
+            <p class="demo-description">Snackbars provide brief messages about application processes at the bottom of the screen. They can include an action and a close button.</p>
+
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <div class="demo-grid">
+                <!-- Simple -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Simple</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="showSimple()">Show Snackbar</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-snackbar id="my-snackbar"&gt;&lt;/m3e-snackbar&gt;
+
+&lt;script&gt;
+  document.getElementById('my-snackbar').show('Item archived');
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- With Action -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Action</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="showAction()">Show With Action</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-snackbar id="my-snackbar"&gt;&lt;/m3e-snackbar&gt;
+
+&lt;script&gt;
+  document.getElementById('my-snackbar').show('Item deleted', {
+    actionText: 'Undo'
+  });
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- Closeable -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Closeable</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="showCloseable()">Show Closeable</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-snackbar id="my-snackbar"&gt;&lt;/m3e-snackbar&gt;
+
+&lt;script&gt;
+  document.getElementById('my-snackbar').show('Settings saved', {
+    closeable: true
+  });
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- Action + Closeable -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Action + Closeable</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="showFull()">Show Full Snackbar</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-snackbar id="my-snackbar"&gt;&lt;/m3e-snackbar&gt;
+
+&lt;script&gt;
+  document.getElementById('my-snackbar').show('Email sent', {
+    actionText: 'View',
+    closeable: true
+  });
+&lt;/script&gt;</code></pre>
+                </section>
+
+                <!-- Auto-Dismiss with Duration -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Auto-Dismiss with Duration</h3>
+                    <div class="demo-preview">
+                        <m3e-button variant="filled" p-on:click="showAutodismiss()">Show Auto-dismiss</m3e-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-snackbar id="my-snackbar"&gt;&lt;/m3e-snackbar&gt;
+
+&lt;script&gt;
+  document.getElementById('my-snackbar').show('Auto-dismissing in 2 seconds', {
+    duration: 2000
+  });
+&lt;/script&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Snackbar - M3E Components",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export function showSimple(): void {
+    (pk.refs.snackbar as any).show('Item archived');
+}
+
+export function showAction(): void {
+    (pk.refs.snackbar as any).show('Item deleted', {
+        actionText: 'Undo',
+    });
+}
+
+export function showCloseable(): void {
+    (pk.refs.snackbar as any).show('Settings saved', {
+        closeable: true,
+    });
+}
+
+export function showFull(): void {
+    (pk.refs.snackbar as any).show('Email sent', {
+        actionText: 'View',
+        closeable: true,
+    });
+}
+
+export function showAutodismiss(): void {
+    (pk.refs.snackbar as any).show('Auto-dismissing in 2 seconds', {
+        duration: 2000,
+    });
+}
+</script>

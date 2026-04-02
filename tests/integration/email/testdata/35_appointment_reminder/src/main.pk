@@ -1,0 +1,115 @@
+<template>
+    <pml-row background-color="#0077b6" padding="30px 0">
+        <pml-col>
+            <pml-p font-size="28px" color="#ffffff" align="center" padding="10px 25px">Brightside Dental</pml-p>
+            <pml-p font-size="14px" color="#cce5ff" align="center" padding="0 25px">Your smile, our priority</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#2c3e50" align="center" padding="10px 25px">Your Appointment is Tomorrow</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-p font-size="15px" color="#333333" padding="5px 25px">Dear Patient,</pml-p>
+            <pml-p font-size="15px" color="#555555" line-height="1.6" padding="10px 25px">
+                This is a friendly reminder about your upcoming appointment.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#e8f4f8" padding="15px 0">
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Date:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Wednesday, 2 April 2026</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Time:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">10:30 AM</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Doctor:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Dr. Sarah Mitchell</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Location:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">42 High Street, London EC2R 8AH</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px">Please Remember</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-ul>
+                <pml-li>Arrive 10 minutes early for check-in</pml-li>
+                <pml-li>Bring your insurance card and photo ID</pml-li>
+                <pml-li>Avoid eating 2 hours before your appointment</pml-li>
+                <pml-li>Let us know if you need to reschedule</pml-li>
+            </pml-ul>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="50%">
+            <pml-button href="https://brightside-dental.example.com/confirm" background-color="#27ae60" color="#ffffff" font-size="14px" border-radius="4px" padding="10px 15px" inner-padding="12px 28px">Confirm Appointment</pml-button>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-button href="https://brightside-dental.example.com/reschedule" background-color="#95a5a6" color="#ffffff" font-size="14px" border-radius="4px" padding="10px 15px" inner-padding="12px 28px">Reschedule</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#dddddd" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f5f5f5" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="12px" color="#999999" align="center" padding="5px 25px">
+                Brightside Dental - 020 7946 0123
+            </pml-p>
+            <pml-p font-size="11px" color="#bbbbbb" align="center" padding="0 25px">
+                42 High Street, London EC2R 8AH
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.appointment-detail { line-height: 1.4; }
+</style>

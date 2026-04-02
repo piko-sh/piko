@@ -1,0 +1,5 @@
+{
+    "description": "Tests object-fit values on images using a data URI PNG.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

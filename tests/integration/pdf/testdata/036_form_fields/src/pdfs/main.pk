@@ -1,0 +1,95 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div style="width: 500px; padding: 20px; font-size: 12px; color: #333;">
+    <div style="font-size: 18px; font-weight: bold; margin-bottom: 16px;">Registration Form</div>
+
+    <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; font-weight: bold;">Full Name</div>
+      <input type="text" name="full_name" value="Jane Smith" style="border: 1px solid #999; padding: 4px; width: 250px;" />
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; font-weight: bold;">Password</div>
+      <input type="password" name="secret" style="border: 1px solid #999; padding: 4px; width: 250px;" />
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; font-weight: bold;">Email</div>
+      <input type="email" name="email" value="jane@example.com" readonly style="border: 1px solid #ccc; padding: 4px; width: 250px; background-color: #f5f5f5;" />
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; font-weight: bold;">Comments</div>
+      <textarea name="comments" style="border: 1px solid #999; padding: 4px; width: 350px; height: 50px;">Initial comments here</textarea>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; font-weight: bold;">Country</div>
+      <select name="country" style="border: 1px solid #999; padding: 4px; width: 200px;">
+        <option>United Kingdom</option>
+        <option>United States</option>
+        <option>Canada</option>
+        <option>Australia</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <input type="checkbox" name="agree" checked style="margin-right: 4px;" />
+      <span>I agree to the terms and conditions</span>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <input type="checkbox" name="newsletter" style="margin-right: 4px;" />
+      <span>Subscribe to newsletter</span>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; font-weight: bold;">Plan</div>
+      <div>
+        <input type="radio" name="plan" value="free" checked style="margin-right: 4px;" />
+        <span style="margin-right: 12px;">Free</span>
+        <input type="radio" name="plan" value="pro" style="margin-right: 4px;" />
+        <span style="margin-right: 12px;">Pro</span>
+        <input type="radio" name="plan" value="enterprise" style="margin-right: 4px;" />
+        <span>Enterprise</span>
+      </div>
+    </div>
+
+    <input type="hidden" name="form_id" value="reg_001" />
+
+    <div style="margin-top: 16px;">
+      <button name="submit_btn" style="border: 1px solid #333; padding: 6px 16px; background-color: #4477aa; color: white;">Submit</button>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Form Fields Test"}, nil
+}
+</script>

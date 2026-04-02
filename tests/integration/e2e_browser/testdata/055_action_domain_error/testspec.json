@@ -1,0 +1,39 @@
+{
+  "description": "Verifies action returning domain-level error returns 500 response",
+  "requestURL": "/user-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Call action that returns a Go error - should throw with status 500"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_find.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-status",
+      "expected": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-code",
+      "expected": "INTERNAL_ERROR"
+    }
+  ]
+}

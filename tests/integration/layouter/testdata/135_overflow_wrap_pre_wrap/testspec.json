@@ -1,0 +1,7 @@
+{
+    "description": "Verifies overflow-wrap: break-word combined with white-space: pre-wrap preserves spaces while breaking long words, and overflow-wrap alone breaks long words at container boundary.",
+    "requestURL": "/main",
+    "tolerance": 14.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

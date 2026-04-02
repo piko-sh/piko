@@ -1,0 +1,51 @@
+{
+  "description": "A comprehensive stress test combining generics, embedding, pointers, interfaces, and external dependencies.",
+  "moduleName": "testcase_50_kitchen_sink",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_50_kitchen_sink",
+    "testcase_50_kitchen_sink/models"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Report' type should be generic with type parameter 'T'.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.type_params.0",
+      "expect": "T"
+    },
+    {
+      "description": "The embedded 'Auditable' field should be serialised with its concrete type argument.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.fields.0.type_string",
+      "expect": "models.Auditable[uuid.UUID]"
+    },
+    {
+      "description": "The complex 'EventsByTopic' map field should have its TypeString generated correctly.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.fields.1.type_string",
+      "expect": "map[string][]*main.Event[T]"
+    },
+    {
+      "description": "The pointer to interface 'Output' field should be correct.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.fields.2.type_string",
+      "expect": "*io.Writer"
+    },
+    {
+      "description": "The promoted method 'GetID' must be present on 'Report'.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.methods.0.name",
+      "expect": "GetID"
+    },
+    {
+      "description": "The promoted 'GetID' method's return type MUST be substituted from 'I' to 'uuid.UUID'.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.methods.0.signature.results.0",
+      "expect": "uuid.UUID"
+    },
+    {
+      "description": "The 'Summarise' method's first parameter should be 'context.Context'.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.methods.1.signature.params.0",
+      "expect": "context.Context"
+    },
+    {
+      "description": "The 'Summarise' method's first return value should be the generic type parameter 'T'.",
+      "select": "packages.testcase_50_kitchen_sink.named_types.Report.methods.1.signature.results.0",
+      "expect": "T"
+    }
+  ]
+}

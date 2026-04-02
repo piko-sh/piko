@@ -1,0 +1,12 @@
+/*
+--- BEGIN AST DUMP ---
+
+<p id="target" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ state.ServiceResponse.Transaction.Amount.MustNumber() }}
+  </RichText>
+</p>
+<p id="target-2" :hello="state.ServiceResponse.Transaction.Amount.MustNumber()" {P: state.ServiceResponse.Transaction.Amount.MustNumber()} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+
+--- END AST DUMP ---
+*/

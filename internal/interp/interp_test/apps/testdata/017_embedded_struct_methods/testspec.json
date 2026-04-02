@@ -1,0 +1,5 @@
+{
+  "description": "Embedded struct field access across files",
+  "shouldError": false,
+  "expected": "84"
+}

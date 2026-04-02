@@ -1,0 +1,24 @@
+{
+  "description": "Validates that prop bindings inside NESTED layout wrappers (layout inside layout) correctly resolve against the page's state, not any of the intermediate layouts' states. This is an extension of the bug tested in 51.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#nested-child",
+      "description": "The child component nested inside two layouts should correctly resolve its prop bindings against the page's state.",
+      "assert": {
+        "originalPackageAlias": "partials/child.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.UserID",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "state.Theme",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

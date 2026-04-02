@@ -1,0 +1,127 @@
+<!-- Action response caching demo. The weather.Forecast action implements
+     CacheConfig() with a 10-second TTL, so rapid calls return the same response.
+     See https://piko.sh/docs/guide/advanced-actions#caching -->
+<template>
+  <div id="app">
+    <h1>Cached Weather API</h1>
+    <p class="subtitle">This action caches its response for 10 seconds. Two rapid calls should return identical timestamps.</p>
+
+    <button id="test-btn" p-on:click="testCache()">Test Cache</button>
+
+    <div class="results">
+      <div class="result-row">
+        <span class="label">First call timestamp:</span>
+        <span p-ref="ts1">-</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Second call timestamp:</span>
+        <span p-ref="ts2">-</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Result:</span>
+        <span p-ref="result">idle</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Cached Weather API",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export async function testCache(): Promise<void> {
+    pk.refs.result!.textContent = 'testing';
+
+    const data1 = await action.weather.Forecast({}).call();
+    pk.refs.ts1!.textContent = String(data1.timestamp);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const data2 = await action.weather.Forecast({}).call();
+    pk.refs.ts2!.textContent = String(data2.timestamp);
+
+    if (data1.timestamp == data2.timestamp) {
+        pk.refs.result!.textContent = 'cache_hit';
+    } else {
+        pk.refs.result!.textContent = 'cache_miss';
+    }
+}
+</script>
+
+<style>
+  #app {
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitle {
+    color: #6b7280;
+    margin-bottom: 2rem;
+  }
+
+  #test-btn {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+  }
+
+  #test-btn:hover {
+    background-color: #1d4ed8;
+  }
+
+  .results {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .result-row:last-child {
+    border-bottom: none;
+  }
+
+  .label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .result-row span:last-child {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+</style>

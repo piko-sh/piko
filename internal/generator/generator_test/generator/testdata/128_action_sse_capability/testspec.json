@@ -1,0 +1,5 @@
+{
+    "description": "Tests that an action implementing SSECapable is detected correctly",
+    "packageName": "action_sse_capability_test",
+    "isPage": true
+}

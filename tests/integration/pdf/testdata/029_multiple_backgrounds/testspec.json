@@ -1,0 +1,5 @@
+{
+    "description": "Element with multiple layered gradient backgrounds, verifying back-to-front painting order.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

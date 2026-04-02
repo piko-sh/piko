@@ -1,0 +1,31 @@
+{
+  "description": "A simple end-to-end test with a single partial invocation and prop passing.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "div.card",
+      "description": "The card div should be expanded from its partial and have correct annotations.",
+      "assert": {
+        "originalPackageAlias": "partials/card.pk",
+        "hasPartialInfo": true,
+        "invocationKey": "card_title_state_pagetitle_88cea171"
+      }
+    },
+    {
+      "select": "div.card > h1",
+      "description": "The h1 inside the card should come from the partial.",
+      "assert": {
+        "originalPackageAlias": "partials/card.pk"
+      }
+    },
+    {
+      "select": "h1",
+      "description": "The 'props.Title' interpolation should be correctly type-checked against the partial's context.",
+      "assertOnInterpolation": {
+        "rawExpression": "props.Title",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+    "description": "Background with background-clip (padding-box, content-box, border-box), verifying clip area in PDF output.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

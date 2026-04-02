@@ -1,0 +1,59 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package test
+import (
+    layout "testcase_12_deeply_nested_and_complex/partials/page_layout.pk"
+    sidebar "testcase_12_deeply_nested_and_complex/partials/sidebar.pk"
+)
+
+type Response struct {
+    IsLoggedIn bool
+    Username string
+}
+</script>
+
+<style>
+    body { font-family: sans-serif; }
+</style>
+
+<template>
+    <piko:partial is="layout" class="theme-dark" :data-logged-in="state.IsLoggedIn">
+
+        <piko:slot name="main-content">
+            <h1>Welcome to the Dashboard</h1>
+            <p>This is the main content area provided by main.pk.</p>
+        </piko:slot>
+
+        <piko:slot name="sidebar">
+            <piko:partial is="sidebar" :is-collapsible="true">
+
+                <piko:slot name="top">
+                    <h2>Main Navigation</h2>
+                </piko:slot>
+
+                <p>Hello, {{ state.Username }}!</p>
+
+            </piko:partial>
+        </piko:slot>
+
+    </piko:partial>
+</template>

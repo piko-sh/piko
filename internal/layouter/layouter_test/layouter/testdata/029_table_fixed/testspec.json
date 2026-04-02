@@ -1,0 +1,1 @@
+{"description": "Fixed table layout with explicit width. Verifies table-layout:fixed distributes column widths evenly."}

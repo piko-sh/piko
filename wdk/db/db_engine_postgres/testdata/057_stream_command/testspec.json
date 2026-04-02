@@ -1,0 +1,3 @@
+{
+  "description": "Stream command directive (piko.command: stream). Tests query analysis recognises stream command and resolves output columns for iterator-based row delivery."
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Welcome Email",
+  "description": "SaaS platform welcome email with hero, feature grid, and footer",
+  "metadata": {"title": "Welcome to Nexus"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

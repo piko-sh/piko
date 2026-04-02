@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text-transform: uppercase, lowercase, capitalize affect layout dimensions.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

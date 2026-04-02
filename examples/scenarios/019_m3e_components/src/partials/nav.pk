@@ -1,0 +1,98 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <nav class="nav">
+        <div class="nav-header">
+            <h2 class="nav-title">M3E Components</h2>
+            <p class="nav-subtitle">Material Design 3 Expressive</p>
+        </div>
+
+        <div class="nav-links">
+            <h3 class="nav-category">Foundations</h3>
+            <piko:a href="/foundations/ripple" class="nav-link" p-class="{ 'active': props.CurrentPage == 'foundations/ripple' }">Ripple</piko:a>
+            <piko:a href="/foundations/elevation" class="nav-link" p-class="{ 'active': props.CurrentPage == 'foundations/elevation' }">Elevation</piko:a>
+            <piko:a href="/foundations/icon" class="nav-link" p-class="{ 'active': props.CurrentPage == 'foundations/icon' }">Icon</piko:a>
+            <piko:a href="/foundations/divider" class="nav-link" p-class="{ 'active': props.CurrentPage == 'foundations/divider' }">Divider</piko:a>
+
+            <h3 class="nav-category">Actions</h3>
+            <piko:a href="/actions/button" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/button' }">Button</piko:a>
+            <piko:a href="/actions/icon-button" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/icon-button' }">Icon Button</piko:a>
+            <piko:a href="/actions/fab" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/fab' }">FAB</piko:a>
+            <piko:a href="/actions/extended-fab" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/extended-fab' }">Extended FAB</piko:a>
+            <piko:a href="/actions/segmented-button" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/segmented-button' }">Segmented Button</piko:a>
+            <piko:a href="/actions/toolbar" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/toolbar' }">Toolbar</piko:a>
+            <piko:a href="/actions/button-group" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/button-group' }">Button Group</piko:a>
+            <piko:a href="/actions/split-button" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/split-button' }">Split Button</piko:a>
+            <piko:a href="/actions/fab-menu" class="nav-link" p-class="{ 'active': props.CurrentPage == 'actions/fab-menu' }">FAB Menu</piko:a>
+
+            <h3 class="nav-category">Selection</h3>
+            <piko:a href="/selection/checkbox" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/checkbox' }">Checkbox</piko:a>
+            <piko:a href="/selection/radio" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/radio' }">Radio</piko:a>
+            <piko:a href="/selection/switch" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/switch' }">Switch</piko:a>
+            <piko:a href="/selection/slider" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/slider' }">Slider</piko:a>
+            <piko:a href="/selection/text-field" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/text-field' }">Text Field</piko:a>
+            <piko:a href="/selection/chip" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/chip' }">Chip</piko:a>
+            <piko:a href="/selection/select" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/select' }">Select</piko:a>
+            <piko:a href="/selection/date-picker" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/date-picker' }">Date Picker</piko:a>
+            <piko:a href="/selection/time-picker" class="nav-link" p-class="{ 'active': props.CurrentPage == 'selection/time-picker' }">Time Picker</piko:a>
+
+            <h3 class="nav-category">Communication</h3>
+            <piko:a href="/communication/badge" class="nav-link" p-class="{ 'active': props.CurrentPage == 'communication/badge' }">Badge</piko:a>
+            <piko:a href="/communication/progress" class="nav-link" p-class="{ 'active': props.CurrentPage == 'communication/progress' }">Progress</piko:a>
+            <piko:a href="/communication/tooltip" class="nav-link" p-class="{ 'active': props.CurrentPage == 'communication/tooltip' }">Tooltip</piko:a>
+            <piko:a href="/communication/snackbar" class="nav-link" p-class="{ 'active': props.CurrentPage == 'communication/snackbar' }">Snackbar</piko:a>
+            <piko:a href="/communication/loading-indicator" class="nav-link" p-class="{ 'active': props.CurrentPage == 'communication/loading-indicator' }">Loading Indicator</piko:a>
+
+            <h3 class="nav-category">Containment</h3>
+            <piko:a href="/containment/card" class="nav-link" p-class="{ 'active': props.CurrentPage == 'containment/card' }">Card</piko:a>
+            <piko:a href="/containment/data-table" class="nav-link" p-class="{ 'active': props.CurrentPage == 'containment/data-table' }">Data Table</piko:a>
+            <piko:a href="/containment/list" class="nav-link" p-class="{ 'active': props.CurrentPage == 'containment/list' }">List</piko:a>
+            <piko:a href="/containment/dialog" class="nav-link" p-class="{ 'active': props.CurrentPage == 'containment/dialog' }">Dialog</piko:a>
+            <piko:a href="/containment/bottom-sheet" class="nav-link" p-class="{ 'active': props.CurrentPage == 'containment/bottom-sheet' }">Bottom Sheet</piko:a>
+            <piko:a href="/containment/side-sheet" class="nav-link" p-class="{ 'active': props.CurrentPage == 'containment/side-sheet' }">Side Sheet</piko:a>
+            <piko:a href="/containment/carousel" class="nav-link" p-class="{ 'active': props.CurrentPage == 'containment/carousel' }">Carousel</piko:a>
+
+            <h3 class="nav-category">Navigation</h3>
+            <piko:a href="/navigation/tabs" class="nav-link" p-class="{ 'active': props.CurrentPage == 'navigation/tabs' }">Tabs</piko:a>
+            <piko:a href="/navigation/navigation-bar" class="nav-link" p-class="{ 'active': props.CurrentPage == 'navigation/navigation-bar' }">Navigation Bar</piko:a>
+            <piko:a href="/navigation/navigation-rail" class="nav-link" p-class="{ 'active': props.CurrentPage == 'navigation/navigation-rail' }">Navigation Rail</piko:a>
+            <piko:a href="/navigation/navigation-drawer" class="nav-link" p-class="{ 'active': props.CurrentPage == 'navigation/navigation-drawer' }">Navigation Drawer</piko:a>
+            <piko:a href="/navigation/bottom-app-bar" class="nav-link" p-class="{ 'active': props.CurrentPage == 'navigation/bottom-app-bar' }">Bottom App Bar</piko:a>
+            <piko:a href="/navigation/top-app-bar" class="nav-link" p-class="{ 'active': props.CurrentPage == 'navigation/top-app-bar' }">Top App Bar</piko:a>
+            <piko:a href="/navigation/search" class="nav-link" p-class="{ 'active': props.CurrentPage == 'navigation/search' }">Search</piko:a>
+        </div>
+    </nav>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+    CurrentPage string `prop:"current-page"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+

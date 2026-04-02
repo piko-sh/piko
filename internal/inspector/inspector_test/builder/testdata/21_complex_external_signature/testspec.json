@@ -1,0 +1,30 @@
+{
+  "description": "Tests a method signature containing types from multiple external/stdlib packages.",
+  "moduleName": "testcase_21_complex_external_signature",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_21_complex_external_signature"
+  ],
+  "assertions": [
+    {
+      "description": "The first parameter should be 'context.Context'.",
+      "select": "packages.testcase_21_complex_external_signature.named_types.Processor.methods.0.signature.params.0",
+      "expect": "context.Context"
+    },
+    {
+      "description": "The second parameter should be 'uuid.UUID'.",
+      "select": "packages.testcase_21_complex_external_signature.named_types.Processor.methods.0.signature.params.1",
+      "expect": "uuid.UUID"
+    },
+    {
+      "description": "The first result should be 'uuid.UUID'.",
+      "select": "packages.testcase_21_complex_external_signature.named_types.Processor.methods.0.signature.results.0",
+      "expect": "uuid.UUID"
+    },
+    {
+      "description": "The second result should be 'error'.",
+      "select": "packages.testcase_21_complex_external_signature.named_types.Processor.methods.0.signature.results.1",
+      "expect": "error"
+    }
+  ]
+}

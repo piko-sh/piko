@@ -1,0 +1,195 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-carousel">
+    <div class="carousel" role="region" aria-label="Carousel">
+        <div class="viewport" p-ref="viewport">
+            <div class="track" p-ref="track">
+                <slot></slot>
+            </div>
+        </div>
+        <button class="nav-button prev"
+                p-on:click="prev"
+                aria-label="Previous">
+            <piko:svg src="piko.sh/piko/lib/icons/arrow-left.svg" fill="currentColor" width="24" height="24"></piko:svg>
+        </button>
+        <button class="nav-button next"
+                p-on:click="next"
+                aria-label="Next">
+            <piko:svg src="piko.sh/piko/lib/icons/arrow-right.svg" fill="currentColor" width="24" height="24"></piko:svg>
+        </button>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        auto_advance: false as boolean,
+        interval: 5000 as number,
+    };
+
+    let currentIndex = 0;
+    let autoTimer = null;
+
+    pkc.onConnected(() => {
+        if (state.auto_advance) {
+            startAutoAdvance();
+        }
+    });
+
+    pkc.onDisconnected(() => {
+        stopAutoAdvance();
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('auto_advance')) {
+            if (state.auto_advance) {
+                startAutoAdvance();
+            } else {
+                stopAutoAdvance();
+            }
+        }
+    });
+
+    function getSlotItems() {
+        const track = pkc.refs.track;
+        if (!track) return [];
+        const slot = track.querySelector('slot');
+        if (!slot) return [];
+        return slot.assignedElements();
+    }
+
+    function getItemCount() {
+        return getSlotItems().length;
+    }
+
+    function scrollToIndex(index) {
+        const track = pkc.refs.track;
+        if (!track) return;
+
+        const items = getSlotItems();
+        if (items.length === 0) return;
+
+        currentIndex = Math.max(0, Math.min(index, items.length - 1));
+        track.style.transform = 'translateX(-' + (currentIndex * 100) + '%)';
+    }
+
+    function prev() {
+        const count = getItemCount();
+        if (count === 0) return;
+        const newIndex = currentIndex <= 0 ? count - 1 : currentIndex - 1;
+        scrollToIndex(newIndex);
+    }
+
+    function next() {
+        const count = getItemCount();
+        if (count === 0) return;
+        const newIndex = currentIndex >= count - 1 ? 0 : currentIndex + 1;
+        scrollToIndex(newIndex);
+    }
+
+    function startAutoAdvance() {
+        stopAutoAdvance();
+        autoTimer = setInterval(() => {
+            next();
+        }, state.interval);
+    }
+
+    function stopAutoAdvance() {
+        if (autoTimer) {
+            clearInterval(autoTimer);
+            autoTimer = null;
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_surface: var(--m3e-surface, #fffbfe);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_surface-container-highest: var(--m3e-surface-container-highest, #e6e0e9);
+        --_duration-medium: var(--m3e-duration-medium, 400ms);
+        --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
+        --_shape-xl: var(--m3e-shape-xl, 28px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .carousel {
+        position: relative;
+
+        &:hover .nav-button {
+            opacity: 1;
+        }
+    }
+
+    .viewport {
+        overflow: hidden;
+        border-radius: var(--_shape-xl);
+    }
+
+    .track {
+        display: flex;
+        transition: transform var(--_duration-medium) var(--_easing-emphasized);
+
+        & ::slotted(*) {
+            flex: 0 0 100%;
+            min-width: 0;
+        }
+    }
+
+    .nav-button {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 48px;
+        height: 48px;
+        border: none;
+        border-radius: 50%;
+        background: var(--_surface-container-highest);
+        color: var(--_on-surface);
+        cursor: pointer;
+        outline: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 1px 3px 1px rgba(0,0,0,0.15);
+        opacity: 0.7;
+        transition: opacity var(--m3e-duration-short, 200ms);
+        z-index: 1;
+
+        &:active {
+            opacity: 1;
+        }
+
+        &:hover {
+            background: var(--_surface-container-highest);
+            box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 2px 6px 2px rgba(0,0,0,0.15);
+        }
+
+        &.prev {
+            left: 8px;
+        }
+
+        &.next {
+            right: 8px;
+        }
+    }
+</style>

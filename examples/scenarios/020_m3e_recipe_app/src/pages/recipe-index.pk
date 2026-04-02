@@ -1,0 +1,178 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Recipe Index"
+            server.current-page="recipe-index">
+
+            <h1 class="page-title">Recipe Index</h1>
+            <p class="text-muted mb-lg">A whey to compare all our recipes at a glance &mdash; sort, select, and find the perfect dish for tonight.</p>
+
+            <m2-data-table selectable aria-label="Complete recipe index">
+                <m2-data-table-header slot="header" selectable>
+                    <m2-data-table-cell header sortable column="recipe">Recipe</m2-data-table-cell>
+                    <m2-data-table-cell header>Cheese</m2-data-table-cell>
+                    <m2-data-table-cell header>Difficulty</m2-data-table-cell>
+                    <m2-data-table-cell header numeric sortable column="time">Time (mins)</m2-data-table-cell>
+                    <m2-data-table-cell header numeric>Servings</m2-data-table-cell>
+                    <m2-data-table-cell header numeric sortable column="calories" sort-direction="asc">Calories</m2-data-table-cell>
+                    <m2-data-table-cell header numeric sortable column="protein">Protein</m2-data-table-cell>
+                    <m2-data-table-cell header numeric sortable column="fat">Fat</m2-data-table-cell>
+                    <m2-data-table-cell header numeric sortable column="carbs">Carbs</m2-data-table-cell>
+                </m2-data-table-header>
+
+                <m2-data-table-row selectable row-id="grate-burger">
+                    <m2-data-table-cell>The Grate Burger</m2-data-table-cell>
+                    <m2-data-table-cell>Cheddar</m2-data-table-cell>
+                    <m2-data-table-cell>Easy</m2-data-table-cell>
+                    <m2-data-table-cell numeric>25</m2-data-table-cell>
+                    <m2-data-table-cell numeric>4</m2-data-table-cell>
+                    <m2-data-table-cell numeric>650</m2-data-table-cell>
+                    <m2-data-table-cell numeric>38g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>42g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>35g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-row selectable row-id="caesar-salad">
+                    <m2-data-table-cell>Brie-lliant Caesar Salad</m2-data-table-cell>
+                    <m2-data-table-cell>Brie</m2-data-table-cell>
+                    <m2-data-table-cell>Easy</m2-data-table-cell>
+                    <m2-data-table-cell numeric>15</m2-data-table-cell>
+                    <m2-data-table-cell numeric>2</m2-data-table-cell>
+                    <m2-data-table-cell numeric>380</m2-data-table-cell>
+                    <m2-data-table-cell numeric>18g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>28g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>16g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-row selectable row-id="pizza" selected>
+                    <m2-data-table-cell>Feta Accompli Pizza</m2-data-table-cell>
+                    <m2-data-table-cell>Feta</m2-data-table-cell>
+                    <m2-data-table-cell>Medium</m2-data-table-cell>
+                    <m2-data-table-cell numeric>30</m2-data-table-cell>
+                    <m2-data-table-cell numeric>4</m2-data-table-cell>
+                    <m2-data-table-cell numeric>420</m2-data-table-cell>
+                    <m2-data-table-cell numeric>22g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>18g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>48g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-row selectable row-id="mac-cheese">
+                    <m2-data-table-cell>Gouda Gracious Mac &amp; Cheese</m2-data-table-cell>
+                    <m2-data-table-cell>Gouda</m2-data-table-cell>
+                    <m2-data-table-cell>Easy</m2-data-table-cell>
+                    <m2-data-table-cell numeric>45</m2-data-table-cell>
+                    <m2-data-table-cell numeric>6</m2-data-table-cell>
+                    <m2-data-table-cell numeric>580</m2-data-table-cell>
+                    <m2-data-table-cell numeric>24g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>32g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>52g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-row selectable row-id="lasagna">
+                    <m2-data-table-cell>Ricotta Be Kidding Me Lasagna</m2-data-table-cell>
+                    <m2-data-table-cell>Ricotta</m2-data-table-cell>
+                    <m2-data-table-cell>Medium</m2-data-table-cell>
+                    <m2-data-table-cell numeric>90</m2-data-table-cell>
+                    <m2-data-table-cell numeric>8</m2-data-table-cell>
+                    <m2-data-table-cell numeric>520</m2-data-table-cell>
+                    <m2-data-table-cell numeric>32g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>28g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>38g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-row selectable row-id="chicken">
+                    <m2-data-table-cell>Parm-ageddon Chicken</m2-data-table-cell>
+                    <m2-data-table-cell>Parmesan</m2-data-table-cell>
+                    <m2-data-table-cell>Medium</m2-data-table-cell>
+                    <m2-data-table-cell numeric>45</m2-data-table-cell>
+                    <m2-data-table-cell numeric>4</m2-data-table-cell>
+                    <m2-data-table-cell numeric>620</m2-data-table-cell>
+                    <m2-data-table-cell numeric>44g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>26g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>52g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-row selectable row-id="camembert">
+                    <m2-data-table-cell>Camembert Believe It</m2-data-table-cell>
+                    <m2-data-table-cell>Camembert</m2-data-table-cell>
+                    <m2-data-table-cell>Easy</m2-data-table-cell>
+                    <m2-data-table-cell numeric>30</m2-data-table-cell>
+                    <m2-data-table-cell numeric>4</m2-data-table-cell>
+                    <m2-data-table-cell numeric>340</m2-data-table-cell>
+                    <m2-data-table-cell numeric>16g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>24g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>14g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-row selectable row-id="raclette">
+                    <m2-data-table-cell>Raclette &amp; Roll</m2-data-table-cell>
+                    <m2-data-table-cell>Raclette</m2-data-table-cell>
+                    <m2-data-table-cell>Medium</m2-data-table-cell>
+                    <m2-data-table-cell numeric>40</m2-data-table-cell>
+                    <m2-data-table-cell numeric>4</m2-data-table-cell>
+                    <m2-data-table-cell numeric>480</m2-data-table-cell>
+                    <m2-data-table-cell numeric>28g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>30g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>26g</m2-data-table-cell>
+                </m2-data-table-row>
+
+                <m2-data-table-pagination slot="pagination"
+                    total-rows="8"
+                    rows-per-page="10"
+                    rows-per-page-options="5,10">
+                </m2-data-table-pagination>
+            </m2-data-table>
+
+            <m3e-card variant="outlined" class="mt-lg" style="padding: 24px; max-width: 480px;">
+                <p style="font-size: 0.875rem; font-style: italic; color: var(--m3e-on-surface-variant, #49454f);">
+                    "Life is gouda when you know what you&rsquo;re eating."
+                </p>
+                <div class="mt-md">
+                    <piko:a href="/recipes">
+                        <m3e-button variant="tonal">View All Recipes</m3e-button>
+                    </piko:a>
+                </div>
+            </m3e-card>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Recipe Index - The Norman Kitchen",
+    }, nil
+}
+</script>

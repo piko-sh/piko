@@ -1,0 +1,116 @@
+{
+  "description": "Multi-page blog with layout partial, piko:a navigation, piko:img, and piko:svg",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Welcome to the Piko Blog"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "nav"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "footer"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#featured-posts"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "img.hero-image",
+      "timeout": 3000
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "aside.layout-sidebar .quick-links"
+    },
+    {
+      "action": "checkText",
+      "selector": "aside.layout-sidebar .quick-links h3",
+      "expected": "Quick Links"
+    },
+    {
+      "action": "navigate",
+      "value": "/blog"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Getting Started with Piko"
+    },
+    {
+      "action": "checkText",
+      "selector": ".author",
+      "expected": "Alice Williams"
+    },
+    {
+      "action": "checkText",
+      "selector": ".date",
+      "expected": "15 January 2026"
+    },
+    {
+      "action": "navigate",
+      "value": "/about"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "About Us"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#team-section",
+      "timeout": 3000
+    },
+    {
+      "action": "navigate",
+      "value": "/contact"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Contact Us"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#contact-info",
+      "timeout": 3000
+    },
+    {
+      "action": "checkText",
+      "selector": "#contact-email",
+      "expected": "hello@example.com"
+    },
+    {
+      "action": "checkText",
+      "selector": "#contact-phone",
+      "expected": "+44 117 496 0000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#contact-address",
+      "expected": "Bristol, United Kingdom"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "action": "checkText",
+    "selector": "multiple-event-handlers >>> #hover-status",
+    "expected": "Not hovering"
+  },
+  {
+    "action": "checkText",
+    "selector": "multiple-event-handlers >>> #click-count",
+    "expected": "Clicks: 0"
+  },
+  {
+    "action": "click",
+    "selector": "multiple-event-handlers >>> #target"
+  },
+  {
+    "action": "checkText",
+    "selector": "multiple-event-handlers >>> #click-count",
+    "expected": "Clicks: 1"
+  },
+  {
+    "action": "click",
+    "selector": "multiple-event-handlers >>> #target"
+  },
+  {
+    "action": "click",
+    "selector": "multiple-event-handlers >>> #target"
+  },
+  {
+    "action": "checkText",
+    "selector": "multiple-event-handlers >>> #click-count",
+    "expected": "Clicks: 3"
+  }
+]

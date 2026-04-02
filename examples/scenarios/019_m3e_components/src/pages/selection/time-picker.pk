@@ -1,0 +1,84 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Time Picker"
+            server.current-page="selection/time-picker">
+
+            <p class="demo-description">Time pickers allow users to select a time. They support both 24-hour and 12-hour formats.</p>
+
+            <div class="demo-grid">
+                <!-- 24-hour Format (Default) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">24-hour Format (Default)</h3>
+                    <div class="demo-preview">
+                        <m3e-time-picker format="24h"></m3e-time-picker>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-time-picker format="24h"&gt;&lt;/m3e-time-picker&gt;</code></pre>
+                </section>
+
+                <!-- 12-hour Format -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">12-hour Format</h3>
+                    <div class="demo-preview">
+                        <m3e-time-picker format="12h"></m3e-time-picker>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-time-picker format="12h"&gt;&lt;/m3e-time-picker&gt;</code></pre>
+                </section>
+
+                <!-- Pre-set - 24h -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Pre-set - 24h</h3>
+                    <div class="demo-preview">
+                        <m3e-time-picker format="24h" value="14:30"></m3e-time-picker>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-time-picker format="24h" value="14:30"&gt;&lt;/m3e-time-picker&gt;</code></pre>
+                </section>
+
+                <!-- Pre-set - 12h -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Pre-set - 12h</h3>
+                    <div class="demo-preview">
+                        <m3e-time-picker format="12h" value="02:30"></m3e-time-picker>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-time-picker format="12h" value="02:30"&gt;&lt;/m3e-time-picker&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Time Picker - M3E Components",
+    }, nil
+}
+</script>

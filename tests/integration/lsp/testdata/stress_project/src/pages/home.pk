@@ -1,0 +1,40 @@
+<template>
+	<div class="home">
+		<nav is="nav" :items="state.Config.Nav" />
+		<h1>{{ state.Config.Title }}</h1>
+		<p>{{ state.Welcome }}</p>
+	</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	_ "testcase_lsp_stress/partials/nav.pk"
+)
+
+type HomeResponse struct {
+	Config  SiteConfig
+	Welcome string
+}
+
+func Render(_ *piko.RequestData, _ piko.NoProps) (HomeResponse, piko.Metadata, error) {
+	return HomeResponse{
+		Config: SiteConfig{
+			Title: "Home",
+			Nav:   []NavItem{{Label: "Home", URL: "/", Active: true}},
+		},
+		Welcome: "Welcome to our site",
+	}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+.home {
+	padding: 20px;
+}
+h1 {
+	colour: #333;
+}
+</style>

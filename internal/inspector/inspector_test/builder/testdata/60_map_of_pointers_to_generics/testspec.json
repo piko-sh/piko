@@ -1,0 +1,20 @@
+{
+  "description": "Tests serialisation of a map containing pointers to instantiated generic structs.",
+  "moduleName": "testcase_60_map_of_pointers_to_generics",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_60_map_of_pointers_to_generics"
+  ],
+  "assertions": [
+    {
+      "description": "The 'IntBoxes' field's TypeString must be correct, including the pointer and generic instantiation.",
+      "select": "packages.testcase_60_map_of_pointers_to_generics.named_types.Response.fields.0.type_string",
+      "expect": "map[string]*main.Box[int]"
+    },
+    {
+      "description": "The serialiser must traverse the map and pointer to find the PackagePath of the 'Box' type.",
+      "select": "packages.testcase_60_map_of_pointers_to_generics.named_types.Response.fields.0.pkg_path",
+      "expect": "testcase_60_map_of_pointers_to_generics"
+    }
+  ]
+}

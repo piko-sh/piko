@@ -1,0 +1,22 @@
+{
+  "active": [
+    {
+      "ID": 1,
+      "Name": "Alpha"
+    },
+    {
+      "ID": 3,
+      "Name": "Charlie"
+    }
+  ],
+  "inactive": [
+    {
+      "ID": 2,
+      "Name": "Bravo"
+    },
+    {
+      "ID": 4,
+      "Name": "Delta"
+    }
+  ]
+}

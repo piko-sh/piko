@@ -1,0 +1,11 @@
+{
+  "description": "Tests validation of complex prop types like struct pointers.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Type mismatch for prop 'user'. Component <profile> expects type '*models.User', but received type 'int'"
+    }
+  ],
+  "expectedUniqueInvocations": 2
+}

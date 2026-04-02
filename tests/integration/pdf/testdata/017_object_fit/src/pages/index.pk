@@ -1,0 +1,56 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div style="width: 400px; padding: 20px;">
+    <div style="margin-bottom: 15px;">
+      <div style="font-size: 10px; margin-bottom: 4px;">object-fit: fill (default)</div>
+      <img style="width: 200px; height: 150px; object-fit: fill; display: block; border: 1px solid #ccc;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABkEAIAAAAcdDQfAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRP///////wlY99wAAAAHdElNRQfqAxcTFht5+OagAAACvklEQVR42u3awYrOYRjG4fv9jGhSoimRmkQ2bKYoG5azsLHkFJjjMafA0sbCko2ibNhoJimRmkhNE6nPOITX7vHUdR3Bb/Xvft7+I0kODwPw3xuL7WR5vzoDYG4cvZr8fludATA3jr1Ift2szgCYG6v3koNH1RkAc+PE92T/VHUGwNzKke1k+aA6A2BunD6XfPtcnQEwN9aeJHt3qjMA5saZzeTrs+oMgLlxdjf5crE6A2DOozvQxlg/nnz8WZ0BMLey2E7+WFhAA+PStWTndXUGwNy4/Cp5f706A2DOozvQxrhykLxbrc4AmLOwgDbGxoXkzYfqDIA5vzUAbTgJgTbGjU/Jy/PVGQBzFhbQxrh1Mnn+ozoDYM6jO9CGkxBow8IC2rCwgDbG7WXydFGdATBnYQFt+GABbXh0B9qwsIA2xt295PFadQbAnIUFtOGDBbTh0R1ow8IC2rCwgDYsLKANHyygDSch0IaFBbRhYQFtWFhAGxYW0IaFBbThgwW04SQE2lg58jBZblVnAMxZWEAb3rCANnywgDachEAbFhbQhoUFtGFhAW1YWEAbFhbQhg8W0IaTEGjDwgLasLCANiwsoI3xeC25u1edATDnJATacBICbVhYQBsWFtDGeLpIbi+rMwDmnIRAG05CoA0LC2jDwgLaGM9/JLdOVmcAzFlYQBvj5fnkxqfqDIA5j+5AG05CoI3x5kOycaE6A2DOwgLaGO9WkysH1RkAcyuLh8mfreoMgLnx/npy+VV1BsDc2HmdXLpWnQEw59EdaGN8/JmsH6/OAJizsIA2xpeLydnd6gyAufH1WXJmszoDYG7s3UnWnlRnAMyNb5+T0+eqMwDmPLoDbYz9U8mJ79UZAHPj4FGyeq86A2Bu/LqZHHtRnQEwN36/TY5erc4AmBvL+8liuzoDYG4cHlYnAPybvyasyNPGmLVLAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI2LTAzLTIzVDE5OjIyOjI3KzAwOjAw4U4lfwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNi0wMy0yM1QxOToyMjoyNyswMDowMJATncMAAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjYtMDMtMjNUMTk6MjI6MjcrMDA6MDDHBrwcAAAAAElFTkSuQmCC" />
+    </div>
+    <div style="margin-bottom: 15px;">
+      <div style="font-size: 10px; margin-bottom: 4px;">object-fit: contain</div>
+      <img style="width: 200px; height: 150px; object-fit: contain; display: block; border: 1px solid #ccc;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABkEAIAAAAcdDQfAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRP///////wlY99wAAAAHdElNRQfqAxcTFht5+OagAAACvklEQVR42u3awYrOYRjG4fv9jGhSoimRmkQ2bKYoG5azsLHkFJjjMafA0sbCko2ibNhoJimRmkhNE6nPOITX7vHUdR3Bb/Xvft7+I0kODwPw3xuL7WR5vzoDYG4cvZr8fludATA3jr1Ift2szgCYG6v3koNH1RkAc+PE92T/VHUGwNzKke1k+aA6A2BunD6XfPtcnQEwN9aeJHt3qjMA5saZzeTrs+oMgLlxdjf5crE6A2DOozvQxlg/nnz8WZ0BMLey2E7+WFhAA+PStWTndXUGwNy4/Cp5f706A2DOozvQxrhykLxbrc4AmLOwgDbGxoXkzYfqDIA5vzUAbTgJgTbGjU/Jy/PVGQBzFhbQxrh1Mnn+ozoDYM6jO9CGkxBow8IC2rCwgDbG7WXydFGdATBnYQFt+GABbXh0B9qwsIA2xt295PFadQbAnIUFtOGDBbTh0R1ow8IC2rCwgDYsLKANHyygDSch0IaFBbRhYQFtWFhAGxYW0IaFBbThgwW04SQE2lg58jBZblVnAMxZWEAb3rCANnywgDachEAbFhbQhoUFtGFhAW1YWEAbFhbQhg8W0IaTEGjDwgLasLCANiwsoI3xeC25u1edATDnJATacBICbVhYQBsWFtDGeLpIbi+rMwDmnIRAG05CoA0LC2jDwgLaGM9/JLdOVmcAzFlYQBvj5fnkxqfqDIA5j+5AG05CoI3x5kOycaE6A2DOwgLaGO9WkysH1RkAcyuLh8mfreoMgLnx/npy+VV1BsDc2HmdXLpWnQEw59EdaGN8/JmsH6/OAJizsIA2xpeLydnd6gyAufH1WXJmszoDYG7s3UnWnlRnAMyNb5+T0+eqMwDmPLoDbYz9U8mJ79UZAHPj4FGyeq86A2Bu/LqZHHtRnQEwN36/TY5erc4AmBvL+8liuzoDYG4cHlYnAPybvyasyNPGmLVLAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI2LTAzLTIzVDE5OjIyOjI3KzAwOjAw4U4lfwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNi0wMy0yM1QxOToyMjoyNyswMDowMJATncMAAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjYtMDMtMjNUMTk6MjI6MjcrMDA6MDDHBrwcAAAAAElFTkSuQmCC" />
+    </div>
+    <div style="margin-bottom: 15px;">
+      <div style="font-size: 10px; margin-bottom: 4px;">object-fit: cover</div>
+      <img style="width: 200px; height: 150px; object-fit: cover; display: block; border: 1px solid #ccc;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABkEAIAAAAcdDQfAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRP///////wlY99wAAAAHdElNRQfqAxcTFht5+OagAAACvklEQVR42u3awYrOYRjG4fv9jGhSoimRmkQ2bKYoG5azsLHkFJjjMafA0sbCko2ibNhoJimRmkhNE6nPOITX7vHUdR3Bb/Xvft7+I0kODwPw3xuL7WR5vzoDYG4cvZr8fludATA3jr1Ift2szgCYG6v3koNH1RkAc+PE92T/VHUGwNzKke1k+aA6A2BunD6XfPtcnQEwN9aeJHt3qjMA5saZzeTrs+oMgLlxdjf5crE6A2DOozvQxlg/nnz8WZ0BMLey2E7+WFhAA+PStWTndXUGwNy4/Cp5f706A2DOozvQxrhykLxbrc4AmLOwgDbGxoXkzYfqDIA5vzUAbTgJgTbGjU/Jy/PVGQBzFhbQxrh1Mnn+ozoDYM6jO9CGkxBow8IC2rCwgDbG7WXydFGdATBnYQFt+GABbXh0B9qwsIA2xt295PFadQbAnIUFtOGDBbTh0R1ow8IC2rCwgDYsLKANHyygDSch0IaFBbRhYQFtWFhAGxYW0IaFBbThgwW04SQE2lg58jBZblVnAMxZWEAb3rCANnywgDachEAbFhbQhoUFtGFhAW1YWEAbFhbQhg8W0IaTEGjDwgLasLCANiwsoI3xeC25u1edATDnJATacBICbVhYQBsWFtDGeLpIbi+rMwDmnIRAG05CoA0LC2jDwgLaGM9/JLdOVmcAzFlYQBvj5fnkxqfqDIA5j+5AG05CoI3x5kOycaE6A2DOwgLaGO9WkysH1RkAcyuLh8mfreoMgLnx/npy+VV1BsDc2HmdXLpWnQEw59EdaGN8/JmsH6/OAJizsIA2xpeLydnd6gyAufH1WXJmszoDYG7s3UnWnlRnAMyNb5+T0+eqMwDmPLoDbYz9U8mJ79UZAHPj4FGyeq86A2Bu/LqZHHtRnQEwN36/TY5erc4AmBvL+8liuzoDYG4cHlYnAPybvyasyNPGmLVLAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI2LTAzLTIzVDE5OjIyOjI3KzAwOjAw4U4lfwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNi0wMy0yM1QxOToyMjoyNyswMDowMJATncMAAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjYtMDMtMjNUMTk6MjI6MjcrMDA6MDDHBrwcAAAAAElFTkSuQmCC" />
+    </div>
+    <div style="margin-bottom: 15px;">
+      <div style="font-size: 10px; margin-bottom: 4px;">object-fit: none</div>
+      <img style="width: 200px; height: 150px; object-fit: none; display: block; border: 1px solid #ccc;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABkEAIAAAAcdDQfAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRP///////wlY99wAAAAHdElNRQfqAxcTFht5+OagAAACvklEQVR42u3awYrOYRjG4fv9jGhSoimRmkQ2bKYoG5azsLHkFJjjMafA0sbCko2ibNhoJimRmkhNE6nPOITX7vHUdR3Bb/Xvft7+I0kODwPw3xuL7WR5vzoDYG4cvZr8fludATA3jr1Ift2szgCYG6v3koNH1RkAc+PE92T/VHUGwNzKke1k+aA6A2BunD6XfPtcnQEwN9aeJHt3qjMA5saZzeTrs+oMgLlxdjf5crE6A2DOozvQxlg/nnz8WZ0BMLey2E7+WFhAA+PStWTndXUGwNy4/Cp5f706A2DOozvQxrhykLxbrc4AmLOwgDbGxoXkzYfqDIA5vzUAbTgJgTbGjU/Jy/PVGQBzFhbQxrh1Mnn+ozoDYM6jO9CGkxBow8IC2rCwgDbG7WXydFGdATBnYQFt+GABbXh0B9qwsIA2xt295PFadQbAnIUFtOGDBbTh0R1ow8IC2rCwgDYsLKANHyygDSch0IaFBbRhYQFtWFhAGxYW0IaFBbThgwW04SQE2lg58jBZblVnAMxZWEAb3rCANnywgDachEAbFhbQhoUFtGFhAW1YWEAbFhbQhg8W0IaTEGjDwgLasLCANiwsoI3xeC25u1edATDnJATacBICbVhYQBsWFtDGeLpIbi+rMwDmnIRAG05CoA0LC2jDwgLaGM9/JLdOVmcAzFlYQBvj5fnkxqfqDIA5j+5AG05CoI3x5kOycaE6A2DOwgLaGO9WkysH1RkAcyuLh8mfreoMgLnx/npy+VV1BsDc2HmdXLpWnQEw59EdaGN8/JmsH6/OAJizsIA2xpeLydnd6gyAufH1WXJmszoDYG7s3UnWnlRnAMyNb5+T0+eqMwDmPLoDbYz9U8mJ79UZAHPj4FGyeq86A2Bu/LqZHHtRnQEwN36/TY5erc4AmBvL+8liuzoDYG4cHlYnAPybvyasyNPGmLVLAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI2LTAzLTIzVDE5OjIyOjI3KzAwOjAw4U4lfwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNi0wMy0yM1QxOToyMjoyNyswMDowMJATncMAAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjYtMDMtMjNUMTk6MjI6MjcrMDA6MDDHBrwcAAAAAElFTkSuQmCC" />
+    </div>
+    <div>
+      <div style="font-size: 10px; margin-bottom: 4px;">object-fit: scale-down</div>
+      <img style="width: 200px; height: 150px; object-fit: scale-down; display: block; border: 1px solid #ccc;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABkEAIAAAAcdDQfAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRP///////wlY99wAAAAHdElNRQfqAxcTFht5+OagAAACvklEQVR42u3awYrOYRjG4fv9jGhSoimRmkQ2bKYoG5azsLHkFJjjMafA0sbCko2ibNhoJimRmkhNE6nPOITX7vHUdR3Bb/Xvft7+I0kODwPw3xuL7WR5vzoDYG4cvZr8fludATA3jr1Ift2szgCYG6v3koNH1RkAc+PE92T/VHUGwNzKke1k+aA6A2BunD6XfPtcnQEwN9aeJHt3qjMA5saZzeTrs+oMgLlxdjf5crE6A2DOozvQxlg/nnz8WZ0BMLey2E7+WFhAA+PStWTndXUGwNy4/Cp5f706A2DOozvQxrhykLxbrc4AmLOwgDbGxoXkzYfqDIA5vzUAbTgJgTbGjU/Jy/PVGQBzFhbQxrh1Mnn+ozoDYM6jO9CGkxBow8IC2rCwgDbG7WXydFGdATBnYQFt+GABbXh0B9qwsIA2xt295PFadQbAnIUFtOGDBbTh0R1ow8IC2rCwgDYsLKANHyygDSch0IaFBbRhYQFtWFhAGxYW0IaFBbThgwW04SQE2lg58jBZblVnAMxZWEAb3rCANnywgDachEAbFhbQhoUFtGFhAW1YWEAbFhbQhg8W0IaTEGjDwgLasLCANiwsoI3xeC25u1edATDnJATacBICbVhYQBsWFtDGeLpIbi+rMwDmnIRAG05CoA0LC2jDwgLaGM9/JLdOVmcAzFlYQBvj5fnkxqfqDIA5j+5AG05CoI3x5kOycaE6A2DOwgLaGO9WkysH1RkAcyuLh8mfreoMgLnx/npy+VV1BsDc2HmdXLpWnQEw59EdaGN8/JmsH6/OAJizsIA2xpeLydnd6gyAufH1WXJmszoDYG7s3UnWnlRnAMyNb5+T0+eqMwDmPLoDbYz9U8mJ79UZAHPj4FGyeq86A2Bu/LqZHHtRnQEwN36/TY5erc4AmBvL+8liuzoDYG4cHlYnAPybvyasyNPGmLVLAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI2LTAzLTIzVDE5OjIyOjI3KzAwOjAw4U4lfwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNi0wMy0yM1QxOToyMjoyNyswMDowMJATncMAAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjYtMDMtMjNUMTk6MjI6MjcrMDA6MDDHBrwcAAAAAElFTkSuQmCC" />
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Object Fit Test"}, nil
+}
+</script>

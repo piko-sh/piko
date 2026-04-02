@@ -1,0 +1,12 @@
+{
+  "description": "Validates that the GraphBuilder produces a clear error when a component tries to import a .pk file using an invalid path format.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "invalid component import path",
+      "onLine": 4
+    }
+  ]
+}

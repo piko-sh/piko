@@ -1,0 +1,19 @@
+<template>
+<h1>Script Modification Test - Stage 0</h1>
+<p>This template remains UNCHANGED across all stages.</p>
+<p>Watch the script block change!</p>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+// Script modified - Stage 2 - Different comment
+// DIFFERENT: This is stage 2 with a completely different comment!
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

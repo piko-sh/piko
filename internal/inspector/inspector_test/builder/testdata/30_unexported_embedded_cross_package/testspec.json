@@ -1,0 +1,25 @@
+{
+  "description": "Tests method promotion through an exported type that embeds an unexported type from another package.",
+  "moduleName": "testcase_30_unexported_embedded_cross_package",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_30_unexported_embedded_cross_package"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Authenticate' method should be promoted to 'Service'.",
+      "select": "packages.testcase_30_unexported_embedded_cross_package.named_types.Service.methods.0.name",
+      "expect": "Authenticate"
+    },
+    {
+      "description": "The declaring type should be the unexported 'provider'.",
+      "select": "packages.testcase_30_unexported_embedded_cross_package.named_types.Service.methods.0.declaring_type_name",
+      "expect": "provider"
+    },
+    {
+      "description": "The declaring package should be the 'auth' package.",
+      "select": "packages.testcase_30_unexported_embedded_cross_package.named_types.Service.methods.0.declaring_pkg_path",
+      "expect": "testcase_30_unexported_embedded_cross_package/auth"
+    }
+  ]
+}

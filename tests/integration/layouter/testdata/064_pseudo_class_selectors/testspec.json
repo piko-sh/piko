@@ -1,0 +1,7 @@
+{
+    "description": "Verifies :first-child, :last-child, :nth-child, :only-child, :empty, and :not() pseudo-class selectors.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

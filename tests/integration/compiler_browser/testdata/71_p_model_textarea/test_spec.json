@@ -1,0 +1,31 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-model-textarea >>> #length",
+    "expected": "Length: 12"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-textarea >>> #preview",
+    "expected": "Initial text"
+  },
+  {
+    "action": "eval",
+    "selector": "p-model-textarea >>> #content",
+    "value": "() => { this.value = 'New content here'; this.dispatchEvent(new Event('input', { bubbles: true })); }"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-textarea >>> #length",
+    "expected": "Length: 16"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-textarea >>> #preview",
+    "expected": "New content here"
+  }
+]

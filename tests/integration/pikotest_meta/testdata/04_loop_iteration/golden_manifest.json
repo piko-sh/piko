@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/products.pk": {
+      "routePatterns": {
+        "en": "/products"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_04_loop_iteration/dist/pages/pages_products_b86a96d7",
+      "originalSourcePath": "pages/products.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

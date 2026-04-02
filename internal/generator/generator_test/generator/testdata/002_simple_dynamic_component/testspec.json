@@ -1,0 +1,5 @@
+{
+  "description": "Tests that a simple dynamic component with an interpolation is generated imperatively in the BuildAST function.",
+  "packageName": "basic_dynamic_test",
+  "isPage": true
+}

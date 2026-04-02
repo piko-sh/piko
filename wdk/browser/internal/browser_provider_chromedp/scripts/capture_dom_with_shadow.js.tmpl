@@ -1,0 +1,12 @@
+(() => {
+    var el = document.querySelector({{jsStr .Selector}});
+    if (!el) return '';
+    if (!el.getHTML) return el.outerHTML;
+    var inner = el.getHTML({serializableShadowRoots: true});
+    var clone = el.cloneNode(false).outerHTML;
+    var tag = el.tagName.toLowerCase();
+    var close = '</' + tag + '>';
+    var idx = clone.lastIndexOf(close);
+    if (idx === -1) return clone;
+    return clone.substring(0, idx) + inner + close;
+})()

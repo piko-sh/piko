@@ -1,0 +1,13 @@
+{
+  "description": "Validates that the GraphBuilder detects a circular dependency and produces a clear error.",
+  "shouldError": true,
+  "expectedErrorContains": "found 1 semantic validation error",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Circular dependency detected",
+      "onLine": 4
+    }
+  ]
+}

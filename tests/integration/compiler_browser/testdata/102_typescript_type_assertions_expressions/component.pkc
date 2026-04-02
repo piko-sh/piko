@@ -1,0 +1,66 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="ts-type-assertions">
+    <div>
+        <p>Type assertion test</p>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        items: [] as string[],
+    };
+
+    const getItems = (): HTMLElement[] => {
+        const slot = this.shadowRoot?.querySelector('slot');
+        if (!slot) return [];
+
+        const assignedElements = slot.assignedElements({ flatten: true });
+        return assignedElements.filter(el =>
+            el instanceof HTMLElement
+        ) as HTMLElement[];
+    };
+
+    const processItems = (): Map<string, HTMLElement> => {
+        const result = new Map<string, HTMLElement>();
+        const items = getItems();
+        items.forEach(item => {
+            const id = item.getAttribute('data-id');
+            if (id) result.set(id, item);
+        });
+        return result;
+    };
+
+    const filterElements = <T extends Element>(elements: T[]): T[] => {
+        return elements.filter(el => el.hasAttribute('data-filter')) as T[];
+    };
+
+    pkc.onConnected(() => {
+        const items = getItems();
+        console.log('Found items:', items.length);
+    });
+</script>
+
+<style>
+    :host {
+        display: block;
+    }
+</style>

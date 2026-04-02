@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "EventDate": "2025-03-20",
+      "ID": 2,
+      "Name": "Spring"
+    },
+    {
+      "EventDate": "2025-06-21",
+      "ID": 3,
+      "Name": "Summer"
+    },
+    {
+      "EventDate": "2025-09-22",
+      "ID": 4,
+      "Name": "Autumn"
+    }
+  ]
+}

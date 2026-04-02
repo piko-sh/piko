@@ -1,0 +1,69 @@
+{
+  "description": "Tests CSRF tokens from meta tags are included in action requests and validated server-side",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Verify CSRF meta tags exist"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "const csrfToken = document.querySelector('meta[name=\"csrf-token\"]'); const csrfEph = document.querySelector('meta[name=\"csrf-ephemeral\"]'); document.getElementById('csrf-check').textContent = 'token:' + (csrfToken ? csrfToken.content.length > 0 : false) + ' ephemeral:' + (csrfEph ? csrfEph.content.length > 0 : false); document.getElementById('csrf-check').style.display = 'block';"
+    },
+    {
+      "action": "checkText",
+      "selector": "#csrf-check",
+      "expected": "token:true ephemeral:true"
+    },
+    {
+      "action": "comment",
+      "value": "Click echo button - action should succeed with valid CSRF"
+    },
+    {
+      "action": "click",
+      "selector": "#echo-btn"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-echo",
+      "expected": "csrf-test"
+    },
+    {
+      "action": "comment",
+      "value": "Send raw fetch with tampered CSRF - should get 403"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "fetch('/_piko/actions/echo.Message', { method: 'POST', headers: {'Content-Type':'application/json', 'X-CSRF-Action-Token':'invalid-token'}, body: JSON.stringify({text:'hacked', _csrf_ephemeral_token:'invalid'}) }).then(r => { document.getElementById('csrf-status').textContent = String(r.status); document.getElementById('csrf-status').style.display = 'block'; return r.json(); }).then(d => { document.getElementById('csrf-error').textContent = d.error || 'none'; document.getElementById('csrf-error').style.display = 'block'; }).catch(e => { document.getElementById('csrf-error').textContent = 'fetch-error:' + e.message; document.getElementById('csrf-error').style.display = 'block'; });"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#csrf-status",
+      "expected": "403"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_csrf.html"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Tests page metadata access and assertions",
+  "entryPoints": [
+    { "path": "pages/article.pk", "isPage": true }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "description": "Bulk find-and-replace across 2 of 4 independent pages only rebuilds the changed pages",
+  "requestURL": "/home",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial full build with 4 independent pages",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectFullBuild": true
+    },
+    {
+      "stage": 1,
+      "description": "Simultaneous template change to home.pk AND blog.pk - only those 2 should be annotated, NOT about or contact",
+      "useTargetedRebuild": true,
+      "targetedEntryPoints": ["pages/home.pk", "pages/blog.pk"],
+      "expectTier1Hit": true,
+      "expectFastPath": true,
+      "expectAnnotatedCount": 2,
+      "expectGeneratedCount": 2,
+      "delayBeforeRenderMs": 500
+    }
+  ]
+}

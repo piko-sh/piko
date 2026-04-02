@@ -1,0 +1,4 @@
+(async () => {
+    const { bus } = await import('/_piko/dist/ppframework.core.es.js');
+    bus.emit({{jsStr .EventName}}, {{jsRaw .DetailJSON}});
+})()

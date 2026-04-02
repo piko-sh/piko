@@ -1,0 +1,48 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">p-event RemoteRender Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests that p-event: handlers work on partials loaded via RemoteRender</p>
+    <button
+      partial="pages_index_032f49b1"
+      p-key="r.0:2"
+      id="load-partial-btn"
+      p-on:click="eyJmIjoibG9hZFBhcnRpYWwiLCJhIjpbXX0"
+      pk-ev-bound="true"
+    >Load Partial</button>
+    <div partial="pages_index_032f49b1" p-key="r.0:3" id="partial-container" class="partial-container">
+      <div
+        p-key="r.0"
+        class="event-receiver-partial"
+        partial="partials_event_receiver_23968a7e"
+        partial_name="event_receiver"
+        partial_src="/_piko/partials/event_receiver"
+      >
+        <h3 partial="partials_event_receiver_23968a7e" p-key="r.0:0">Event Receiver (Loaded via RemoteRender)</h3>
+        <button
+          partial="partials_event_receiver_23968a7e"
+          p-key="r.0:1"
+          id="emit-btn"
+          class="emit-btn"
+          p-on:click="eyJmIjoiZW1pdEV2ZW50IiwiYSI6W119"
+          pk-ev-bound="true"
+        >Click to Emit</button>
+        <div partial="partials_event_receiver_23968a7e" p-key="r.0:2" class="status">
+          <p partial="partials_event_receiver_23968a7e" p-key="r.0:2:0">Event count: <span
+              partial="partials_event_receiver_23968a7e"
+              p-key="r.0:2:0:1"
+              p-ref="countDisplay"
+              data-pk-partial="partials_event_receiver_23968a7e"
+              id="event-count"
+            >0</span></p>
+          <p partial="partials_event_receiver_23968a7e" p-key="r.0:2:1">Last value: <span
+              partial="partials_event_receiver_23968a7e"
+              p-key="r.0:2:1:1"
+              p-ref="valueDisplay"
+              data-pk-partial="partials_event_receiver_23968a7e"
+              id="last-value"
+            >none</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

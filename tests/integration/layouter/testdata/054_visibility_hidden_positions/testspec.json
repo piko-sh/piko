@@ -1,0 +1,7 @@
+{
+    "description": "Verifies visibility: hidden does not affect element positions, with the hidden box still occupying space.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

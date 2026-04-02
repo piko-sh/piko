@@ -1,0 +1,110 @@
+{
+  "description": "Tests p-for reactivity with arrays of complex objects (like file info objects)",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Complex Object Array Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "file-list"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "file-list >>> #file-count",
+      "expected": "0 files selected"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "file-list >>> #add-file-push"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "file-list >>> #file-count",
+      "expected": "1 files selected"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "file-list >>> .file-item"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_push_one.html"
+    },
+    {
+      "action": "click",
+      "selector": "file-list >>> #add-file-push"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "file-list >>> #file-count",
+      "expected": "2 files selected"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_push_two.html"
+    },
+    {
+      "action": "click",
+      "selector": "file-list >>> #add-file-spread"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "file-list >>> #file-count",
+      "expected": "3 files selected"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_spread.html"
+    },
+    {
+      "action": "click",
+      "selector": "file-list >>> #clear-files"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "file-list >>> #file-count",
+      "expected": "0 files selected"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_clear.html"
+    }
+  ]
+}

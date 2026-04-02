@@ -1,0 +1,446 @@
+<template>
+  <piko:partial is="layout" :server.page_title="state.Title">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Your app is running
+      </div>
+      <h1 class="hero-title">{{ "{{ state.Title }}" }}</h1>
+      <p class="hero-subtitle">{{ "{{ state.Subtitle }}" }}</p>
+      <p p-if="state.Name != ''" class="hero-greeting">Nice to meet you, {{ "{{ state.Name }}" }}.</p>
+      <div class="hero-actions">
+        <a href="https://piko.sh/docs/get-started/introduction" target="_blank" rel="noopener" class="btn btn-primary">
+          Get Started
+          <piko:svg src="@/lib/icons/arrow-right.svg" class="btn-icon" aria-hidden="true"></piko:svg>
+        </a>
+        <a href="https://piko.sh/docs" target="_blank" rel="noopener" class="btn btn-secondary">
+          Documentation
+        </a>
+      </div>
+    </section>
+
+    <!-- Features - demonstrates p-for and piko:partial with server props -->
+    <section class="features">
+      <div class="features-grid">
+        <div p-for="(i, feature) in state.Features" p-key="feature.Title">
+          <piko:partial is="featureCard"
+            :server.icon="feature.Icon"
+            :server.title="feature.Title"
+            :server.description="feature.Description">
+          </piko:partial>
+        </div>
+      </div>
+    </section>
+
+    <!-- Code Preview -->
+    <section class="code-preview">
+      <h2 class="section-title">What you'll be writing</h2>
+      <p class="section-subtitle">A single <code>.pk</code> file contains your template, styles, and type-safe Go logic.</p>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <div class="code-dots">
+            <span class="code-dot code-dot--red"></span>
+            <span class="code-dot code-dot--yellow"></span>
+            <span class="code-dot code-dot--green"></span>
+          </div>
+          <span class="code-filename">pages/hello.pk</span>
+        </div>
+        <pre class="code-block"><code>&lt;template&gt;
+  &lt;h1&gt;{{ "{{ state.Greeting }}" }}&lt;/h1&gt;
+&lt;/template&gt;
+
+&lt;script type="application/x-go"&gt;
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+    Greeting string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{Greeting: "Hello, world!"}, piko.Metadata{}, nil
+}
+&lt;/script&gt;</code></pre>
+      </div>
+    </section>
+
+    <!-- Quick Start - demonstrates p-for with simple data -->
+    <section class="quickstart">
+      <h2 class="section-title">Get started in seconds</h2>
+      <div class="steps">
+        <div class="step" p-for="(i, step) in state.Steps" p-key="step.Command">
+          <div class="step-number">{{ "{{ step.Number }}" }}</div>
+          <div class="step-content">
+            <code class="step-command" p-text="step.Command"></code>
+            <p class="step-description">{{ "{{ step.Description }}" }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </piko:partial>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "{{ .ModuleName }}/partials/layout.pk"
+    featureCard "{{ .ModuleName }}/partials/feature-card.pk"
+)
+
+type Feature struct {
+    Icon        string
+    Title       string
+    Description string
+}
+
+type Step struct {
+    Number      int
+    Command     string
+    Description string
+}
+
+type Response struct {
+    Title    string
+    Subtitle string
+    Name     string
+    Features []Feature
+    Steps    []Step
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    name := r.QueryParam("name")
+    title := "Welcome to Piko"
+    if name != "" {
+        title = "Welcome, " + name
+    }
+
+    return Response{
+        Title:    title,
+        Subtitle: "The Go web framework for building fast, type-safe, server-rendered applications.",
+        Name:     name,
+        Features: []Feature{
+            {
+                Icon:        "@/lib/icons/bolt.svg",
+                Title:       "Server-Rendered",
+                Description: "Pages are rendered on the server in Go. Fast cold starts, instant content, SEO-ready out of the box.",
+            },
+            {
+                Icon:        "@/lib/icons/shield.svg",
+                Title:       "Type-Safe",
+                Description: "Go structs define your data. Props are validated at compile time. No runtime surprises.",
+            },
+            {
+                Icon:        "@/lib/icons/puzzle.svg",
+                Title:       "Component-Based",
+                Description: "Build with composable partials and client components. Slots, props, and scoped styles.",
+            },
+            {
+                Icon:        "@/lib/icons/zap.svg",
+                Title:       "Zero Config",
+                Description: "File-based routing, automatic code generation, and hot reload. Start building immediately.",
+            },
+        },
+        Steps: []Step{
+            {Number: 1, Command: "pages/index.pk", Description: "Edit this page"},
+            {Number: 2, Command: "air", Description: "Start the dev server"},
+            {Number: 3, Command: "piko.sh/docs", Description: "Read the docs"},
+        },
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 4rem 1rem 3rem;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  background: rgba(111, 71, 235, 0.05);
+  border: 1px solid rgba(111, 71, 235, 0.12);
+  border-radius: 100px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--g-colour-primary);
+  margin-bottom: 2rem;
+}
+
+.hero-badge-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+.hero-title {
+  font-size: 3.25rem;
+  font-weight: 700;
+  color: var(--g-colour-grey-900);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 0 0 1rem;
+}
+
+.hero-subtitle {
+  font-size: 1.1875rem;
+  color: var(--g-colour-grey-500);
+  max-width: 520px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.6;
+}
+
+.hero-greeting {
+  font-size: 1rem;
+  color: var(--g-colour-primary);
+  margin: -1.5rem auto 2.5rem;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btn-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.btn-primary {
+  background: var(--g-colour-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 16px rgba(111, 71, 235, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: var(--g-colour-grey-700);
+  border: 1px solid var(--g-colour-grey-200);
+}
+
+.btn-secondary:hover {
+  border-color: var(--g-colour-grey-300);
+  background: var(--g-colour-grey-50);
+}
+
+/* Features */
+.features {
+  padding: 1rem 0 3rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* Code Preview */
+.code-preview {
+  padding: 2rem 0 3rem;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--g-colour-grey-900);
+  letter-spacing: -0.015em;
+  margin: 0 0 0.5rem;
+}
+
+.section-subtitle {
+  font-size: 0.9375rem;
+  color: var(--g-colour-grey-500);
+  margin: 0 0 2rem;
+}
+
+.section-subtitle code {
+  background: rgba(111, 71, 235, 0.07);
+  color: var(--g-colour-primary);
+  padding: 0.125em 0.375em;
+  border-radius: 4px;
+  font-size: 0.875em;
+}
+
+.code-window {
+  background: #1e1e2e;
+  border-radius: 12px;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.code-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.code-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.code-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.code-dot--red { background: #ff5f57; }
+.code-dot--yellow { background: #febc2e; }
+.code-dot--green { background: #28c840; }
+
+.code-filename {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+}
+
+.code-block {
+  padding: 1.25rem 1.5rem;
+  margin: 0;
+  overflow-x: auto;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: #cdd6f4;
+  tab-size: 2;
+}
+
+.code-block code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Quick Start */
+.quickstart {
+  padding: 2rem 0 4rem;
+  text-align: center;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1.125rem;
+  background: #ffffff;
+  border: 1px solid var(--g-colour-grey-100);
+  border-radius: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.step:hover {
+  border-color: var(--g-colour-grey-200);
+}
+
+.step-number {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(111, 71, 235, 0.07);
+  color: var(--g-colour-primary);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-command {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  font-size: 0.8125rem;
+  color: var(--g-colour-grey-900);
+  background: var(--g-colour-grey-50);
+  padding: 0.125em 0.4em;
+  border-radius: 4px;
+}
+
+.step-description {
+  font-size: 0.8125rem;
+  color: var(--g-colour-grey-500);
+  margin: 0.25rem 0 0;
+}
+
+/* Fade-in animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero { animation: fadeInUp 0.5s ease-out both; }
+.features { animation: fadeInUp 0.5s ease-out 0.08s both; }
+.code-preview { animation: fadeInUp 0.5s ease-out 0.16s both; }
+.quickstart { animation: fadeInUp 0.5s ease-out 0.24s both; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .hero { padding: 3rem 0 2rem; }
+  .hero-title { font-size: 2.25rem; }
+  .hero-subtitle { font-size: 1rem; }
+  .features-grid { grid-template-columns: 1fr; }
+  .section-title { font-size: 1.25rem; }
+}
+</style>

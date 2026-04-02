@@ -1,0 +1,63 @@
+{
+  "description": "Verifies an interactive todo list with add, toggle, and delete functionality",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "pkcComponents": [
+    { "tagName": "pp-todo-list" }
+  ],
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "pp-todo-list"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Todo App"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-todo-list >>> .footer",
+      "expected": "1 of 2 completed"
+    },
+    {
+      "action": "click",
+      "selector": "pp-todo-list >>> .todo-item:first-child .toggle-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-todo-list >>> .footer",
+      "expected": "0 of 2 completed"
+    },
+    {
+      "action": "fill",
+      "selector": "pp-todo-list >>> #new-item-input",
+      "value": "Write tests"
+    },
+    {
+      "action": "click",
+      "selector": "pp-todo-list >>> #add-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-todo-list >>> .footer",
+      "expected": "0 of 3 completed"
+    }
+  ]
+}

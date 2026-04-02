@@ -1,0 +1,19 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="card" [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_6529585e Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+  <header [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+    <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "User Title"
+    </h1>
+  </header>
+  <main [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk] />
+  <footer [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+    <p [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+      "Default Footer"
+    </p>
+  </footer>
+</div>
+
+--- END AST DUMP ---
+*/

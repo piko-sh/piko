@@ -1,0 +1,91 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <div p-if="props.A != nil || props.B != nil">
+      <span id="or-not-guarded-a">{{ props.A.Value }}</span>
+      <span id="or-not-guarded-b">{{ props.B.Value }}</span>
+    </div>
+
+    <div p-if="props.Outer != nil">
+      <div p-if="props.Outer.Middle != nil">
+        <span id="triple-nested-partial">{{ props.Outer.Middle.Value }}</span>
+        <span id="triple-nested-unguarded">{{ props.Outer.Middle.Inner.Value }}</span>
+      </div>
+    </div>
+
+    <div p-if="props.Valid != nil && props.Enabled">
+      <span id="and-with-unrelated">{{ props.Valid.Name }}</span>
+    </div>
+
+    <div p-if="props.A != nil && props.B != nil">
+      <span id="both-guarded-a">{{ props.A.Value }}</span>
+      <span id="both-guarded-b">{{ props.B.Value }}</span>
+    </div>
+
+    <div p-if="props.Outer != nil">
+      <div p-if="props.Outer.Middle != nil">
+        <div p-if="props.Outer.Middle.Inner != nil">
+          <span id="fully-guarded-deep">{{ props.Outer.Middle.Inner.Value }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Data struct {
+    Value string
+}
+
+type Inner struct {
+    Value string
+}
+
+type Middle struct {
+    Value string
+    Inner *Inner
+}
+
+type Outer struct {
+    Middle *Middle
+}
+
+type Valid struct {
+    Name string
+}
+
+type Props struct {
+    A       *Data  `prop:"a"`
+    B       *Data  `prop:"b"`
+    Outer   *Outer `prop:"outer"`
+    Valid   *Valid `prop:"valid"`
+    Enabled bool   `prop:"enabled"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

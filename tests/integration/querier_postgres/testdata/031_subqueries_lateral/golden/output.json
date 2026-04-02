@@ -1,0 +1,51 @@
+{
+  "top_earner": [
+    {
+      "DepartmentName": "Engineering",
+      "EmployeeName": "Alice",
+      "Salary": 120000
+    },
+    {
+      "DepartmentName": "Marketing",
+      "EmployeeName": "Diana",
+      "Salary": 90000
+    },
+    {
+      "DepartmentName": "Sales",
+      "EmployeeName": "Grace",
+      "Salary": 100000
+    }
+  ],
+  "top_two": [
+    {
+      "DepartmentName": "Engineering",
+      "EmployeeName": "Alice",
+      "Salary": 120000
+    },
+    {
+      "DepartmentName": "Engineering",
+      "EmployeeName": "Bob",
+      "Salary": 110000
+    },
+    {
+      "DepartmentName": "Marketing",
+      "EmployeeName": "Diana",
+      "Salary": 90000
+    },
+    {
+      "DepartmentName": "Marketing",
+      "EmployeeName": "Eve",
+      "Salary": 85000
+    },
+    {
+      "DepartmentName": "Sales",
+      "EmployeeName": "Grace",
+      "Salary": 100000
+    },
+    {
+      "DepartmentName": "Sales",
+      "EmployeeName": "Frank",
+      "Salary": 80000
+    }
+  ]
+}

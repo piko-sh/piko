@@ -1,0 +1,7 @@
+{
+    "description": "Verifies auto table column width distribution proportional to text content width with real font metrics.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

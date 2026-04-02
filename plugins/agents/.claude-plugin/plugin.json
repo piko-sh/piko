@@ -1,0 +1,6 @@
+{
+  "name": "piko",
+  "display_name": "Piko Language Support",
+  "description": "Piko language intelligence - diagnostics, hover, completions, navigation, formatting, and project analysis.",
+  "version": "0.1.0"
+}

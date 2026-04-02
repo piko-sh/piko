@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "AvailableAndCategorised": true,
+      "HasCategory": true,
+      "ID": 1,
+      "InPriceRange": true,
+      "IsExpensive": true,
+      "Name": "Widget"
+    },
+    {
+      "AvailableAndCategorised": false,
+      "HasCategory": false,
+      "ID": 2,
+      "InPriceRange": true,
+      "IsExpensive": false,
+      "Name": "Gadget"
+    },
+    {
+      "AvailableAndCategorised": true,
+      "HasCategory": true,
+      "ID": 3,
+      "InPriceRange": false,
+      "IsExpensive": true,
+      "Name": "Doohickey"
+    }
+  ]
+}

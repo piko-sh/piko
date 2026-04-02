@@ -1,0 +1,271 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <section>
+      <h2>Explicit Keys</h2>
+
+      <ul>
+        <li p-for="(i, item) in state.IntItems" p-key="item.ID" p-text="item.Name"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StringItems" p-key="item.Key" p-text="item.Value"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.FloatItems" p-key="item.Score" p-text="item.Name"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.BoolItems" p-key="item.Active" p-text="item.Label"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StructItems" p-key="item" p-text="item.Title"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.PointerItems" p-key="item" p-text="item.Title"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StructsWithSlice" p-key="item" p-text="item.Name"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StructsWithMap" p-key="item" p-text="item.Name"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StructsWithNested" p-key="item" p-text="item.Name"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StructsWithPointer" p-key="item" p-text="item.Name"></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Inferred Keys</h2>
+
+      <ul>
+        <li p-for="(idx, val) in state.SimpleStrings" p-text="val"></li>
+      </ul>
+
+      <ul>
+        <li p-for="val in state.SimpleStrings" p-text="val"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StructItems" p-text="item.Title"></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Nested Loops</h2>
+
+      <div p-for="(sectionIdx, section) in state.Sections">
+        <h3 p-text="section.Name"></h3>
+        <ul>
+          <li p-for="item in section.Items" p-key="item" p-text="item"></li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>Static Keys</h2>
+
+      <div p-key="'static-key-1'">Static Content 1</div>
+      <div p-key="'static-key-2'">Static Content 2</div>
+    </section>
+
+    <section>
+      <h2>Expression Keys</h2>
+
+      <ul>
+        <li p-for="(i, item) in state.IntItems" p-key="'item-' + strconv.Itoa(item.ID)" p-text="item.Name"></li>
+      </ul>
+
+      <ul>
+        <li p-for="item in state.StructItems" p-key="item.GetKey()" p-text="item.Title"></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Map Keys</h2>
+
+      <ul>
+        <li p-for="(key, val) in state.StringMap" p-key="key">
+          <span p-text="key"></span>: <span p-text="val"></span>
+        </li>
+      </ul>
+
+      <ul>
+        <li p-for="(key, val) in state.IntMap" p-key="key">
+          <span p-text="strconv.Itoa(key)"></span>: <span p-text="val"></span>
+        </li>
+      </ul>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "strconv"
+    "piko.sh/piko"
+  )
+
+  var _ = strconv.Itoa
+
+  type IntItem struct {
+    ID   int
+    Name string
+  }
+
+  type StringItem struct {
+    Key   string
+    Value string
+  }
+
+  type FloatItem struct {
+    Score float64
+    Name  string
+  }
+
+  type BoolItem struct {
+    Active bool
+    Label  string
+  }
+
+  type StructItem struct {
+    Title string
+    Desc  string
+  }
+
+  func (s StructItem) GetKey() string {
+    return s.Title + "-" + s.Desc
+  }
+
+  type StructWithSlice struct {
+    Name string
+    Tags []string
+  }
+
+  type StructWithMap struct {
+    Name string
+    Meta map[string]string
+  }
+
+  type InnerStruct struct {
+    Value int
+    Label string
+  }
+
+  type StructWithNested struct {
+    Name  string
+    Inner InnerStruct
+  }
+
+  type StructWithPointer struct {
+    Name string
+    Ref  *string
+  }
+
+  type Section struct {
+    Name  string
+    Items []string
+  }
+
+  type Response struct {
+    IntItems           []IntItem
+    StringItems        []StringItem
+    FloatItems         []FloatItem
+    BoolItems          []BoolItem
+    StructItems        []StructItem
+    PointerItems       []*StructItem
+    StructsWithSlice   []StructWithSlice
+    StructsWithMap     []StructWithMap
+    StructsWithNested  []StructWithNested
+    StructsWithPointer []StructWithPointer
+    SimpleStrings      []string
+    Sections           []Section
+    StringMap          map[string]string
+    IntMap             map[int]string
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    ref1 := "reference-one"
+    ref2 := "reference-two"
+
+    return Response{
+      IntItems: []IntItem{
+        {ID: 1, Name: "First"},
+        {ID: 2, Name: "Second"},
+      },
+      StringItems: []StringItem{
+        {Key: "alpha", Value: "A"},
+        {Key: "beta", Value: "B"},
+      },
+      FloatItems: []FloatItem{
+        {Score: 3.14, Name: "Pi"},
+        {Score: 2.71, Name: "E"},
+      },
+      BoolItems: []BoolItem{
+        {Active: true, Label: "On"},
+        {Active: false, Label: "Off"},
+      },
+      StructItems: []StructItem{
+        {Title: "Item1", Desc: "First item"},
+        {Title: "Item2", Desc: "Second item"},
+      },
+      PointerItems: []*StructItem{
+        {Title: "PtrItem1", Desc: "Pointer item 1"},
+        {Title: "PtrItem2", Desc: "Pointer item 2"},
+      },
+      StructsWithSlice: []StructWithSlice{
+        {Name: "SliceStruct1", Tags: []string{"a", "b", "c"}},
+        {Name: "SliceStruct2", Tags: []string{"x", "y"}},
+      },
+      StructsWithMap: []StructWithMap{
+        {Name: "MapStruct1", Meta: map[string]string{"k1": "v1"}},
+        {Name: "MapStruct2", Meta: map[string]string{"k2": "v2"}},
+      },
+      StructsWithNested: []StructWithNested{
+        {Name: "Nested1", Inner: InnerStruct{Value: 100, Label: "inner-a"}},
+        {Name: "Nested2", Inner: InnerStruct{Value: 200, Label: "inner-b"}},
+      },
+      StructsWithPointer: []StructWithPointer{
+        {Name: "PtrField1", Ref: &ref1},
+        {Name: "PtrField2", Ref: &ref2},
+      },
+      SimpleStrings: []string{"hello", "world"},
+      Sections: []Section{
+        {Name: "Section A", Items: []string{"A1", "A2"}},
+        {Name: "Section B", Items: []string{"B1", "B2"}},
+      },
+      StringMap: map[string]string{"foo": "bar", "baz": "qux"},
+      IntMap:    map[int]string{1: "one", 2: "two"},
+    }, piko.Metadata{}, nil
+  }
+</script>

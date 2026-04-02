@@ -1,0 +1,8 @@
+<template>
+  <table style="table-layout: fixed; width: 300px;">
+    <tr>
+      <td>Wide content</td>
+      <td>Short</td>
+    </tr>
+  </table>
+</template>

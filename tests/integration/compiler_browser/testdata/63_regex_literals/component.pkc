@@ -1,0 +1,86 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="regex-literals-test">
+    <div>
+        <p class="result" p-text="state.validationResult"></p>
+        <button class="test-integer" p-on:click="testInteger">Test Integer</button>
+        <button class="test-double" p-on:click="testDouble">Test Double</button>
+        <button class="test-email" p-on:click="testEmail">Test Email</button>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        validationResult: 'Ready' as string,
+    };
+
+    const simplePattern = /^[a-z]+$/;
+
+    const caseInsensitive = /hello/gi;
+
+    const ALLOWED_CHARS_REGEX = {
+        integer: /^[0-9]+$/,
+        double: /^[\d.]+$/,
+        number: /^-?[\d.]+$/,
+    };
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function testInteger() {
+        const testValue = '12345';
+        if (ALLOWED_CHARS_REGEX.integer.test(testValue)) {
+            state.validationResult = 'Integer: Valid';
+        } else {
+            state.validationResult = 'Integer: Invalid';
+        }
+    }
+
+    function testDouble() {
+        const testValue = '123.45';
+        if (ALLOWED_CHARS_REGEX.double.test(testValue)) {
+            state.validationResult = 'Double: Valid';
+        } else {
+            state.validationResult = 'Double: Invalid';
+        }
+    }
+
+    function testEmail() {
+        const testValue = 'test@example.com';
+        if (emailPattern.test(testValue)) {
+            state.validationResult = 'Email: Valid';
+        } else {
+            state.validationResult = 'Email: Invalid';
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+    }
+    .result {
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    button {
+        margin-right: 5px;
+    }
+</style>

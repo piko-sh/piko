@@ -1,0 +1,98 @@
+{
+  "description": "Tests navigation between multiple pages with browser history",
+  "requestURL": "/page1",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Page 1"
+    },
+    {
+      "action": "checkText",
+      "selector": ".page-content",
+      "expected": "Content of page one"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "page1.html"
+    },
+    {
+      "action": "click",
+      "selector": ".crumb-2"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Page 2"
+    },
+    {
+      "action": "checkText",
+      "selector": ".page-content",
+      "expected": "Content of page two"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "page2.html"
+    },
+    {
+      "action": "click",
+      "selector": ".crumb-3"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Page 3"
+    },
+    {
+      "action": "checkText",
+      "selector": ".page-content",
+      "expected": "Content of page three"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "page3.html"
+    },
+    {
+      "action": "eval",
+      "value": "history.back()"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Page 2"
+    },
+    {
+      "action": "eval",
+      "value": "history.forward()"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Page 3"
+    }
+  ]
+}

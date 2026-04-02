@@ -1,0 +1,7 @@
+{
+  "description": "Tests rendering a page with a self-referential struct (struct containing a slice of itself).",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

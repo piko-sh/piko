@@ -1,0 +1,7 @@
+{
+    "description": "Verifies list marker positioning: inside markers are inline with content, outside markers are positioned left of the content area.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

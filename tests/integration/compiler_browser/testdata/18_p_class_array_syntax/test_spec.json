@@ -1,0 +1,18 @@
+[
+  {
+    "action": "checkAttribute",
+    "selector": "p-class-array \u003e\u003e\u003e div \u003e div",
+    "expected": "base-class theme-dark conditional",
+    "name": "class"
+  },
+  {
+    "action": "click",
+    "selector": "p-class-array \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "p-class-array \u003e\u003e\u003e div \u003e div",
+    "expected": "base-class theme-light",
+    "name": "class"
+  }
+]

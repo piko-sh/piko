@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/buttons.pk": {
+      "routePatterns": {
+        "en": "/buttons"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_20_p_class/dist/pages/pages_buttons_2b692de0",
+      "originalSourcePath": "pages/buttons.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

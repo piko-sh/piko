@@ -1,0 +1,49 @@
+{
+  "description": "Verifies nested struct input (Address inside Order) works correctly",
+  "requestURL": "/order-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Submit order with nested shipping address via the action builder"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_create.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-product",
+      "expected": "Widget"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-quantity",
+      "expected": "3"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-street",
+      "expected": "123 Main St"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-city",
+      "expected": "London"
+    }
+  ]
+}

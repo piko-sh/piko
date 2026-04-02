@@ -1,0 +1,40 @@
+--- PACKAGE: testcase_62_slice_of_maps_with_named_keys ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 62_slice_of_maps_with_named_keys/src/main.go
+    - import "keys"               -> testcase_62_slice_of_maps_with_named_keys/keys
+
+[Named Types]
+  > type Response
+    - Defined In:      62_slice_of_maps_with_named_keys/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{History []map[keys.RequestKey]int}
+    - Stringability:   0
+    - Fields:
+      - History              []map[keys.RequestKey]int
+        (Canonical Package: testcase_62_slice_of_maps_with_named_keys/keys)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_62_slice_of_maps_with_named_keys/keys ---
+[Package Info]
+  - Name:    keys
+
+[File-Scoped Imports]
+  > File: 62_slice_of_maps_with_named_keys/src/keys/key.go
+    (no imports in this file)
+
+[Named Types]
+  > type RequestKey
+    - Defined In:      62_slice_of_maps_with_named_keys/src/keys/key.go
+    - TypeString:      keys.RequestKey
+    - Underlying:      struct{ID string}
+    - Stringability:   0
+    - Fields:
+      - ID                   string
+
+[Package-Level Functions]
+  (none)

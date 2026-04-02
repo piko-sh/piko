@@ -1,0 +1,6 @@
+(async () => {
+    const { morph } = await import('/_piko/dist/ppframework.core.es.js');
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) throw new Error('Element not found: ' + {{jsStr .Selector}});
+    morph(el, {{jsStr .NewHTML}});
+})()

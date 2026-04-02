@@ -1,0 +1,106 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Comparison Operators Comprehensive Test</h1>
+
+    <h2>Greater Than or Equal (>=)</h2>
+    <p id="int-ge-int-true" p-if="state.Age >= 18">Age >= 18: true (30 >= 18)</p>
+    <p id="int-ge-int-false" p-if="state.Age >= 50">Age >= 50: false (30 >= 50)</p>
+    <p id="int-ge-int-equal" p-if="state.Score >= 75">Score >= 75: true (75 >= 75)</p>
+    <p id="float-ge-float" p-if="state.Price >= 9.99">Price >= 9.99: true</p>
+    <p id="int-ge-float" p-if="state.Age >= 29.5">Age >= 29.5: true (30 >= 29.5)</p>
+
+    <h2>Less Than or Equal (<=)</h2>
+    <p id="int-le-int-true" p-if="state.Age <= 65">Age <= 65: true (30 <= 65)</p>
+    <p id="int-le-int-false" p-if="state.Age <= 20">Age <= 20: false (30 <= 20)</p>
+    <p id="int-le-int-equal" p-if="state.Score <= 75">Score <= 75: true (75 <= 75)</p>
+    <p id="float-le-float" p-if="state.Price <= 20.00">Price <= 20.00: true</p>
+    <p id="int-le-float" p-if="state.Age <= 30.5">Age <= 30.5: true (30 <= 30.5)</p>
+
+    <h2>Strict Not Equal (!=)</h2>
+    <p id="int-sne-int-true" p-if="state.Age != 25">Age != 25: true (30 != 25)</p>
+    <p id="int-sne-int-false" p-if="state.Age != 30">Age != 30: false (30 != 30)</p>
+    <p id="str-sne-str-true" p-if="state.Status != 'inactive'">Status != 'inactive': true</p>
+    <p id="str-sne-str-false" p-if="state.Status != 'active'">Status != 'active': false</p>
+    <p id="bool-sne-bool" p-if="state.IsEnabled != false">IsEnabled != false: true</p>
+
+    <h2>Loose Equality (~=)</h2>
+    <p id="int-leq-str-true" p-if="state.Age ~= '30'">Age ~= '30': true (30 ~= '30' coerced)</p>
+    <p id="str-leq-str-true" p-if="state.Status ~= 'active'">Status ~= 'active': true</p>
+
+    <h2>Loose Not Equal (!~=)</h2>
+    <p id="int-lne-str-true" p-if="state.Age !~= '25'">Age !~= '25': true (30 !~= '25')</p>
+    <p id="int-lne-str-false" p-if="state.Age !~= '30'">Age !~= '30': false (30 !~= '30' coerced)</p>
+
+    <h2>Range Checks</h2>
+    <p id="in-range" p-if="state.Age >= 18 && state.Age <= 65">Age in range [18, 65]</p>
+    <p id="out-of-range" p-if="state.Score >= 0 && state.Score <= 100">Score in range [0, 100]</p>
+
+    <h2>In Dynamic Attributes</h2>
+    <div id="ge-attr" :data-adult="state.Age >= 18">Adult check attribute</div>
+    <div id="le-attr" :data-budget="state.Price <= 15.00">Budget check attribute</div>
+    <div id="sne-attr" :data-available="state.Status != 'sold'">Availability check attribute</div>
+
+    <h2>In Ternary Expressions</h2>
+    <p id="ge-ternary" :class="state.Score >= 60 ? 'pass' : 'fail'">Pass/Fail based on score</p>
+    <p id="le-ternary" :class="state.Price <= 10.00 ? 'cheap' : 'expensive'">Price category</p>
+    <p id="sne-ternary" :class="state.Status != 'error' ? 'ok' : 'problem'">Status check</p>
+
+    <h2>Comparison with Expressions</h2>
+    <p id="ge-expr" p-if="state.Age + 5 >= 35">Age + 5 >= 35: true (30+5 >= 35)</p>
+    <p id="le-expr" p-if="state.Score - 10 <= 70">Score - 10 <= 70: true (75-10 <= 70)</p>
+
+    <h2>All Operators Summary</h2>
+    <p id="gt" p-if="state.Age > 25">Age > 25</p>
+    <p id="lt" p-if="state.Age < 40">Age < 40</p>
+    <p id="ge" p-if="state.Age >= 30">Age >= 30</p>
+    <p id="le" p-if="state.Age <= 30">Age <= 30</p>
+    <p id="eq" p-if="state.Age == 30">Age == 30</p>
+    <p id="ne" p-if="state.Age != 25">Age != 25</p>
+    <p id="leq" p-if="state.Age ~= '30'">Age ~= '30' (loose)</p>
+    <p id="lne" p-if="state.Age !~= '25'">Age !~= '25' (loose)</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Response struct {
+    Age       int
+    Score     int
+    Price     float64
+    Status    string
+    IsEnabled bool
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      Age:       30,
+      Score:     75,
+      Price:     12.99,
+      Status:    "active",
+      IsEnabled: true,
+    }, piko.Metadata{}, nil
+  }
+</script>

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies calc() in width, height, margin, and padding resolves correctly against browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

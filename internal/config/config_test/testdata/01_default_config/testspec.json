@@ -1,0 +1,14 @@
+{
+  "description": "Test default configuration loading without any config files",
+  "expectError": false,
+  "configFiles": [],
+  "expectedDefaults": true,
+  "validateFields": {
+    "I18nDefaultLocale": "en",
+    "CSRFSecret": "",
+    "Network.Port": "8080",
+    "Network.PublicDomain": "localhost:8080",
+    "Paths.BaseDir": ".",
+    "Otlp.Enabled": false
+  }
+}

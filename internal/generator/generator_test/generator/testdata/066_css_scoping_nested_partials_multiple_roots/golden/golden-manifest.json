@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".page-container[partial~=pages_main_594861c5]{padding:20px;background-color:#fafafa}h1[partial~=pages_main_594861c5]{color:#333;font-size:24px}\n.nested-card[partial~=partials_nested_card_3af0c4b0]{border:3px solid red;padding:15px;margin:10px 0;background-color:#ffebee}.nested-title[partial~=partials_nested_card_3af0c4b0]{color:red;font-weight:700;font-size:18px}.nested-content[partial~=partials_nested_card_3af0c4b0]{color:red;line-height:1.6}.nested-highlight[partial~=partials_nested_card_3af0c4b0]{background-color:#ff0;padding:5px;margin-top:10px}\n.wrapper-header[partial~=partials_wrapper_54f54229]{border:2px solid blue;padding:10px;margin:10px 0;background-color:#e3f2fd}.wrapper-description[partial~=partials_wrapper_54f54229]{color:#00f;font-style:italic}.wrapper-footer[partial~=partials_wrapper_54f54229]{border-top:1px dashed gray;padding-top:10px;color:gray}",
+      "packagePath": "testcase_066_css_scoping_nested_partials_multiple_roots/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

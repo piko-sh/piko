@@ -1,0 +1,38 @@
+--- PACKAGE: testcase_12_ambiguity ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 12_ambiguity/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type DB
+    - Defined In:      12_ambiguity/src/main.go
+    - TypeString:      main.DB
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (T) Log             func() 
+
+  > type Logger
+    - Defined In:      12_ambiguity/src/main.go
+    - TypeString:      main.Logger
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (T) Log             func() 
+
+  > type Service
+    - Defined In:      12_ambiguity/src/main.go
+    - TypeString:      main.Service
+    - Underlying:      struct{main.Logger; main.DB}
+    - Stringability:   0
+    - Fields:
+      - Logger               main.Logger (embedded)
+        (Canonical Package: testcase_12_ambiguity)
+      - DB                   main.DB (embedded)
+        (Canonical Package: testcase_12_ambiguity)
+
+[Package-Level Functions]
+  (none)

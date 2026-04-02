@@ -1,0 +1,198 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-snackbar">
+    <div class="snackbar"
+         p-class="{ 'visible': state.open }"
+         role="status"
+         aria-live="polite">
+        <span class="message" p-text="state.message"></span>
+        <div class="actions">
+            <button class="action-button"
+                    p-if="state.actionText"
+                    p-on:click="handleAction"
+                    p-text="state.actionText"></button>
+            <button class="close-button"
+                    p-if="state.closeable"
+                    p-on:click="close"
+                    aria-label="Close">
+                <piko:svg src="piko.sh/piko/lib/icons/close.svg" fill="currentColor" width="18" height="18"></piko:svg>
+            </button>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        message: '' as string,
+        actionText: '' as string,
+        duration: 4000 as number,
+        closeable: false as boolean,
+        open: false as boolean,
+    };
+
+    let autoHideTimer = null;
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('open') && state.open) {
+            startAutoHide();
+        }
+    });
+
+    function startAutoHide() {
+        if (autoHideTimer) clearTimeout(autoHideTimer);
+        if (state.duration > 0) {
+            autoHideTimer = setTimeout(() => {
+                close();
+            }, state.duration);
+        }
+    }
+
+    function close() {
+        state.open = false;
+        if (autoHideTimer) {
+            clearTimeout(autoHideTimer);
+            autoHideTimer = null;
+        }
+        pkc.dispatchEvent(new CustomEvent('close', {
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleAction() {
+        pkc.dispatchEvent(new CustomEvent('action', {
+            bubbles: true,
+            composed: true,
+        }));
+        close();
+    }
+
+    pkc.onDisconnected(() => {
+        if (autoHideTimer) clearTimeout(autoHideTimer);
+    });
+
+    pkc.close = () => { close(); };
+
+    pkc.show = (message, options) => {
+        state.message = message || '';
+        if (options) {
+            if (options.actionText) state.actionText = options.actionText;
+            if (options.duration !== undefined) state.duration = options.duration;
+            if (options.closeable !== undefined) state.closeable = options.closeable;
+        }
+        state.open = true;
+    };
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_inverse-surface: var(--m3e-inverse-surface, #313033);
+        --_inverse-on-surface: var(--m3e-inverse-on-surface, #f4eff4);
+        --_inverse-primary: var(--m3e-inverse-primary, #d0bcff);
+        --_duration-medium: var(--m3e-duration-medium, 400ms);
+        --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
+        --_shape-xs: var(--m3e-shape-xs, 4px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .snackbar {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 288px;
+        max-width: 560px;
+        padding: 0 8px 0 16px;
+        min-height: 48px;
+        background: var(--_inverse-surface);
+        color: var(--_inverse-on-surface);
+        border-radius: var(--_shape-xs);
+        box-shadow: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.30);
+        opacity: 0;
+        transition: transform var(--_duration-medium) var(--_easing-emphasized),
+                    opacity var(--_duration-medium) var(--_easing-emphasized);
+        z-index: 10000;
+
+        &.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .message {
+        flex: 1;
+        font-size: 0.875rem;
+        line-height: 1.43;
+        padding: 12px 0;
+    }
+
+    .actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 12px;
+        border: none;
+        border-radius: var(--m3e-shape-full, 9999px);
+        background: transparent;
+        color: var(--_inverse-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+
+        &:hover {
+            background: rgba(208, 188, 255, 0.08);
+        }
+    }
+
+    .close-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_inverse-on-surface);
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+
+        &:hover {
+            background: rgba(244, 239, 244, 0.08);
+        }
+    }
+</style>

@@ -1,0 +1,6 @@
+{
+  "description": "Tests that exported constants, variables, and maps from imported partials can be accessed.",
+  "packageName": "partial_import_const_var_test",
+  "isPage": true,
+  "shouldError": false
+}

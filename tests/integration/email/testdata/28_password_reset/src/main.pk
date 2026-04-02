@@ -1,0 +1,55 @@
+<template>
+    <pml-row background-color="#f4f4f4" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" font-weight="bold" color="#ffffff" background-color="#2c3e50" align="center" padding="10px 25px">Vaultkey</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-br></pml-br>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#ffffff" background-color="#e74c3c" align="center" padding="10px">&#128274;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#2c3e50" align="center" padding="10px 25px" font-weight="bold">Password Reset Request</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="14px" color="#666666" line-height="1.6" align="center" padding="5px 40px">
+                We received a request to reset your password. Click the button below to choose a new one.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://example.com/reset-password" background-color="#e74c3c" color="#ffffff" font-size="18px" border-radius="4px" padding="10px 25px" inner-padding="15px 40px">
+                Reset Password
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0" pml-no-stack="true">
+        <pml-col>
+            <pml-p font-size="12px" color="#999999" align="center" line-height="1.5" padding="5px 40px">
+                If you didn't request this, you can safely ignore this email. The link expires in 24 hours.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#999999" align="center" padding="5px 25px">
+                This is an automated message from Vaultkey.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>

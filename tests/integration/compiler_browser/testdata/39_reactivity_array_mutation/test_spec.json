@@ -1,0 +1,35 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "array-mutation \u003e\u003e\u003e li",
+    "expected": "2"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation \u003e\u003e\u003e #add"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "array-mutation \u003e\u003e\u003e li",
+    "expected": "3"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation \u003e\u003e\u003e li:last-child",
+    "expected": "Item-2"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation \u003e\u003e\u003e #remove"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "array-mutation \u003e\u003e\u003e li",
+    "expected": "2"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation \u003e\u003e\u003e li:first-child",
+    "expected": "B"
+  }
+]

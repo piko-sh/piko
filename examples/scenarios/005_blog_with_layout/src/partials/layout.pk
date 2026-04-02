@@ -1,0 +1,123 @@
+<!-- Reusable layout partial with nested navigation, a default <piko:slot> for
+     main content, and a named "sidebar" slot with fallback content.
+     See https://piko.sh/docs/guide/partials -->
+<template>
+  <div class="layout">
+    <header class="layout-header">
+      <piko:partial is="nav" :server.current-page="props.CurrentPage"></piko:partial>
+    </header>
+
+    <div class="layout-body">
+      <main class="layout-main">
+        <h1 p-text="props.Title"></h1>
+        <p class="layout-description" p-if="props.Description != ''" p-text="props.Description"></p>
+        <piko:slot></piko:slot>
+      </main>
+
+      <aside class="layout-sidebar">
+        <piko:slot name="sidebar">
+          <p class="sidebar-fallback">No sidebar content provided.</p>
+        </piko:slot>
+      </aside>
+    </div>
+
+    <footer class="layout-footer">
+      <p>Built with Piko. All rights reserved.</p>
+    </footer>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko"
+  nav "testmodule/partials/navigation.pk"
+)
+
+type Props struct {
+  Title       string `prop:"title"`
+  Description string `prop:"description"`
+  CurrentPage string `prop:"current-page"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+  return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .layout {
+    --nav-bg: #1f2937;
+    --nav-link-color: #d1d5db;
+    --nav-link-hover-color: #ffffff;
+    --nav-link-active-color: #60a5fa;
+    --content-max-width: 1200px;
+    --sidebar-width: 300px;
+
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #1f2937;
+  }
+
+  .layout-header {
+    flex-shrink: 0;
+  }
+
+  .layout-body {
+    display: flex;
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    padding: 2rem;
+    gap: 2rem;
+    flex-grow: 1;
+    width: 100%;
+  }
+
+  .layout-main {
+    flex-grow: 1;
+    min-width: 0;
+  }
+
+  .layout-main h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #111827;
+  }
+
+  .layout-description {
+    color: #6b7280;
+    font-size: 1.125rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .layout-sidebar {
+    flex-shrink: 0;
+    width: var(--sidebar-width);
+    border-left: 1px solid #e5e7eb;
+    padding-left: 2rem;
+  }
+
+  .sidebar-fallback {
+    color: #9ca3af;
+    font-style: italic;
+  }
+
+  .layout-footer {
+    flex-shrink: 0;
+    padding: 1.5rem 2rem;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+  }
+
+  .layout-footer p {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    margin: 0;
+  }
+</style>

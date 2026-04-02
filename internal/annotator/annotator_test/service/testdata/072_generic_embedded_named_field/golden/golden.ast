@@ -1,0 +1,33 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="property-details" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 class="title" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ props.Property.Title }}
+    </RichText>
+  </h1>
+  <div class="room-info" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <p class="receptions" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "Receptions: "
+        {{ props.Property.RoomSetup.Data.ReceptionsInt() }}
+      </RichText>
+    </p>
+    <p class="bedrooms" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "Bedrooms: "
+        {{ props.Property.RoomSetup.Data.BedroomsInt() }}
+      </RichText>
+    </p>
+    <p class="receptions-raw" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "Raw: "
+        {{ props.Property.RoomSetup.Data.Receptions.Int() }}
+      </RichText>
+    </p>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

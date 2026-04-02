@@ -1,0 +1,7 @@
+{
+    "description": "Verifies table intrinsic width calculation when colspan cells are the primary width contributors, used as the flex base size of a table inside a flex container.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

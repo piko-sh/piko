@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-on-simple \u003e\u003e\u003e p",
+    "expected": "Count: 0"
+  },
+  {
+    "action": "click",
+    "selector": "p-on-simple \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-on-simple \u003e\u003e\u003e p",
+    "expected": "Count: 1"
+  },
+  {
+    "action": "click",
+    "selector": "p-on-simple \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-on-simple \u003e\u003e\u003e p",
+    "expected": "Count: 2"
+  }
+]

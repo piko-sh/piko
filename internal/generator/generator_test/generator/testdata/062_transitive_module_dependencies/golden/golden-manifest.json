@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".action-button-wrapper[partial~=testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81]{display:flex;flex-direction:column;gap:.5rem}.action-button-wrapper[partial~=testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81] label[partial~=testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81]{font-weight:600;font-size:.875rem}.help-text[partial~=testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81]{font-size:.75rem;color:#6c757d;margin:0}\n.btn[partial~=testdata_modules_ui_components_components_button_127f2b1d]{padding:.5rem 1rem;border:none;border-radius:.25rem;cursor:pointer}.btn-primary[partial~=testdata_modules_ui_components_components_button_127f2b1d]{background-color:#007bff;color:#fff}",
+      "packagePath": "testcase_062_transitive_module_dependencies/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

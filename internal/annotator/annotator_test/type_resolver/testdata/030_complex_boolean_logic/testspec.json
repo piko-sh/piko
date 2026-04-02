@@ -1,0 +1,7 @@
+[{
+  "description": "Validates a complex boolean expression with grouping, logical operators, and method calls.",
+  "expression": "(state.User.Age > 18 && state.User.IsVerified()) || props.IsOverride",
+  "expectedType": "bool",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

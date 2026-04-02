@@ -1,0 +1,50 @@
+[
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Full Content",
+          "Slug": "full-content",
+          "Level": 1
+        }
+      ],
+      "Title": "Post With Excerpt",
+      "WordCount": 25,
+      "date": "2024-07-01"
+    },
+    "id": "with-excerpt",
+    "slug": "with-excerpt",
+    "locale": "en",
+    "translationKey": "blog/with-excerpt",
+    "url": "/blog/with-excerpt",
+    "publishedAt": "2024-07-01T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "No Excerpt Here",
+          "Slug": "no-excerpt-here",
+          "Level": 1
+        }
+      ],
+      "Title": "Post Without Excerpt",
+      "WordCount": 9,
+      "date": "2024-07-15"
+    },
+    "id": "without-excerpt",
+    "slug": "without-excerpt",
+    "locale": "en",
+    "translationKey": "blog/without-excerpt",
+    "url": "/blog/without-excerpt",
+    "publishedAt": "2024-07-15T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

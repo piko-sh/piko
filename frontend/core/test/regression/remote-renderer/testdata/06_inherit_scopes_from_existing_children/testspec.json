@@ -1,0 +1,29 @@
+{
+    "description": "New server content inherits parent scopes from existing siblings",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/partial",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".list",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".existing",
+            "attributes": { "partial": "existing_scope modal_scope page_scope" },
+            "description": "Existing item preserves full scope chain"
+        },
+        {
+            "selector": ".new-item",
+            "attributes": { "partial": "new_scope modal_scope page_scope" },
+            "description": "New item inherits parent scopes from sibling"
+        }
+    ]
+}

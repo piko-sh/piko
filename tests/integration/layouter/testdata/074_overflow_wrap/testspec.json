@@ -1,0 +1,7 @@
+{
+    "description": "Verifies overflow-wrap: break-word breaks long unbroken words at grapheme boundaries when they exceed the container width.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

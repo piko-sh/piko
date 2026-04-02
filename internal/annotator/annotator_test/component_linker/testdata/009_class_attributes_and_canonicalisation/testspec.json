@@ -1,0 +1,14 @@
+{
+  "description": "Ensures that static and dynamic class attributes do not affect invocation canonicalisation.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1,
+  "assertNodes": [
+    {
+      "select": "#card1",
+      "description": "Card 1 and Card 2 should have the same key because only props matter for canonicalisation",
+      "assert": {
+        "invocationKeyShouldMatch": "#card2"
+      }
+    }
+  ]
+}

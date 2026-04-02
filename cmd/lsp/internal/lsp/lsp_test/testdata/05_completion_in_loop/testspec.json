@@ -1,0 +1,25 @@
+{
+  "description": "Tests context-aware code completion within a p-for loop, ensuring the loop variable's members are suggested.",
+  "generate": {
+    "isPage": true,
+    "shouldError": false
+  },
+  "lsp": {
+    "actions": [
+      {
+        "action": "didOpen",
+        "file": "pages/main.pk"
+      },
+      {
+        "action": "completion",
+        "file": "pages/main.pk",
+        "line": 23,
+        "character": 20,
+        "expectContains": [
+          "\"label\":\"ID\"",
+          "\"label\":\"Name\""
+        ]
+      }
+    ]
+  }
+}

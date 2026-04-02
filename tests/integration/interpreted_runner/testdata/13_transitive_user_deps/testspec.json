@@ -1,0 +1,7 @@
+{
+  "description": "Tests that transitive user package dependencies are discovered and compiled in interpreted mode.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

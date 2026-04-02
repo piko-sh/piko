@@ -1,0 +1,31 @@
+--- PACKAGE: testcase_66_function_type_with_third_party_package_param ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 66_function_type_with_third_party_package_param/src/main.go
+    - import "context"            -> context
+    - import "syscall"            -> syscall
+
+[Named Types]
+  > type Dialer
+    - Defined In:      66_function_type_with_third_party_package_param/src/main.go
+    - TypeString:      main.Dialer
+    - Underlying:      struct{Control func(network string, address string, c syscall.RawConn) error; Cannon func(network string, address string) error; Handler main.MethodHandler}
+    - Stringability:   0
+    - Fields:
+      - Control              func(network string, address string, c syscall.RawConn) error
+        (Canonical Package: syscall)
+      - Cannon               func(network string, address string) error
+      - Handler              main.MethodHandler
+        (Canonical Package: testcase_66_function_type_with_third_party_package_param)
+
+  > type MethodHandler
+    - Defined In:      66_function_type_with_third_party_package_param/src/main.go
+    - TypeString:      main.MethodHandler
+    - Underlying:      func(srv any, ctx context.Context, dec func(any) error, c syscall.RawConn) (any, error)
+    - Stringability:   0
+
+[Package-Level Functions]
+  - func Test                 func() syscall.RawConn
+  - func Test2                func() func(c syscall.RawConn)

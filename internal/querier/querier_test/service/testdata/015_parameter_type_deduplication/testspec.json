@@ -1,0 +1,3 @@
+{
+  "description": "Parameter type deduplication when the same parameter appears in multiple contexts. Tests that $1 used twice in different comparison contexts produces a single parameter with the correct inferred type."
+}

@@ -1,0 +1,15 @@
+<template>
+  <div>
+    <input :value="state.Name" class="form-control" id="name-input" placeholder="Name" type="text" />
+    <button
+      :disabled="state.IsProcessing"
+      class="btn btn-primary"
+      id="submit-btn"
+      p-on:click="submit"
+      type="submit"
+    > Submit </button>
+    <div :class="state.AlertClass" data-test="alert" id="alert" p-if="state.ShowAlert" role="alert">
+      Alert message
+    </div>
+  </div>
+</template>

@@ -1,0 +1,11 @@
+package middle
+
+import "testpkg/core"
+
+func GetCore() string {
+	return core.Value()
+}
+
+func Wrap(s string) string {
+	return ">>>" + s + "<<<"
+}

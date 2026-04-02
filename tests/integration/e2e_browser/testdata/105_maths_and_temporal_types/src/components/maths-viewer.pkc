@@ -1,0 +1,42 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="maths-viewer">
+    <ul class="maths-viewer">
+        <li id="pkc-decimal" p-text="state.decimalDisplay"></li>
+        <li id="pkc-bigint" p-text="state.bigintDisplay"></li>
+        <li id="pkc-precision" p-text="state.precisionDisplay"></li>
+    </ul>
+</template>
+
+<script lang="ts">
+    const el = this as HTMLElement;
+    const decVal = el.getAttribute('decimal-val') || '0';
+    const bigVal = el.getAttribute('bigint-val') || '0';
+
+    // JS float precision test: 0.1 + 0.2 in JS produces 0.30000000000000004
+    const jsPrecision = (0.1 + 0.2).toString();
+
+    const state = {
+        decimalDisplay: `Decimal: ${decVal}` as string,
+        bigintDisplay: `BigInt: ${bigVal}` as string,
+        precisionDisplay: `JS 0.1+0.2: ${jsPrecision}` as string,
+    };
+</script>

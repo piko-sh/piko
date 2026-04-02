@@ -1,0 +1,7 @@
+{
+    "description": "Verifies vw, vh, vmin, and vmax units resolve correctly against viewport dimensions in browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

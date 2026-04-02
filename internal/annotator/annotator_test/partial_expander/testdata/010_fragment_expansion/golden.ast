@@ -1,0 +1,19 @@
+/*
+--- BEGIN AST DUMP ---
+
+<section [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <Fragment [ANNOTATIONS: OriginPackage: main_aaf9a2e0 PARTIAL InvKey: multi_8df50fb8 Package: partials_multi_root_bfb66450 InvPackage: main_aaf9a2e0]>
+    <h1 p-fragment="multi_8df50fb8" p-fragment-id="0" [ANNOTATIONS: OriginPackage: partials_multi_root_bfb66450 OriginPath: partials/multi_root.pk]>
+      "Title"
+    </h1>
+    <p p-fragment="multi_8df50fb8" p-fragment-id="1" [ANNOTATIONS: OriginPackage: partials_multi_root_bfb66450 OriginPath: partials/multi_root.pk]>
+      "Paragraph one."
+    </p>
+    <p p-fragment="multi_8df50fb8" p-fragment-id="2" [ANNOTATIONS: OriginPackage: partials_multi_root_bfb66450 OriginPath: partials/multi_root.pk]>
+      "Paragraph two."
+    </p>
+  </Fragment>
+</section>
+
+--- END AST DUMP ---
+*/

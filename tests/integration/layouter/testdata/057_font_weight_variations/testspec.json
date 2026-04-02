@@ -1,0 +1,7 @@
+{
+    "description": "Verifies font-weight affects text measurements correctly against browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

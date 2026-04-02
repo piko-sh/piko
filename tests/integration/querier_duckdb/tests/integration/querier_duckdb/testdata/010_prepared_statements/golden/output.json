@@ -1,0 +1,7 @@
+{
+  "all_notes": [
+    {"Body": "Body one", "ID": 1, "Title": "First Note"},
+    {"Body": "Body two", "ID": 2, "Title": "Second Note"}
+  ],
+  "note": {"Body": "Body one", "ID": 1, "Title": "First Note"}
+}

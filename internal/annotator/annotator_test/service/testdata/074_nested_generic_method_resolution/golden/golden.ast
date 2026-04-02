@@ -1,0 +1,38 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="property-details" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 class="title" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ props.Property.Title.String() }}
+    </RichText>
+  </h1>
+  <div class="viewing-info" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <p class="date" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Property.OpenViewing.Data.Date.String() }}
+      </RichText>
+    </p>
+    <p class="has-agent" [p-if: props.Property.OpenViewing.Data.ViewingAgent.HasItem()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Has Agent"
+    </p>
+    <p class="agent-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Property.OpenViewing.Data.ViewingAgent.Get().FullName() }}
+      </RichText>
+    </p>
+    <p class="agent-first-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Property.OpenViewing.Data.ViewingAgent.Get().FirstName.String() }}
+      </RichText>
+    </p>
+    <p class="agent-phone" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Property.OpenViewing.Data.ViewingAgent.Get().PhoneNumber.String() }}
+      </RichText>
+    </p>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

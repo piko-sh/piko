@@ -1,0 +1,20 @@
+{
+  "description": "Tests that struct fields using the blank identifier '_' are ignored during serialisation.",
+  "moduleName": "testcase_41_blank_identifier_fields",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_41_blank_identifier_fields"
+  ],
+  "assertions": [
+    {
+      "description": "The 'A' field should be the first serialised field.",
+      "select": "packages.testcase_41_blank_identifier_fields.named_types.Aligned.fields.0.name",
+      "expect": "A"
+    },
+    {
+      "description": "The 'B' field should be the second serialised field.",
+      "select": "packages.testcase_41_blank_identifier_fields.named_types.Aligned.fields.1.name",
+      "expect": "B"
+    }
+  ]
+}

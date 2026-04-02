@@ -1,0 +1,38 @@
+{
+  "description": "Validates that the type inspector can correctly resolve a method on a deeply nested field from a third-party package, even when the calling component does not directly import that package. This tests the context-switching logic of the method resolver.",
+  "expectedDiagnostics": 0,
+  "shouldError": false,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#target",
+      "description": "The full expression should resolve the method call and return a string.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.ServiceResponse.Transaction.Amount.MustNumber()",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.ServiceResponse",
+          "description": "Step 1: The first field access resolves to the service response type.",
+          "resolvedTypeIs": "services.TransactionServiceResponse"
+        },
+        {
+          "rawExpression": "state.ServiceResponse.Transaction",
+          "description": "Step 2: The second field access resolves to the DTO type.",
+          "resolvedTypeIs": "dtos.TransactionDto"
+        },
+        {
+          "rawExpression": "state.ServiceResponse.Transaction.Amount",
+          "description": "Step 3: The third field access resolves to the maths.Money type.",
+          "resolvedTypeIs": "maths.Money"
+        },
+        {
+          "rawExpression": "state.ServiceResponse.Transaction.Amount.MustNumber",
+          "description": "Step 4: The method itself should be found and identified as a function.",
+          "resolvedTypeIs": "function"
+        }
+      ]
+    }
+  ]
+}

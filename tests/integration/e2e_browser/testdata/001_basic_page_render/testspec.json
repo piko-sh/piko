@@ -1,0 +1,31 @@
+{
+  "description": "Verifies a simple PK page renders correctly in the browser",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Welcome to Piko"
+    },
+    {
+      "action": "checkText",
+      "selector": "p",
+      "expected": "This is a basic page rendered by the E2E test suite."
+    },
+    {
+      "action": "checkText",
+      "selector": "#counter",
+      "expected": "Count: 42"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "body",
+      "goldenFile": "initial.html"
+    }
+  ]
+}

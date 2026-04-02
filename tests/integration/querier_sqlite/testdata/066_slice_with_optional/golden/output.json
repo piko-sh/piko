@@ -1,0 +1,50 @@
+{
+  "with_min_priority_2": [
+    {
+      "ID": "t2",
+      "Priority": 3,
+      "Status": "PENDING",
+      "Title": "High"
+    },
+    {
+      "ID": "t3",
+      "Priority": 2,
+      "Status": "PROCESSING",
+      "Title": "Mid"
+    },
+    {
+      "ID": "t6",
+      "Priority": 2,
+      "Status": "RETRYING",
+      "Title": "Retry"
+    }
+  ],
+  "with_min_priority_3": [
+    {
+      "ID": "t2",
+      "Priority": 3,
+      "Status": "PENDING",
+      "Title": "High"
+    }
+  ],
+  "without_filter": [
+    {
+      "ID": "t1",
+      "Priority": 1,
+      "Status": "PENDING",
+      "Title": "Low"
+    },
+    {
+      "ID": "t2",
+      "Priority": 3,
+      "Status": "PENDING",
+      "Title": "High"
+    },
+    {
+      "ID": "t6",
+      "Priority": 2,
+      "Status": "RETRYING",
+      "Title": "Retry"
+    }
+  ]
+}

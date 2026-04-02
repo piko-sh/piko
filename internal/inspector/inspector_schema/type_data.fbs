@@ -1,0 +1,188 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+namespace inspector_schema_gen;
+
+enum StringabilityMethod : ubyte {
+  StringableNone,
+  StringablePrimitive,
+  StringableViaStringer,
+  StringableViaTextMarshaler,
+  StringableViaPikoFormatter,
+  StringableViaJSON,
+}
+
+enum CompositeType : ubyte {
+  CompositeTypeNone,
+  CompositeTypeMap,
+  CompositeTypeSlice,
+  CompositeTypeArray,
+  CompositeTypeChan,
+  CompositeTypePointer,
+  CompositeTypeSignature,
+  CompositeTypeGeneric,
+}
+
+table FunctionSignature {
+  params:[string];
+  results:[string];
+  param_names:[string];
+}
+
+table CompositePart {
+  type:string;
+  type_string:string;
+  role:string;
+  underlying_type_string:string;
+  package_path:string;
+  composite_parts:[CompositePart];
+  composite_type:CompositeType = CompositeTypeNone;
+  index:int;
+  is_internal_type:bool;
+  is_underlying_internal_type:bool;
+  is_generic_placeholder:bool = false;
+  is_alias:bool = false;
+  is_underlying_primitive:bool = false;
+}
+
+table Function {
+  name:string;
+  type_string:string;
+  underlying_type_string:string;
+  signature:FunctionSignature;
+  definition_file_path:string;
+  definition_line:int;
+  definition_column:int;
+}
+
+table Field {
+  name:string;
+  type_string:string;
+  underlying_type_string:string;
+  is_embedded:bool;
+  raw_tag:string;
+  package_path:string;
+  is_generic_placeholder:bool = false;
+  declaring_package_path:string;
+  declaring_type_name:string;
+  composite_parts:[CompositePart];
+  composite_type:CompositeType = CompositeTypeNone;
+  is_underlying_internal_type:bool;
+  is_underlying_primitive:bool = false;
+  is_internal_type:bool;
+  is_alias:bool = false;
+  definition_file_path:string;
+  definition_line:int;
+  definition_column:int;
+}
+
+table Method {
+  name:string;
+  type_string:string;
+  underlying_type_string:string;
+  signature:FunctionSignature;
+  is_pointer_receiver:bool;
+  declaring_package_path:string;
+  declaring_type_name:string;
+  definition_file_path:string;
+  definition_line:int;
+  definition_column:int;
+}
+
+table Type {
+  name:string;
+  package_path:string;
+  defined_in_file_path:string;
+  type_string:string;
+  underlying_type_string:string;
+  fields:[Field];
+  methods:[Method];
+  type_params:[string];
+  stringability:StringabilityMethod = StringableNone;
+  is_alias:bool;
+  definition_line:int;
+  definition_column:int;
+}
+
+table Variable {
+  name:string;
+  type_string:string;
+  underlying_type_string:string;
+  defined_in_file_path:string;
+  composite_parts:[CompositePart];
+  definition_line:int;
+  definition_column:int;
+  composite_type:CompositeType = CompositeTypeNone;
+  is_const:bool = false;
+}
+
+table VariableEntry {
+  key:string (key);
+  value:Variable;
+}
+
+table Package {
+  path:string;
+  name:string;
+  version:string;
+  file_imports:[FileImportsEntry];
+  named_types:[NamedTypeEntry];
+  functions:[FunctionEntry];
+  variables:[VariableEntry];
+}
+
+table AliasToPathEntry {
+  key:string (key);
+  value:string;
+}
+
+table FileImportMap {
+  entries:[AliasToPathEntry];
+}
+
+table FileImportsEntry {
+  key:string (key);
+  value:FileImportMap;
+}
+
+table NamedTypeEntry {
+  key:string (key);
+  value:Type;
+}
+
+table FunctionEntry {
+  key:string (key);
+  value:Function;
+}
+
+table PackageEntry {
+  key:string (key);
+  value:Package;
+}
+
+table FileToPackageEntry {
+  key:string (key);
+  value:string;
+}
+
+table TypeData {
+  packages:[PackageEntry];
+  file_to_package:[FileToPackageEntry];
+}
+
+root_type TypeData;

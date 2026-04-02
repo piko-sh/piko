@@ -1,0 +1,5 @@
+{
+    "description": "Overlapping elements with mix-blend-mode (multiply, screen), verifying ExtGState /BM in PDF output.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

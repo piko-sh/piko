@@ -1,0 +1,14 @@
+<template shadowrootmode="open"><style>
+    :host-context(.theme-dark) .inside {
+        color: white;
+        background-color: black;
+    }
+
+    ::slotted(.slotted-item) {
+        font-style: italic;
+    }
+
+    .unused {
+        display: none;
+    }
+</style><div class="inside">Inside text</div><slot></slot></template>

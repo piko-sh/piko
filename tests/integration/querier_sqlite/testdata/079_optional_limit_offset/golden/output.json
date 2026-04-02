@@ -1,0 +1,76 @@
+{
+  "fruit_page1": [
+    {
+      "Category": "fruit",
+      "ID": 1,
+      "Name": "Apple",
+      "Price": 100
+    },
+    {
+      "Category": "fruit",
+      "ID": 2,
+      "Name": "Banana",
+      "Price": 50
+    },
+    {
+      "Category": "fruit",
+      "ID": 4,
+      "Name": "Date",
+      "Price": 200
+    }
+  ],
+  "fruit_page2": [
+    {
+      "Category": "fruit",
+      "ID": 6,
+      "Name": "Fig",
+      "Price": 120
+    },
+    {
+      "Category": "fruit",
+      "ID": 7,
+      "Name": "Grape",
+      "Price": 80
+    },
+    {
+      "Category": "fruit",
+      "ID": 8,
+      "Name": "Honeydew",
+      "Price": 300
+    }
+  ],
+  "no_filter_page1": [
+    {
+      "Category": "fruit",
+      "ID": 1,
+      "Name": "Apple",
+      "Price": 100
+    },
+    {
+      "Category": "fruit",
+      "ID": 2,
+      "Name": "Banana",
+      "Price": 50
+    },
+    {
+      "Category": "veg",
+      "ID": 3,
+      "Name": "Carrot",
+      "Price": 75
+    }
+  ],
+  "veg_all": [
+    {
+      "Category": "veg",
+      "ID": 3,
+      "Name": "Carrot",
+      "Price": 75
+    },
+    {
+      "Category": "veg",
+      "ID": 5,
+      "Name": "Eggplant",
+      "Price": 150
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+--- PACKAGE: testcase_29_method_returning_generic ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 29_method_returning_generic/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Box
+    - Defined In:      29_method_returning_generic/src/main.go
+    - TypeString:      main.Box[T]
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Type Params:     [T]
+
+  > type Factory
+    - Defined In:      29_method_returning_generic/src/main.go
+    - TypeString:      main.Factory[T]
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Methods:
+      - func (T) NewBox          func() main.Box[T]
+
+[Package-Level Functions]
+  (none)

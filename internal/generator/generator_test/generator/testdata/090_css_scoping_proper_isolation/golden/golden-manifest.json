@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".page-title[partial~=pages_main_594861c5]{font-size:24px}\n.card[partial~=partials_child_card_c2888b08]{background:#00f;margin:10px}\n.card[partial~=partials_parent_container_52817534]{background:red;padding:20px}.card[partial~=partials_parent_container_52817534],.parent-wrapper[partial~=partials_parent_container_52817534]{border:1px solid black}.btn[partial~=partials_parent_container_52817534]:hover{background:#8b0000}.btn[partial~=partials_parent_container_52817534]:focus,.btn[partial~=partials_parent_container_52817534]:active{outline:2px solid blue}.card[partial~=partials_parent_container_52817534]:before{content:\"Parent: \"}.title[partial~=partials_parent_container_52817534]:after{content:\" (parent)\"}.parent-wrapper[partial~=partials_parent_container_52817534] .card[partial~=partials_parent_container_52817534] .title[partial~=partials_parent_container_52817534]{font-weight:700}.parent-wrapper[partial~=partials_parent_container_52817534]\u003e.card[partial~=partials_parent_container_52817534]{margin:10px}.card[partial~=partials_parent_container_52817534]+.child-wrapper[partial~=partials_parent_container_52817534]{margin-top:20px}.card[partial~=partials_parent_container_52817534]~div[partial~=partials_parent_container_52817534]{color:gray}.btn[disabled][partial~=partials_parent_container_52817534]{opacity:.5}.btn[partial~=partials_parent_container_52817534]:not(.primary){background:gray}[partial~=partials_parent_container_52817534]:is(.card,.parent-wrapper){box-sizing:border-box}[partial~=partials_parent_container_52817534]:where(.btn,.title){font-family:sans-serif}.card[partial~=partials_parent_container_52817534]:has(.title){display:flex}[partial~=partials_parent_container_52817534]  .title{text-decoration:underline}[partial~=partials_parent_container_52817534]  .card .title{font-style:italic}[partial~=partials_parent_container_52817534]  .btn:hover{cursor:pointer}.global-reset{margin:0;padding:0}body .global-class{font-size:16px}@media(min-width:768px){.card[partial~=partials_parent_container_52817534]{flex-direction:row}.btn[partial~=partials_parent_container_52817534]:hover{transform:scale(1.05)}}@keyframes fadeIn{0%{opacity:0}to{opacity:1}}.card[partial~=partials_parent_container_52817534]{animation:fadeIn .3s ease-in}.btn.primary[partial~=partials_parent_container_52817534]{background:#00f}#unique-parent-element[partial~=partials_parent_container_52817534]{z-index:100}.card[partial~=partials_parent_container_52817534]:nth-child(odd){background:#f5f5f5}.card[partial~=partials_parent_container_52817534]:first-child{border-top:none}.card[partial~=partials_parent_container_52817534]:last-of-type{border-bottom:none}",
+      "packagePath": "testcase_090_css_scoping_proper_isolation/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

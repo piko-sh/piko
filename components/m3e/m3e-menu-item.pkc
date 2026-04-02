@@ -1,0 +1,175 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-menu-item">
+    <div class="menu-item"
+         p-class="{
+             'disabled': state.disabled,
+             'soft-disabled': state.soft_disabled,
+             'selected': state.selected,
+             'has-submenu': state.has_submenu
+         }"
+         role="menuitem"
+         :tabindex="state.disabled ? '-1' : '0'"
+         :aria-disabled="state.disabled || state.soft_disabled ? 'true' : 'false'"
+         :aria-haspopup="state.has_submenu ? 'menu' : null"
+         :aria-expanded="state.has_submenu ? 'false' : null"
+         p-on:click="handleClick"
+         p-on:keydown="handleKeydown"
+         p-on:mouseenter="handleMouseenter">
+        <span class="state-layer"></span>
+        <span class="leading" p-show="state.has_leading"><slot name="leading"></slot></span>
+        <span class="label"><slot></slot></span>
+        <span class="submenu-indicator" p-if="state.has_submenu">&#x25B6;</span>
+        <span class="trailing" p-show="state.has_trailing"><slot name="trailing"></slot></span>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        disabled: false as boolean,
+        soft_disabled: false as boolean,
+        selected: false as boolean,
+        value: '' as string,
+        has_leading: false as boolean,
+        has_trailing: false as boolean,
+        has_submenu: false as boolean,
+    };
+
+    pkc.attachSlotListener('leading', (elements) => {
+        state.has_leading = elements.length > 0;
+    });
+
+    pkc.attachSlotListener('trailing', (elements) => {
+        state.has_trailing = elements.length > 0;
+    });
+
+    function handleClick() {
+        if (state.disabled || state.soft_disabled) return;
+
+        pkc.dispatchEvent(new CustomEvent('select', {
+            detail: { value: state.value, text: pkc.textContent.trim() },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleClick();
+            return;
+        }
+
+        if (event.key === 'ArrowRight' && state.has_submenu) {
+            event.preventDefault();
+            pkc.dispatchEvent(new CustomEvent('submenu-open', {
+                detail: { value: state.value },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+    }
+
+    function handleMouseenter() {
+        if (state.disabled || state.soft_disabled || !state.has_submenu) return;
+
+        pkc.dispatchEvent(new CustomEvent('submenu-open', {
+            detail: { value: state.value },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .menu-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 48px;
+        padding: 0 12px;
+        cursor: pointer;
+        outline: none;
+        color: var(--_on-surface);
+        font-size: 0.875rem;
+        -webkit-tap-highlight-color: transparent;
+
+        &:focus-visible .state-layer {
+            opacity: 0.12;
+        }
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+
+        &.disabled {
+            cursor: default;
+            opacity: 0.38;
+            pointer-events: none;
+        }
+
+        &.soft-disabled {
+            opacity: 0.38;
+        }
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        background: var(--_on-surface);
+        opacity: 0;
+        transition: opacity var(--_duration-short);
+        pointer-events: none;
+    }
+
+    .leading {
+        display: flex;
+        align-items: center;
+        color: var(--_on-surface-variant);
+    }
+
+    .label {
+        flex: 1;
+        z-index: 1;
+    }
+
+    .trailing {
+        display: flex;
+        align-items: center;
+        color: var(--_on-surface-variant);
+        font-size: 0.75rem;
+    }
+
+    .submenu-indicator {
+        margin-left: auto;
+        font-size: 0.625rem;
+        color: var(--_on-surface-variant, #49454f);
+    }
+</style>

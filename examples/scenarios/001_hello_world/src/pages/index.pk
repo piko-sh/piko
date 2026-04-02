@@ -1,0 +1,64 @@
+<!-- A minimal Piko page. Every .pk file has up to three sections:
+     <template> for HTML, <script type="application/x-go"> for server-side Go,
+     and <style> for scoped CSS. {{ state.X }} references the Response struct. -->
+<template>
+  <div id="app">
+    <h1>{{ state.Greeting }}</h1>
+    <p>{{ state.Description }}</p>
+
+    <footer>
+      <small>Built with Piko v{{ state.Version }}</small>
+    </footer>
+  </div>
+</template>
+
+<!-- The Go script runs on the server for each request. See https://piko.sh/docs/guide/pk-templates -->
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+    Greeting    string
+    Description string
+    Version     string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Greeting:    "Hello, World!",
+        Description: "This is a minimal Piko page with server-side rendering.",
+        Version:     "0.1.0",
+    }, piko.Metadata{
+        Title: "Hello World - Piko Example",
+        Description: "A minimal Piko page demonstrating server-side rendering.",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #2563eb;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: #374151;
+    line-height: 1.6;
+  }
+
+  footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    color: #9ca3af;
+    font-size: 0.875rem;
+  }
+</style>

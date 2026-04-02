@@ -1,0 +1,30 @@
+[
+  {
+    "action": "checkAttribute",
+    "selector": "template-literals \u003e\u003e\u003e a",
+    "expected": "/users/abc-123",
+    "name": "href"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "template-literals \u003e\u003e\u003e p",
+    "expected": "Name: Jane Doe, Role: admin",
+    "name": "data-info"
+  },
+  {
+    "action": "click",
+    "selector": "template-literals \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "template-literals \u003e\u003e\u003e a",
+    "expected": "/users/xyz-789",
+    "name": "href"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "template-literals \u003e\u003e\u003e p",
+    "expected": "Name: John Smith, Role: admin",
+    "name": "data-info"
+  }
+]

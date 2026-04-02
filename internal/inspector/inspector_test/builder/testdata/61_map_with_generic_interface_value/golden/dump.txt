@@ -1,0 +1,29 @@
+--- PACKAGE: testcase_61_map_with_generic_interface_value ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 61_map_with_generic_interface_value/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Producer
+    - Defined In:      61_map_with_generic_interface_value/src/main.go
+    - TypeString:      main.Producer[T]
+    - Underlying:      interface{Produce() T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Methods:
+      - func (T) Produce         func() T
+
+  > type Report
+    - Defined In:      61_map_with_generic_interface_value/src/main.go
+    - TypeString:      main.Report
+    - Underlying:      struct{IntProducers map[string]main.Producer[int]}
+    - Stringability:   0
+    - Fields:
+      - IntProducers         map[string]main.Producer[int]
+        (Canonical Package: testcase_61_map_with_generic_interface_value)
+
+[Package-Level Functions]
+  (none)

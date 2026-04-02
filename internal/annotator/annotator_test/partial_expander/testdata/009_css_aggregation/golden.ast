@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="comp-a" [ANNOTATIONS: OriginPackage: partials_comp_a_235c5bab OriginPath: partials/comp_a.pk PARTIAL InvKey: a_d24ec4f1 Package: partials_comp_a_235c5bab InvPackage: main_aaf9a2e0]>
+  <p class="comp-b" [ANNOTATIONS: OriginPackage: partials_comp_b_81b49c90 OriginPath: partials/comp_b.pk PARTIAL InvKey: b_78452aa1 Package: partials_comp_b_81b49c90 InvPackage: partials_comp_a_235c5bab]>
+    "Component B"
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

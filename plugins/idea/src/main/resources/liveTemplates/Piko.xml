@@ -1,0 +1,141 @@
+<templateSet group="Piko">
+  <template name="ptemplate" value="&lt;template&gt;&#10;  $END$&#10;&lt;/template&gt;" description="Template block" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pscript" value="&lt;script type=&quot;application/x-go&quot;&gt;&#10;package main&#10;&#10;import &quot;piko.sh/piko&quot;&#10;&#10;type Props struct {&#10;}&#10;&#10;type Response struct {&#10;}&#10;&#10;func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {&#10;  return Response{}, piko.Metadata{}, nil&#10;}&#10;$END$&#10;&lt;/script&gt;" description="Go script block" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pscriptjs" value="&lt;script lang=&quot;js&quot;&gt;&#10;$END$&#10;&lt;/script&gt;" description="JavaScript script block" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pstyle" value="&lt;style&gt;&#10;$END$&#10;&lt;/style&gt;" description="Style block" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pi18n" value="&lt;i18n lang=&quot;json&quot;&gt;&#10;{&#10;  &quot;en&quot;: {&#10;    $END$&#10;  },&#10;  &quot;fr&quot;: {&#10;  }&#10;}&#10;&lt;/i18n&gt;" description="Internationalisation block" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pif" value="p-if=&quot;$EXPR$&quot;" description="Conditional rendering directive" toReformat="false" toShortenFQNames="true">
+    <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pfor" value="p-for=&quot;$ITEM$ in $ITEMS$&quot;" description="List rendering directive" toReformat="false" toShortenFQNames="true">
+    <variable name="ITEM" expression="" defaultValue="item" alwaysStopAt="true"/>
+    <variable name="ITEMS" expression="" defaultValue="items" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="ptext" value="p-text=&quot;$EXPR$&quot;" description="Text content directive" toReformat="false" toShortenFQNames="true">
+    <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pbind" value=":$ATTR$=&quot;$EXPR$&quot;" description="Attribute binding shorthand" toReformat="false" toShortenFQNames="true">
+    <variable name="ATTR" expression="" defaultValue="attr" alwaysStopAt="true"/>
+    <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pon" value="@$EVENT$=&quot;$HANDLER$&quot;" description="Event handler shorthand" toReformat="false" toShortenFQNames="true">
+    <variable name="EVENT" expression="" defaultValue="click" alwaysStopAt="true"/>
+    <variable name="HANDLER" expression="" defaultValue="" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pcomp" value="&lt;piko:$NAME$/&gt;" description="Piko component tag" toReformat="false" toShortenFQNames="true">
+    <variable name="NAME" expression="" defaultValue="component" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="pinterp" value="{{ $EXPR$ }}" description="Template interpolation" toReformat="false" toShortenFQNames="true">
+    <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="ppartial" value="&lt;template&gt;&#10;  &lt;div&gt;&#10;    $END$&#10;  &lt;/div&gt;&#10;&lt;/template&gt;&#10;&#10;&lt;script type=&quot;application/x-go&quot;&gt;&#10;package main&#10;&#10;import &quot;piko.sh/piko&quot;&#10;&#10;type Props struct {&#10;}&#10;&#10;type Response struct {&#10;}&#10;&#10;func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {&#10;  return Response{}, piko.Metadata{}, nil&#10;}&#10;&lt;/script&gt;&#10;&#10;&lt;style&gt;&#10;&lt;/style&gt;" description="Full Piko partial with Props" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="ppage" value="&lt;template&gt;&#10;  &lt;div&gt;&#10;    $END$&#10;  &lt;/div&gt;&#10;&lt;/template&gt;&#10;&#10;&lt;script type=&quot;application/x-go&quot;&gt;&#10;package main&#10;&#10;import &quot;piko.sh/piko&quot;&#10;&#10;type Response struct {&#10;  Title string&#10;}&#10;&#10;func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {&#10;  return Response{&#10;    Title: &quot;$TITLE$&quot;,&#10;  }, piko.Metadata{}, nil&#10;}&#10;&lt;/script&gt;&#10;&#10;&lt;style&gt;&#10;&lt;/style&gt;&#10;&#10;&lt;i18n lang=&quot;json&quot;&gt;&#10;{&#10;  &quot;en&quot;: {&#10;  },&#10;  &quot;fr&quot;: {&#10;  }&#10;}&#10;&lt;/i18n&gt;" description="Full Piko page with NoProps and i18n" toReformat="false" toShortenFQNames="true">
+    <variable name="TITLE" expression="" defaultValue="Page Title" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="slot" value="&lt;piko:slot&gt;$END$&lt;/piko:slot&gt;" description="Piko slot element" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="slot:" value="&lt;piko:slot name=&quot;$NAME$&quot;&gt;$END$&lt;/piko:slot&gt;" description="Piko named slot" toReformat="false" toShortenFQNames="true">
+    <variable name="NAME" expression="" defaultValue="default" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="partial" value="&lt;piko:partial is=&quot;$COMPONENT$&quot;&gt;$END$&lt;/piko:partial&gt;" description="Include a Piko partial component" toReformat="false" toShortenFQNames="true">
+    <variable name="COMPONENT" expression="" defaultValue="component-name" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="div:if" value="&lt;div p-if=&quot;$CONDITION$&quot;&gt;$END$&lt;/div&gt;" description="Div with conditional rendering" toReformat="false" toShortenFQNames="true">
+    <variable name="CONDITION" expression="" defaultValue="true" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="div:for" value="&lt;div p-for=&quot;$ITEM$ in $ITEMS$&quot;&gt;$END$&lt;/div&gt;" description="Div with list iteration" toReformat="false" toShortenFQNames="true">
+    <variable name="ITEM" expression="" defaultValue="item" alwaysStopAt="true"/>
+    <variable name="ITEMS" expression="" defaultValue="items" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="span:text" value="&lt;span p-text=&quot;$EXPR$&quot;&gt;$END$&lt;/span&gt;" description="Span with text binding" toReformat="false" toShortenFQNames="true">
+    <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="btn:click" value="&lt;button @click=&quot;$HANDLER$&quot;&gt;$END$&lt;/button&gt;" description="Button with click handler" toReformat="false" toShortenFQNames="true">
+    <variable name="HANDLER" expression="" defaultValue="" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="ul:for" value="&lt;ul&gt;&#10;  &lt;li p-for=&quot;$ITEM$ in $ITEMS$&quot; p-text=&quot;$ITEM$&quot;&gt;&lt;/li&gt;&#10;&lt;/ul&gt;" description="Unordered list with iteration" toReformat="false" toShortenFQNames="true">
+    <variable name="ITEM" expression="" defaultValue="item" alwaysStopAt="true"/>
+    <variable name="ITEMS" expression="" defaultValue="items" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+  <template name="table:for" value="&lt;table&gt;&#10;  &lt;thead&gt;&#10;    &lt;tr&gt;&#10;      &lt;th&gt;$HEADER$&lt;/th&gt;&#10;    &lt;/tr&gt;&#10;  &lt;/thead&gt;&#10;  &lt;tbody&gt;&#10;    &lt;tr p-for=&quot;$ROW$ in $ROWS$&quot;&gt;&#10;      &lt;td p-text=&quot;$ROW$.$FIELD$&quot;&gt;&lt;/td&gt;&#10;    &lt;/tr&gt;&#10;  &lt;/tbody&gt;&#10;&lt;/table&gt;" description="Table with row iteration" toReformat="false" toShortenFQNames="true">
+    <variable name="HEADER" expression="" defaultValue="Header" alwaysStopAt="true"/>
+    <variable name="ROW" expression="" defaultValue="row" alwaysStopAt="true"/>
+    <variable name="ROWS" expression="" defaultValue="rows" alwaysStopAt="true"/>
+    <variable name="FIELD" expression="" defaultValue="field" alwaysStopAt="true"/>
+    <context>
+      <option name="PIKO" value="true"/>
+    </context>
+  </template>
+</templateSet>

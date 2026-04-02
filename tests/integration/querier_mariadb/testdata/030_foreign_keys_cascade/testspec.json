@@ -1,0 +1,3 @@
+{
+  "description": "Foreign keys: ON DELETE CASCADE and ON UPDATE CASCADE on MariaDB with InnoDB"
+}

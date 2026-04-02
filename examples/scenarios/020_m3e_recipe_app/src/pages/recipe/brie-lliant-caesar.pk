@@ -1,0 +1,247 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Brie-lliant Caesar Salad"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-brie-lliant-caesar.jpg" alt="Brie-lliant Caesar Salad" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">Brie-lliant Caesar Salad</h1>
+                <p class="recipe-pun">Brie-lieve us, this Caesar is different</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Brie</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        15 mins
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Easy</m3e-chip>
+                    <m3e-chip variant="outlined">2 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="6" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="2" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>2 heads romaine lettuce</m3e-list-item>
+                    <m3e-list-item>150g brie cheese, cut into cubes</m3e-list-item>
+                    <m3e-list-item>2 thick slices sourdough bread, cubed</m3e-list-item>
+                    <m3e-list-item>30g parmesan, shaved</m3e-list-item>
+                    <m3e-list-item>4 anchovy fillets</m3e-list-item>
+                    <m3e-list-item>2 cloves garlic, minced</m3e-list-item>
+                    <m3e-list-item>Juice of 1 lemon</m3e-list-item>
+                    <m3e-list-item>4 tbsp extra virgin olive oil</m3e-list-item>
+                    <m3e-list-item>1 egg yolk</m3e-list-item>
+                    <m3e-list-item>1 tsp Dijon mustard</m3e-list-item>
+                    <m3e-list-item>1 tsp Worcestershire sauce</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>Preheat the oven to 200&deg;C. Toss the bread cubes with a drizzle of olive oil and place on a baking tray. Top each cube with a small piece of brie. Now, before you put these in the oven, taste one piece of the brie to make sure it&rsquo;s good. Taste another one to confirm your findings. The scientific method demands a third sample. Right, into the oven for 8&ndash;10 minutes.</li>
+                    <li>Prepare the dressing while the croutons bake: whisk together the egg yolk, minced garlic, anchovy fillets (mashed), lemon juice, Dijon mustard, and Worcestershire sauce. Slowly drizzle in the olive oil while whisking until emulsified. If it splits, don&rsquo;t panic &mdash; panic makes it worse. Stay calm. Think of brie. Everything is going to be okay.</li>
+                    <li>Wash the romaine lettuce thoroughly and pat dry. Tear into bite-sized pieces and put them in a big bowl. This is the one step where cheese isn&rsquo;t involved and honestly we find it rather boring. Let&rsquo;s move on.</li>
+                    <li>Pour the dressing over the lettuce and toss. Add the warm brie croutons and &mdash; hold on. Is one of them missing? Did you eat one? We don&rsquo;t blame you. They came out of the oven all golden and melty and smelling like a French daydream. Make more croutons next time. You&rsquo;ll always eat one. Or four.</li>
+                    <li>Serve immediately, topped with generous shavings of parmesan and a crack of black pepper. The brie croutons should still be warm and gooey inside, crispy outside &mdash; essentially everything you want to be when you grow up. Et voil&agrave;, a Caesar worthy of the mice&rsquo;s seal of approval.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 380 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 18g</m3e-list-item>
+                    <m3e-list-item>Fat: 28g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 16g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SaladSorcerer</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Brie-lliant indeed! I was sceptical about brie in a Caesar, but the warm melted croutons completely won me over. This is my new go-to salad recipe.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>CroutonConnoisseur</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">The brie croutons are a game-changer. Crispy on the outside, oozy on the inside. I added some crispy bacon for extra indulgence - highly recommend.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SaladDenier</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I don&rsquo;t eat salad. I have never eaten salad. I am morally opposed to salad. But I made this because of the brie and accidentally ate an entire lettuce. I feel betrayed by my own taste buds. Incredible recipe.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>BrieEmergency</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Recipe says &ldquo;200g brie.&rdquo; I used the whole wheel. Then I used another wheel. The salad was more brie than leaf. My guests said it was &ldquo;concerning.&rdquo; My guests are wrong.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>HealthyEatingGary</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">My nutritionist said I should eat more salad. I showed her a photo of this. She said &ldquo;that&rsquo;s not what I meant.&rdquo; She also asked for the recipe. Deducting one star because I now have to find a new nutritionist.</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>Use ripe brie for maximum meltiness - if it's still firm in the centre, it needs a few more days at room temperature.</m3e-list-item>
+                    <m3e-list-item>Make the dressing ahead of time for a deeper flavour. It keeps in the fridge for up to two days and only gets better.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Brie de Meaux was crowned 'King of Cheeses' at a cheese competition in 1815 - but we reckon Camembert gives it a run for its money.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Brie-lliant Caesar Salad - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        // In a real app this would open a time-picker dialog
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

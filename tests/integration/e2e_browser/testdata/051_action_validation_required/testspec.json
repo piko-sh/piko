@@ -1,0 +1,34 @@
+{
+  "description": "Verifies struct input with all required fields works correctly",
+  "requestURL": "/validation-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Submit with all required fields via the action builder - should succeed"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-message",
+      "expected": "User registered successfully"
+    }
+  ]
+}

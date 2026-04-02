@@ -1,0 +1,3 @@
+{
+  "description": "Window functions: ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, SUM OVER PARTITION"
+}

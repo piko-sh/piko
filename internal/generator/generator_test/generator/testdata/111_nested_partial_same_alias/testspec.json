@@ -1,0 +1,6 @@
+{
+  "description": "Tests that nested partials can use the same alias for different imports without clashing.",
+  "packageName": "nested_partial_same_alias_test",
+  "isPage": true,
+  "shouldError": false
+}

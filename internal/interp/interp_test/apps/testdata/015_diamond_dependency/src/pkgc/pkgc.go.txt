@@ -1,0 +1,7 @@
+package pkgc
+
+import "testpkg/pkgd"
+
+func FromC() string {
+	return pkgd.Hello() + "-d"
+}

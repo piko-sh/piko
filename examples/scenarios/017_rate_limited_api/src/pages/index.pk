@@ -1,0 +1,124 @@
+<template>
+  <div id="app">
+    <h1>Rate-Limited API</h1>
+    <p>This action allows 3 requests per minute per IP. Exceeding the limit triggers a 429 response.</p>
+
+    <button id="test-btn" p-on:click="runTest()">Test Rate Limit</button>
+
+    <div class="results">
+      <div class="result-row">
+        <span class="label">Calls made:</span>
+        <span p-ref="call_count">0</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Last status:</span>
+        <span p-ref="last_status">-</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Result:</span>
+        <span class="result-value" p-ref="result">idle</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Rate-Limited API",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export async function runTest(): Promise<void> {
+    pk.refs.result!.textContent = 'testing';
+    let callCount = 0;
+
+    for (let i = 0; i < 5; i++) {
+        callCount++;
+        pk.refs.call_count!.textContent = String(callCount);
+        try {
+            await action.api.Echo({ message: 'hello' }).call();
+            pk.refs.last_status!.textContent = '200';
+        } catch (err: any) {
+            pk.refs.last_status!.textContent = String(err.status || 'unknown');
+            if (err.status === 429) {
+                pk.refs.result!.textContent = 'rate_limited';
+                return;
+            }
+            pk.refs.result!.textContent = 'error';
+            return;
+        }
+    }
+    pk.refs.result!.textContent = 'not_limited';
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  p {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+
+  #test-btn {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+  }
+
+  #test-btn:hover {
+    background: #1d4ed8;
+  }
+
+  .results {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .result-row:last-child {
+    border-bottom: none;
+  }
+
+  .label {
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .result-value {
+    font-weight: 600;
+    color: #1f2937;
+  }
+</style>

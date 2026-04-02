@@ -1,0 +1,10 @@
+{
+  "description": "Validates that passing an object literal with an unknown field to an action emits a warning diagnostic.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Unknown field 'unknownField' in action 'actions.UpdateProfile' input type 'UpdateProfileInput'"
+    }
+  ]
+}

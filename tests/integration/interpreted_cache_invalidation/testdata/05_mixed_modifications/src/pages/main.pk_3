@@ -1,0 +1,18 @@
+<template>
+<h1>Stage 3: Template Changed Again</h1>
+<p>Script unchanged from stage 2 - should hit Tier 1 cache (fast path).</p>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+// Stage 2: Script MODIFIED - this comment makes it different!
+// NEW: Adding a comment to change the script hash
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

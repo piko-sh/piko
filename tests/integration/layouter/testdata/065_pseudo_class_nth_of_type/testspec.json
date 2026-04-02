@@ -1,0 +1,7 @@
+{
+    "description": "Verifies :first-of-type, :last-of-type, :nth-of-type, and :only-of-type pseudo-class selectors.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

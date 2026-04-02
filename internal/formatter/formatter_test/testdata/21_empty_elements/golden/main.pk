@@ -1,0 +1,12 @@
+<template>
+  <div></div>
+  <span></span>
+  <p></p>
+  <div class="empty"></div>
+  <ul></ul>
+  <table></table>
+  <form></form>
+  <section>
+    <article></article>
+  </section>
+</template>

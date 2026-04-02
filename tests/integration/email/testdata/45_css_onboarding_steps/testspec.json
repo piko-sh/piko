@@ -1,0 +1,6 @@
+{
+  "title": "CSS Onboarding Steps",
+  "description": "Onboarding progress email styled entirely with CSS classes",
+  "metadata": {"title": "You're 60% Done Setting Up!"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

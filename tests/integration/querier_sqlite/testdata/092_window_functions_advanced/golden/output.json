@@ -1,0 +1,154 @@
+{
+  "lag_lead": [
+    {
+      "Amount": 100,
+      "Employee": "Alice",
+      "ID": 1,
+      "NextAmount": 200,
+      "PrevAmount": null
+    },
+    {
+      "Amount": 200,
+      "Employee": "Bob",
+      "ID": 2,
+      "NextAmount": 150,
+      "PrevAmount": 100
+    },
+    {
+      "Amount": 150,
+      "Employee": "Alice",
+      "ID": 3,
+      "NextAmount": 50,
+      "PrevAmount": 200
+    },
+    {
+      "Amount": 50,
+      "Employee": "Bob",
+      "ID": 4,
+      "NextAmount": 300,
+      "PrevAmount": 150
+    },
+    {
+      "Amount": 300,
+      "Employee": "Alice",
+      "ID": 5,
+      "NextAmount": 175,
+      "PrevAmount": 50
+    },
+    {
+      "Amount": 175,
+      "Employee": "Bob",
+      "ID": 6,
+      "NextAmount": null,
+      "PrevAmount": 300
+    }
+  ],
+  "ntile": [
+    {
+      "Amount": 50,
+      "ID": 4,
+      "Quartile": 1
+    },
+    {
+      "Amount": 100,
+      "ID": 1,
+      "Quartile": 1
+    },
+    {
+      "Amount": 150,
+      "ID": 3,
+      "Quartile": 2
+    },
+    {
+      "Amount": 175,
+      "ID": 6,
+      "Quartile": 2
+    },
+    {
+      "Amount": 200,
+      "ID": 2,
+      "Quartile": 3
+    },
+    {
+      "Amount": 300,
+      "ID": 5,
+      "Quartile": 3
+    }
+  ],
+  "rank_by_employee": [
+    {
+      "Amount": 300,
+      "AmountRank": 1,
+      "Employee": "Alice",
+      "ID": 5
+    },
+    {
+      "Amount": 150,
+      "AmountRank": 2,
+      "Employee": "Alice",
+      "ID": 3
+    },
+    {
+      "Amount": 100,
+      "AmountRank": 3,
+      "Employee": "Alice",
+      "ID": 1
+    },
+    {
+      "Amount": 200,
+      "AmountRank": 1,
+      "Employee": "Bob",
+      "ID": 2
+    },
+    {
+      "Amount": 175,
+      "AmountRank": 2,
+      "Employee": "Bob",
+      "ID": 6
+    },
+    {
+      "Amount": 50,
+      "AmountRank": 3,
+      "Employee": "Bob",
+      "ID": 4
+    }
+  ],
+  "running_total": [
+    {
+      "Amount": 100,
+      "Employee": "Alice",
+      "ID": 1,
+      "RunningTotal": 100
+    },
+    {
+      "Amount": 200,
+      "Employee": "Bob",
+      "ID": 2,
+      "RunningTotal": 300
+    },
+    {
+      "Amount": 150,
+      "Employee": "Alice",
+      "ID": 3,
+      "RunningTotal": 450
+    },
+    {
+      "Amount": 50,
+      "Employee": "Bob",
+      "ID": 4,
+      "RunningTotal": 500
+    },
+    {
+      "Amount": 300,
+      "Employee": "Alice",
+      "ID": 5,
+      "RunningTotal": 800
+    },
+    {
+      "Amount": 175,
+      "Employee": "Bob",
+      "ID": 6,
+      "RunningTotal": 975
+    }
+  ]
+}

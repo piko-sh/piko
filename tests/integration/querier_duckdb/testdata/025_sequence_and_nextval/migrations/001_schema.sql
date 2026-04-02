@@ -1,0 +1,7 @@
+CREATE SEQUENCE order_seq START WITH 1000 INCREMENT BY 1;
+
+CREATE TABLE orders (
+    id INTEGER DEFAULT nextval('order_seq') PRIMARY KEY,
+    customer VARCHAR NOT NULL,
+    total INTEGER NOT NULL
+);

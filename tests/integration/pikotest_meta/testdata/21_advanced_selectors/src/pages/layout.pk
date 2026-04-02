@@ -1,0 +1,83 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package layout
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{}, piko.Metadata{
+		Title: "Layout Demo",
+	}, nil
+}
+</script>
+<template>
+	<div class="page-wrapper">
+		<header class="site-header">
+			<nav class="main-nav">
+				<a href="/" class="nav-link home-link">Home</a>
+				<a href="/about" class="nav-link">About</a>
+				<a href="/contact" class="nav-link primary">Contact</a>
+			</nav>
+			<div class="user-menu">
+				<span class="user-name">John Doe</span>
+				<button class="btn btn-small logout-btn" data-action="logout">Logout</button>
+			</div>
+		</header>
+		<main class="content-area">
+			<article class="featured article">
+				<h2 class="article-title">Featured Article</h2>
+				<p class="article-excerpt">This is the featured content.</p>
+				<div class="article-meta">
+					<span class="author">By Author</span>
+					<span class="date">2024-01-15</span>
+				</div>
+			</article>
+			<section class="sidebar">
+				<div class="widget recent-posts">
+					<h3 class="widget-title">Recent Posts</h3>
+					<ul class="post-list">
+						<li class="post-item"><a href="/post/1" class="post-link">Post One</a></li>
+						<li class="post-item"><a href="/post/2" class="post-link">Post Two</a></li>
+						<li class="post-item featured"><a href="/post/3" class="post-link">Post Three</a></li>
+					</ul>
+				</div>
+				<div class="widget tags">
+					<h3 class="widget-title">Tags</h3>
+					<div class="tag-cloud">
+						<span class="tag">Go</span>
+						<span class="tag featured">Web</span>
+						<span class="tag">API</span>
+					</div>
+				</div>
+			</section>
+		</main>
+		<footer class="site-footer">
+			<p class="copyright">Copyright 2024</p>
+			<nav class="footer-nav">
+				<a href="/privacy" class="footer-link">Privacy</a>
+				<a href="/terms" class="footer-link">Terms</a>
+			</nav>
+		</footer>
+	</div>
+</template>

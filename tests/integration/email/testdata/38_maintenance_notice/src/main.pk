@@ -1,0 +1,138 @@
+<template>
+    <pml-row background-color="#f39c12" padding="30px 0">
+        <pml-col>
+            <pml-p font-size="28px" color="#ffffff" align="center" padding="10px 25px">Scheduled Maintenance</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#2c3e50" align="center" padding="10px 25px">Planned Maintenance Window</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-p font-size="15px" color="#555555" line-height="1.6" padding="10px 25px">
+                We're performing scheduled maintenance to improve performance and reliability.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-container background-color="#fef9e7" padding="15px 0">
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Date:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Saturday, 5 April 2026</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Time:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">02:00 - 06:00 UTC</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Duration:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Up to 4 hours</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+        <pml-row padding="8px 0">
+            <pml-no-stack>
+                <pml-col width="35%">
+                    <pml-p font-size="14px" color="#666666" padding="5px 25px"><b>Impact:</b></pml-p>
+                </pml-col>
+                <pml-col width="65%">
+                    <pml-p font-size="14px" color="#333333" padding="5px 25px">Intermittent downtime</pml-p>
+                </pml-col>
+            </pml-no-stack>
+        </pml-row>
+    </pml-container>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px">Affected Services</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-ul>
+                <pml-li>API Gateway (v2 and v3 endpoints)</pml-li>
+                <pml-li>Dashboard and web console</pml-li>
+                <pml-li>Webhook deliveries (will be queued and retried)</pml-li>
+                <pml-li>CDN edge nodes (partial, region-dependent)</pml-li>
+            </pml-ul>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px">Not Affected</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-ul>
+                <pml-li>DNS resolution</pml-li>
+                <pml-li>SSL certificate management</pml-li>
+                <pml-li>Billing and account portal</pml-li>
+            </pml-ul>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px">What You Should Do</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-ol>
+                <pml-li>Save any in-progress work before the maintenance window</pml-li>
+                <pml-li>Set up monitoring alerts if you haven't already</pml-li>
+                <pml-li>Check our status page for real-time updates during the window</pml-li>
+            </pml-ol>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="25px 0">
+        <pml-col>
+            <pml-button href="https://status.uplink.example.com" background-color="#f39c12" color="#2c3e50" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 40px">View Status Page</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#dddddd" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#2c3e50" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="12px" color="#ffffff" align="center" padding="5px 25px">
+                Uplink Cloud Hosting - 99.99% uptime SLA
+            </pml-p>
+            <pml-p font-size="11px" color="#bdc3c7" align="center" padding="0 25px">
+                You're receiving this because you're an account administrator.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.service-list { line-height: 1.5; }
+</style>

@@ -1,0 +1,40 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "uuid": { "category": "uuid", "engineName": "uuid" },
+    "text": { "category": "text", "engineName": "text" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, email text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "email", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, name FROM users WHERE id = $1 AND name = $2",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "users", "columnName": "id" },
+          { "name": "name", "tableAlias": "users", "columnName": "name" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "users", "columnName": "id" } },
+          { "number": 2, "context": "comparison", "columnReference": { "tableAlias": "users", "columnName": "name" } }
+        ],
+        "fromTables": [
+          { "name": "users" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

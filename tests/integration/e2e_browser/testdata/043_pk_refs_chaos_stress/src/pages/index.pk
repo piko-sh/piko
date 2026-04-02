@@ -1,0 +1,169 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div>
+        <h1>PK Refs Chaos Stress Test</h1>
+        <p>Tests deeply nested partials, multiple RemoteRenders, cross-slot refs, and general chaos.</p>
+
+        <div class="page-controls">
+            <p>Page Status: <span id="page-status" p-ref="pageStatus">ready</span></p>
+            <button id="page-action" p-ref="pageActionBtn" p-on:click="pageAction()">Page Action</button>
+            <button id="load-everything" p-ref="loadEverythingBtn" p-on:click="loadEverything()">Load Everything</button>
+        </div>
+
+        <div id="main-container" class="main-container" p-ref="mainContainer">
+            <p class="placeholder">Click "Load Everything" to begin the chaos...</p>
+        </div>
+
+        <chaos-card id="page-chaos-card">
+            <div>
+                <p>Page Card Body: <span id="page-card-body" p-ref="pageCardBody">empty</span></p>
+            </div>
+            <div slot="header">
+                <span id="page-card-header" p-ref="pageCardHeader">Page Header</span>
+                <button id="page-header-btn" p-ref="pageHeaderBtn" p-on:click="updatePageCard()">Update Card</button>
+            </div>
+            <div slot="footer">
+                <span id="page-card-footer" p-ref="pageCardFooter">Page Footer</span>
+            </div>
+        </chaos-card>
+    </div>
+</template>
+
+<style>
+h1 {
+    color: #1e293b;
+}
+p {
+    color: #64748b;
+}
+.page-controls {
+    background: #f1f5f9;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.page-controls p {
+    margin: 0;
+}
+.main-container {
+    border: 3px dashed #94a3b8;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    min-height: 100px;
+}
+.placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+}
+button {
+    padding: 0.5rem 1rem;
+    background: #0ea5e9;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+button:hover {
+    background: #0284c7;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "PK Refs Chaos Stress Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+/**
+ * Page-level script for the chaos stress test.
+ * Has its own refs and loads the deeply nested partial structure via RemoteRender.
+ */
+let pageActionCount = 0;
+let cardUpdateCount = 0;
+
+export function pageAction() {
+    pageActionCount++;
+    if (pk.refs.pageStatus) {
+        pk.refs.pageStatus.textContent = `action-${pageActionCount}`;
+    }
+    if (pk.refs.pageActionBtn) {
+        pk.refs.pageActionBtn.textContent = `Page Action (${pageActionCount})`;
+    }
+}
+
+export async function loadEverything() {
+    const container = pk.refs.mainContainer;
+    if (!container) {
+        return;
+    }
+
+    if (pk.refs.loadEverythingBtn) {
+        pk.refs.loadEverythingBtn.textContent = 'Loading...';
+    }
+
+    container.innerHTML = '';
+
+    await piko.partials.render({
+        src: '/_piko/partials/level_one',
+        patchLocation: container,
+        patchMethod: 'replace',
+        childrenOnly: false
+    });
+
+    if (pk.refs.loadEverythingBtn) {
+        pk.refs.loadEverythingBtn.textContent = 'Chaos Loaded!';
+    }
+    if (pk.refs.pageStatus) {
+        pk.refs.pageStatus.textContent = 'chaos active';
+    }
+}
+
+export function updatePageCard() {
+    cardUpdateCount++;
+    if (pk.refs.pageCardBody) {
+        pk.refs.pageCardBody.textContent = `body-${cardUpdateCount}`;
+    }
+    if (pk.refs.pageCardHeader) {
+        pk.refs.pageCardHeader.textContent = `Header ${cardUpdateCount}`;
+    }
+    if (pk.refs.pageCardFooter) {
+        pk.refs.pageCardFooter.textContent = `Footer ${cardUpdateCount}`;
+    }
+    if (pk.refs.pageHeaderBtn) {
+        pk.refs.pageHeaderBtn.textContent = `Update Card (${cardUpdateCount})`;
+    }
+}
+</script>

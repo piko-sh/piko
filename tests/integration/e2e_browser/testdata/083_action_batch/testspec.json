@@ -1,0 +1,51 @@
+{
+  "description": "Tests multiple actions executed concurrently via Promise.all",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Click button to run batch of actions concurrently"
+    },
+    {
+      "action": "click",
+      "selector": "#batch-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify both actions completed successfully"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-add",
+      "expected": "30"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-multiply",
+      "expected": "42"
+    },
+    {
+      "action": "checkText",
+      "selector": "#batch-complete",
+      "expected": "complete"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_batch.html"
+    }
+  ]
+}

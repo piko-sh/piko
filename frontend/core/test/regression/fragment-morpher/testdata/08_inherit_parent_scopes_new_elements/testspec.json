@@ -1,0 +1,19 @@
+{
+    "description": "New elements should inherit parent scopes from existing siblings",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".existing",
+            "attributes": { "partial": "existing_scope modal_scope page_scope" },
+            "description": "Existing element preserves full scope chain"
+        },
+        {
+            "selector": ".new-item",
+            "attributes": { "partial": "new_scope modal_scope page_scope" },
+            "description": "New element inherits parent scopes from sibling"
+        }
+    ]
+}

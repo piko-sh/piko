@@ -1,0 +1,45 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <!-- Test 1: Long word with overflow-wrap: break-word wraps within the container -->
+  <div data-layout-id="break-word-container" style="box-sizing: content-box; width: 100px; margin: 0; padding: 0; overflow-wrap: break-word;">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
+
+  <!-- Test 2: Same long word without overflow-wrap stays on one line (overflow-wrap: normal) -->
+  <div data-layout-id="normal-container" style="box-sizing: content-box; width: 100px; margin: 0; padding: 0; overflow-wrap: normal;">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
+
+  <!-- Test 3: Short words that fit should not be broken even with overflow-wrap: break-word -->
+  <div data-layout-id="no-break-needed" style="box-sizing: content-box; width: 200px; margin: 0; padding: 0; overflow-wrap: break-word;">Hello World</div>
+
+  <!-- Test 4: word-wrap alias works the same as overflow-wrap -->
+  <div data-layout-id="word-wrap-alias" style="box-sizing: content-box; width: 100px; margin: 0; padding: 0; word-wrap: break-word;">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Overflow Wrap Test"}, nil
+}
+</script>

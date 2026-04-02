@@ -1,0 +1,182 @@
+{
+  "packages": {
+    "testcase_37_multi_package_name_collision": {
+      "file_imports": {
+        "37_multi_package_name_collision/src/main.go": {
+          "gofrsuuid": "github.com/gofrs/uuid/v5",
+          "localuuid": "testcase_37_multi_package_name_collision/pkg/uuid",
+          "moderncuuid": "modernc.org/libc/uuid/uuid",
+          "uuid": "github.com/google/uuid"
+        }
+      },
+      "named_types": {
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_37_multi_package_name_collision",
+          "defined_in_file_path": "37_multi_package_name_collision/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{RealGoogleUUID uuid.UUID; LocalFakeUUID localuuid.UUID; GofrsUUID gofrsuuid.UUID; ModerncUUID [16]uint8}",
+          "fields": [
+            {
+              "definition_file_path": "37_multi_package_name_collision/src/main.go",
+              "declaring_pkg_path": "testcase_37_multi_package_name_collision",
+              "pkg_path": "github.com/google/uuid",
+              "underlying_type_string": "[16]byte",
+              "declaring_type_name": "Response",
+              "name": "RealGoogleUUID",
+              "type_string": "uuid.UUID",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "byte",
+                  "role": "element",
+                  "underlying_type_string": "byte",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 3,
+              "definition_line": 38,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            },
+            {
+              "definition_file_path": "37_multi_package_name_collision/src/main.go",
+              "declaring_pkg_path": "testcase_37_multi_package_name_collision",
+              "pkg_path": "testcase_37_multi_package_name_collision/pkg/uuid",
+              "underlying_type_string": "struct{IsLocal bool}",
+              "declaring_type_name": "Response",
+              "name": "LocalFakeUUID",
+              "type_string": "localuuid.UUID",
+              "raw_tag": "",
+              "definition_line": 41,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "37_multi_package_name_collision/src/main.go",
+              "declaring_pkg_path": "testcase_37_multi_package_name_collision",
+              "pkg_path": "github.com/gofrs/uuid/v5",
+              "underlying_type_string": "[16]byte",
+              "declaring_type_name": "Response",
+              "name": "GofrsUUID",
+              "type_string": "gofrsuuid.UUID",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "byte",
+                  "role": "element",
+                  "underlying_type_string": "byte",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 3,
+              "definition_line": 44,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            },
+            {
+              "definition_file_path": "37_multi_package_name_collision/src/main.go",
+              "declaring_pkg_path": "testcase_37_multi_package_name_collision",
+              "pkg_path": "modernc.org/libc/uuid/uuid",
+              "underlying_type_string": "[16]uint8",
+              "declaring_type_name": "Response",
+              "name": "ModerncUUID",
+              "type_string": "moderncuuid.Uuid_t",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "uint8",
+                  "role": "element",
+                  "underlying_type_string": "uint8",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 3,
+              "definition_line": 47,
+              "definition_column": 2,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_alias": true,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 36,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_37_multi_package_name_collision",
+      "name": "main"
+    },
+    "testcase_37_multi_package_name_collision/pkg/uuid": {
+      "file_imports": {
+        "37_multi_package_name_collision/src/pkg/uuid/fake.go": {}
+      },
+      "named_types": {
+        "UUID": {
+          "name": "UUID",
+          "package_path": "testcase_37_multi_package_name_collision/pkg/uuid",
+          "defined_in_file_path": "37_multi_package_name_collision/src/pkg/uuid/fake.go",
+          "type_string": "uuid.UUID",
+          "underlying_type_string": "struct{IsLocal bool}",
+          "fields": [
+            {
+              "definition_file_path": "37_multi_package_name_collision/src/pkg/uuid/fake.go",
+              "declaring_pkg_path": "testcase_37_multi_package_name_collision/pkg/uuid",
+              "pkg_path": "",
+              "underlying_type_string": "bool",
+              "declaring_type_name": "UUID",
+              "name": "IsLocal",
+              "type_string": "bool",
+              "raw_tag": "",
+              "definition_line": 23,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_37_multi_package_name_collision/pkg/uuid",
+      "name": "uuid"
+    }
+  },
+  "file_to_package": {
+    "37_multi_package_name_collision/src/main.go": "testcase_37_multi_package_name_collision",
+    "37_multi_package_name_collision/src/pkg/uuid/fake.go": "testcase_37_multi_package_name_collision/pkg/uuid"
+  }
+}

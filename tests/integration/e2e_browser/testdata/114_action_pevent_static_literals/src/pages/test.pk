@@ -1,0 +1,70 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Action p-event Static Literals Test</h1>
+
+    <div id="target"
+         p-event:do-static="action.calc.Static('hello', 42, true)">
+      <button id="trigger-btn" p-on:click="triggerStatic()">Trigger Static</button>
+    </div>
+
+    <div id="results">
+      <span id="result-name">pending</span>
+      <span id="result-count">pending</span>
+      <span id="result-flag">pending</span>
+    </div>
+
+    <div id="error-output" style="display:none"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Action p-event Static Literals Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+piko.registerHelper('showResult', (el, ev, name, count, flag) => {
+    const rName = document.getElementById('result-name');
+    const rCount = document.getElementById('result-count');
+    const rFlag = document.getElementById('result-flag');
+    if (rName) rName.textContent = String(name);
+    if (rCount) rCount.textContent = String(count);
+    if (rFlag) rFlag.textContent = String(flag);
+});
+
+export function triggerStatic(): void {
+    const target = document.getElementById('target');
+    if (target) {
+        target.dispatchEvent(new CustomEvent('do-static', { bubbles: true }));
+    }
+}
+</script>

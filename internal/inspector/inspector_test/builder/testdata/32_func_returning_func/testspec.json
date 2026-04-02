@@ -1,0 +1,20 @@
+{
+  "description": "Tests serialisation of function types and functions that return functions.",
+  "moduleName": "testcase_32_func_returning_func",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_32_func_returning_func"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Middleware' type definition should have the correct underlying function signature.",
+      "select": "packages.testcase_32_func_returning_func.named_types.Middleware.underlying_type_string",
+      "expect": "func(http.Handler) http.Handler"
+    },
+    {
+      "description": "The 'NewMiddleware' function should have the correct return type string.",
+      "select": "packages.testcase_32_func_returning_func.funcs.NewMiddleware.signature.results.0",
+      "expect": "func(string) (int, error)"
+    }
+  ]
+}

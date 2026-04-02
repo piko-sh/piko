@@ -1,0 +1,3 @@
+{
+  "description": "Schema-qualified table names: CREATE SCHEMA and tables in non-public schemas. Tests that the engine resolves columns from schema-qualified references."
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-model-select >>> #selected",
+    "expected": "Selected: banana"
+  },
+  {
+    "action": "eval",
+    "selector": "p-model-select >>> #fruit-select",
+    "value": "() => { this.value = 'cherry'; this.dispatchEvent(new Event('input', { bubbles: true })); }"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-select >>> #selected",
+    "expected": "Selected: cherry"
+  },
+  {
+    "action": "eval",
+    "selector": "p-model-select >>> #fruit-select",
+    "value": "() => { this.value = 'apple'; this.dispatchEvent(new Event('input', { bubbles: true })); }"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-select >>> #selected",
+    "expected": "Selected: apple"
+  }
+]

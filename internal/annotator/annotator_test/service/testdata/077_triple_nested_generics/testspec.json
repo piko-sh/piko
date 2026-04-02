@@ -1,0 +1,88 @@
+{
+  "description": "Validates that triple-nested generics resolve correctly. Wrapper[Container[Ref[TeamMember]]] should resolve through all three levels to TeamMember.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "p.level1",
+      "description": "First level: Wrapper.Get() returns Container[Ref[TeamMember]].",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.TripleNested.Get().Data.HasItem()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.level2",
+      "description": "Second level: Wrapper.Get().Get() returns Ref[TeamMember].",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.TripleNested.Get().Get().HasItem()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.level3",
+      "description": "CRITICAL: Third level - all three Get() calls resolve to TeamMember.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.TripleNested.Get()",
+          "resolvedTypeIs": "fields.Container[fields.Ref[dto.TeamMember]]"
+        },
+        {
+          "rawExpression": "props.Data.TripleNested.Get().Get()",
+          "resolvedTypeIs": "fields.Ref[dto.TeamMember]"
+        },
+        {
+          "rawExpression": "props.Data.TripleNested.Get().Get().Get()",
+          "resolvedTypeIs": "dto.TeamMember"
+        },
+        {
+          "rawExpression": "props.Data.TripleNested.Get().Get().Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.field-access",
+      "description": "Direct field access through all three levels.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.TripleNested.Get().Get().Get().FirstName",
+          "resolvedTypeIs": "fields.Text"
+        },
+        {
+          "rawExpression": "props.Data.TripleNested.Get().Get().Get().FirstName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.mixed-access",
+      "description": "Mixed field and method access through nested generics.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.TripleNested.Inner.Data.Get().LastName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.full-chain",
+      "description": "Full method chain through all three generic levels.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.TripleNested.Get().Get().Get().FirstName.String()",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "props.Data.TripleNested.Get().Get().Get().LastName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

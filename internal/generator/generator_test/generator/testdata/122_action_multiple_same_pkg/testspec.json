@@ -1,0 +1,5 @@
+{
+    "description": "Tests that multiple actions in the same package are discovered and handled correctly",
+    "packageName": "action_multiple_same_pkg_test",
+    "isPage": true
+}

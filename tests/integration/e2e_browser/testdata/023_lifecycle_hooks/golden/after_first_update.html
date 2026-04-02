@@ -1,0 +1,25 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">Lifecycle Hooks Test</h1>
+    <lifecycle-component partial="pages_main_594861c5" p-key="r.0:1" connect-count="1" update-count="1">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.container{padding: 1rem}.log-section{margin: 1rem 0;padding: 1rem;border: 1px solid #eee;max-height: 200px;overflow-y: auto}.log-section h3{margin-top: 0}#lifecycle-log{margin: 0;padding-left: 1.5rem}#lifecycle-log li{padding: 0.25rem 0;font-family: monospace}button{padding: 0.5rem 1rem;background: #3f51b5;color: white;border: none;cursor: pointer}.counters{margin-top: 1rem;padding: 1rem;background: #f5f5f5}</style>
+        <div class="container">
+          <div class="log-section">
+            <h3>Lifecycle Log</h3>
+            <ul id="lifecycle-log">
+              <li>onConnected called (count: 1)</li>
+              <li>Update triggered (count: 1)</li>
+            </ul>
+          </div>
+          <div class="controls"><button id="trigger-update">Trigger Update</button></div>
+          <div class="counters">
+            <p id="connect-count">Connected count: 1</p>
+            <p id="update-count">Update count: 1</p>
+          </div>
+        </div>
+      </template>
+    </lifecycle-component>
+  </div>
+</div>

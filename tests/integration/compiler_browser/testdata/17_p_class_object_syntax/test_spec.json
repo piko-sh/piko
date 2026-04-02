@@ -1,0 +1,28 @@
+[
+  {
+    "action": "checkAttribute",
+    "selector": "p-class-object \u003e\u003e\u003e div \u003e div",
+    "expected": "static active",
+    "name": "class"
+  },
+  {
+    "action": "click",
+    "selector": "p-class-object \u003e\u003e\u003e button:nth-of-type(2)"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "p-class-object \u003e\u003e\u003e div \u003e div",
+    "expected": "static active text-danger",
+    "name": "class"
+  },
+  {
+    "action": "click",
+    "selector": "p-class-object \u003e\u003e\u003e button:nth-of-type(1)"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "p-class-object \u003e\u003e\u003e div \u003e div",
+    "expected": "static text-danger",
+    "name": "class"
+  }
+]

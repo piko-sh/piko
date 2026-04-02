@@ -1,0 +1,36 @@
+{
+  "aggregated": [
+    {
+      "AllTags": ["generics", "go", "programming"],
+      "Title": "Go Generics"
+    },
+    {
+      "AllTags": ["memory", "programming", "rust"],
+      "Title": "Rust Ownership"
+    }
+  ],
+  "article_1": {
+    "ID": 1,
+    "Scores": [95, 88, 92],
+    "Tags": ["go", "generics", "programming"],
+    "Title": "Go Generics"
+  },
+  "article_2": {
+    "ID": 2,
+    "Scores": [90, 85],
+    "Tags": ["rust", "memory", "programming"],
+    "Title": "Rust Ownership"
+  },
+  "filtered": [
+    {
+      "ID": 1,
+      "Tags": ["go", "generics", "programming"],
+      "Title": "Go Generics"
+    },
+    {
+      "ID": 2,
+      "Tags": ["rust", "memory", "programming"],
+      "Title": "Rust Ownership"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+<template>
+  <p style="white-space: nowrap; width: 100px;">This text should not wrap even if it is very long</p>
+</template>

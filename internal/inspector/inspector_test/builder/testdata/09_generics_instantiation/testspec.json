@@ -1,0 +1,40 @@
+{
+  "description": "Tests serialisation of a field using an instantiated generic type.",
+  "moduleName": "testcase_09_generics_instantiation",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_09_generics_instantiation"
+  ],
+  "assertions": [
+    {
+      "description": "The 'StringBox' field's TypeString should be 'models.Box[string]'.",
+      "select": "packages.testcase_09_generics_instantiation.named_types.Container.fields.0.type_string",
+      "expect": "models.Box[string]"
+    },
+    {
+      "description": "The nested generic field's TypeString should be correct.",
+      "select": "packages.testcase_09_generics_instantiation.named_types.Container.fields.1.type_string",
+      "expect": "models.Box[models.Box[int]]"
+    },
+    {
+      "description": "The StringBox field should have the models package path.",
+      "select": "packages.testcase_09_generics_instantiation.named_types.Container.fields.0.pkg_path",
+      "expect": "testcase_09_generics_instantiation/models"
+    },
+    {
+      "description": "The BoxOfIntBox field should have the models package path.",
+      "select": "packages.testcase_09_generics_instantiation.named_types.Container.fields.1.pkg_path",
+      "expect": "testcase_09_generics_instantiation/models"
+    },
+    {
+      "description": "The StringBox's generic argument (string) should have empty pkg_path since it's primitive.",
+      "select": "packages.testcase_09_generics_instantiation.named_types.Container.fields.0.composite_parts.0.pkg_path",
+      "expect": ""
+    },
+    {
+      "description": "The BoxOfIntBox's generic argument (models.Box[int]) should have models pkg_path.",
+      "select": "packages.testcase_09_generics_instantiation.named_types.Container.fields.1.composite_parts.0.pkg_path",
+      "expect": "testcase_09_generics_instantiation/models"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "expectedDiagnostics": [
+    {
+      "severity": "Warning",
+      "message": "Component <card> does not have a slot named 'fotter'. Did you mean 'footer'?"
+    },
+    {
+      "severity": "Warning",
+      "message": "Component <card> does not have a default slot, but content was provided."
+    }
+  ],
+  "specs": [
+    {
+      "description": "The header slot should be correctly filled",
+      "select": "header > h1",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "User Title"
+      }
+    },
+    {
+      "description": "The main content area should be empty because there is no default slot",
+      "select": "main",
+      "assert": {
+        "childCount": 0
+      }
+    },
+    {
+      "description": "The footer should contain its fallback content because it was not provided",
+      "select": "footer > p",
+      "assert": {
+        "originalPackageAlias": "partials/card.pk",
+        "textContentContains": "Default Footer"
+      }
+    }
+  ]
+}

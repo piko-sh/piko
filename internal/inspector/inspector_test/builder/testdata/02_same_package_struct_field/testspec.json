@@ -1,0 +1,25 @@
+{
+  "description": "Tests a struct field whose type is another struct defined in the same package.",
+  "moduleName": "testcase_02_same_package_struct_field",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_02_same_package_struct_field"
+  ],
+  "assertions": [
+    {
+      "description": "The 'HomeAddress' field should be present on the 'User' type.",
+      "select": "packages.testcase_02_same_package_struct_field.named_types.User.fields.0.name",
+      "expect": "HomeAddress"
+    },
+    {
+      "description": "The field's TypeString must be qualified with its own package name ('main').",
+      "select": "packages.testcase_02_same_package_struct_field.named_types.User.fields.0.type_string",
+      "expect": "main.Address"
+    },
+    {
+      "description": "The field's PackagePath must be populated with the canonical package path, even for same-package types.",
+      "select": "packages.testcase_02_same_package_struct_field.named_types.User.fields.0.pkg_path",
+      "expect": "testcase_02_same_package_struct_field"
+    }
+  ]
+}

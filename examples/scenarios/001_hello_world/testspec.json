@@ -1,0 +1,26 @@
+{
+  "description": "Verifies a minimal static PK page renders with server-side data and scoped styles",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Hello, World!"
+    },
+    {
+      "action": "checkText",
+      "selector": "p",
+      "expected": "This is a minimal Piko page with server-side rendering."
+    },
+    {
+      "action": "checkText",
+      "selector": "footer small",
+      "expected": "Built with Piko v0.1.0"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "description": "A stress test for file-scoped import resolution involving multiple external and local packages all related to 'uuid'.",
+  "moduleName": "testcase_37_multi_package_name_collision",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_37_multi_package_name_collision"
+  ],
+  "assertions": [
+    {
+      "description": "The 'RealGoogleUUID' field should point to the google/uuid package.",
+      "select": "packages.testcase_37_multi_package_name_collision.named_types.Response.fields.0.pkg_path",
+      "expect": "github.com/google/uuid"
+    },
+    {
+      "description": "The 'LocalFakeUUID' field should point to our local uuid package.",
+      "select": "packages.testcase_37_multi_package_name_collision.named_types.Response.fields.1.pkg_path",
+      "expect": "testcase_37_multi_package_name_collision/pkg/uuid"
+    },
+    {
+      "description": "The 'GofrsUUID' field should point to the gofrs/uuid package.",
+      "select": "packages.testcase_37_multi_package_name_collision.named_types.Response.fields.2.pkg_path",
+      "expect": "github.com/gofrs/uuid/v5"
+    },
+    {
+      "description": "The 'ModerncUUID' field should point to the modernc uuid package.",
+      "select": "packages.testcase_37_multi_package_name_collision.named_types.Response.fields.3.pkg_path",
+      "expect": "modernc.org/libc/uuid/uuid"
+    },
+    {
+      "description": "The modernc field's TypeString should use its alias 'moderncuuid'.",
+      "select": "packages.testcase_37_multi_package_name_collision.named_types.Response.fields.3.type_string",
+      "expect": "moderncuuid.Uuid_t"
+    }
+  ]
+}

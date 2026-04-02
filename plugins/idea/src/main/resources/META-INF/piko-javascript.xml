@@ -1,0 +1,8 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <multiHostInjector implementation="io.politepixels.piko.pk.injection.PKTypeScriptLanguageInjector"/>
+        <implicitUsageProvider implementation="io.politepixels.piko.pk.js.PKJsImplicitUsageProvider"/>
+        <referencesSearch
+                implementation="io.politepixels.piko.pk.js.PKJsReferencesSearchContributor"/>
+    </extensions>
+</idea-plugin>

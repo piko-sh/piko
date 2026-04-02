@@ -1,0 +1,46 @@
+{
+    "description": "Sync form with partial_mode, pk-sync-bound, pk-no-track attributes morph correctly with scope preservation",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "form.search-form",
+            "attributes": {
+                "partial_mode": "sync",
+                "pk-sync-bound": "true",
+                "pk-no-track": ""
+            },
+            "description": "Form preserves partial_mode, pk-sync-bound, and pk-no-track attributes"
+        },
+        {
+            "selector": "form.search-form",
+            "attributes": { "partial": "partials_results_94d5c799 pages_search_3cd6b932" },
+            "description": "Form scope chain maintained with parent scope preserved"
+        },
+        {
+            "selector": "input[name='query']",
+            "attributes": {
+                "pk-no-refresh": "",
+                "partial": "partials_results_94d5c799 pages_search_3cd6b932"
+            },
+            "description": "Input preserves pk-no-refresh and scope chain"
+        },
+        {
+            "selector": ".results .status",
+            "textContent": "3 results found",
+            "description": "Results div content updated"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "form.search-form",
+            "description": "Form element preserved during morph"
+        },
+        {
+            "sourceSelector": "input[name='query']",
+            "description": "Input element preserved during morph"
+        }
+    ]
+}

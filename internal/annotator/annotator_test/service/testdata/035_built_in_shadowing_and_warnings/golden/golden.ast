@@ -1,0 +1,23 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p id="valid-len" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Len: "
+      {{ len(state.StringSlice) }}
+    </RichText>
+  </p>
+  <ul id="shadow-container" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <li id="shadowed-len" [p-for: (__pikoLoopIdx, len) in state.ShadowItems] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "\n                Item: "
+        {{ len }}
+        "\n            "
+      </RichText>
+    </li>
+  </ul>
+</div>
+
+--- END AST DUMP ---
+*/

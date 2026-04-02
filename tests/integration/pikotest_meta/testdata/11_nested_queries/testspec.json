@@ -1,0 +1,6 @@
+{
+  "description": "Tests nested element queries and complex CSS selectors",
+  "entryPoints": [
+    { "path": "pages/dashboard.pk", "isPage": true }
+  ]
+}

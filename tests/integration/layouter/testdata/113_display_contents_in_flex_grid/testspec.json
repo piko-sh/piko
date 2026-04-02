@@ -1,0 +1,7 @@
+{
+    "description": "Verifies display:contents inside flex and grid containers: children of a contents wrapper become direct flex/grid items, inheriting flex-grow and grid placement correctly.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,11 @@
+{
+  "description": "Validates that Go compiler errors in imported .go files (not in the generated PK code) are still reported with useful diagnostics.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "undefined"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies intrinsic sizing keywords: width: min-content and width: max-content resolve correctly based on child content.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

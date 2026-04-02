@@ -1,0 +1,46 @@
+{
+  "description": "Error handling: verify proper error responses for invalid operations",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jersey.jpg"
+    }
+  ],
+  "errorChecks": [
+    {
+      "operation": "get",
+      "artefactID": "nonexistent/artefact/path.jpg",
+      "expectError": true,
+      "errorContains": "not found",
+      "description": "Get non-existent artefact should return not found error"
+    },
+    {
+      "operation": "store",
+      "artefactID": "testmodule/missing.jpg",
+      "sourcePath": "src/lib/images/nonexistent.jpg",
+      "expectError": true,
+      "errorContains": "no such file",
+      "description": "Store non-existent file should return error"
+    },
+    {
+      "operation": "transform",
+      "params": {
+        "capability": "image-transform",
+        "format": "invalid_format_xyz"
+      },
+      "expectError": true,
+      "errorContains": "unsupported",
+      "description": "Transform with invalid format should return error"
+    },
+    {
+      "operation": "transform",
+      "params": {
+        "capability": "nonexistent-capability"
+      },
+      "expectError": true,
+      "errorContains": "not found",
+      "description": "Transform with non-existent capability should return error"
+    }
+  ]
+}

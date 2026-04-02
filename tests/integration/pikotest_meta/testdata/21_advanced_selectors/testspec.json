@@ -1,0 +1,6 @@
+{
+  "description": "Tests advanced CSS selector patterns in QueryAST",
+  "entryPoints": [
+    { "path": "pages/layout.pk", "isPage": true }
+  ]
+}

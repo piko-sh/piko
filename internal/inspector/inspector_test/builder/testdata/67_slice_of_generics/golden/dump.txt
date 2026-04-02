@@ -1,0 +1,61 @@
+--- PACKAGE: testcase_67_slice_of_generics ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 67_slice_of_generics/src/main.go
+    - import "models"             -> testcase_67_slice_of_generics/models
+
+[Named Types]
+  > type Box
+    - Defined In:      67_slice_of_generics/src/main.go
+    - TypeString:      main.Box[T]
+    - Underlying:      struct{Content T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Content              T
+
+  > type GenericResponse
+    - Defined In:      67_slice_of_generics/src/main.go
+    - TypeString:      main.GenericResponse[T]
+    - Underlying:      struct{Items []T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Items                []T
+
+  > type Response
+    - Defined In:      67_slice_of_generics/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{Boxes []main.Box[string]; Stores []models.Store[int]}
+    - Stringability:   0
+    - Fields:
+      - Boxes                []main.Box[string]
+        (Canonical Package: testcase_67_slice_of_generics)
+      - Stores               []models.Store[int]
+        (Canonical Package: testcase_67_slice_of_generics/models)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_67_slice_of_generics/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 67_slice_of_generics/src/models/store.go
+    (no imports in this file)
+
+[Named Types]
+  > type Store
+    - Defined In:      67_slice_of_generics/src/models/store.go
+    - TypeString:      models.Store[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+
+[Package-Level Functions]
+  (none)

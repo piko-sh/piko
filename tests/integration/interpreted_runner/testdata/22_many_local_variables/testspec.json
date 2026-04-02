@@ -1,0 +1,6 @@
+{
+  "description": "Tests rendering a page with many local variables and append operations, exercising register pressure beyond 256 in the general bank.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "isFragment": false
+}

@@ -1,0 +1,184 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+namespace interp_schema_gen;
+
+enum RegisterKind : byte {
+    Int = 0,
+    Float = 1,
+    String = 2,
+    General = 3,
+    Bool = 4,
+    Uint = 5,
+    Complex = 6,
+}
+
+enum TypeDescKind : byte {
+    Basic = 0,
+    Named = 1,
+    Pointer = 2,
+    Slice = 3,
+    Array = 4,
+    Map = 5,
+    Channel = 6,
+    Function = 7,
+    Struct = 8,
+    Interface = 9,
+}
+
+enum GeneralConstantKind : byte {
+    PackageSymbol = 0,
+    NamedTypeZero = 1,
+    CompositeZero = 2,
+}
+
+struct Instruction {
+    opcode: uint8;
+    a: uint8;
+    b: uint8;
+    c: uint8;
+}
+
+struct ComplexValue {
+    real: float64;
+    imaginary: float64;
+}
+
+struct UpvalueDescriptor {
+    index: uint8;
+    kind: RegisterKind;
+    is_local: bool;
+}
+
+table VarLocation {
+    upvalue_index: int32;
+    register: uint8;
+    kind: RegisterKind;
+    is_upvalue: bool;
+    is_indirect: bool;
+    original_kind: RegisterKind;
+    is_spilled: bool;
+    spill_slot: uint16;
+}
+
+table TypeDescField {
+    name: string;
+    tag: string;
+    package_path: string;
+    type_descriptor: TypeDescriptor;
+}
+
+table TypeDescriptor {
+    kind: TypeDescKind;
+    package_path: string;
+    name: string;
+    basic_kind: uint8;
+    element: TypeDescriptor;
+    key: TypeDescriptor;
+    value: TypeDescriptor;
+    length: int32;
+    direction: int32;
+    fields: [TypeDescField];
+    params: [TypeDescriptor];
+    results: [TypeDescriptor];
+    is_variadic: bool;
+}
+
+table GeneralConstantDescriptor {
+    kind: GeneralConstantKind;
+    package_path: string;
+    symbol_name: string;
+    type_descriptor: TypeDescriptor;
+}
+
+table CallSite {
+    function_index: uint16;
+    closure_register: uint8;
+    native_register: uint8;
+    is_closure: bool;
+    is_native: bool;
+    is_method: bool;
+    method_receiver_register: uint8;
+
+    arguments: [VarLocation];
+    returns: [VarLocation];
+}
+
+table MethodTableEntry {
+    name: string (key);
+    function_index: uint16;
+}
+
+table TypeNameEntry {
+    name: string;
+    type_descriptor: TypeDescriptor;
+}
+
+table EntrypointEntry {
+    name: string (key);
+    function_index: uint16;
+}
+
+table CompiledFunction {
+    name: string;
+    source_file: string;
+    is_variadic: bool;
+
+    register_counts: [uint32];
+
+    parameter_kinds: [RegisterKind];
+    result_kinds: [RegisterKind];
+
+    body: [Instruction];
+
+    bool_constants: [bool];
+    int_constants: [int64];
+    float_constants: [float64];
+    uint_constants: [uint64];
+    complex_constants: [ComplexValue];
+    string_constants: [string];
+
+    general_constant_descriptors: [GeneralConstantDescriptor];
+
+    type_table_descriptors: [TypeDescriptor];
+
+    type_names: [TypeNameEntry];
+
+    call_sites: [CallSite];
+
+    upvalue_descriptors: [UpvalueDescriptor];
+    functions: [CompiledFunction];
+
+    named_result_locations: [VarLocation];
+
+    method_table: [MethodTableEntry];
+
+    variable_init_function: CompiledFunction;
+}
+
+table CompiledFileSet {
+    root: CompiledFunction;
+
+    variable_init_function: CompiledFunction;
+
+    entrypoints: [EntrypointEntry];
+
+    initialisation_functions: [uint16];
+}
+
+root_type CompiledFileSet;

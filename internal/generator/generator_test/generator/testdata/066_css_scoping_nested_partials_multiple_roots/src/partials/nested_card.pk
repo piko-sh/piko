@@ -1,0 +1,63 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div class="nested-card">
+    <h3 class="nested-title">Nested Card Title</h3>
+    <p class="nested-content">This text should be RED due to nested_card's scoped CSS</p>
+    <div class="nested-highlight">This should have yellow background</div>
+  </div>
+</template>
+
+<style>
+  .nested-card {
+    border: 3px solid red;
+    padding: 15px;
+    margin: 10px 0;
+    background-color: #ffebee;
+  }
+
+  .nested-title {
+    color: red;
+    font-weight: bold;
+    font-size: 18px;
+  }
+
+  .nested-content {
+    color: red;
+    line-height: 1.6;
+  }
+
+  .nested-highlight {
+    background-color: yellow;
+    padding: 5px;
+    margin-top: 10px;
+  }
+</style>
+
+<script type="application/x-go">
+  package nested_card
+
+  import "piko.sh/piko"
+
+  func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+  }
+</script>

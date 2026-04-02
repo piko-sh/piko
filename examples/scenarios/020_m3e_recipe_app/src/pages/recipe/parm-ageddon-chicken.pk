@@ -1,0 +1,253 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Parm-ageddon Chicken"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-parm-ageddon-chicken.jpg" alt="Parm-ageddon Chicken" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">Parm-ageddon Chicken</h1>
+                <p class="recipe-pun">Parm-ageddon is here, and it's delicious</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Parmesan + Mozzarella</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        45 mins
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Medium</m3e-chip>
+                    <m3e-chip variant="outlined">4 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="6" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="4" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>4 chicken breasts, skinless and boneless</m3e-list-item>
+                    <m3e-list-item>80g parmesan, finely grated</m3e-list-item>
+                    <m3e-list-item>200g mozzarella, sliced</m3e-list-item>
+                    <m3e-list-item>100g breadcrumbs</m3e-list-item>
+                    <m3e-list-item>2 large eggs, beaten</m3e-list-item>
+                    <m3e-list-item>60g plain flour, seasoned</m3e-list-item>
+                    <m3e-list-item>1 tin (400g) chopped tomatoes</m3e-list-item>
+                    <m3e-list-item>3 cloves garlic, minced</m3e-list-item>
+                    <m3e-list-item>1 onion, finely diced</m3e-list-item>
+                    <m3e-list-item>A handful of fresh basil leaves</m3e-list-item>
+                    <m3e-list-item>1 tsp dried oregano</m3e-list-item>
+                    <m3e-list-item>3 tbsp olive oil</m3e-list-item>
+                    <m3e-list-item>400g spaghetti</m3e-list-item>
+                    <m3e-list-item>Salt, to taste</m3e-list-item>
+                    <m3e-list-item>Freshly ground black pepper, to taste</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>Make the tomato sauce: heat 1 tbsp olive oil in a saucepan, cook the onion for 5 minutes, add the garlic for 1 minute, then in with the tinned tomatoes, oregano, and a pinch of salt. Simmer for 15&ndash;20 minutes. While you wait, grate the parmesan. You&rsquo;ll need a good pile. Grate it directly into the bowl. NOT into your mouth. We can see you. Into the bowl.</li>
+                    <li>Set up the breading station: flour in dish one, beaten eggs in dish two, breadcrumbs mixed with half the parmesan in dish three. This is an assembly line of joy. You are the foreman. The parmesan is your co-pilot. Together, you are unstoppable.</li>
+                    <li>Place each chicken breast between two sheets of cling film and pound with a rolling pin until about 1cm thick. This is strangely therapeutic. Think of it as a workout, but one that ends with cheese. All the best workouts end with cheese.</li>
+                    <li>Coat each chicken breast: flour first (shake off excess), then egg, then into the parmesan-breadcrumb mix. Press it in firmly. Every bare spot is a missed opportunity for crunch. We don&rsquo;t do missed opportunities at The Norman Kitchen.</li>
+                    <li>Pan-fry in olive oil for 3&ndash;4 minutes per side until golden and crispy. The sizzle. The smell. The golden parmesan crust forming before your eyes. This is it. This is parm-ageddon. There is no going back.</li>
+                    <li>Preheat the grill. Spoon tomato sauce over each chicken breast, then pile on the mozzarella and remaining parmesan. Grill for 3&ndash;4 minutes until the cheese is melted, bubbling, and starting to turn golden. At this point the smoke alarm may go off. This is not a fault &mdash; it is the smoke alarm celebrating.</li>
+                    <li>Cook the spaghetti, drain it, and plate up alongside the chicken. Garnish with basil. Step back. You have just created something magnificent. The parmesan crust. The molten mozzarella. The sauce. It&rsquo;s a symphony. The mice are giving you a standing ovation.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 620 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 44g</m3e-list-item>
+                    <m3e-list-item>Fat: 26g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 52g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>ApocalypseChef</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Parm-ageddon is the best kind of apocalypse! The parmesan in the breadcrumb coating gives such a gorgeous golden crust. I'll never go back to plain breadcrumbs again.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>FamilyFeastFan</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Kids loved it - asked for seconds before I'd even sat down. The tomato sauce is fresh and vibrant. Only wish there was a bit more of it, so next time I'll double the batch.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>ParmBankrupt</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I have spent &pound;347 on parmesan this month. My bank sent me a letter. Not a fraud alert &mdash; a wellness check. I regret nothing. This recipe is the reason I cannot retire. The chicken is transcendent. My pension is gone.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>GraterArms</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Grated so much parmesan my right arm is now noticeably larger than my left. People at the gym think I have a very targeted workout routine. I do. It&rsquo;s called &ldquo;grating an entire block of Parmigiano-Reggiano every Tuesday.&rdquo; Taking off a star for the physio bills.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SmokeDetectorSusan</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">My smoke alarm has gone off every single time I&rsquo;ve made this. I&rsquo;ve made it fourteen times. The alarm now goes off when I open the parmesan packet, like a Pavlovian smoke detector. My neighbours have started timing their evening plans around my cooking schedule.</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>Pound the chicken thin for even cooking - aim for about 1cm thickness throughout. This also maximises the crispy surface area.</m3e-list-item>
+                    <m3e-list-item>Use freshly grated parmesan, not the pre-grated stuff. It melts better, tastes sharper, and doesn't contain the anti-caking agents that can affect texture.</m3e-list-item>
+                    <m3e-list-item>Broil for the last 2 minutes for extra golden mozzarella. Keep a close eye on it - the line between perfectly golden and burnt is thin!</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Real Parmigiano-Reggiano must be aged for at least 12 months, and the best wheels are aged for 24&ndash;36 months. Each wheel takes around 600 litres of milk to produce.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Parm-ageddon Chicken - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

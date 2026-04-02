@@ -1,0 +1,5 @@
+{
+  "description": "Tests collection page with typed Props that are automatically populated from frontmatter metadata",
+  "packageName": "collection_typed_props_test",
+  "isPage": true
+}

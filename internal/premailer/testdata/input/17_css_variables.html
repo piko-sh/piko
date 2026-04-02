@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2026 PolitePixels Limited
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html>
+<head>
+    <style>
+        .primary {
+            color: var(--colour-primary);
+            background: var(--bg-color, #FFF);
+        }
+        .nested {
+            border-color: var(--border-color);
+        }
+        .complex {
+            border: var(--border-width) solid var(--border-color);
+            padding: var(--spacing);
+        }
+        .fallback {
+            color: var(--undefined, blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="primary">Primary color</div>
+    <div class="nested">Nested variable</div>
+    <div class="complex">Complex with multiple vars</div>
+    <div class="fallback">Fallback value</div>
+</body>
+</html>

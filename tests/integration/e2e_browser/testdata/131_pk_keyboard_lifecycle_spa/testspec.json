@@ -1,0 +1,137 @@
+{
+  "description": "Tests PK keyboard event listeners registered in pk.onConnected survive SPA navigation away and back",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Keyboard Lifecycle Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".key-handler-partial"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#last-key",
+      "expected": "none"
+    },
+    {
+      "action": "checkText",
+      "selector": "#press-count",
+      "expected": "0"
+    },
+    {
+      "action": "comment",
+      "value": "Step 1: Press ArrowRight on initial load"
+    },
+    {
+      "action": "press",
+      "key": "ArrowRight"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "checkText",
+      "selector": "#last-key",
+      "expected": "ArrowRight"
+    },
+    {
+      "action": "checkText",
+      "selector": "#press-count",
+      "expected": "1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_keypress.html"
+    },
+    {
+      "action": "comment",
+      "value": "Step 2: Navigate away via SPA link"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-other"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "other_page.html"
+    },
+    {
+      "action": "comment",
+      "value": "Step 3: Navigate back via SPA link"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-main"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Keyboard Lifecycle Test"
+    },
+    {
+      "action": "checkText",
+      "selector": "#last-key",
+      "expected": "none"
+    },
+    {
+      "action": "checkText",
+      "selector": "#press-count",
+      "expected": "0"
+    },
+    {
+      "action": "comment",
+      "value": "Step 4: Press ArrowLeft after SPA nav back - should work via __reinit__"
+    },
+    {
+      "action": "press",
+      "key": "ArrowLeft"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "checkText",
+      "selector": "#last-key",
+      "expected": "ArrowLeft"
+    },
+    {
+      "action": "checkText",
+      "selector": "#press-count",
+      "expected": "1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_return_keypress.html"
+    }
+  ]
+}

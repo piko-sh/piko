@@ -1,0 +1,71 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div id="int64-coerce" :value="state.Int64Value" {P: state.Int64Value, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_strconv_formatint_int64_state_int64value_10_1f398346 Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="int-coerce" :value="state.IntValue" {P: state.IntValue, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_strconv_formatint_int64_state_intvalue_10_303239c0 Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="float64-coerce" :value="state.Float64Value" {P: state.Float64Value, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_strconv_formatfloat_float64_state_float64value_r_f_1_64_85b70bc2 Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="bool-coerce" :value="state.BoolValue" {P: state.BoolValue, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_strconv_formatbool_state_boolvalue_4be359a9 Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="uint-coerce" :value="state.UintValue" {P: state.UintValue, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_strconv_formatuint_uint64_state_uintvalue_10_c1adc86b Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="uint64-coerce" :value="state.Uint64Value" {P: state.Uint64Value, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_strconv_formatuint_uint64_state_uint64value_10_d0e8f0aa Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="nested-coerce" :value="state.NestedData.Count" {P: state.NestedData.Count, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_strconv_formatint_int64_state_nesteddata_count_10_e3082717 Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="string-direct" :value="state.StringValue" {P: state.StringValue, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk PARTIAL InvKey: string_consumer_value_state_stringvalue_2507f4d5 Package: partials_string_consumer_6cdbb289 InvPackage: main_aaf9a2e0]>
+    <p class="coerced-value" [ANNOTATIONS: OriginPackage: partials_string_consumer_6cdbb289 OriginPath: partials/string_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+  <div id="exact-match" :value="state.Int64Value" {P: state.Int64Value, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_no_coerce_consumer_4a0aebc8 OriginPath: partials/no_coerce_consumer.pk PARTIAL InvKey: no_coerce_consumer_value_state_int64value_9f0dacf6 Package: partials_no_coerce_consumer_4a0aebc8 InvPackage: main_aaf9a2e0]>
+    <p class="exact-value" [ANNOTATIONS: OriginPackage: partials_no_coerce_consumer_4a0aebc8 OriginPath: partials/no_coerce_consumer.pk]>
+      <RichText>
+        {{ props.Value }}
+      </RichText>
+    </p>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

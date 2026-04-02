@@ -1,0 +1,25 @@
+{
+  "description": "Multi-page project: changing one page only rebuilds that page, not all pages",
+  "requestURL": "/main",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial full build with 3 independent pages",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectFullBuild": true
+    },
+    {
+      "stage": 1,
+      "description": "Template-only change to main.pk - only main.pk should be annotated and generated, not about.pk or contact.pk",
+      "useTargetedRebuild": true,
+      "targetedEntryPoints": ["pages/main.pk"],
+      "expectTier1Hit": true,
+      "expectFastPath": true,
+      "expectAnnotatedCount": 1,
+      "expectGeneratedCount": 1,
+      "delayBeforeRenderMs": 500
+    }
+  ]
+}

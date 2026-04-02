@@ -1,0 +1,3 @@
+{
+  "description": "INSERT with RETURNING clause: MariaDB supports RETURNING on INSERT, which standard MySQL does not."
+}

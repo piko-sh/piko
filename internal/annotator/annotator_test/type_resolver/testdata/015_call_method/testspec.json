@@ -1,0 +1,7 @@
+[{
+  "description": "Validates a call to a method on a struct.",
+  "expression": "state.User.GetFullName()",
+  "expectedType": "string",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

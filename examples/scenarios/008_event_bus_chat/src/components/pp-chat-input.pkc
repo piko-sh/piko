@@ -1,0 +1,103 @@
+<!-- Chat input component. Emits 'chat-message' events via piko.bus.emit()
+     so any other component or partial on the page can listen and react.
+     See https://piko.sh/docs/guide/client-components -->
+<template name="pp-chat-input">
+    <div class="chat-input-bar">
+        <input
+            id="message-input"
+            type="text"
+            p-model="state.message"
+            p-on:keydown="handleKeydown"
+            placeholder="Type a message..."
+        >
+        <button id="send-btn" p-on:click="sendMessage">Send</button>
+        <span class="counter">Messages sent: {{ state.messageCount }}</span>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        message: '' as string,
+        messageCount: 0 as number,
+    };
+
+    function sendMessage() {
+        if (state.message.trim() === '') {
+            return;
+        }
+
+        piko.bus.emit('chat-message', {
+            text: state.message,
+            sender: 'User',
+            timestamp: Date.now()
+        });
+
+        state.messageCount++;
+        state.message = '';
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+</script>
+
+<style>
+    .chat-input-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    #message-input {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9375rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        outline: none;
+        font-family: inherit;
+    }
+
+    #message-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    #message-input::placeholder {
+        color: #9ca3af;
+    }
+
+    #send-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        background-color: #2563eb;
+        color: #ffffff;
+        border: none;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background-color 0.15s ease;
+    }
+
+    #send-btn:hover {
+        background-color: #1d4ed8;
+    }
+
+    #send-btn:active {
+        background-color: #1e40af;
+    }
+
+    .counter {
+        font-size: 0.75rem;
+        color: #6b7280;
+        white-space: nowrap;
+    }
+</style>

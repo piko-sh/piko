@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/search.pk": {
+      "routePatterns": {
+        "en": "/search"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_06_query_params/dist/pages/pages_search_3cd6b932",
+      "originalSourcePath": "pages/search.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

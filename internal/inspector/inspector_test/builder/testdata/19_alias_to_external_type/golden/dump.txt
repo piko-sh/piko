@@ -1,0 +1,57 @@
+--- PACKAGE: testcase_19_alias_to_external_type ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 19_alias_to_external_type/src/main.go
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type alias MyUUID
+    - Defined In:      19_alias_to_external_type/src/main.go
+    - TypeString:      uuid.UUID
+    - Underlying:      [16]byte
+    - Stringability:   0
+    - Methods:
+      - func (T) ClockSequence   func() int
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Domain          func() uuid.Domain
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) ID              func() uint32
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) MarshalBinary   func() ([]byte, error)
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) MarshalText     func() ([]byte, error)
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) NodeID          func() []byte
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (*T) Scan            func(interface{}) error
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) String          func() string
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Time            func() uuid.Time
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) URN             func() string
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (*T) UnmarshalBinary func([]byte) error
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (*T) UnmarshalText   func([]byte) error
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Value           func() (driver.Value, error)
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Variant         func() uuid.Variant
+        (Promoted from: github.com/google/uuid.UUID)
+      - func (T) Version         func() uuid.Version
+        (Promoted from: github.com/google/uuid.UUID)
+
+  > type Object
+    - Defined In:      19_alias_to_external_type/src/main.go
+    - TypeString:      main.Object
+    - Underlying:      struct{ObjectID uuid.UUID}
+    - Stringability:   0
+    - Fields:
+      - ObjectID             main.MyUUID
+        (Canonical Package: github.com/google/uuid)
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,24 @@
+[
+  {
+    "Filename": "items.sql",
+    "Message": "Q005: unknown function \"some_unknown_function\"",
+    "Code": "Q004",
+    "Suggestion": "",
+    "Line": 9,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "items.sql",
+    "Message": "query \"NotReadOnlyWithUnknown\" uses command \"one\" but produces no output columns",
+    "Code": "Q009",
+    "Suggestion": "",
+    "Line": 9,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies bidirectional text layout with direction: rtl, unicode-bidi, and mixed LTR/RTL content.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

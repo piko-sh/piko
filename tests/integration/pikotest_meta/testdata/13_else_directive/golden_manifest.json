@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/auth.pk": {
+      "routePatterns": {
+        "en": "/auth"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_13_else_directive/dist/pages/pages_auth_8698d971",
+      "originalSourcePath": "pages/auth.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

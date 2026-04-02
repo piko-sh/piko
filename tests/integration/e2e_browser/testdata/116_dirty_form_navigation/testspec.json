@@ -1,0 +1,302 @@
+{
+  "description": "Tests dirty form tracking and navigation blocking with native and custom component inputs",
+  "requestURL": "/form",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "comment",
+      "value": "=== SETUP: Wait for page and form to be ready ==="
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Form Page"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for deferred snapshot (custom element whenDefined + 2 rAF ticks)"
+    },
+    {
+      "action": "wait",
+      "value": "1500"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== SETUP: Register hook listeners ==="
+    },
+    {
+      "action": "eval",
+      "value": "window.__hookLog = []; piko.hooks.on('form:dirty', function(p) { window.__hookLog.push('dirty:' + (p.formId || '')); document.getElementById('hook-log').textContent = window.__hookLog.join(','); }); piko.hooks.on('form:clean', function(p) { window.__hookLog.push('clean:' + (p.formId || '')); document.getElementById('hook-log').textContent = window.__hookLog.join(','); });"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== TEST 1: Clean form navigation - no dialog, navigation succeeds ==="
+    },
+    {
+      "action": "eval",
+      "value": "window.__confirmCalled = false; window.confirm = function(msg) { window.__confirmCalled = true; document.getElementById('status').textContent = 'confirm-called'; return false; };"
+    },
+    {
+      "action": "eval",
+      "value": "piko.nav.navigate('/other');"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== Navigate back to form page via hard navigation ==="
+    },
+    {
+      "action": "navigate",
+      "value": "/form"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Form Page"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for form re-tracking after hard navigation"
+    },
+    {
+      "action": "wait",
+      "value": "1500"
+    },
+    {
+      "action": "comment",
+      "value": "Re-register hook listeners (JS context was destroyed by hard navigation)"
+    },
+    {
+      "action": "eval",
+      "value": "window.__hookLog = []; piko.hooks.on('form:dirty', function(p) { window.__hookLog.push('dirty:' + (p.formId || '')); document.getElementById('hook-log').textContent = window.__hookLog.join(','); }); piko.hooks.on('form:clean', function(p) { window.__hookLog.push('clean:' + (p.formId || '')); document.getElementById('hook-log').textContent = window.__hookLog.join(','); });"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== TEST 2: Dirty native input - dialog appears, navigation blocked ==="
+    },
+    {
+      "action": "fill",
+      "selector": "#native-input",
+      "value": "changed"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "comment",
+      "value": "=== TEST 3: Verify form:dirty hook fired for native input ==="
+    },
+    {
+      "action": "checkText",
+      "selector": "#hook-log",
+      "expected": "dirty:test-form"
+    },
+    {
+      "action": "comment",
+      "value": "=== TEST 3b: Verify form:dirty hook registered in <script lang=ts> also fired ==="
+    },
+    {
+      "action": "checkText",
+      "selector": "#script-hook-log",
+      "expected": "script-dirty:test-form"
+    },
+    {
+      "action": "comment",
+      "value": "Override confirm to return false (block navigation) and attempt soft nav"
+    },
+    {
+      "action": "eval",
+      "value": "document.getElementById('status').textContent = ''; window.confirm = function(msg) { document.getElementById('status').textContent = 'confirm:' + msg; return false; };"
+    },
+    {
+      "action": "eval",
+      "value": "piko.nav.navigate('/other');"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status",
+      "expected": "confirm:You have unsaved changes. Leave anyway?"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Form Page"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== TEST 4: Revert native input - form:clean hook fires ==="
+    },
+    {
+      "action": "eval",
+      "value": "window.__hookLog = []; document.getElementById('hook-log').textContent = '';"
+    },
+    {
+      "action": "fill",
+      "selector": "#native-input",
+      "value": ""
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "checkText",
+      "selector": "#hook-log",
+      "expected": "clean:test-form"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== TEST 5: Dirty component input - dialog appears, navigation blocked ==="
+    },
+    {
+      "action": "eval",
+      "value": "window.__hookLog = []; document.getElementById('hook-log').textContent = '';"
+    },
+    {
+      "action": "comment",
+      "value": "Fill the component shadow DOM input directly"
+    },
+    {
+      "action": "fill",
+      "selector": "#component-input >>> input",
+      "value": "component-changed"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "comment",
+      "value": "Verify form:dirty hook fired for component input change"
+    },
+    {
+      "action": "checkText",
+      "selector": "#hook-log",
+      "expected": "dirty:test-form"
+    },
+    {
+      "action": "eval",
+      "value": "document.getElementById('status').textContent = ''; window.confirm = function(msg) { document.getElementById('status').textContent = 'confirm:' + msg; return false; };"
+    },
+    {
+      "action": "eval",
+      "value": "piko.nav.navigate('/other');"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status",
+      "expected": "confirm:You have unsaved changes. Leave anyway?"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Form Page"
+    },
+    {
+      "action": "comment",
+      "value": "Revert component input to clean the form"
+    },
+    {
+      "action": "clear",
+      "selector": "#component-input >>> input"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== TEST 6: Both inputs dirty - dialog appears, navigation blocked ==="
+    },
+    {
+      "action": "fill",
+      "selector": "#native-input",
+      "value": "both-native"
+    },
+    {
+      "action": "fill",
+      "selector": "#component-input >>> input",
+      "value": "both-component"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "eval",
+      "value": "document.getElementById('status').textContent = ''; window.confirm = function(msg) { document.getElementById('status').textContent = 'confirm:' + msg; return false; };"
+    },
+    {
+      "action": "eval",
+      "value": "piko.nav.navigate('/other');"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status",
+      "expected": "confirm:You have unsaved changes. Leave anyway?"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Form Page"
+    },
+
+    {
+      "action": "comment",
+      "value": "=== TEST 7: Dirty form - accept confirm - navigation proceeds ==="
+    },
+    {
+      "action": "eval",
+      "value": "document.getElementById('status').textContent = ''; window.confirm = function(msg) { document.getElementById('status').textContent = 'confirm:' + msg; return true; };"
+    },
+    {
+      "action": "eval",
+      "value": "piko.nav.navigate('/other');"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    }
+  ]
+}

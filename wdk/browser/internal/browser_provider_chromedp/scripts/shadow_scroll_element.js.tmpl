@@ -1,0 +1,6 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (el) el.scrollTo(0, {{jsRaw .Position}});
+})()

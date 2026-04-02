@@ -1,0 +1,10 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' &&
+           style.visibility !== 'hidden' &&
+           style.opacity !== '0' &&
+           el.offsetWidth > 0 &&
+           el.offsetHeight > 0;
+})()

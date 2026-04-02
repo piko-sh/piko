@@ -1,0 +1,1 @@
+{"description": "ReadOnly detection: SELECT calling IMMUTABLE function is read-only, SELECT calling VOLATILE function is not, SELECT calling unknown function is not"}

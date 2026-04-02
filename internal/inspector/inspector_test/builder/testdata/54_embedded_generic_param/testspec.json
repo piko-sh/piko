@@ -1,0 +1,25 @@
+{
+  "description": "Tests method promotion from an embedded, instantiated generic type.",
+  "moduleName": "testcase_54_embedded_generic_param",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_54_embedded_generic_param"
+  ],
+  "assertions": [
+    {
+      "description": "The 'StringWorker' type must have the promoted 'Process' method.",
+      "select": "packages.testcase_54_embedded_generic_param.named_types.StringWorker.methods.0.name",
+      "expect": "Process"
+    },
+    {
+      "description": "The promoted method's return type must be substituted to 'string'.",
+      "select": "packages.testcase_54_embedded_generic_param.named_types.StringWorker.methods.0.signature.results.0",
+      "expect": "string"
+    },
+    {
+      "description": "The promoted method's declaring type must be the generic 'Worker'.",
+      "select": "packages.testcase_54_embedded_generic_param.named_types.StringWorker.methods.0.declaring_type_name",
+      "expect": "Worker"
+    }
+  ]
+}

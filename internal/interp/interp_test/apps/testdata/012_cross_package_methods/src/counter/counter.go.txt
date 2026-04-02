@@ -1,0 +1,17 @@
+package counter
+
+type Counter struct {
+	count int
+}
+
+func New() *Counter {
+	return &Counter{}
+}
+
+func (c *Counter) Increment() {
+	c.count++
+}
+
+func (c *Counter) Value() int {
+	return c.count
+}

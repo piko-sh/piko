@@ -1,0 +1,29 @@
+{
+    "description": "querySelector targeting + scope preservation working together",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/partial",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "[data-partial-id='target']",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "[data-partial-id='target']",
+            "attributes": { "partial": "target_scope outer_scope page_scope" },
+            "description": "Target container preserves parent scopes"
+        },
+        {
+            "selector": ".inner",
+            "attributes": { "partial": "inner_new outer_scope page_scope" },
+            "description": "Inner element preserves inherited parent scopes"
+        }
+    ]
+}

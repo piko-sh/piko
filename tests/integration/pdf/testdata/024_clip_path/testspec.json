@@ -1,0 +1,5 @@
+{
+    "description": "Elements clipped with clip-path basic shapes (circle, polygon, inset), verifying PDF clipping paths.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

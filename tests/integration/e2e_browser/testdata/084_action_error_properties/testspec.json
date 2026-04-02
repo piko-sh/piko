@@ -1,0 +1,79 @@
+{
+  "description": "Tests ActionError properties - isValidationError, isAuthError, status, validationErrors",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Trigger validation error (422)"
+    },
+    {
+      "action": "click",
+      "selector": "#validation-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#v-status",
+      "expected": "422"
+    },
+    {
+      "action": "checkText",
+      "selector": "#v-isValidation",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#v-isAuth",
+      "expected": "false"
+    },
+    {
+      "action": "checkText",
+      "selector": "#v-hasErrors",
+      "expected": "true"
+    },
+    {
+      "action": "comment",
+      "value": "Trigger auth error (401)"
+    },
+    {
+      "action": "click",
+      "selector": "#auth-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#a-status",
+      "expected": "401"
+    },
+    {
+      "action": "checkText",
+      "selector": "#a-isAuth",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#a-isValidation",
+      "expected": "false"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_errors.html"
+    }
+  ]
+}

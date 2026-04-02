@@ -1,0 +1,43 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="maths-literal-types">
+    <div>
+        <h1>Maths and Temporal Literal Types</h1>
+
+        <p id="decimal" p-text="19.99d">decimal</p>
+
+        <p id="bigint" p-text="42n">bigint</p>
+
+        <p id="rune" p-text="r'A'">rune</p>
+
+        <p id="date" p-text="d'2026-01-15'">date</p>
+
+        <p id="time" p-text="t'14:30:45'">time</p>
+
+        <p id="datetime" p-text="dt'2026-01-15T14:30:45Z'">datetime</p>
+
+        <p id="duration" p-text="du'1h30m'">duration</p>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {};
+</script>

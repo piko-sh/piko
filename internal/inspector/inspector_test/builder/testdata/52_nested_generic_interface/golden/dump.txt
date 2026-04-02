@@ -1,0 +1,49 @@
+--- PACKAGE: testcase_52_nested_generic_interface ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 52_nested_generic_interface/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Box
+    - Defined In:      52_nested_generic_interface/src/main.go
+    - TypeString:      main.Box[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+    - Methods:
+      - func (T) Get             func() T
+
+  > type Container
+    - Defined In:      52_nested_generic_interface/src/main.go
+    - TypeString:      main.Container[E, G]
+    - Underlying:      struct{Source G}
+    - Stringability:   0
+    - Type Params:     [E, G]
+    - Fields:
+      - Source               G
+
+  > type Getter
+    - Defined In:      52_nested_generic_interface/src/main.go
+    - TypeString:      main.Getter[T]
+    - Underlying:      interface{Get() T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Methods:
+      - func (T) Get             func() T
+
+  > type Report
+    - Defined In:      52_nested_generic_interface/src/main.go
+    - TypeString:      main.Report
+    - Underlying:      struct{StringSource main.Container[string, main.Box[string]]}
+    - Stringability:   0
+    - Fields:
+      - StringSource         main.Container[string, main.Box[string]]
+        (Canonical Package: testcase_52_nested_generic_interface)
+
+[Package-Level Functions]
+  (none)

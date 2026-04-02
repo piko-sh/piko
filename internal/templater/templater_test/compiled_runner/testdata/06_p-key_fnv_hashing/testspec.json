@@ -1,0 +1,8 @@
+{
+  "description": "Tests p-key FNV-32 hashing for different data types. Int, uint, and bool keys should NOT be hashed. String, float, and complex types should be FNV hashed to produce 8-character hex output.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false,
+  "skipGoldenComparison": true
+}

@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button [Events: p-on:click.="update(state.Name, state.Count)" {P: update(state.Name, state.Count)}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Update"
+  </button>
+</div>
+
+--- END AST DUMP ---
+*/

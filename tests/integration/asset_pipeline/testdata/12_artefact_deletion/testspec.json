@@ -1,0 +1,17 @@
+{
+  "description": "Artefact deletion: delete artefacts and verify GC hints are generated",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jersey.jpg"
+    }
+  ],
+  "deletionChecks": [
+    {
+      "artefactID": "testmodule/lib/images/jersey.jpg",
+      "expectGCHints": 1,
+      "description": "Delete artefact should generate GC hint for orphaned blob"
+    }
+  ]
+}

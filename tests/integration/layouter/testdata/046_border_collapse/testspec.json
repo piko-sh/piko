@@ -1,0 +1,7 @@
+{
+    "description": "Verifies border-collapse: collapse merges adjacent borders.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,4 @@
+{
+  "description": "Generate a simple static page via WASM",
+  "moduleName": "testmodule"
+}

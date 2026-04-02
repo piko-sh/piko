@@ -1,0 +1,5 @@
+{
+    "description": "Text with letter-spacing and word-spacing, verifying per-glyph advance adjustments in PDF TJ operator.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

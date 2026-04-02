@@ -1,0 +1,63 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package themes
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{}, piko.Metadata{
+		Title: "Theme Demo",
+	}, nil
+}
+</script>
+<template>
+	<div class="theme-demo">
+		<h1>Theme Examples</h1>
+		<section class="buttons-section">
+			<button class="btn">Default</button>
+			<button class="btn primary">Primary</button>
+			<button class="btn secondary">Secondary</button>
+			<button class="btn primary large">Large Primary</button>
+			<button class="btn small outline">Small Outline</button>
+			<button class="btn danger disabled">Disabled Danger</button>
+		</section>
+		<section class="cards-section">
+			<div class="card">Basic Card</div>
+			<div class="card featured">Featured Card</div>
+			<div class="card shadow rounded">Shadow Rounded Card</div>
+			<div class="card compact bordered highlighted">Compact Bordered Highlighted</div>
+		</section>
+		<section class="alerts-section">
+			<div class="alert success">Success Alert</div>
+			<div class="alert warning">Warning Alert</div>
+			<div class="alert error critical">Critical Error</div>
+			<div class="alert info dismissible">Dismissible Info</div>
+		</section>
+		<section class="mixed-section">
+			<span class="badge new">New</span>
+			<span class="badge hot featured">Hot Featured</span>
+			<span class="tag category primary">Primary Category</span>
+		</section>
+	</div>
+</template>

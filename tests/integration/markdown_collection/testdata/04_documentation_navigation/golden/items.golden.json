@@ -1,0 +1,112 @@
+[
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Deployment",
+          "Slug": "deployment",
+          "Level": 1
+        }
+      ],
+      "Title": "Deployment Guide",
+      "WordCount": 6
+    },
+    "id": "deployment",
+    "slug": "deployment",
+    "locale": "en",
+    "translationKey": "docs/guides/deployment",
+    "url": "/docs/guides/deployment",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "API Endpoints",
+          "Slug": "api-endpoints",
+          "Level": 1
+        }
+      ],
+      "Title": "API Endpoints",
+      "WordCount": 6
+    },
+    "id": "endpoints",
+    "slug": "endpoints",
+    "locale": "en",
+    "translationKey": "docs/api/endpoints",
+    "url": "/docs/api/endpoints",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Installation",
+          "Slug": "installation",
+          "Level": 1
+        }
+      ],
+      "Title": "Installation",
+      "WordCount": 8
+    },
+    "id": "installation",
+    "slug": "installation",
+    "locale": "en",
+    "translationKey": "docs/getting-started/installation",
+    "url": "/docs/getting-started/installation",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "API Overview",
+          "Slug": "api-overview",
+          "Level": 1
+        }
+      ],
+      "Title": "API Overview",
+      "WordCount": 8
+    },
+    "id": "overview",
+    "slug": "overview",
+    "locale": "en",
+    "translationKey": "docs/api/overview",
+    "url": "/docs/api/overview",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Quick Start",
+          "Slug": "quick-start",
+          "Level": 1
+        }
+      ],
+      "Title": "Quick Start",
+      "WordCount": 9
+    },
+    "id": "quick-start",
+    "slug": "quick-start",
+    "locale": "en",
+    "translationKey": "docs/getting-started/quick-start",
+    "url": "/docs/getting-started/quick-start",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

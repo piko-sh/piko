@@ -1,0 +1,61 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "uuid": { "category": "uuid", "engineName": "uuid" },
+    "text": { "category": "text", "engineName": "text" },
+    "timestamptz": { "category": "temporal", "engineName": "timestamptz" },
+    "bool": { "category": "boolean", "engineName": "bool" },
+    "boolean": { "category": "boolean", "engineName": "bool" },
+    "int4": { "category": "integer", "engineName": "int4" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, email text NOT NULL, created_at timestamptz NOT NULL DEFAULT now() );",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "email", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "created_at", "sqlType": { "category": "temporal", "engineName": "timestamptz" }, "nullable": false, "hasDefault": true }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE posts ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), author_id uuid NOT NULL, title text NOT NULL, body text NOT NULL, published boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now() );",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "posts",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "author_id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false },
+          { "name": "title", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "body", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "published", "sqlType": { "category": "boolean", "engineName": "bool" }, "nullable": false, "hasDefault": true },
+          { "name": "created_at", "sqlType": { "category": "temporal", "engineName": "timestamptz" }, "nullable": false, "hasDefault": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, title, published FROM posts WHERE author_id = $1",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "posts", "columnName": "id" },
+          { "name": "title", "tableAlias": "posts", "columnName": "title" },
+          { "name": "published", "tableAlias": "posts", "columnName": "published" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "posts", "columnName": "author_id" } }
+        ],
+        "fromTables": [
+          { "name": "posts" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

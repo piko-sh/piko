@@ -1,0 +1,17 @@
+{
+  "description": "Validates that generic package-level function calls like slices.Contains are type-checked correctly.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "p:nth-of-type(1)",
+      "description": "slices.Contains should resolve to bool.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "slices.Contains(state.Tags, \"featured\")",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    }
+  ]
+}

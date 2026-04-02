@@ -1,0 +1,16 @@
+<div id="app"><nav-bar>
+    <template shadowrootmode="open">
+      <style>:host { display: flex; }</style>
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+    </template>
+  </nav-bar>
+  <content-card title="Hello">
+    <template shadowrootmode="open">
+      <style>:host { display: block; } .card { padding: 1rem; }</style>
+      <div class="card">
+        <slot></slot>
+      </div>
+    </template>
+  </content-card>
+</div>

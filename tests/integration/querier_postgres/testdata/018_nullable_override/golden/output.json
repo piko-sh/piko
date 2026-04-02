@@ -1,0 +1,17 @@
+{
+  "not_null_with_values": {
+    "ID": 1,
+    "OptionalNum": 42,
+    "Value": "hello"
+  },
+  "nullable_with_nulls": {
+    "ID": 2,
+    "OptionalNum": null,
+    "Value": null
+  },
+  "nullable_with_values": {
+    "ID": 1,
+    "OptionalNum": 42,
+    "Value": "hello"
+  }
+}

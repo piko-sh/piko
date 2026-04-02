@@ -1,0 +1,43 @@
+{
+  "specs": [
+    {
+      "description": "The root div should have the invoker's p-show directive merged onto it",
+      "select": "div.card",
+      "assert": {
+        "hasPartialInfo": true
+      }
+    },
+    {
+      "description": "The root div, originating from the partial, must retain its own p-if directive",
+      "select": "div.card[p-if]",
+      "assert": {
+        "originalPackageAlias": "partials/card.pk"
+      }
+    },
+    {
+      "description": "The slotted paragraph, originating from main, must be inside the card div",
+      "select": "div.card > p",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Visible from Main"
+      }
+    },
+    {
+      "description": "The p-if directive on the slotted paragraph must have its expression from main.pk",
+      "select": "div.card > p[p-if]",
+      "assert": {
+        "originalPackageAlias": "main.pk"
+      }
+    },
+    {
+      "description": "The PartialInfo on the root div should correctly identify the invoker's package alias",
+      "select": "div.card",
+      "assert": {
+        "partialInfo": {
+          "invokerPackageAlias": "main.pk",
+          "passedPropsContain": []
+        }
+      }
+    }
+  ]
+}

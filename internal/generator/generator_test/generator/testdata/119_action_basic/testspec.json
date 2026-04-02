@@ -1,0 +1,5 @@
+{
+    "description": "Tests that actions in the actions/ directory are discovered and included in the ActionManifest",
+    "packageName": "action_basic_test",
+    "isPage": true
+}

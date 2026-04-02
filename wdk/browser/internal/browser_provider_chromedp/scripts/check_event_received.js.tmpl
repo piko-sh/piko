@@ -1,0 +1,6 @@
+(() => {
+    const callbackName = {{jsStr .CallbackName}};
+    return typeof window[callbackName + '_data'] !== 'undefined'
+        ? window[callbackName + '_data']
+        : null;
+})()

@@ -1,0 +1,13 @@
+<template>
+  <div>
+    <img alt="Logo" src="/logo.png" />
+    <br />
+    <hr />
+    <input placeholder="Enter text" type="text" />
+    <meta content="Test" name="description" />
+    <link href="/style.css" rel="stylesheet" />
+    <p>Some text</p>
+    <br />
+    <img alt="Image" class="responsive" src="/image.jpg" />
+  </div>
+</template>

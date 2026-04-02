@@ -1,0 +1,101 @@
+{
+  "list_with_lag_lead": [
+    {
+      "Amount": 100,
+      "Employee": "Alice",
+      "ID": 1,
+      "NextAmount": 200,
+      "PrevAmount": null
+    },
+    {
+      "Amount": 200,
+      "Employee": "Bob",
+      "ID": 2,
+      "NextAmount": 150,
+      "PrevAmount": 100
+    },
+    {
+      "Amount": 150,
+      "Employee": "Alice",
+      "ID": 3,
+      "NextAmount": 300,
+      "PrevAmount": 200
+    },
+    {
+      "Amount": 300,
+      "Employee": "Bob",
+      "ID": 4,
+      "NextAmount": 250,
+      "PrevAmount": 150
+    },
+    {
+      "Amount": 250,
+      "Employee": "Charlie",
+      "ID": 5,
+      "NextAmount": 175,
+      "PrevAmount": 300
+    },
+    {
+      "Amount": 175,
+      "Employee": "Charlie",
+      "ID": 6,
+      "NextAmount": null,
+      "PrevAmount": 250
+    }
+  ],
+  "list_with_running_total": [
+    {
+      "Amount": 100,
+      "Employee": "Alice",
+      "ID": 1,
+      "RunningTotal": 100
+    },
+    {
+      "Amount": 200,
+      "Employee": "Bob",
+      "ID": 2,
+      "RunningTotal": 300
+    },
+    {
+      "Amount": 150,
+      "Employee": "Alice",
+      "ID": 3,
+      "RunningTotal": 450
+    },
+    {
+      "Amount": 300,
+      "Employee": "Bob",
+      "ID": 4,
+      "RunningTotal": 750
+    },
+    {
+      "Amount": 250,
+      "Employee": "Charlie",
+      "ID": 5,
+      "RunningTotal": 1000
+    },
+    {
+      "Amount": 175,
+      "Employee": "Charlie",
+      "ID": 6,
+      "RunningTotal": 1175
+    }
+  ],
+  "top_sale_per_employee": [
+    {
+      "Amount": 150,
+      "Employee": "Alice",
+      "ID": 3
+    },
+    {
+      "Amount": 300,
+      "Employee": "Bob",
+      "ID": 4
+    },
+    {
+      "Amount": 250,
+      "Employee": "Charlie",
+      "ID": 5
+    }
+  ]
+}

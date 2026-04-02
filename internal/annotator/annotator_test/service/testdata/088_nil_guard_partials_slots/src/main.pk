@@ -1,0 +1,56 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+import data_display "testcase_88_nil_guard_partials_slots/partials/data_display.pk"
+import slot_wrapper "testcase_88_nil_guard_partials_slots/partials/slot_wrapper.pk"
+
+type Item struct {
+    Name string
+}
+
+type Props struct {
+    Item *Item `prop:"item"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+  <div>
+    <piko:partial is="data_display"></piko:partial>
+
+    <div p-if="props.Item != nil">
+      <piko:partial is="slot_wrapper">
+        <span id="slot-in-guarded-context">{{ props.Item.Name }}</span>
+      </piko:partial>
+    </div>
+
+    <div p-if="props.Item != nil">
+      <span id="main-guarded">{{ props.Item.Name }}</span>
+    </div>
+    <span id="main-unguarded">{{ props.Item.Name }}</span>
+  </div>
+</template>

@@ -1,0 +1,38 @@
+{
+  "description": "S3 file upload via direct multipart - demonstrates storage provider integration with self-hosted LocalStack",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "setFiles",
+      "selector": "#file-input",
+      "files": ["testdata/sample.txt"]
+    },
+    {
+      "action": "waitForEnabled",
+      "selector": "#upload-btn",
+      "timeout": 5000
+    },
+    {
+      "action": "click",
+      "selector": "#upload-btn"
+    },
+    {
+      "action": "wait",
+      "value": "15000"
+    },
+    {
+      "action": "checkText",
+      "selector": ".status",
+      "expected": "sample.txt"
+    }
+  ]
+}

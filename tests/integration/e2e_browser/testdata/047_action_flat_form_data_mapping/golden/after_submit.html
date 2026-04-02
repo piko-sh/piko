@@ -1,0 +1,98 @@
+<div id="app">
+  <div partial="pages_contact_f30af786" p-key="r.0" id="app">
+    <h1 partial="pages_contact_f30af786" p-key="r.0:0">Contact Form Test</h1>
+    <form
+      partial="pages_contact_f30af786"
+      p-key="r.0:1"
+      id="contact-form"
+      p-on:submit.prevent="eyJmIjoiaGFuZGxlU3VibWl0IiwiYSI6W119"
+      pk-ev-bound="true"
+      data-pk-tracked="true"
+    >
+      <div partial="pages_contact_f30af786" p-key="r.0:1:0"><label partial="pages_contact_f30af786" p-key="r.0:1:0:0" for="firstname">First Name:</label><input
+          partial="pages_contact_f30af786"
+          p-key="r.0:1:0:1"
+          p-ref="firstnameInput"
+          data-pk-partial="pages_contact_f30af786"
+          type="text"
+          id="firstname"
+          name="firstname"
+          required
+         />
+      </div>
+      <div partial="pages_contact_f30af786" p-key="r.0:1:1"><label partial="pages_contact_f30af786" p-key="r.0:1:1:0" for="lastname">Last Name:</label><input
+          partial="pages_contact_f30af786"
+          p-key="r.0:1:1:1"
+          p-ref="lastnameInput"
+          data-pk-partial="pages_contact_f30af786"
+          type="text"
+          id="lastname"
+          name="lastname"
+          required
+         />
+      </div>
+      <div partial="pages_contact_f30af786" p-key="r.0:1:2"><label partial="pages_contact_f30af786" p-key="r.0:1:2:0" for="email">Email:</label><input
+          partial="pages_contact_f30af786"
+          p-key="r.0:1:2:1"
+          p-ref="emailInput"
+          data-pk-partial="pages_contact_f30af786"
+          type="email"
+          id="email"
+          name="email"
+          required
+         />
+      </div>
+      <div partial="pages_contact_f30af786" p-key="r.0:1:3"><label partial="pages_contact_f30af786" p-key="r.0:1:3:0" for="message">Message:</label><textarea
+          partial="pages_contact_f30af786"
+          p-key="r.0:1:3:1"
+          p-ref="messageInput"
+          data-pk-partial="pages_contact_f30af786"
+          id="message"
+          name="message"
+          required
+        ></textarea>
+      </div>
+      <button partial="pages_contact_f30af786" p-key="r.0:1:4" type="submit" id="submit-btn">Submit</button>
+    </form>
+    <div
+      partial="pages_contact_f30af786"
+      p-key="r.0:2"
+      p-ref="resultContainer"
+      data-pk-partial="pages_contact_f30af786"
+      id="result-container"
+      style="display: block;"
+    >
+      <h2 partial="pages_contact_f30af786" p-key="r.0:2:0">Result:</h2>
+      <div partial="pages_contact_f30af786" p-key="r.0:2:1" id="result">
+        <p partial="pages_contact_f30af786" p-key="r.0:2:1:0">First Name: <span
+            partial="pages_contact_f30af786"
+            p-key="r.0:2:1:0:1"
+            p-ref="resultFirstname"
+            data-pk-partial="pages_contact_f30af786"
+            id="result-firstname"
+          >John</span></p>
+        <p partial="pages_contact_f30af786" p-key="r.0:2:1:1">Last Name: <span
+            partial="pages_contact_f30af786"
+            p-key="r.0:2:1:1:1"
+            p-ref="resultLastname"
+            data-pk-partial="pages_contact_f30af786"
+            id="result-lastname"
+          >Doe</span></p>
+        <p partial="pages_contact_f30af786" p-key="r.0:2:1:2">Email: <span
+            partial="pages_contact_f30af786"
+            p-key="r.0:2:1:2:1"
+            p-ref="resultEmail"
+            data-pk-partial="pages_contact_f30af786"
+            id="result-email"
+          >john.doe@example.com</span></p>
+        <p partial="pages_contact_f30af786" p-key="r.0:2:1:3">Message: <span
+            partial="pages_contact_f30af786"
+            p-key="r.0:2:1:3:1"
+            p-ref="resultMessage"
+            data-pk-partial="pages_contact_f30af786"
+            id="result-message"
+          >This is a test message</span></p>
+      </div>
+    </div>
+  </div>
+</div>

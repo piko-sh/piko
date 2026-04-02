@@ -1,0 +1,23 @@
+(() => {
+    if (!window.__requestMocks) {
+        window.__requestMocks = {};
+        const originalFetch = window.fetch;
+        window.fetch = async function(input, init) {
+            const url = typeof input === 'string' ? input : input.url;
+            for (const [pattern, mock] of Object.entries(window.__requestMocks)) {
+                if (url.includes(pattern) || new RegExp(pattern.replace(/\*/g, '.*')).test(url)) {
+                    return new Response(mock.body, {
+                        status: mock.status,
+                        headers: mock.headers
+                    });
+                }
+            }
+            return originalFetch.apply(this, arguments);
+        };
+    }
+    window.__requestMocks[{{jsStr .URLPattern}}] = {
+        status: {{.StatusCode}},
+        body: {{jsStr .Body}},
+        headers: {{jsRaw .HeadersJSON}}
+    };
+})()

@@ -1,0 +1,425 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-select">
+    <div class="select"
+         p-class="{
+             'filled': state.variant == 'filled',
+             'outlined': state.variant == 'outlined',
+             'open': state.open,
+             'populated': state.value != '',
+             'disabled': state.disabled,
+             'focused': state.open,
+             'error': state.error
+         }"
+         :tabindex="state.disabled ? '-1' : '0'"
+         p-on:click="toggleMenu"
+         p-on:keydown="handleKeydown">
+        <div class="container">
+            <div class="background" p-if="state.variant == 'filled'"></div>
+            <div class="outline" p-if="state.variant == 'outlined'">
+                <div class="outline-start"></div>
+                <div class="outline-notch">
+                    <span class="outline-label" p-if="state.label">
+                        <span p-text="state.label"></span><span p-if="state.required"> *</span>
+                    </span>
+                </div>
+                <div class="outline-end"></div>
+            </div>
+            <div class="content">
+                <div class="label-container" p-if="state.variant == 'filled' && state.label">
+                    <span class="label">
+                        <span p-text="state.label"></span><span p-if="state.required"> *</span>
+                    </span>
+                </div>
+                <span class="selected-text"
+                      p-text="state.displayText || state.value"></span>
+                <span class="trailing-icon">
+                    <piko:svg src="piko.sh/piko/lib/icons/arrow-drop-down.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                </span>
+            </div>
+            <div class="active-indicator" p-if="state.variant == 'filled'"></div>
+        </div>
+        <div class="menu" p-if="state.open" p-on:click="stopPropagation">
+            <slot></slot>
+        </div>
+        <div class="supporting" p-if="state.supportingText || (state.error && state.errorText)">
+            <span class="supporting-text"
+                  p-text="state.error && state.errorText ? state.errorText : state.supportingText"></span>
+        </div>
+        <input p-if="state.name" type="hidden" :name="state.name" :value="state.value" />
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'filled' as string,
+        label: '' as string,
+        value: '' as string,
+        displayText: '' as string,
+        disabled: false as boolean,
+        open: false as boolean,
+        required: false as boolean,
+        error: false as boolean,
+        errorText: '' as string,
+        supportingText: '' as string,
+        name: '' as string,
+    };
+
+    let typeaheadBuffer = '';
+    let typeaheadTimer = null;
+
+    function toggleMenu() {
+        if (state.disabled) return;
+        state.open = !state.open;
+
+        if (state.open) {
+            setTimeout(() => {
+                const firstItem = pkc.querySelector('m3e-menu-item:not([disabled])');
+                if (firstItem) firstItem.focus();
+                document.addEventListener('click', closeOnOutsideClick, { once: true });
+            }, 0);
+        }
+    }
+
+    const closeOnOutsideClick = () => {
+        state.open = false;
+    };
+
+    function stopPropagation(event) {
+        event.stopPropagation();
+    }
+
+    function handleKeydown(event) {
+        if (event.key === 'Escape') {
+            state.open = false;
+            return;
+        }
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            if (state.open) {
+                const focused = pkc.querySelector('m3e-menu-item:focus');
+                if (focused) {
+                    focused.click();
+                    return;
+                }
+            }
+            toggleMenu();
+            return;
+        }
+        if (state.open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+            event.preventDefault();
+            const items = Array.from(pkc.querySelectorAll('m3e-menu-item:not([disabled])'));
+            if (items.length === 0) return;
+            const focused = pkc.querySelector('m3e-menu-item:focus');
+            let index = focused ? items.indexOf(focused) : -1;
+            if (event.key === 'ArrowDown') {
+                index = index < items.length - 1 ? index + 1 : 0;
+            } else {
+                index = index > 0 ? index - 1 : items.length - 1;
+            }
+            items[index].focus();
+            return;
+        }
+        if (!state.open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+            event.preventDefault();
+            toggleMenu();
+            return;
+        }
+        if (state.open && event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+            typeaheadBuffer += event.key.toLowerCase();
+            if (typeaheadTimer) clearTimeout(typeaheadTimer);
+            typeaheadTimer = setTimeout(() => { typeaheadBuffer = ''; }, 500);
+            const items = Array.from(pkc.querySelectorAll('m3e-menu-item:not([disabled])'));
+            const match = items.find((item) => {
+                const text = (item.textContent || '').trim().toLowerCase();
+                return text.startsWith(typeaheadBuffer);
+            });
+            if (match) match.focus();
+        }
+    }
+
+    pkc.onConnected(() => {
+        pkc.addEventListener('select', handleSelection);
+    });
+
+    pkc.onDisconnected(() => {
+        pkc.removeEventListener('select', handleSelection);
+        document.removeEventListener('click', closeOnOutsideClick);
+    });
+
+    const handleSelection = function(event) {
+        const detail = event.detail;
+        if (detail) {
+            state.value = detail.value || '';
+            state.displayText = detail.text || detail.value || '';
+        }
+        state.open = false;
+
+        pkc.dispatchEvent(new CustomEvent('change', {
+            detail: { value: state.value },
+            bubbles: true,
+            composed: true,
+        }));
+    };
+</script>
+
+<style>
+    :host {
+        display: block;
+        min-width: 210px;
+        max-width: 100%;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline: var(--m3e-outline, #79747e);
+        --_surface-container: var(--m3e-surface-container, #f3edf7);
+        --_surface-container-highest: var(--m3e-surface-container-highest, #e6e0e9);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-xs: var(--m3e-shape-xs, 4px);
+        --_error: var(--m3e-error, #b3261e);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .select {
+        position: relative;
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+
+        &.disabled {
+            cursor: default;
+            opacity: 0.38;
+            pointer-events: none;
+        }
+
+        &.focused {
+            .active-indicator {
+                height: 2px;
+                background: var(--_primary);
+            }
+
+            .outline-start,
+            .outline-notch,
+            .outline-end {
+                border-color: var(--_primary);
+                border-width: 2px;
+            }
+
+            .outline-notch {
+                border-top-color: transparent;
+            }
+
+            .outline-label {
+                color: var(--_primary);
+            }
+
+            .label {
+                color: var(--_primary);
+            }
+        }
+
+        &.populated .outline-notch {
+            border-top-color: transparent;
+        }
+
+        &.open .trailing-icon {
+            transform: rotate(180deg);
+        }
+
+        &.outlined:not(.focused):not(.populated) .outline-label {
+            font-size: 1rem;
+            transform: translateY(calc(28px - 50%));
+        }
+
+        &.outlined .selected-text {
+            padding-top: 16px;
+            padding-bottom: 16px;
+        }
+
+        &.filled:not(.focused):not(.populated) .label {
+            font-size: 1rem;
+            transform: translateY(8px);
+        }
+
+        &.error {
+            .active-indicator {
+                background: var(--_error);
+            }
+
+            .outline-start,
+            .outline-notch,
+            .outline-end {
+                border-color: var(--_error);
+            }
+
+            &.focused .outline-notch,
+            &.populated .outline-notch {
+                border-top-color: transparent;
+            }
+
+            .outline-label {
+                color: var(--_error);
+            }
+
+            .label {
+                color: var(--_error);
+            }
+
+            .supporting {
+                color: var(--_error);
+            }
+        }
+    }
+
+    .container {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        min-height: 56px;
+    }
+
+    .background {
+        position: absolute;
+        inset: 0;
+        background: var(--_surface-container-highest);
+        border-radius: var(--_shape-xs) var(--_shape-xs) 0 0;
+    }
+
+    .active-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--_on-surface-variant);
+        transition: height var(--_duration-short), background var(--_duration-short);
+    }
+
+    .outline {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        pointer-events: none;
+    }
+
+    .outline-start {
+        width: 16px;
+        border: 1px solid var(--_outline);
+        border-right: none;
+        border-radius: var(--_shape-xs) 0 0 var(--_shape-xs);
+        transition: border-color var(--_duration-short);
+    }
+
+    .outline-notch {
+        border-top: 1px solid var(--_outline);
+        border-bottom: 1px solid var(--_outline);
+        display: flex;
+        align-items: flex-start;
+        padding: 0 4px;
+        transition: border-color var(--_duration-short);
+    }
+
+    .outline-end {
+        flex: 1;
+        border: 1px solid var(--_outline);
+        border-left: none;
+        border-radius: 0 var(--_shape-xs) var(--_shape-xs) 0;
+        transition: border-color var(--_duration-short);
+    }
+
+    .outline-label {
+        font-size: 0.75rem;
+        color: var(--_on-surface-variant);
+        transform: translateY(-50%);
+        transform-origin: top left;
+        transition: font-size var(--_duration-short),
+                    transform var(--_duration-short),
+                    color var(--_duration-short);
+    }
+
+    .content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1;
+        padding: 0 16px;
+        z-index: 1;
+    }
+
+    .label-container {
+        position: absolute;
+        top: 8px;
+        left: 16px;
+        pointer-events: none;
+    }
+
+    .label {
+        font-size: 0.75rem;
+        color: var(--_on-surface-variant);
+        transform-origin: top left;
+        transition: font-size var(--_duration-short),
+                    transform var(--_duration-short),
+                    color var(--_duration-short);
+    }
+
+    .selected-text {
+        flex: 1;
+        font-size: 1rem;
+        color: var(--_on-surface);
+        padding-top: 28px;
+        padding-bottom: 8px;
+        min-height: 24px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .trailing-icon {
+        display: flex;
+        color: var(--_on-surface-variant);
+        transition: transform var(--_duration-short) var(--_easing-standard);
+    }
+
+    .menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: var(--_surface-container);
+        border-radius: var(--_shape-xs);
+        box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 2px 6px 2px rgba(0,0,0,0.15);
+        padding: 8px 0;
+        max-height: 256px;
+        overflow-y: auto;
+        margin-top: 4px;
+    }
+
+    .supporting {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 16px 0;
+        font-size: 0.75rem;
+        color: var(--_on-surface-variant);
+    }
+</style>

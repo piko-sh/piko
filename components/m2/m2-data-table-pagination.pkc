@@ -1,0 +1,258 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m2-data-table-pagination">
+    <div class="pagination" role="navigation" aria-label="Table pagination">
+        <div class="rows-per-page">
+            <span class="rows-label">Rows per page:</span>
+            <select class="rows-select"
+                    p-ref="rowsSelect"
+                    p-on:change="handleRowsPerPageChange">
+            </select>
+        </div>
+        <div class="page-info">
+            <span class="page-range" p-ref="pageRange"></span>
+        </div>
+        <div class="page-controls">
+            <button class="page-button"
+                    p-on:click="goToFirstPage"
+                    p-ref="btnFirst"
+                    aria-label="First page">
+                <piko:svg src="piko.sh/piko/lib/icons/first-page.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </button>
+            <button class="page-button"
+                    p-on:click="goToPreviousPage"
+                    p-ref="btnPrev"
+                    aria-label="Previous page">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-left.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </button>
+            <button class="page-button"
+                    p-on:click="goToNextPage"
+                    p-ref="btnNext"
+                    aria-label="Next page">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-right.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </button>
+            <button class="page-button"
+                    p-on:click="goToLastPage"
+                    p-ref="btnLast"
+                    aria-label="Last page">
+                <piko:svg src="piko.sh/piko/lib/icons/last-page.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </button>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        page: 1 as number,
+        rows_per_page: 25 as number,
+        total_rows: 0 as number,
+        rows_per_page_options: '10,25,50,100' as string,
+    };
+
+    function totalPages() {
+        return Math.max(1, Math.ceil(state.total_rows / state.rows_per_page));
+    }
+
+    function updateDisplay() {
+        const start = Math.min((state.page - 1) * state.rows_per_page + 1, state.total_rows);
+        const end = Math.min(state.page * state.rows_per_page, state.total_rows);
+        const rangeEl = pkc.refs.pageRange;
+        if (rangeEl) {
+            rangeEl.textContent = start + '\u2013' + end + ' of ' + state.total_rows;
+        }
+
+        const tp = totalPages();
+        const isFirst = state.page <= 1;
+        const isLast = state.page >= tp;
+
+        if (pkc.refs.btnFirst) pkc.refs.btnFirst.disabled = isFirst;
+        if (pkc.refs.btnPrev) pkc.refs.btnPrev.disabled = isFirst;
+        if (pkc.refs.btnNext) pkc.refs.btnNext.disabled = isLast;
+        if (pkc.refs.btnLast) pkc.refs.btnLast.disabled = isLast;
+    }
+
+    function buildOptions() {
+        const selectEl = pkc.refs.rowsSelect;
+        if (!selectEl) return;
+
+        const options = state.rows_per_page_options.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ''; });
+
+        selectEl.innerHTML = '';
+        for (let i = 0; i < options.length; i++) {
+            const opt = document.createElement('option');
+            opt.value = options[i];
+            opt.textContent = options[i];
+            if (parseInt(options[i], 10) === state.rows_per_page) {
+                opt.selected = true;
+            }
+            selectEl.appendChild(opt);
+        }
+    }
+
+    function emitPageChange() {
+        pkc.dispatchEvent(new CustomEvent('page-change', {
+            detail: { page: state.page, rowsPerPage: state.rows_per_page },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    pkc.onConnected(() => {
+        buildOptions();
+        updateDisplay();
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('rows_per_page_options')) {
+            buildOptions();
+        }
+        updateDisplay();
+    });
+
+    function handleRowsPerPageChange(event) {
+        state.rows_per_page = parseInt(event.target.value, 10);
+        state.page = 1;
+        updateDisplay();
+        emitPageChange();
+    }
+
+    function goToFirstPage() {
+        if (state.page <= 1) return;
+        state.page = 1;
+        updateDisplay();
+        emitPageChange();
+    }
+
+    function goToPreviousPage() {
+        if (state.page <= 1) return;
+        state.page = state.page - 1;
+        updateDisplay();
+        emitPageChange();
+    }
+
+    function goToNextPage() {
+        if (state.page >= totalPages()) return;
+        state.page = state.page + 1;
+        updateDisplay();
+        emitPageChange();
+    }
+
+    function goToLastPage() {
+        const tp = totalPages();
+        if (state.page >= tp) return;
+        state.page = tp;
+        updateDisplay();
+        emitPageChange();
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline-variant: var(--m3e-outline-variant, #cac4d0);
+        --_primary: var(--m3e-primary, #6750a4);
+        --_surface: var(--m3e-surface, #fffbfe);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 32px;
+        min-height: 52px;
+        padding: 0 16px;
+        border-top: 1px solid var(--_outline-variant);
+        font-size: 0.75rem;
+        color: var(--_on-surface-variant);
+    }
+
+    .rows-per-page {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .rows-label {
+        white-space: nowrap;
+    }
+
+    .rows-select {
+        appearance: auto;
+        border: 1px solid var(--_outline-variant);
+        border-radius: 4px;
+        background: var(--_surface);
+        color: var(--_on-surface);
+        font-size: 0.75rem;
+        font-family: inherit;
+        padding: 4px 8px;
+        cursor: pointer;
+        outline: none;
+
+        &:focus-visible {
+            border-color: var(--_primary);
+        }
+    }
+
+    .page-info {
+        white-space: nowrap;
+    }
+
+    .page-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .page-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_on-surface-variant);
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: background var(--_duration-short) var(--_easing-standard);
+
+        &:hover:not(:disabled) {
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
+        }
+
+        &:focus-visible {
+            background: color-mix(in srgb, var(--_on-surface) 12%, transparent);
+        }
+
+        &:disabled {
+            opacity: 0.38;
+            cursor: default;
+        }
+    }
+</style>

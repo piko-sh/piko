@@ -1,0 +1,7 @@
+{
+  "get_config": {
+    "ID": 1,
+    "Name": "app",
+    "Settings": "{theme=dark, lang=en}"
+  }
+}

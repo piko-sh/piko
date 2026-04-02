@@ -1,0 +1,79 @@
+{
+  "description": "Validates that the type inspector can correctly resolve fields and methods on an element of a slice that is deeply nested in the state. This specifically targets potential context loss after an array/slice index access.",
+  "shouldError": false,
+  "expectedDiagnostics": 5,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Type 'domain.RootModal' is not directly renderable"
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Type 'dto.ItemDto' is not directly renderable"
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Type '[]dto.RangeItem' is not directly renderable"
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Type 'dto.RangeItem' is not directly renderable"
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Type 'function' is not directly renderable"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#target-field",
+      "description": "The field 'To' on the slice element should be resolved correctly.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Root.Item.Ranges[0].To",
+        "resolvedTypeIs": "int64"
+      }
+    },
+    {
+      "select": "#target-method",
+      "description": "A method call on a field of the slice element should resolve correctly.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Root.Item.Ranges[0].Charge.MustNumber()",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#target-subexpressions",
+      "description": "Asserts the type at each stage of the deep resolution path.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.Root",
+          "resolvedTypeIs": "domain.RootModal"
+        },
+        {
+          "rawExpression": "state.Root.Item",
+          "resolvedTypeIs": "dto.ItemDto"
+        },
+        {
+          "rawExpression": "state.Root.Item.Ranges",
+          "resolvedTypeIs": "[]dto.RangeItem"
+        },
+        {
+          "rawExpression": "state.Root.Item.Ranges[0]",
+          "resolvedTypeIs": "dto.RangeItem"
+        },
+        {
+          "rawExpression": "state.Root.Item.Ranges[0].To",
+          "resolvedTypeIs": "int64"
+        },
+        {
+          "rawExpression": "state.Root.Item.Ranges[0].Charge",
+          "resolvedTypeIs": "maths.Money"
+        },
+        {
+          "rawExpression": "state.Root.Item.Ranges[0].Charge.MustNumber",
+          "resolvedTypeIs": "function"
+        }
+      ]
+    }
+  ]
+}

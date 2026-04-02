@@ -1,0 +1,3 @@
+{
+  "description": "RIGHT JOIN and FULL OUTER JOIN nullability propagation. Tests that RIGHT JOIN makes the left table nullable and FULL JOIN makes all tables nullable."
+}

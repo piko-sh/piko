@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".container[partial~=testdata_modules_layout_primitives_layouts_container_5c8b63f6]{max-width:1200px;margin:0 auto;padding:0 1rem}\n.btn[partial~=testdata_modules_ui_components_components_button_127f2b1d]{padding:.5rem 1rem;border:none;border-radius:.25rem;cursor:pointer}.btn-primary[partial~=testdata_modules_ui_components_components_button_127f2b1d]{background-color:#007bff;color:#fff}\n.card[partial~=testdata_modules_ui_components_components_card_633def0f]{border:1px solid #ddd;border-radius:.5rem;overflow:hidden}.card-header[partial~=testdata_modules_ui_components_components_card_633def0f]{background-color:#f8f9fa;padding:1rem;border-bottom:1px solid #ddd}.card-body[partial~=testdata_modules_ui_components_components_card_633def0f]{padding:1rem}.card-footer[partial~=testdata_modules_ui_components_components_card_633def0f]{background-color:#f8f9fa;padding:.75rem 1rem;border-top:1px solid #ddd;color:#6c757d}",
+      "packagePath": "testcase_061_external_module_components/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Feature Announcement",
+  "description": "New feature announcement with hero, feature cards, and steps",
+  "metadata": {"title": "Introducing Prism 3.0"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

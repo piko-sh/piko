@@ -1,0 +1,7 @@
+{
+    "description": "Verifies margin: 0 auto centres a block horizontally within its parent.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

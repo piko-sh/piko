@@ -1,0 +1,25 @@
+{
+  "description": "Verifies typed error piko.Forbidden routes to !403.pk with error context",
+  "requestURL": "/forbidden",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Forbidden"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-code",
+      "expected": "403"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-message",
+      "expected": "access denied to this resource"
+    }
+  ]
+}

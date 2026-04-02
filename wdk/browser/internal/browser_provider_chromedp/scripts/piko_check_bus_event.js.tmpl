@@ -1,0 +1,4 @@
+(() => {
+    if (!window.eventLog) return false;
+    return window.eventLog.some(e => e.event === {{jsStr .EventName}});
+})()

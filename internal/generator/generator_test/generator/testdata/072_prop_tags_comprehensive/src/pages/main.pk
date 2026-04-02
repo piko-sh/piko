@@ -1,0 +1,135 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div class="prop-tags-demo">
+    <h1>Prop Tags Comprehensive Test</h1>
+
+    <section class="test-basic">
+      <h2>1. Basic Prop Tag (prop:"name")</h2>
+      <piko:partial is="basic" :card-title="state.BasicTitle" :card-description="state.BasicDescription"></piko:partial>
+    </section>
+
+    <section class="test-required">
+      <h2>2. Required Props (validate:"required")</h2>
+      <piko:partial is="required" :name="state.RequiredName" :id="state.RequiredID"></piko:partial>
+    </section>
+
+    <section class="test-defaults">
+      <h2>3. Default Values (default:"value")</h2>
+      <piko:partial is="defaultval" theme="dark"></piko:partial>
+      <piko:partial is="defaultval" theme="custom" size="large" label="Custom Label"></piko:partial>
+    </section>
+
+    <section class="test-factory">
+      <h2>4. Factory Function Default (factory:"FuncName")</h2>
+      <piko:partial is="factorydefault"></piko:partial>
+      <piko:partial is="factorydefault" :options="state.CustomOptions"></piko:partial>
+    </section>
+
+    <section class="test-coercion">
+      <h2>5. Type Coercion (coerce:"true")</h2>
+      <piko:partial is="coercion" is-active="true" count="42" price="19.99"></piko:partial>
+      <piko:partial is="coercion" :is-active="state.DynamicBool" :count="state.DynamicInt" :price="state.DynamicFloat"></piko:partial>
+    </section>
+
+    <section class="test-optional">
+      <h2>6. Optional Pointer Props (*Type)</h2>
+      <piko:partial is="optional"></piko:partial>
+      <piko:partial is="optional" :profile="state.UserProfile"></piko:partial>
+    </section>
+
+    <section class="test-comprehensive">
+      <h2>7. Comprehensive (Multiple Tags)</h2>
+      <piko:partial is="comprehensive" :card-title="state.CompTitle"></piko:partial>
+      <piko:partial
+        is="comprehensive"
+        :card-title="state.CompTitle"
+        description="Custom description"
+        card-theme="dark"
+        highlighted="true"
+        priority="5"
+        :options="state.CustomOptions"
+      ></piko:partial>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "testcase_072_prop_tags_comprehensive/pkg/models"
+
+    basic "testcase_072_prop_tags_comprehensive/partials/basic.pk"
+    required "testcase_072_prop_tags_comprehensive/partials/required.pk"
+    defaultval "testcase_072_prop_tags_comprehensive/partials/default-value.pk"
+    factorydefault "testcase_072_prop_tags_comprehensive/partials/factory-default.pk"
+    coercion "testcase_072_prop_tags_comprehensive/partials/coercion.pk"
+    optional "testcase_072_prop_tags_comprehensive/partials/optional.pk"
+    comprehensive "testcase_072_prop_tags_comprehensive/partials/comprehensive.pk"
+  )
+
+  type Response struct {
+    BasicTitle       string
+    BasicDescription string
+
+    RequiredName string
+    RequiredID   string
+
+    CustomOptions models.AvatarOptions
+
+    DynamicBool  bool
+    DynamicInt   int
+    DynamicFloat float64
+
+    UserProfile models.UserProfile
+
+    CompTitle string
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+      BasicTitle:       "My Custom Title",
+      BasicDescription: "This is a description passed via custom prop names",
+
+      RequiredName: "John Doe",
+      RequiredID:   "user-12345",
+
+      CustomOptions: models.AvatarOptions{
+        Size:  96,
+        Shape: "rounded",
+      },
+
+      DynamicBool:  false,
+      DynamicInt:   100,
+      DynamicFloat: 99.99,
+
+      UserProfile: models.UserProfile{
+        Name:    "Jane Smith",
+        Email:   "jane@example.com",
+        IsAdmin: true,
+      },
+
+      CompTitle: "Comprehensive Card Title",
+    }, piko.Metadata{}, nil
+  }
+</script>

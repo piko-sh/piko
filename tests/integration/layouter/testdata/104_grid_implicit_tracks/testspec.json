@@ -1,0 +1,7 @@
+{
+    "description": "Verifies grid implicit tracks via grid-auto-columns and grid-auto-rows for items placed beyond the explicit template.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

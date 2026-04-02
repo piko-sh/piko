@@ -1,0 +1,12 @@
+<template>
+  <div>
+    <h1> Title with spaces </h1>
+    <p>
+      Paragraph with multiple spaces
+    </p>
+    <ul>
+      <li>Item 1</li>
+      <li>Item 2</li>
+    </ul>
+  </div>
+</template>

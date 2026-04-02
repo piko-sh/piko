@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_15_external_dependency_alias ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 15_external_dependency_alias/src/main.go
+    - import "guuid"              -> github.com/google/uuid
+
+[Named Types]
+  > type Event
+    - Defined In:      15_external_dependency_alias/src/main.go
+    - TypeString:      main.Event
+    - Underlying:      struct{EventID guuid.UUID}
+    - Stringability:   0
+    - Fields:
+      - EventID              guuid.UUID
+        (Canonical Package: github.com/google/uuid)
+
+[Package-Level Functions]
+  (none)

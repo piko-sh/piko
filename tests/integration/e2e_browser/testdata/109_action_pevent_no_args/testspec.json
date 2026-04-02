@@ -1,0 +1,33 @@
+{
+  "description": "Tests that a no-args p-event action call works correctly",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#target[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#trigger-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result",
+      "expected": "pong"
+    }
+  ]
+}

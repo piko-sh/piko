@@ -1,0 +1,30 @@
+--- PACKAGE: testcase_11_interfaces ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 11_interfaces/src/main.go
+    - import "io"                 -> io
+
+[Named Types]
+  > type Logger
+    - Defined In:      11_interfaces/src/main.go
+    - TypeString:      main.Logger
+    - Underlying:      interface{Log(message string) error}
+    - Stringability:   0
+    - Methods:
+      - func (T) Log             func(string) error
+
+  > type Service
+    - Defined In:      11_interfaces/src/main.go
+    - TypeString:      main.Service
+    - Underlying:      interface{main.Logger; io.Closer}
+    - Stringability:   0
+    - Methods:
+      - func (T) Close           func() error
+        (Promoted from: io.Closer)
+      - func (T) Log             func(string) error
+        (Promoted from: testcase_11_interfaces.Logger)
+
+[Package-Level Functions]
+  (none)

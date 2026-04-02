@@ -1,0 +1,3 @@
+{
+  "description": "LEFT JOIN nullability: columns from the right table in a LEFT JOIN should be nullable, even if declared NOT NULL."
+}

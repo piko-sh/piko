@@ -1,0 +1,34 @@
+{
+  "groups": {
+    "sidebar": {
+      "sections": [
+        {
+          "children": [
+            {
+              "id": "with-excerpt",
+              "title": "Post With Excerpt",
+              "section": "",
+              "url": "/blog/with-excerpt",
+              "level": 1,
+              "order": 999
+            },
+            {
+              "id": "without-excerpt",
+              "title": "Post Without Excerpt",
+              "section": "",
+              "url": "/blog/without-excerpt",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "",
+          "title": "",
+          "section": "",
+          "level": 0,
+          "order": 999
+        }
+      ],
+      "locale": "en"
+    }
+  }
+}

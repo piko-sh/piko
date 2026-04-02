@@ -1,0 +1,166 @@
+<template>
+  <header class="site-header">
+    <div class="header-container">
+      <a href="/" class="brand">
+        <piko:svg src="@/lib/icons/piko-mark.svg" class="brand-logo" aria-hidden="true"></piko:svg>
+        <span class="brand-name">Piko</span>
+      </a>
+      <nav class="main-nav">
+        <a href="https://piko.sh/docs" target="_blank" rel="noopener">Documents</a>
+        <a href="https://github.com/piko-sh/piko" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <piko:slot></piko:slot>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <p>Built with <a href="https://piko.sh">Piko</a> &mdash; {{ "{{ state.CurrentYear }}" }}</p>
+    </div>
+  </footer>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "time"
+)
+
+// Props received from the page that uses this layout.
+type Props struct {
+    PageTitle string `prop:"page_title"`
+}
+
+// Response is available as "state" in the template above.
+type Response struct {
+    PageTitle   string
+    CurrentYear int
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    title := "{{ .ProjectName }}"
+    if props.PageTitle != "" {
+        title = props.PageTitle + " | {{ .ProjectName }}"
+    }
+
+    metadata := piko.Metadata{
+        Title: title,
+    }
+
+    return Response{
+        PageTitle:   title,
+        CurrentYear: time.Now().Year(),
+    }, metadata, nil
+}
+</script>
+
+<style>
+  :host {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.06), transparent),
+      var(--g-colour-grey-50, #f9fafb);
+    color: var(--g-colour-grey-800, #1f2937);
+  }
+
+  /* Header */
+  .site-header {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--g-colour-grey-100, #e5e7eb);
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 960px;
+    margin: 0 auto;
+    height: 3.5rem;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--g-colour-grey-900, #111827);
+  }
+
+  .brand-logo {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--g-colour-primary, #6F47EB);
+  }
+
+  .brand-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .main-nav {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .main-nav a {
+    color: var(--g-colour-grey-500, #6b7280);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+
+  .main-nav a:hover {
+    color: var(--g-colour-grey-900, #111827);
+  }
+
+  /* Main Content */
+  main {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* Footer */
+  .site-footer {
+    padding: 2rem 1.5rem;
+    font-size: 0.8125rem;
+    color: var(--g-colour-grey-400, #9ca3af);
+    text-align: center;
+  }
+
+  .footer-container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .footer-container p {
+    margin: 0;
+  }
+
+  .footer-container a {
+    color: var(--g-colour-grey-500, #6b7280);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .footer-container a:hover {
+    color: var(--g-colour-primary, #6F47EB);
+  }
+</style>

@@ -1,0 +1,35 @@
+[
+  {
+    "Filename": "get_totals.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"id\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "get_totals.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "Q001: unknown column \"price\"",
+    "Severity": 1,
+    "Code": "Q001",
+    "Suggestion": ""
+  },
+  {
+    "Filename": "get_totals.sql",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Message": "query \"GetProductTotals\" uses command \"many\" but produces no output columns",
+    "Severity": 1,
+    "Code": "Q009",
+    "Suggestion": ""
+  }
+]

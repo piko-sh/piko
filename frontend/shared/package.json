@@ -1,0 +1,28 @@
+{
+  "name": "@piko/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript type declarations for Piko WDK extensions",
+  "types": "types/index.d.ts",
+  "files": [
+    "types"
+  ],
+  "scripts": {
+    "lint": "npm run lint:eslint && npm run lint:typecheck && npm run lint:cpd",
+    "lint:eslint": "eslint 'types/**/*.ts'",
+    "lint:fix": "eslint 'types/**/*.ts' --fix",
+    "lint:typecheck": "tsc --noEmit",
+    "lint:cpd": "jscpd types/"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "eslint": "^9.39.2",
+    "eslint-plugin-jsdoc": "^61.5.0",
+    "eslint-plugin-promise": "^7.2.1",
+    "jscpd": "^4",
+    "typescript": "~5.9.3"
+  },
+  "author": "PolitePixels Limited",
+  "license": "Apache-2.0"
+}

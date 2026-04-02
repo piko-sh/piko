@@ -1,0 +1,59 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "array-mutation-shift-unshift >>> li",
+    "expected": "3"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-shift-unshift >>> #count",
+    "expected": "Count: 3"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-shift-unshift >>> li:first-child",
+    "expected": "A"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation-shift-unshift >>> #shift"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "array-mutation-shift-unshift >>> li",
+    "expected": "2"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-shift-unshift >>> li:first-child",
+    "expected": "B"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation-shift-unshift >>> #unshift"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "array-mutation-shift-unshift >>> li",
+    "expected": "3"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-shift-unshift >>> li:first-child",
+    "expected": "New-0"
+  },
+  {
+    "action": "click",
+    "selector": "array-mutation-shift-unshift >>> #unshift"
+  },
+  {
+    "action": "checkText",
+    "selector": "array-mutation-shift-unshift >>> li:first-child",
+    "expected": "New-1"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "array-mutation-shift-unshift >>> li",
+    "expected": "4"
+  }
+]

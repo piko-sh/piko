@@ -1,0 +1,5 @@
+{
+  "description": "Tests that custom components in the components/ folder are detected by the registry and appear in customTags, while piko:slot and other framework tags are excluded.",
+  "packageName": "component_registry_test",
+  "isPage": true
+}

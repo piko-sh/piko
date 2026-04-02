@@ -1,0 +1,66 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <!-- 2 explicit columns, 4 items creates implicit second row -->
+  <div data-layout-id="implicit-rows" style="box-sizing: content-box; display: grid; grid-template-columns: 200px 200px; grid-auto-rows: 80px; width: 600px; margin: 0; padding: 0;">
+    <div data-layout-id="ir-item-1" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ir-item-2" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ir-item-3" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ir-item-4" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+  </div>
+
+  <!-- Item placed at column 4 forces implicit columns -->
+  <div data-layout-id="implicit-cols" style="box-sizing: content-box; display: grid; grid-template-columns: 100px 100px; grid-auto-columns: 150px; width: 600px; margin: 0; padding: 0;">
+    <div data-layout-id="ic-item-1" style="box-sizing: content-box; height: 50px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ic-item-2" style="box-sizing: content-box; height: 50px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ic-item-3" style="box-sizing: content-box; height: 50px; margin: 0; padding: 0; grid-column: 4;"></div>
+  </div>
+
+  <!-- Explicit row template with overflow into implicit rows -->
+  <div data-layout-id="overflow-rows" style="box-sizing: content-box; display: grid; grid-template-columns: 200px 200px; grid-template-rows: 60px; grid-auto-rows: 40px; width: 600px; margin: 0; padding: 0;">
+    <div data-layout-id="or-item-1" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="or-item-2" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="or-item-3" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="or-item-4" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="or-item-5" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="or-item-6" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+  </div>
+
+  <!-- grid-auto-rows with gap -->
+  <div data-layout-id="implicit-gap" style="box-sizing: content-box; display: grid; grid-template-columns: 200px 200px; grid-auto-rows: 50px; gap: 10px; width: 600px; margin: 0; padding: 0;">
+    <div data-layout-id="ig-item-1" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ig-item-2" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ig-item-3" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+    <div data-layout-id="ig-item-4" style="box-sizing: content-box; margin: 0; padding: 0;"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Grid Implicit Tracks Test"}, nil
+}
+</script>

@@ -1,0 +1,42 @@
+new Promise((resolve, reject) => {
+    const idleDuration = {{.IdleDuration}};
+    const timeout = {{.Timeout}};
+    let lastRequestTime = Date.now();
+    let checkCount = 0;
+    const maxChecks = timeout / 100;
+
+    // Track pending requests
+    let pendingRequests = 0;
+
+    const originalFetch = window.__originalFetch || window.fetch;
+    if (!window.__originalFetch) {
+        window.__originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            pendingRequests++;
+            lastRequestTime = Date.now();
+            try {
+                return await originalFetch.apply(this, args);
+            } finally {
+                pendingRequests--;
+                lastRequestTime = Date.now();
+            }
+        };
+    }
+
+    const check = () => {
+        checkCount++;
+        if (checkCount > maxChecks) {
+            reject(new Error('timeout waiting for network idle'));
+            return;
+        }
+
+        const timeSinceLastRequest = Date.now() - lastRequestTime;
+        if (pendingRequests === 0 && timeSinceLastRequest >= idleDuration) {
+            resolve(true);
+        } else {
+            setTimeout(check, 100);
+        }
+    };
+
+    check();
+})

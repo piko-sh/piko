@@ -1,0 +1,23 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 id="main-greeting" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ T("greeting") }}
+    </RichText>
+  </h1>
+  <p id="user-greeting" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ T("user.greeting") }}
+    </RichText>
+  </p>
+  <p id="user-greeting2" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ LT("user.greeting") }}
+    </RichText>
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

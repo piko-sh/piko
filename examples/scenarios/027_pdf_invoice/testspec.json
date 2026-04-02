@@ -1,0 +1,5 @@
+{
+  "description": "Verifies a form-driven PDF invoice generator using Piko's PDF rendering pipeline",
+  "requestURL": "/",
+  "expectedStatus": 200
+}

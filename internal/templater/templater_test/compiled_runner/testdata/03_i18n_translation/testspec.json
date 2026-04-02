@@ -1,0 +1,7 @@
+{
+  "description": "Tests basic i18n translation with local and global translations",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

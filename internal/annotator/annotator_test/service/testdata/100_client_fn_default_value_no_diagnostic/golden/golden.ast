@@ -1,0 +1,23 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button [Events: p-on:click.="openLightbox($event)" {P: openLightbox($event)}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Open"
+  </button>
+  <button [Events: p-on:click.="openLightbox($event, 3)" {P: openLightbox($event, 3)}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Open Slide 3"
+  </button>
+  <button [Events: p-on:click.="greetUser(state.Name)" {P: greetUser(state.Name)}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Greet"
+  </button>
+  <button [Events: p-on:click.="greetUser(state.Name, 'Hi')" {P: greetUser(state.Name, "Hi")}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Greet Hi"
+  </button>
+  <button [Events: p-on:click.="greetUser(state.Name, 'Hi', '.')" {P: greetUser(state.Name, "Hi", ".")}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Greet Full"
+  </button>
+</div>
+
+--- END AST DUMP ---
+*/

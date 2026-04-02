@@ -1,0 +1,45 @@
+{
+  "packages": {
+    "testcase_53_anonymous_returns": {
+      "file_imports": {
+        "53_anonymous_returns/src/main.go": {}
+      },
+      "named_types": {},
+      "funcs": {
+        "GetConfig": {
+          "name": "GetConfig",
+          "type_string": "func() struct{Port int; Host string}",
+          "underlying_type_string": "func() struct{Port int; Host string}",
+          "definition_file_path": "53_anonymous_returns/src/main.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "struct{Port int; Host string}"
+            ]
+          },
+          "definition_line": 22,
+          "definition_column": 6
+        },
+        "GetRunner": {
+          "name": "GetRunner",
+          "type_string": "func() interface{Run() error}",
+          "underlying_type_string": "func() interface{Run() error}",
+          "definition_file_path": "53_anonymous_returns/src/main.go",
+          "signature": {
+            "params": null,
+            "results": [
+              "interface{Run() error}"
+            ]
+          },
+          "definition_line": 33,
+          "definition_column": 6
+        }
+      },
+      "path": "testcase_53_anonymous_returns",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "53_anonymous_returns/src/main.go": "testcase_53_anonymous_returns"
+  }
+}

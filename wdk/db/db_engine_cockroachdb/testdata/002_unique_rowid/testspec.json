@@ -1,0 +1,3 @@
+{
+  "description": "unique_rowid() function: verifies the CockroachDB-specific unique_rowid() built-in function resolves to an integer type."
+}

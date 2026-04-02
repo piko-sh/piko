@@ -1,0 +1,5 @@
+Hello World
+
+==========
+
+This is a simple static email with no PML components.

@@ -1,0 +1,8 @@
+{
+  "global": {
+    "farewell": "Au revoir du fichier global !"
+  },
+  "specific": {
+    "greeting": "Salut du Français global !"
+  }
+}

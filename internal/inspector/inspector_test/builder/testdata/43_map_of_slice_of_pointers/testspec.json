@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of a deeply nested map -> slice -> pointer -> struct composition.",
+  "moduleName": "testcase_43_map_of_slice_of_pointers",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_43_map_of_slice_of_pointers"
+  ],
+  "assertions": [
+    {
+      "description": "The type alias 'UserGroups' should resolve to the complex underlying type.",
+      "select": "packages.testcase_43_map_of_slice_of_pointers.named_types.UserGroups.type_string",
+      "expect": "map[string][]*models.User"
+    },
+    {
+      "description": "The 'Groups' field (using the alias) should have the correct resolved TypeString.",
+      "select": "packages.testcase_43_map_of_slice_of_pointers.named_types.Response.fields.0.type_string",
+      "expect": "main.UserGroups"
+    },
+    {
+      "description": "The 'GroupsInline' field should also have the correct TypeString.",
+      "select": "packages.testcase_43_map_of_slice_of_pointers.named_types.Response.fields.1.type_string",
+      "expect": "map[string][]*models.User"
+    },
+    {
+      "description": "The PackagePath for the field should point to the 'models' package (from the pointer element).",
+      "select": "packages.testcase_43_map_of_slice_of_pointers.named_types.Response.fields.0.pkg_path",
+      "expect": "testcase_43_map_of_slice_of_pointers/models"
+    }
+  ]
+}

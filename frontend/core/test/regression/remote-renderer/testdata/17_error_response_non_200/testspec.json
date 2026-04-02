@@ -1,0 +1,23 @@
+{
+    "description": "500 response causes render to silently fail without patching DOM",
+    "mockResponse": {
+        "status": 500,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/broken",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#content"
+    },
+    "assertions": [
+        {
+            "selector": "#content p",
+            "textContent": "Original content",
+            "description": "Original content should remain unchanged after failed fetch"
+        }
+    ]
+}

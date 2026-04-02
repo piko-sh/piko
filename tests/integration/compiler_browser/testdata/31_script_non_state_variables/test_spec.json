@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "non-state-vars \u003e\u003e\u003e p",
+    "expected": "Hello, Component! Call count: 1"
+  },
+  {
+    "action": "click",
+    "selector": "non-state-vars \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "non-state-vars \u003e\u003e\u003e p",
+    "expected": "Hello, Component! Call count: 2"
+  },
+  {
+    "action": "click",
+    "selector": "non-state-vars \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "non-state-vars \u003e\u003e\u003e p",
+    "expected": "Hello, Component! Call count: 3"
+  }
+]

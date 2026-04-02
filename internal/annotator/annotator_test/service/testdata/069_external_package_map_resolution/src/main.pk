@@ -1,0 +1,81 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	"os"
+	"piko.sh/piko"
+	"testcase_69_external_package_map_resolution/domain"
+)
+
+type Props struct {
+	Parish string
+	Index  int
+}
+
+type Response struct {
+	Parish string
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+	_ = os.Args
+	return Response{Parish: props.Parish}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+    <div class="container">
+        <h1>External Package Variable Test</h1>
+
+        <p class="parish-name">{{ domain.ParishMap[props.Parish] }}</p>
+        <p class="status-code">{{ domain.StatusCodes[props.Index] }}</p>
+
+        <p class="max-retries">{{ domain.MaxRetries }}</p>
+        <p class="app-version">{{ domain.AppVersion }}</p>
+        <p class="app-name">{{ domain.AppName }}</p>
+
+        <p class="timeout">{{ domain.DefaultTimeout }}</p>
+
+        <p class="config-name">{{ domain.DefaultConfig.Name }}</p>
+        <p class="config-enabled">{{ domain.DefaultConfig.Enabled }}</p>
+
+        <p class="result-value">{{ domain.StringResult.Value }}</p>
+
+        <p class="os-args-first" p-if="len(os.Args) > 0">{{ os.Args[0] }}</p>
+
+        <p class="deep-country-name">{{ domain.DeepConfig.Primary.Country.Name }}</p>
+        <p class="deep-region-capital">{{ domain.DeepConfig.Primary.Country.Regions[0].Capital.Name }}</p>
+        <p class="deep-region-postcode">{{ domain.DeepConfig.Primary.Country.Regions[0].Capital.PostCode }}</p>
+
+        <p class="pointer-user-name">{{ domain.DefaultUser.Name }}</p>
+
+        <p class="embedded-created">{{ domain.DefaultArticle.CreatedAt }}</p>
+        <p class="embedded-title">{{ domain.DefaultArticle.Title }}</p>
+
+        <p class="alias-id">{{ domain.CurrentUserID }}</p>
+        <p class="named-type-id">{{ domain.OwnerID }}</p>
+
+        <p class="map-nested-country">{{ domain.DeepConfig.Lookup["home"].Country.Code }}</p>
+        <p class="map-nested-region">{{ domain.DeepConfig.Lookup["home"].Country.Regions[0].Name }}</p>
+        <p class="map-nested-capital">{{ domain.DeepConfig.Lookup["home"].Country.Regions[0].Capital.PostCode }}</p>
+    </div>
+</template>

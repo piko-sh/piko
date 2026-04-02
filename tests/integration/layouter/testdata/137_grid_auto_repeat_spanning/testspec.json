@@ -1,0 +1,7 @@
+{
+    "description": "Verifies grid auto-fill with spanning items, and auto-fit collapsing empty tracks.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that an ancestor with CSS transform becomes the containing block for position: fixed descendants.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

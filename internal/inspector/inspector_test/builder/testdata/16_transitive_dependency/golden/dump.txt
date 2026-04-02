@@ -1,0 +1,41 @@
+--- PACKAGE: testcase_16_transitive_dependency ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 16_transitive_dependency/src/main.go
+    - import "lib"                -> testcase_16_transitive_dependency/lib
+
+[Named Types]
+  > type Request
+    - Defined In:      16_transitive_dependency/src/main.go
+    - TypeString:      main.Request
+    - Underlying:      struct{RequestedItem lib.Item}
+    - Stringability:   0
+    - Fields:
+      - RequestedItem        lib.Item
+        (Canonical Package: testcase_16_transitive_dependency/lib)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_16_transitive_dependency/lib ---
+[Package Info]
+  - Name:    lib
+
+[File-Scoped Imports]
+  > File: 16_transitive_dependency/src/lib/types.go
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Item
+    - Defined In:      16_transitive_dependency/src/lib/types.go
+    - TypeString:      lib.Item
+    - Underlying:      struct{ItemID uuid.UUID}
+    - Stringability:   0
+    - Fields:
+      - ItemID               uuid.UUID
+        (Canonical Package: github.com/google/uuid)
+
+[Package-Level Functions]
+  (none)

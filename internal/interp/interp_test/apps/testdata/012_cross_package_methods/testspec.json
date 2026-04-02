@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package method calls on struct types",
+  "modulePath": "testpkg",
+  "expected": "counter:3"
+}

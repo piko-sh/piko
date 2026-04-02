@@ -1,0 +1,41 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">PK Lifecycle Hooks Test</h1>
+    <nav partial="pages_main_594861c5" p-key="r.0:1"><a partial="pages_main_594861c5" p-key="r.0:1:0" href="/other" id="nav-other">Go to Other Page</a></nav>
+    <div
+      partial="partials_lifecycle_test_ba14aedf"
+      partial_name="lifecycle-test"
+      partial_src="/_piko/partials/lifecycle-test"
+      p-key="r.0:2"
+      class="lifecycle-partial"
+    >
+      <h3 partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:0">Lifecycle Test Partial</h3>
+      <div partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:1" class="counters">
+        <p partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:1:0" id="connected-count">Connected: 1</p>
+        <p partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:1:1" id="disconnected-count">Disconnected: 0</p>
+        <p partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:1:2" id="before-render-count">BeforeRender: 1</p>
+        <p partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:1:3" id="after-render-count">AfterRender: 1</p>
+        <p partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:1:4" id="updated-count">Updated: 1</p>
+      </div>
+      <div partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:2" class="actions"><button
+          partial="partials_lifecycle_test_ba14aedf"
+          p-key="r.0:2:2:0"
+          id="reload-btn"
+          p-on:click="eyJmIjoicmVsb2FkU2VsZiIsImEiOltdfQ"
+          pk-ev-bound="true"
+        >Reload Partial</button></div>
+      <div partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:3" id="lifecycle-log" class="log">
+        <h4 partial="partials_lifecycle_test_ba14aedf" p-key="r.0:2:3:0">Lifecycle Log:</h4>
+        <ul
+          partial="partials_lifecycle_test_ba14aedf"
+          p-key="r.0:2:3:1"
+          p-ref="logList"
+          data-pk-partial="partials_lifecycle_test_ba14aedf"
+        >
+          <li>onAfterRender (count: 2)</li>
+          <li>onUpdated (count: 2, context: {"patchMethod":"morph"})</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

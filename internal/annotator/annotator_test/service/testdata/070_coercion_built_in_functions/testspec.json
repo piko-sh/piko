@@ -1,0 +1,151 @@
+{
+  "description": "Validates that coercion built-in functions (string, int, float, bool, decimal, bigint) are correctly typed and produce expected return types.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#string-from-int",
+      "description": "string(int) should return string",
+      "assertOnInterpolation": {
+        "rawExpression": "string(state.IntVal)",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#string-from-float",
+      "description": "string(float64) should return string",
+      "assertOnInterpolation": {
+        "rawExpression": "string(state.FloatVal)",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#string-from-bool",
+      "description": "string(bool) should return string",
+      "assertOnInterpolation": {
+        "rawExpression": "string(state.BoolVal)",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#string-from-decimal",
+      "description": "string(Decimal) should return string",
+      "assertOnInterpolation": {
+        "rawExpression": "string(state.DecimalVal)",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#int-from-string",
+      "description": "int(string) should return int",
+      "assertOnInterpolation": {
+        "rawExpression": "int(state.StringVal)",
+        "resolvedTypeIs": "int"
+      }
+    },
+    {
+      "select": "#int-from-float",
+      "description": "int(float64) should return int",
+      "assertOnInterpolation": {
+        "rawExpression": "int(state.FloatVal)",
+        "resolvedTypeIs": "int"
+      }
+    },
+    {
+      "select": "#int64-from-string",
+      "description": "int64(string) should return int64",
+      "assertOnInterpolation": {
+        "rawExpression": "int64(state.StringVal)",
+        "resolvedTypeIs": "int64"
+      }
+    },
+    {
+      "select": "#int32-from-int",
+      "description": "int32(int) should return int32",
+      "assertOnInterpolation": {
+        "rawExpression": "int32(state.IntVal)",
+        "resolvedTypeIs": "int32"
+      }
+    },
+    {
+      "select": "#float64-from-int",
+      "description": "float64(int) should return float64",
+      "assertOnInterpolation": {
+        "rawExpression": "float64(state.IntVal)",
+        "resolvedTypeIs": "float64"
+      }
+    },
+    {
+      "select": "#float64-from-string",
+      "description": "float64(string) should return float64",
+      "assertOnInterpolation": {
+        "rawExpression": "float64(state.StringVal)",
+        "resolvedTypeIs": "float64"
+      }
+    },
+    {
+      "select": "#float-alias",
+      "description": "float(int) should return float64 (float is an alias)",
+      "assertOnInterpolation": {
+        "rawExpression": "float(state.IntVal)",
+        "resolvedTypeIs": "float64"
+      }
+    },
+    {
+      "select": "#bool-from-string",
+      "description": "bool(string) should return bool",
+      "assertOnInterpolation": {
+        "rawExpression": "bool(state.StringVal)",
+        "resolvedTypeIs": "bool"
+      }
+    },
+    {
+      "select": "#bool-from-int",
+      "description": "bool(int) should return bool",
+      "assertOnInterpolation": {
+        "rawExpression": "bool(state.IntVal)",
+        "resolvedTypeIs": "bool"
+      }
+    },
+    {
+      "select": "#decimal-from-int",
+      "description": "decimal(int) should return maths.Decimal",
+      "assertOnInterpolation": {
+        "rawExpression": "decimal(state.IntVal)",
+        "resolvedTypeIs": "maths.Decimal"
+      }
+    },
+    {
+      "select": "#decimal-from-string",
+      "description": "decimal(string) should return maths.Decimal",
+      "assertOnInterpolation": {
+        "rawExpression": "decimal(state.StringVal)",
+        "resolvedTypeIs": "maths.Decimal"
+      }
+    },
+    {
+      "select": "#bigint-from-int",
+      "description": "bigint(int) should return maths.BigInt",
+      "assertOnInterpolation": {
+        "rawExpression": "bigint(state.IntVal)",
+        "resolvedTypeIs": "maths.BigInt"
+      }
+    },
+    {
+      "select": "#bigint-from-string",
+      "description": "bigint(string) should return maths.BigInt",
+      "assertOnInterpolation": {
+        "rawExpression": "bigint(state.StringVal)",
+        "resolvedTypeIs": "maths.BigInt"
+      }
+    },
+    {
+      "select": "#ternary-coerced",
+      "description": "Ternary with coerced types should have matching types",
+      "assertOnInterpolation": {
+        "rawExpression": "state.BoolVal ? string(state.IntVal) : state.StringVal",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies elements with different font sizes have correct dimensions and stacking against browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

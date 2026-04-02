@@ -1,0 +1,24 @@
+{
+    "description": "First load - no existing children, server scopes should not be modified",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/partial",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".container",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".item",
+            "attributes": { "partial": "server_scope" },
+            "description": "Server scope preserved as-is (no existing children to inherit from)"
+        }
+    ]
+}

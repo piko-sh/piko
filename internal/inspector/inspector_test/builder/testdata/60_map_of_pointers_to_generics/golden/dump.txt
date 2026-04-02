@@ -1,0 +1,29 @@
+--- PACKAGE: testcase_60_map_of_pointers_to_generics ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 60_map_of_pointers_to_generics/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Box
+    - Defined In:      60_map_of_pointers_to_generics/src/main.go
+    - TypeString:      main.Box[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+
+  > type Response
+    - Defined In:      60_map_of_pointers_to_generics/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{IntBoxes map[string]*main.Box[int]}
+    - Stringability:   0
+    - Fields:
+      - IntBoxes             map[string]*main.Box[int]
+        (Canonical Package: testcase_60_map_of_pointers_to_generics)
+
+[Package-Level Functions]
+  (none)

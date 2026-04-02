@@ -1,0 +1,3 @@
+{
+  "description": "ALTER TABLE operations: ADD COLUMN, DROP COLUMN, MODIFY COLUMN, CHANGE COLUMN. Tests that DDL mutations correctly update the catalogue."
+}

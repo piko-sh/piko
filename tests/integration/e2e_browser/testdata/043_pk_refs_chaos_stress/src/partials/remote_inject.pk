@@ -1,0 +1,107 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+    <div class="remote-inject">
+        <h5>Remote Injected Partial</h5>
+        <p>Remote Value: <span id="remote-value" p-ref="remoteValue">initial</span></p>
+        <button id="remote-action" p-ref="remoteActionBtn" p-on:click="remoteAction()">Remote Action</button>
+
+        <chaos-card id="nested-chaos">
+            <div>
+                <p>Nested Counter: <span id="nested-counter" p-ref="nestedCounter">0</span></p>
+            </div>
+            <div slot="header">
+                <span id="nested-header" p-ref="nestedHeader">Nested Header</span>
+            </div>
+            <div slot="footer">
+                <button id="nested-footer-btn" p-ref="nestedFooterBtn" p-on:click="nestedFooterAction()">
+                    Nested Footer Action
+                </button>
+            </div>
+        </chaos-card>
+    </div>
+</template>
+
+<style>
+.remote-inject {
+    background: #dcfce7;
+    border: 2px solid #22c55e;
+    border-radius: 8px;
+    padding: 1rem;
+}
+.remote-inject h5 {
+    margin: 0 0 0.5rem;
+    color: #15803d;
+}
+button {
+    padding: 0.5rem 1rem;
+    background: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+/**
+ * Remote Inject - Loaded via RemoteRender, has its own nested chaos-card.
+ * Tests refs working after dynamic insertion with further nesting.
+ */
+let remoteCount = 0;
+let nestedCount = 0;
+
+export function remoteAction() {
+    remoteCount++;
+    if (pk.refs.remoteValue) {
+        pk.refs.remoteValue.textContent = `remote-${remoteCount}`;
+    }
+    if (pk.refs.nestedHeader) {
+        pk.refs.nestedHeader.textContent = `Remote Action ${remoteCount}`;
+    }
+}
+
+export function nestedFooterAction() {
+    nestedCount++;
+    if (pk.refs.nestedCounter) {
+        pk.refs.nestedCounter.textContent = String(nestedCount);
+    }
+    if (pk.refs.nestedHeader) {
+        pk.refs.nestedHeader.textContent = `Nested: ${nestedCount}`;
+    }
+    if (pk.refs.nestedFooterBtn) {
+        pk.refs.nestedFooterBtn.textContent = `Clicked ${nestedCount}x`;
+    }
+    if (pk.refs.remoteValue) {
+        pk.refs.remoteValue.textContent = `nested-action-${nestedCount}`;
+    }
+}
+</script>

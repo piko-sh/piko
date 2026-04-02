@@ -1,0 +1,16 @@
+{
+  "description": "A minimal, single-component test to verify the basic end-to-end flow of state resolution.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "expectedCombinedCSSContains": [],
+  "assertNodes": [
+    {
+      "select": "div",
+      "description": "The interpolation inside the div should be correctly type-checked.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Message",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

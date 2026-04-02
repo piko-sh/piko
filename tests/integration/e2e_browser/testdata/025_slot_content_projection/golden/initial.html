@@ -1,0 +1,25 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">Slot Content Projection Test</h1>
+    <card-component partial="pages_main_594861c5" p-key="r.0:1">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.card{border: 2px solid #9c27b0;border-radius: 8px;overflow: hidden;margin: 1rem 0}header{background: #9c27b0;color: white;padding: 1rem;font-weight: bold}main{padding: 1rem;min-height: 100px}footer{background: #f3e5f5;padding: 0.5rem 1rem;font-size: 0.875rem;color: #666}</style>
+        <div class="card">
+          <header id="card-header">
+            <slot name="header">Default Header</slot>
+          </header>
+          <main id="card-content">
+            <slot>Default Content</slot>
+          </main>
+          <footer id="card-footer">
+            <slot name="footer">Default Footer</slot>
+          </footer>
+        </div>
+      </template>
+      <span partial="pages_main_594861c5" p-key="r.0:1:0" slot="header">Custom Header Content</span>
+      <p partial="pages_main_594861c5" p-key="r.0:1:1">This is the default slot content.</p>
+      <p partial="pages_main_594861c5" p-key="r.0:1:2">Multiple elements in default slot.</p>
+    </card-component>
+  </div>
+</div>

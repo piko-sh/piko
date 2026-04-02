@@ -1,0 +1,5 @@
+{
+    "description": "Document with heading hierarchy (h1, h2, h3) verifying PDF outline/bookmark tree generation.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

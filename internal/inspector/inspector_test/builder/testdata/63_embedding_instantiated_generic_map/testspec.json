@@ -1,0 +1,31 @@
+{
+  "description": "Tests serialisation of an embedded field that is an instantiated generic map type, where the map's key is a named type.",
+  "moduleName": "testcase_63_embedding_instantiated_generic_map",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_63_embedding_instantiated_generic_map",
+    "testcase_63_embedding_instantiated_generic_map/keys"
+  ],
+  "assertions": [
+    {
+      "description": "The embedded field's name should be the name of the type definition, 'Cache'.",
+      "select": "packages.testcase_63_embedding_instantiated_generic_map.named_types.Response.fields.0.name",
+      "expect": "Cache"
+    },
+    {
+      "description": "The embedded field's TypeString must be correct.",
+      "select": "packages.testcase_63_embedding_instantiated_generic_map.named_types.Response.fields.0.type_string",
+      "expect": "main.Cache[keys.SessionKey, int]"
+    },
+    {
+      "description": "The embedded field MUST have its PackagePath correctly resolved from the map's key type.",
+      "select": "packages.testcase_63_embedding_instantiated_generic_map.named_types.Response.fields.0.pkg_path",
+      "expect": "testcase_63_embedding_instantiated_generic_map"
+    },
+    {
+      "description": "The embedded field must be marked as embedded.",
+      "select": "packages.testcase_63_embedding_instantiated_generic_map.named_types.Response.fields.0.is_embedded",
+      "expect": true
+    }
+  ]
+}

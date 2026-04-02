@@ -1,0 +1,20 @@
+{
+  "description": "Tests the critical difference in method sets between a type definition and a type alias of an external type.",
+  "moduleName": "testcase_36_type_def_vs_alias_methods",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_36_type_def_vs_alias_methods"
+  ],
+  "assertions": [
+    {
+      "description": "The type definition 'MyUUID' should have no methods.",
+      "select": "packages.testcase_36_type_def_vs_alias_methods.named_types.MyUUID.methods",
+      "expect": []
+    },
+    {
+      "description": "The type alias 'MyUUIDAlias' should have methods (e.g., 'ClockSequence').",
+      "select": "packages.testcase_36_type_def_vs_alias_methods.named_types.MyUUIDAlias.methods.0.name",
+      "expect": "ClockSequence"
+    }
+  ]
+}

@@ -1,0 +1,221 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Ask the Mouse"
+            server.current-page="ask-the-mouse">
+
+            <section class="page-section">
+                <!-- Hero -->
+                <div class="ask-hero">
+                    <piko:img src="@/lib/images/mascot-ask.jpg" alt="Gouda the Gourmet, cheese oracle" class="ask-hero-image"></piko:img>
+                    <div class="ask-hero-text">
+                        <h1 class="section-title" style="font-size: 2rem;">Ask the Mouse</h1>
+                        <p class="section-subtitle">Our resident cheese oracle, Gouda the Gourmet, will dispense wisdom from beyond the cheese counter</p>
+                    </div>
+                </div>
+
+                <!-- Question Form -->
+                <m3e-card variant="elevated" style="padding: 32px; max-width: 640px; margin: 0 auto;">
+                    <m3e-elevation></m3e-elevation>
+                    <form action="/ask-the-mouse" method="get">
+                        <div class="mb-md">
+                            <m3e-text-field
+                                variant="outlined"
+                                label="Ask the mouse a question..."
+                                name="q"
+                                :value="state.Question"
+                                supporting-text="The mouse knows all things cheese-related (and some things that aren't)"
+                                style="width: 100%;">
+                            </m3e-text-field>
+                        </div>
+                        <div class="flex-row">
+                            <m3e-button variant="filled" type="submit">Consult the Oracle</m3e-button>
+                        </div>
+                    </form>
+                </m3e-card>
+
+                <!-- Answer Section -->
+                <div p-if="state.Question != ''" style="max-width: 640px; margin: 16px auto 0;">
+                    <!-- Error -->
+                    <m3e-card variant="outlined" p-if="state.Error != ''" style="padding: 24px; border-color: var(--m3e-error);">
+                        <p style="color: var(--m3e-error); margin: 0;">{{ state.Error }}</p>
+                    </m3e-card>
+
+                    <!-- Fortune -->
+                    <m3e-card variant="filled" p-if="state.Answer != '' && state.Error == ''" style="padding: 32px; border-left: 4px solid var(--m3e-primary);">
+                        <div class="fortune-label">The Mouse Speaks</div>
+                        <div class="fortune-body" p-html="state.Answer"></div>
+                    </m3e-card>
+                </div>
+
+                <!-- Suggestion Chips (initial state) -->
+                <div p-if="state.Question == ''" style="max-width: 640px; margin: 24px auto 0;">
+                    <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 12px;">Not sure what to ask? Try one of these:</p>
+                    <m3e-chip-set>
+                        <a href="/ask-the-mouse?q=Which+cheese+goes+best+with+red+wine%3F">
+                            <m3e-chip variant="outlined">Which cheese goes best with red wine?</m3e-chip>
+                        </a>
+                        <a href="/ask-the-mouse?q=Is+it+ever+too+early+for+cheese%3F">
+                            <m3e-chip variant="outlined">Is it ever too early for cheese?</m3e-chip>
+                        </a>
+                        <a href="/ask-the-mouse?q=What+is+the+meaning+of+brie%3F">
+                            <m3e-chip variant="outlined">What is the meaning of brie?</m3e-chip>
+                        </a>
+                        <a href="/ask-the-mouse?q=Should+I+add+more+cheese%3F">
+                            <m3e-chip variant="outlined">Should I add more cheese?</m3e-chip>
+                        </a>
+                        <a href="/ask-the-mouse?q=How+do+I+know+if+a+Camembert+is+ripe%3F">
+                            <m3e-chip variant="outlined">How do I know if a Camembert is ripe?</m3e-chip>
+                        </a>
+                        <a href="/ask-the-mouse?q=Tell+me+something+gouda">
+                            <m3e-chip variant="outlined">Tell me something gouda</m3e-chip>
+                        </a>
+                    </m3e-chip-set>
+                </div>
+            </section>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/llm"
+    markdown "piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+type Response struct {
+    Question string
+    Answer   string
+    Error    string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    question := ""
+    if qValues, ok := r.QueryParams()["q"]; ok && len(qValues) > 0 {
+        question = qValues[0]
+    }
+
+    if question == "" {
+        return Response{}, piko.Metadata{
+            Title:       "Ask the Mouse - The Norman Kitchen",
+            Description: "Consult Gouda the Gourmet, our resident cheese oracle, for wisdom from beyond the cheese counter.",
+        }, nil
+    }
+
+    builder, err := llm.NewCompletionBuilderFromDefault()
+    if err != nil {
+        return Response{
+            Question: question,
+            Error:    "The mouse is napping. Please try again in a moment.",
+        }, piko.Metadata{
+            Title: "Ask the Mouse - The Norman Kitchen",
+        }, nil
+    }
+
+    resp, err := builder.User(question).Do(r.Context())
+    if err != nil {
+        return Response{
+            Question: question,
+            Error:    "The mouse got distracted by a piece of cheese. Please try again.",
+        }, piko.Metadata{
+            Title: "Ask the Mouse - The Norman Kitchen",
+        }, nil
+    }
+
+    return Response{
+        Question: question,
+        Answer:   markdown.ToHTML(r.Context(), resp.Content()),
+    }, piko.Metadata{
+        Title:       "Ask: " + question + " - The Norman Kitchen",
+        Description: "The mouse has spoken on: " + question,
+    }, nil
+}
+</script>
+
+<style>
+.ask-hero {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.ask-hero-image {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--m3e-primary);
+    flex-shrink: 0;
+}
+
+.ask-hero-text {
+    flex: 1;
+    min-width: 250px;
+}
+
+.fortune-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--m3e-primary);
+    margin-bottom: 12px;
+}
+
+.fortune-body {
+    font-size: 1.0625rem;
+    line-height: 1.8;
+    color: var(--m3e-on-surface);
+}
+
+.fortune-body p {
+    margin: 0.75em 0;
+}
+
+.fortune-body em {
+    font-style: italic;
+    color: var(--m3e-on-surface-variant);
+}
+
+@media (max-width: 640px) {
+    .ask-hero {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .ask-hero-image {
+        width: 150px;
+        height: 150px;
+        margin: 0 auto;
+    }
+}
+</style>

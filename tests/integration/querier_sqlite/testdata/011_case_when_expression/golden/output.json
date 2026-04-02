@@ -1,0 +1,25 @@
+{
+  "orders": [
+    {
+      "ID": 1,
+      "PriceCategory": "high",
+      "ShippedTotal": 150,
+      "Status": "shipped",
+      "Total": 150
+    },
+    {
+      "ID": 2,
+      "PriceCategory": "medium",
+      "ShippedTotal": null,
+      "Status": "pending",
+      "Total": 75
+    },
+    {
+      "ID": 3,
+      "PriceCategory": "low",
+      "ShippedTotal": 30,
+      "Status": "shipped",
+      "Total": 30
+    }
+  ]
+}

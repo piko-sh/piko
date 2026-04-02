@@ -1,0 +1,5 @@
+<template>
+    <pml-p>This paragraph has no explicit row or column wrapper</pml-p>
+    <pml-img src="https://example.com/image.png" alt="Unwrapped image" width="300px"></pml-img>
+    <pml-button href="https://example.com">Unwrapped button</pml-button>
+</template>

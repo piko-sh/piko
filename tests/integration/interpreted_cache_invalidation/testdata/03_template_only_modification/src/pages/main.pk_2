@@ -1,0 +1,31 @@
+<template>
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Template Only Test</title>
+</head>
+<body>
+	<h1>Stage 2: Template Changed Again</h1>
+	<p>Another template modification with the same script block.</p>
+	<p>Title from props: Template Only Test</p>
+	<p>Should STILL hit Tier 1 cache (fast path)!</p>
+	<ul>
+		<li>Tier 1: Introspection cache HIT</li>
+		<li>Tier 2: Annotation cache MISS</li>
+		<li>Result: Fast rebuild (skip Phase 1)</li>
+	</ul>
+</body>
+</html>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

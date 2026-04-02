@@ -1,0 +1,6 @@
+{
+  "description": "Tests that the builder fails with a specific error when encountering an illegal generic method.",
+  "moduleName": "testcase_42_invalid_generic_method",
+  "shouldError": true,
+  "errorContains": "method must have no type parameters"
+}

@@ -1,0 +1,255 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Text Field"
+            server.current-page="selection/text-field">
+
+            <p class="demo-description">Text fields allow users to enter text. They come in filled and outlined variants with support for labels, error states, and character counts.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-text-field variant="filled" label="Label"></m3e-text-field>
+                        <m3e-text-field variant="filled" label="Disabled" disabled></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Label"&gt;&lt;/m3e-text-field&gt;
+&lt;m3e-text-field variant="filled" label="Disabled" disabled&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-text-field variant="outlined" label="Label"></m3e-text-field>
+                        <m3e-text-field variant="outlined" label="Disabled" disabled></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Label"&gt;&lt;/m3e-text-field&gt;
+&lt;m3e-text-field variant="outlined" label="Disabled" disabled&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Filled with Supporting Text -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled with Supporting Text</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Name" supportingText="Enter your full name"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Name" supportingText="Enter your full name"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Outlined with Supporting Text -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined with Supporting Text</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Email" supportingText="We'll never share your email"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Email" supportingText="We'll never share your email"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Filled - Error -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled - Error</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Username" error errorText="Username is required"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Username" error errorText="Username is required"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Outlined - Error -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined - Error</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Email" error errorText="Invalid email address"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Email" error errorText="Invalid email address"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Filled with Max Length -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled with Max Length</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Bio" maxlength="100"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Bio" maxlength="100"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Outlined with Max Length -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined with Max Length</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Username" maxlength="20"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Username" maxlength="20"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Pre-populated -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Pre-populated</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="City" value="London"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="City" value="London"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Multiline - Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Multiline - Filled</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Description" multiline rows="4"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Description" multiline rows="4"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Multiline - Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Multiline - Outlined</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Comments" multiline rows="4"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Comments" multiline rows="4"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Multiline - Small Rows -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Multiline - Small (2 rows)</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Short note" multiline rows="2"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Short note" multiline rows="2"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Multiline - Large Rows -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Multiline - Large (6 rows)</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Long description" multiline rows="6"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Long description" multiline rows="6"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- With Leading Slot -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Leading Slot</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Search">
+                            <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                        </m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Search"&gt;
+  &lt;piko:svg src="@/lib/icons/search.svg" slot="leading"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- With Trailing Slot -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Trailing Slot</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Clear field">
+                            <piko:svg src="@/lib/icons/close.svg" fill="currentColor" width="24" height="24" slot="trailing"></piko:svg>
+                        </m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Clear field"&gt;
+  &lt;piko:svg src="@/lib/icons/close.svg" slot="trailing"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Leading + Trailing -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Leading + Trailing</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Search">
+                            <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                            <piko:svg src="@/lib/icons/close.svg" fill="currentColor" width="24" height="24" slot="trailing"></piko:svg>
+                        </m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Search"&gt;
+  &lt;piko:svg src="@/lib/icons/search.svg" slot="leading"&gt;&lt;/piko:svg&gt;
+  &lt;piko:svg src="@/lib/icons/close.svg" slot="trailing"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Password -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Password</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Password" type="password"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Password" type="password"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Prefix Text -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Prefix Text</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Amount" prefix_text="$"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Amount" prefix_text="$"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Suffix Text -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Suffix Text</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Weight" suffix_text="kg"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Weight" suffix_text="kg"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Email Type -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Email Type</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="outlined" label="Email address" type="email"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="outlined" label="Email address" type="email"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+
+                <!-- Number Type -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Number Type</h3>
+                    <div class="demo-preview">
+                        <m3e-text-field variant="filled" label="Quantity" type="number"></m3e-text-field>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-text-field variant="filled" label="Quantity" type="number"&gt;&lt;/m3e-text-field&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Text Field - M3E Components",
+    }, nil
+}
+</script>

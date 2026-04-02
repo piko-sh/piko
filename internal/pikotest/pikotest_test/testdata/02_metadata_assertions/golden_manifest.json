@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/home.pk": {
+      "routePatterns": {
+        "en": "/home"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "pikotest_02_metadata_assertions/dist/pages/pages_home_dab9c3dd",
+      "originalSourcePath": "pages/home.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,30 @@
+{
+  "isErrorCase": false,
+  "pikoImportCount": 2,
+  "asserts": {
+    "hasTemplate": true,
+    "hasScript": true,
+    "hasStyle": true,
+    "hasI18n": false
+  },
+  "sourcesContain": {
+    "style": "border: 1px solid black;"
+  },
+  "expectedTranslations": null,
+  "script": {
+    "goPackageName": "main",
+    "hasMiddleware": false,
+    "middlewaresFuncName": "",
+    "hasCachePolicy": false,
+    "cachePolicyFuncName": "",
+    "goImportCount": 2,
+    "expectedGoImportsContain": [
+      "fmt",
+      "strings"
+    ],
+    "asserts": {
+      "hasPropsTypeExpr": false,
+      "hasRenderReturnTypeExpr": false
+    }
+  }
+}

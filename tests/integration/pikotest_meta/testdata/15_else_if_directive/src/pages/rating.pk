@@ -1,0 +1,83 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package rating
+
+import (
+	"strconv"
+
+	"piko.sh/piko"
+)
+
+type Response struct {
+	Score int
+	Grade string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	scoreStr := r.QueryParam("score")
+	score := 0
+	if scoreStr != "" {
+		s, err := strconv.Atoi(scoreStr)
+		if err == nil {
+			score = s
+		}
+	}
+
+	grade := "F"
+	if score >= 90 {
+		grade = "A"
+	} else if score >= 80 {
+		grade = "B"
+	} else if score >= 70 {
+		grade = "C"
+	} else if score >= 60 {
+		grade = "D"
+	}
+
+	return Response{
+		Score: score,
+		Grade: grade,
+	}, piko.Metadata{
+		Title: "Grade Calculator",
+	}, nil
+}
+</script>
+<template>
+	<div class="rating-page">
+		<h1>Grade Calculator</h1>
+		<section class="result">
+			<p class="score-display">Score: {{ state.Score }}</p>
+			<div class="grade-section">
+				<span p-if="state.Score >= 90" class="grade grade-a">A - Excellent</span>
+				<span p-else-if="state.Score >= 80" class="grade grade-b">B - Good</span>
+				<span p-else-if="state.Score >= 70" class="grade grade-c">C - Satisfactory</span>
+				<span p-else-if="state.Score >= 60" class="grade grade-d">D - Needs Improvement</span>
+				<span p-else class="grade grade-f">F - Failing</span>
+			</div>
+		</section>
+		<section class="feedback">
+			<p p-if="state.Score >= 90" class="feedback-text excellent">Outstanding performance!</p>
+			<p p-else-if="state.Score >= 70" class="feedback-text passing">Keep up the good work!</p>
+			<p p-else class="feedback-text failing">More study needed.</p>
+		</section>
+	</div>
+</template>

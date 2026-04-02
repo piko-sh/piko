@@ -1,0 +1,7 @@
+(() => {
+    const debug = window.__pikoDebug;
+    if (!debug) return false;
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return false;
+    return debug.isConnected(el);
+})()

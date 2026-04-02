@@ -1,0 +1,94 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-radio-group">
+    <div class="radio-group" role="radiogroup" :aria-label="state.name">
+        <slot></slot>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        name: '' as string,
+        value: '' as string,
+    };
+
+    pkc.onConnected(() => {
+        pkc.addEventListener('change', handleChildChange);
+        syncRadios();
+    });
+
+    pkc.onDisconnected(() => {
+        pkc.removeEventListener('change', handleChildChange);
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('value')) {
+            syncRadios();
+        }
+    });
+
+    const handleChildChange = function(event) {
+        const detail = event.detail;
+        if (!detail || detail.checked === undefined) return;
+
+        state.value = detail.value || '';
+
+        const radios = pkc.querySelectorAll('m3e-radio');
+        radios.forEach((radio) => {
+            if (radio !== event.target) {
+                radio.removeAttribute('checked');
+            }
+        });
+
+        pkc.dispatchEvent(new CustomEvent('change', {
+            detail: { value: state.value, name: state.name },
+            bubbles: true,
+            composed: true,
+        }));
+    };
+
+    function syncRadios() {
+        const radios = pkc.querySelectorAll('m3e-radio');
+        radios.forEach((radio) => {
+            if (state.name) {
+                radio.setAttribute('name', state.name);
+            }
+            const radioValue = radio.getAttribute('value') || '';
+            if (state.value && radioValue === state.value) {
+                radio.setAttribute('checked', '');
+            } else if (state.value) {
+                radio.removeAttribute('checked');
+            }
+        });
+    }
+</script>
+
+<style>
+    :host {
+        display: flex;
+    }
+
+    .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+</style>

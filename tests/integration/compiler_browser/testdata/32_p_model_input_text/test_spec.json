@@ -1,0 +1,31 @@
+[
+  {
+    "action": "checkValue",
+    "selector": "p-model-text \u003e\u003e\u003e input",
+    "expected": "World"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-text \u003e\u003e\u003e p",
+    "expected": "Hello, World"
+  },
+  {
+    "action": "fill",
+    "selector": "p-model-text \u003e\u003e\u003e input",
+    "value": "Universe"
+  },
+  {
+    "action": "wait",
+    "value": "100"
+  },
+  {
+    "action": "checkValue",
+    "selector": "p-model-text \u003e\u003e\u003e input",
+    "expected": "Universe"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-text \u003e\u003e\u003e p",
+    "expected": "Hello, Universe"
+  }
+]

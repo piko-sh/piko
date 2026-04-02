@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".browser-container[partial~=partials_browser_4016e9df]{padding:20px}.browser-header[partial~=partials_browser_4016e9df]{margin-bottom:20px}.no-results[partial~=partials_browser_4016e9df]{text-align:center;color:gray}.items-grid[partial~=partials_browser_4016e9df]{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.item-card[partial~=partials_browser_4016e9df]{padding:10px;border:1px solid #ccc;border-radius:8px}",
+      "packagePath": "testcase_107_p_if_css_scoping_in_partial/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

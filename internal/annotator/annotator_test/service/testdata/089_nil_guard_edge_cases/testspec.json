@@ -1,0 +1,111 @@
+{
+  "description": "Validates edge cases: OR operator does NOT create guards, triple-nested chains, AND with unrelated conditions.",
+  "expectedDiagnostics": 3,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.A.Value' on potentially nil pointer 'props.A'",
+      "onLine": 24
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.B.Value' on potentially nil pointer 'props.B'",
+      "onLine": 25
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'props.Outer.Middle.Inner.Value' on potentially nil pointer 'props.Outer.Middle.Inner'",
+      "onLine": 31
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#or-not-guarded-a",
+      "description": "OR operator: props.A is NOT guaranteed non-nil (either could satisfy OR)",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.A.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    },
+    {
+      "select": "#or-not-guarded-b",
+      "description": "OR operator: props.B is NOT guaranteed non-nil (either could satisfy OR)",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.B.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    },
+    {
+      "select": "#triple-nested-partial",
+      "description": "Triple nested: first two levels guarded, access is safe",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Outer.Middle.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#triple-nested-unguarded",
+      "description": "Triple nested: third level (Inner) not guarded, needs safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Outer.Middle.Inner.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    },
+    {
+      "select": "#and-with-unrelated",
+      "description": "AND with unrelated boolean condition: nil guard still works",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Valid.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#both-guarded-a",
+      "description": "Multiple guards with &&: props.A is guarded",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.A.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#both-guarded-b",
+      "description": "Multiple guards with &&: props.B is guarded",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.B.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#fully-guarded-deep",
+      "description": "Fully guarded deep access with all three levels guarded",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Outer.Middle.Inner.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    }
+  ]
+}

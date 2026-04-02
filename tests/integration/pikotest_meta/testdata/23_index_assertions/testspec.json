@@ -1,0 +1,6 @@
+{
+  "description": "Tests Index() method for selecting specific elements from results",
+  "entryPoints": [
+    { "path": "pages/leaderboard.pk", "isPage": true }
+  ]
+}

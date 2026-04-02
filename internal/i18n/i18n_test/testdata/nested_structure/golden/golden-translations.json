@@ -1,0 +1,13 @@
+{
+  "en": {
+    "auth.login.button": "Sign In",
+    "auth.login.title": "Login",
+    "auth.logout.button": "Sign Out",
+    "auth.logout.title": "Logout",
+    "common.cancel": "Cancel",
+    "common.save": "Save",
+    "errors.network": "Network error",
+    "errors.validation.invalid": "Invalid input",
+    "errors.validation.required": "This field is required"
+  }
+}

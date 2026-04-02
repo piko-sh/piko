@@ -1,0 +1,5 @@
+{
+  "description": "Tests type compatibility where the source type is a local alias for a primitive.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1
+}

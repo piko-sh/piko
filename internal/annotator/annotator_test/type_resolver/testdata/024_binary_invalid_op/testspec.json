@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when using a numeric operator on a non-numeric type.",
+  "expression": "state.Name * 2",
+  "expectedType": "any",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Operator '*' not defined for operand types 'string' and 'int64'"
+    }
+  ]
+}]

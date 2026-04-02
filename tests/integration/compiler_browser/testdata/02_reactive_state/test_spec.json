@@ -1,0 +1,29 @@
+[
+  {
+    "action": "checkText",
+    "selector": "reactive-counter \u003e\u003e\u003e p",
+    "expected": "Count: 0"
+  },
+  {
+    "action": "click",
+    "selector": "reactive-counter \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "reactive-counter \u003e\u003e\u003e p",
+    "expected": "Count: 1"
+  },
+  {
+    "action": "click",
+    "selector": "reactive-counter \u003e\u003e\u003e button"
+  },
+  {
+    "action": "click",
+    "selector": "reactive-counter \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "reactive-counter \u003e\u003e\u003e p",
+    "expected": "Count: 3"
+  }
+]

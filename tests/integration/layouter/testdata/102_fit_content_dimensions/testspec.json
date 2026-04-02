@@ -1,0 +1,7 @@
+{
+    "description": "Verifies fit-content on height, min-width, and max-width dimensions.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

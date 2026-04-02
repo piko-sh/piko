@@ -1,0 +1,6 @@
+{
+  "title": "Hero Section",
+  "description": "Hero component with fluid height through full pipeline",
+  "metadata": {"title": "Hero Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

@@ -1,0 +1,15 @@
+/*
+--- BEGIN AST DUMP ---
+
+<header is="header" :title="'About Us'" {P: "About Us"} [ANNOTATIONS: OriginPackage: about_7381189a OriginPath: about.pk] />
+<main [ANNOTATIONS: OriginPackage: about_7381189a OriginPath: about.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: about_7381189a OriginPath: about.pk]>
+    "About Page"
+  </h1>
+  <p [ANNOTATIONS: OriginPackage: about_7381189a OriginPath: about.pk]>
+    "This is the about page."
+  </p>
+</main>
+
+--- END AST DUMP ---
+*/

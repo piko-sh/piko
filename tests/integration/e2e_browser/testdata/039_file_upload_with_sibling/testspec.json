@@ -1,0 +1,67 @@
+{
+  "description": "Tests p-for with a sibling element - mirrors pp-file-uploader structure to debug rendering issue",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "File Upload with Sibling Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "file-uploader"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "file-uploader >>> .upload-prompt",
+      "expected": "Upload files"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "(() => { const host = document.querySelector('file-uploader'); const ctx = host.$$ctx; ctx.state.selectedFiles = [...ctx.state.selectedFiles, { id: 'file-1', name: 'test-red.png', file: null, previewUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADq0wQdLYAAAAAElFTkSuQmCC', extension: 'PNG', isImage: true }]; })()"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "file-uploader >>> #file-count",
+      "expected": "1"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "file-uploader >>> .file-item"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "file-uploader >>> .file-item",
+      "expected": 1
+    },
+    {
+      "action": "checkText",
+      "selector": "file-uploader >>> .filename",
+      "expected": "test-red.png"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_upload.html"
+    }
+  ]
+}

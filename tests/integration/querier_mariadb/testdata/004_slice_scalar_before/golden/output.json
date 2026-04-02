@@ -1,0 +1,13 @@
+{
+  "fetch_by_priority_and_statuses": [
+    {
+      "ID": "t3",
+      "Status": "UPDATED"
+    },
+    {
+      "ID": "t6",
+      "Status": "RETRYING"
+    }
+  ],
+  "updated_rows": 2
+}

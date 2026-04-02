@@ -1,0 +1,7 @@
+CREATE TABLE articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    author VARCHAR(100) NOT NULL,
+    published_at DATE NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

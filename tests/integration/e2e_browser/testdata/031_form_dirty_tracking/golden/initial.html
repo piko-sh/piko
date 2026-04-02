@@ -1,0 +1,39 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">Form Dirty Tracking Test</h1>
+    <form partial="pages_index_032f49b1" p-key="r.0:1" id="test-form" data-pk-tracked="true">
+      <div partial="pages_index_032f49b1" p-key="r.0:1:0" class="form-group"><label partial="pages_index_032f49b1" p-key="r.0:1:0:0" for="username">Username:</label><input
+          partial="pages_index_032f49b1"
+          p-key="r.0:1:0:1"
+          type="text"
+          id="username"
+          name="username"
+          value="initial-value"
+         />
+      </div>
+      <div partial="pages_index_032f49b1" p-key="r.0:1:1" class="form-group"><label partial="pages_index_032f49b1" p-key="r.0:1:1:0" for="email">Email:</label><input
+          partial="pages_index_032f49b1"
+          p-key="r.0:1:1:1"
+          type="email"
+          id="email"
+          name="email"
+          value="test@example.com"
+         />
+      </div>
+      <div partial="pages_index_032f49b1" p-key="r.0:1:2" class="form-group"><label partial="pages_index_032f49b1" p-key="r.0:1:2:0"><input partial="pages_index_032f49b1" p-key="r.0:1:2:0:0" type="checkbox" id="agree" name="agree" />
+ I agree to terms </label>      </div>
+    </form>
+    <form partial="pages_index_032f49b1" p-key="r.0:2" id="no-track-form" pk-no-track>
+      <div partial="pages_index_032f49b1" p-key="r.0:2:0" class="form-group"><label partial="pages_index_032f49b1" p-key="r.0:2:0:0" for="other-input">Other Input (not tracked):</label><input
+          partial="pages_index_032f49b1"
+          p-key="r.0:2:0:1"
+          type="text"
+          id="other-input"
+          name="other"
+          value="initial"
+         />
+      </div>
+    </form>
+    <p partial="pages_index_032f49b1" p-key="r.0:3" class="info">Forms without pk-no-track are automatically tracked by Piko's FormStateManager.</p>
+  </div>
+</div>

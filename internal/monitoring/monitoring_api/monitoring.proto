@@ -1,0 +1,539 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+syntax = "proto3";
+
+package piko.monitoring.v1;
+
+option go_package = "piko.sh/piko/wdk/monitoring/monitoring_api/gen;monitoring_api";
+
+service HealthService {
+  rpc GetHealth(GetHealthRequest) returns (GetHealthResponse);
+
+  rpc WatchHealth(WatchHealthRequest) returns (stream HealthUpdate);
+}
+
+message GetHealthRequest {}
+
+message GetHealthResponse {
+  HealthStatus liveness = 1;
+  HealthStatus readiness = 2;
+  int64 timestamp_ms = 3;
+}
+
+message HealthStatus {
+  string name = 1;
+  string state = 2;
+  string message = 3;
+  int64 timestamp_ms = 4;
+  string duration = 5;
+  repeated HealthStatus dependencies = 6;
+}
+
+message WatchHealthRequest {
+  int64 interval_ms = 1;
+}
+
+message HealthUpdate {
+  HealthStatus liveness = 1;
+  HealthStatus readiness = 2;
+  int64 timestamp_ms = 3;
+}
+
+service MetricsService {
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+
+  rpc GetTraces(GetTracesRequest) returns (GetTracesResponse);
+
+  rpc GetSystemStats(GetSystemStatsRequest) returns (GetSystemStatsResponse);
+
+  rpc GetFileDescriptors(GetFileDescriptorsRequest) returns (GetFileDescriptorsResponse);
+
+  rpc WatchMetrics(WatchMetricsRequest) returns (stream MetricsUpdate);
+}
+
+message GetMetricsRequest {}
+
+message GetMetricsResponse {
+  repeated Metric metrics = 1;
+  int64 timestamp_ms = 2;
+}
+
+message Metric {
+  string name = 1;
+  string description = 2;
+  string unit = 3;
+  string type = 4;
+  repeated MetricDataPoint data_points = 5;
+}
+
+message MetricDataPoint {
+  int64 timestamp_ms = 1;
+  map<string, string> attributes = 2;
+  double value = 3;
+}
+
+message GetTracesRequest {
+  int32 limit = 1;
+  bool errors_only = 2;
+  string trace_id = 3;
+}
+
+message GetTracesResponse {
+  repeated Span spans = 1;
+  int64 timestamp_ms = 2;
+  int32 count = 3;
+}
+
+message Span {
+  string trace_id = 1;
+  string span_id = 2;
+  string parent_span_id = 3;
+  string name = 4;
+  string kind = 5;
+  string status = 6;
+  string status_message = 7;
+  string service_name = 8;
+  int64 start_time_ms = 9;
+  int64 end_time_ms = 10;
+  int64 duration_ns = 11;
+  map<string, string> attributes = 12;
+  repeated SpanEvent events = 13;
+}
+
+message SpanEvent {
+  string name = 1;
+  int64 timestamp_ms = 2;
+  map<string, string> attributes = 3;
+}
+
+message GetSystemStatsRequest {}
+
+message GetSystemStatsResponse {
+  BuildInfo build = 1;
+  RuntimeInfo runtime = 2;
+  GCInfo gc = 3;
+  MemoryInfo memory = 4;
+  ProcessInfo process = 5;
+  int64 timestamp_ms = 6;
+  int64 uptime_ms = 7;
+  int64 num_cgo_calls = 8;
+  double cpu_millicores = 9;
+  int32 num_cpu = 10;
+  int32 gomaxprocs = 11;
+  int32 num_goroutines = 12;
+  int64 system_uptime_ms = 13;
+  string cgroup_path = 14;
+  string monitoring_listen_addr = 15;
+  CacheInfo cache = 16;
+}
+
+message CacheInfo {
+  int32 component_cache_size = 1;
+  int32 svg_cache_size = 2;
+}
+
+message BuildInfo {
+  string go_version = 1;
+  string version = 2;
+  string commit = 3;
+  string build_time = 4;
+  string os = 5;
+  string arch = 6;
+  string module_path = 7;
+  string module_version = 8;
+  bool vcs_modified = 9;
+  string vcs_time = 10;
+}
+
+message RuntimeInfo {
+  string gogc = 1;
+  string gomemlimit = 2;
+  string compiler = 3;
+}
+
+message GCInfo {
+  repeated uint64 recent_pauses = 1;
+  int64 last_gc_ns = 2;
+  uint64 pause_total_ns = 3;
+  uint64 last_pause_ns = 4;
+  double gc_cpu_fraction = 5;
+  uint64 next_gc = 6;
+  uint32 num_gc = 7;
+  uint32 num_forced_gc = 8;
+}
+
+message MemoryInfo {
+  uint64 alloc = 1;
+  uint64 total_alloc = 2;
+  uint64 sys = 3;
+  uint64 heap_alloc = 4;
+  uint64 heap_sys = 5;
+  uint64 heap_idle = 6;
+  uint64 heap_inuse = 7;
+  uint64 heap_objects = 8;
+  uint64 heap_released = 9;
+  uint64 stack_sys = 10;
+  uint64 mallocs = 11;
+  uint64 frees = 12;
+  uint64 live_objects = 13;
+  uint64 stack_inuse = 14;
+  uint64 mspan_inuse = 15;
+  uint64 mspan_sys = 16;
+  uint64 mcache_inuse = 17;
+  uint64 mcache_sys = 18;
+  uint64 gc_sys = 19;
+  uint64 other_sys = 20;
+  uint64 buckhash_sys = 21;
+  uint64 lookups = 22;
+}
+
+message ProcessInfo {
+  int32 pid = 1;
+  int32 thread_count = 2;
+  int32 fd_count = 3;
+  uint64 rss = 4;
+  string hostname = 5;
+  string executable = 6;
+  string cwd = 7;
+  int32 uid = 8;
+  int32 gid = 9;
+  int64 max_open_files_soft = 10;
+  int64 max_open_files_hard = 11;
+  uint64 io_read_bytes = 12;
+  uint64 io_write_bytes = 13;
+  uint64 io_rchar = 14;
+  uint64 io_wchar = 15;
+  int32 ppid = 16;
+}
+
+message GetFileDescriptorsRequest {}
+
+message GetFileDescriptorsResponse {
+  repeated FileDescriptorCategory categories = 1;
+  int32 total = 2;
+  int64 timestamp_ms = 3;
+}
+
+message FileDescriptorCategory {
+  string category = 1;
+  repeated FileDescriptorInfo fds = 2;
+  int32 count = 3;
+}
+
+message FileDescriptorInfo {
+  int32 fd = 1;
+  string category = 2;
+  string target = 3;
+  int64 first_seen_ms = 4;
+  int64 age_ms = 5;
+}
+
+message WatchMetricsRequest {
+  int64 interval_ms = 1;
+}
+
+message MetricsUpdate {
+  repeated Metric metrics = 1;
+  int64 timestamp_ms = 2;
+}
+
+service OrchestratorInspectorService {
+  rpc GetTaskSummary(GetTaskSummaryRequest) returns (GetTaskSummaryResponse);
+
+  rpc ListRecentTasks(ListRecentTasksRequest) returns (ListRecentTasksResponse);
+
+  rpc ListWorkflowSummary(ListWorkflowSummaryRequest) returns (ListWorkflowSummaryResponse);
+
+  rpc WatchTasks(WatchTasksRequest) returns (stream TasksUpdate);
+}
+
+message GetTaskSummaryRequest {}
+
+message GetTaskSummaryResponse {
+  repeated TaskSummary summaries = 1;
+}
+
+message TaskSummary {
+  string status = 1;
+  int64 count = 2;
+}
+
+message ListRecentTasksRequest {
+  int32 limit = 1;
+}
+
+message ListRecentTasksResponse {
+  repeated TaskListItem tasks = 1;
+}
+
+message TaskListItem {
+  string id = 1;
+  string workflow_id = 2;
+  string executor = 3;
+  string status = 4;
+  int32 priority = 5;
+  int32 attempt = 6;
+  optional string last_error = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
+}
+
+message ListWorkflowSummaryRequest {
+  int32 limit = 1;
+}
+
+message ListWorkflowSummaryResponse {
+  repeated WorkflowSummary summaries = 1;
+}
+
+message WorkflowSummary {
+  string workflow_id = 1;
+  int64 task_count = 2;
+  int64 complete_count = 3;
+  int64 failed_count = 4;
+  int64 active_count = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message WatchTasksRequest {
+  int64 interval_ms = 1;
+}
+
+message TasksUpdate {
+  repeated TaskSummary summaries = 1;
+  repeated TaskListItem recent_tasks = 2;
+  int64 timestamp_ms = 3;
+}
+
+service RegistryInspectorService {
+  rpc GetArtefactSummary(GetArtefactSummaryRequest) returns (GetArtefactSummaryResponse);
+
+  rpc GetVariantSummary(GetVariantSummaryRequest) returns (GetVariantSummaryResponse);
+
+  rpc ListRecentArtefacts(ListRecentArtefactsRequest) returns (ListRecentArtefactsResponse);
+
+  rpc WatchArtefacts(WatchArtefactsRequest) returns (stream ArtefactsUpdate);
+}
+
+message GetArtefactSummaryRequest {}
+
+message GetArtefactSummaryResponse {
+  repeated ArtefactSummary summaries = 1;
+}
+
+message ArtefactSummary {
+  string status = 1;
+  int64 count = 2;
+}
+
+message GetVariantSummaryRequest {}
+
+message GetVariantSummaryResponse {
+  repeated VariantSummary summaries = 1;
+}
+
+message VariantSummary {
+  string status = 1;
+  int64 count = 2;
+}
+
+message ListRecentArtefactsRequest {
+  int32 limit = 1;
+}
+
+message ListRecentArtefactsResponse {
+  repeated ArtefactListItem artefacts = 1;
+}
+
+message ArtefactListItem {
+  string id = 1;
+  string source_path = 2;
+  string status = 3;
+  int64 variant_count = 4;
+  int64 total_size = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message WatchArtefactsRequest {
+  int64 interval_ms = 1;
+}
+
+message ArtefactsUpdate {
+  repeated ArtefactSummary summaries = 1;
+  repeated ArtefactListItem recent_artefacts = 2;
+  int64 timestamp_ms = 3;
+}
+
+service DispatcherInspectorService {
+  rpc GetDispatcherSummary(GetDispatcherSummaryRequest) returns (GetDispatcherSummaryResponse);
+
+  rpc ListDLQEntries(ListDLQEntriesRequest) returns (ListDLQEntriesResponse);
+
+  rpc GetDLQCount(GetDLQCountRequest) returns (GetDLQCountResponse);
+
+  rpc ClearDLQ(ClearDLQRequest) returns (ClearDLQResponse);
+}
+
+message GetDispatcherSummaryRequest {}
+
+message GetDispatcherSummaryResponse {
+  repeated DispatcherSummary summaries = 1;
+}
+
+message DispatcherSummary {
+  string type = 1;
+  int32 queued_items = 2;
+  int32 retry_queue_size = 3;
+  int32 dead_letter_count = 4;
+  int64 total_processed = 5;
+  int64 total_successful = 6;
+  int64 total_failed = 7;
+  int64 total_retries = 8;
+  int64 uptime_ms = 9;
+}
+
+message ListDLQEntriesRequest {
+  string dispatcher_type = 1;
+  int32 limit = 2;
+}
+
+message ListDLQEntriesResponse {
+  repeated DLQEntry entries = 1;
+}
+
+message DLQEntry {
+  string id = 1;
+  string type = 2;
+  string original_error = 3;
+  int32 total_attempts = 4;
+  int64 first_attempt_ms = 5;
+  int64 last_attempt_ms = 6;
+  int64 added_at_ms = 7;
+}
+
+message GetDLQCountRequest {
+  string dispatcher_type = 1;
+}
+
+message GetDLQCountResponse {
+  int32 count = 1;
+  string dispatcher_type = 2;
+}
+
+message ClearDLQRequest {
+  string dispatcher_type = 1;
+}
+
+message ClearDLQResponse {
+  string dispatcher_type = 1;
+  bool success = 2;
+}
+
+service RateLimiterInspectorService {
+  rpc GetRateLimiterStatus(GetRateLimiterStatusRequest) returns (GetRateLimiterStatusResponse);
+}
+
+message GetRateLimiterStatusRequest {}
+
+message GetRateLimiterStatusResponse {
+  string token_bucket_store = 1;
+  string counter_store = 2;
+  string fail_policy = 3;
+  string key_prefix = 4;
+  int64 total_checks = 5;
+  int64 total_allowed = 6;
+  int64 total_denied = 7;
+  int64 total_errors = 8;
+}
+
+service ProviderInfoService {
+  rpc ListResourceTypes(ListResourceTypesRequest) returns (ListResourceTypesResponse);
+
+  rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+
+  rpc DescribeProvider(DescribeProviderRequest) returns (DescribeProviderResponse);
+
+  rpc ListSubResources(ListSubResourcesRequest) returns (ListSubResourcesResponse);
+
+  rpc DescribeResourceType(DescribeResourceTypeRequest) returns (DescribeProviderResponse);
+}
+
+message ListResourceTypesRequest {}
+
+message ListResourceTypesResponse {
+  repeated string resource_types = 1;
+}
+
+message ListProvidersRequest {
+  string resource_type = 1;
+}
+
+message ListProvidersResponse {
+  repeated ProviderColumn columns = 1;
+  repeated ProviderRow rows = 2;
+}
+
+message ProviderColumn {
+  string header = 1;
+  string key = 2;
+  bool wide_only = 3;
+}
+
+message ProviderRow {
+  string name = 1;
+  bool is_default = 2;
+  map<string, string> values = 3;
+}
+
+message DescribeProviderRequest {
+  string resource_type = 1;
+  string name = 2;
+}
+
+message DescribeProviderResponse {
+  string name = 1;
+  repeated ProviderInfoSection sections = 2;
+}
+
+message ProviderInfoSection {
+  string title = 1;
+  repeated ProviderInfoEntry entries = 2;
+}
+
+message ProviderInfoEntry {
+  string key = 1;
+  string value = 2;
+}
+
+message ListSubResourcesRequest {
+  string resource_type = 1;
+  string provider_name = 2;
+}
+
+message ListSubResourcesResponse {
+  repeated ProviderColumn columns = 1;
+  repeated ProviderRow rows = 2;
+  string sub_resource_name = 3;
+}
+
+message DescribeResourceTypeRequest {
+  string resource_type = 1;
+}

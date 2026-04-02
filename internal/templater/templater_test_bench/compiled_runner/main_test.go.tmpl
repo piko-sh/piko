@@ -1,0 +1,108 @@
+package main_test
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"piko.sh/piko/internal/ast/ast_adapters"
+	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/generator/generator_adapters"
+	"piko.sh/piko/internal/i18n/i18n_adapters"
+	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/render/render_adapters"
+	"piko.sh/piko/internal/render/render_domain"
+	"piko.sh/piko/internal/security/security_adapters"
+	"piko.sh/piko/internal/security/security_domain"
+	"piko.sh/piko/internal/templater/templater_adapters"
+	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/internal/templater/templater_dto"
+	"piko.sh/piko/safedisk"
+
+	"github.com/go-chi/chi/v5"
+
+	_ "{{.ModuleName}}/dist"
+)
+
+type fakeRegistryService struct{}
+
+func (f *fakeRegistryService) GetArtefact(ctx context.Context, id string) (*registry_dto.ArtefactMeta, error) {
+	return nil, registry_domain.ErrArtefactNotFound
+}
+func (f *fakeRegistryService) UpsertArtefact(ctx context.Context, id, p string, d io.Reader, s string, m []registry_dto.NamedProfile) (*registry_dto.ArtefactMeta, error) {
+	return nil, nil
+}
+func (f *fakeRegistryService) AddVariant(ctx context.Context, id string, v *registry_dto.Variant) (*registry_dto.ArtefactMeta, error) {
+	return nil, nil
+}
+func (f *fakeRegistryService) DeleteArtefact(ctx context.Context, id string) error { return nil }
+func (f *fakeRegistryService) GetMultipleArtefacts(ctx context.Context, ids []string) ([]*registry_dto.ArtefactMeta, error) {
+	return nil, nil
+}
+func (f *fakeRegistryService) ListAllArtefactIDs(ctx context.Context) ([]string, error) {
+	return nil, nil
+}
+func (f *fakeRegistryService) SearchArtefacts(ctx context.Context, q registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
+	return nil, nil
+}
+func (f *fakeRegistryService) FindArtefactByVariantStorageKey(ctx context.Context, key string) (*registry_dto.ArtefactMeta, error) {
+	return nil, registry_domain.ErrArtefactNotFound
+}
+func (f *fakeRegistryService) GetVariantData(ctx context.Context, v *registry_dto.Variant) (io.ReadCloser, error) {
+	return nil, registry_domain.ErrBlobNotFound
+}
+func (f *fakeRegistryService) GetBlobStore(id string) (registry_domain.BlobStore, error) {
+	return nil, errors.New("not implemented")
+}
+func (f *fakeRegistryService) PopGCHints(ctx context.Context, l int) ([]registry_dto.GCHint, error) {
+	return nil, nil
+}
+
+func BenchmarkCompiledRender(b *testing.B) {
+	manifestPath := filepath.Join("dist", "manifest.json")
+	manifestProvider := generator_adapters.NewJsonManifestProvider(manifestPath)
+	manifestStore, err := templater_adapters.NewManifestStore(context.Background(), manifestProvider)
+	if err != nil {
+		b.Fatalf("Failed to load manifest: %v", err)
+	}
+
+	pageToBenchmark := os.Getenv("PIKO_BENCH_TARGET_PAGE")
+	if pageToBenchmark == "" {
+		b.Fatal("PIKO_BENCH_TARGET_PAGE environment variable not set")
+	}
+
+	testSandbox, _ := safedisk.NewNoOpSandbox(".", safedisk.ModeReadOnly)
+	i18nService, _ := i18n_adapters.NewFSService(context.Background(), testSandbox, "", "")
+	csrfService, _ := security_domain.NewCSRFTokenService(security_domain.SecurityConfig{HMACSecretKey: []byte("test-secret-key-32-bytes-long")}, security_adapters.NewIPBinderAdapter())
+	fakeRegistry := &fakeRegistryService{}
+	renderRegistry := render_adapters.NewDataLoaderRegistryAdapter(fakeRegistry, nil, "")
+	renderer := render_domain.NewRenderOrchestrator(nil, renderRegistry, csrfService)
+	compiledRunner := templater_adapters.NewCompiledManifestRunner(manifestStore, i18nService)
+	astCache, _ := ast_adapters.NewASTCacheService(context.Background(), ast_adapters.ASTCacheConfig{L1CacheCapacity: 100, L1CacheTTL: 5 * time.Minute})
+	cachingRunner := templater_adapters.NewCachingManifestRunner(compiledRunner, astCache)
+	templaterService := templater_domain.NewTemplaterService(cachingRunner, templater_adapters.NewDrivenRenderer(renderer), i18nService)
+
+	req, _ := http.NewRequest("GET", "/test-path", nil)
+
+	rctx := chi.NewRouteContext()
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	pageDef := templater_dto.PageDefinition{OriginalPath: pageToBenchmark}
+	websiteConfig := &config.WebsiteConfig{}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		err := templaterService.RenderPage(context.Background(), pageDef, io.Discard, req, false, websiteConfig)
+		if err != nil {
+			b.Fatalf("RenderPage failed during benchmark: %v", err)
+		}
+	}
+}

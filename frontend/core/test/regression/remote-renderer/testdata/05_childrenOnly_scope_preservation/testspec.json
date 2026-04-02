@@ -1,0 +1,29 @@
+{
+    "description": "childrenOnly + preservePartialScopes together - container unchanged, children scopes preserved",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/partial",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".container",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".container",
+            "attributes": { "partial": "container_scope page_scope" },
+            "description": "Container scope unchanged (childrenOnly)"
+        },
+        {
+            "selector": ".child",
+            "attributes": { "partial": "child_new container_scope page_scope" },
+            "description": "Child preserves inherited parent scopes"
+        }
+    ]
+}

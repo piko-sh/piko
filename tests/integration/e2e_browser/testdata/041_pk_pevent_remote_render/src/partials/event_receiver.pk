@@ -1,0 +1,88 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+  <div class="event-receiver-partial">
+    <h3>Event Receiver (Loaded via RemoteRender)</h3>
+
+    <button
+        id="emit-btn"
+        class="emit-btn"
+        p-on:click="emitEvent()"
+    >Click to Emit</button>
+
+    <div class="status">
+      <p>Event count: <span id="event-count" p-ref="countDisplay">0</span></p>
+      <p>Last value: <span id="last-value" p-ref="valueDisplay">none</span></p>
+    </div>
+  </div>
+</template>
+
+<style>
+.event-receiver-partial {
+    border: 2px solid #10b981;
+    padding: 1.5rem;
+    border-radius: 8px;
+    background: #f0fdf4;
+}
+.status {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 4px;
+}
+.status p {
+    margin: 0.5rem 0;
+}
+#event-count, #last-value {
+    font-weight: bold;
+    color: #059669;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+/**
+ * Test p-on:click handlers on dynamically loaded partials.
+ * If modules aren't loaded before DOM binding, this function won't be found.
+ */
+let eventCount = 0;
+
+export function emitEvent() {
+    eventCount++;
+
+    if (pk.refs.countDisplay) {
+        pk.refs.countDisplay.textContent = String(eventCount);
+    }
+
+    if (pk.refs.valueDisplay) {
+        pk.refs.valueDisplay.textContent = 'test-value-' + eventCount;
+    }
+}
+</script>

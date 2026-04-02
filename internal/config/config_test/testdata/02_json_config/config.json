@@ -1,0 +1,29 @@
+{
+  "i18nDefaultLocale": "es",
+  "csrfSecret": "custom-secret-123",
+  "network": {
+    "port": "9090",
+    "publicDomain": "example.com:9090",
+    "autoNextPort": true,
+    "forceHttps": true
+  },
+  "paths": {
+    "baseDir": "/app",
+    "componentsSourceDir": "src/components",
+    "pagesSourceDir": "src/pages"
+  },
+  "build": {
+    "watchMode": true,
+    "defaultServeMode": "preview",
+    "precompileComponents": true
+  },
+  "otlp": {
+    "enabled": true,
+    "protocol": "grpc",
+    "endpoint": "localhost:4317"
+  },
+  "compiler": {
+    "enableDebugLogFiles": false,
+    "debugLogDir": "/tmp/logs"
+  }
+}

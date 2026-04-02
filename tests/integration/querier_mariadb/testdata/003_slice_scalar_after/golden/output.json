@@ -1,0 +1,19 @@
+{
+  "count_by_statuses_and_priority": {
+    "Total": 3
+  },
+  "fetch_by_statuses_and_priority": [
+    {
+      "ID": "t2",
+      "Priority": 3,
+      "Status": "PENDING",
+      "Title": "High pending"
+    },
+    {
+      "ID": "t6",
+      "Priority": 2,
+      "Status": "RETRYING",
+      "Title": "Mid retrying"
+    }
+  ]
+}

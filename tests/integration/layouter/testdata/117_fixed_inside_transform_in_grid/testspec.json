@@ -1,0 +1,7 @@
+{
+    "description": "Verifies position:fixed inside a transformed grid item: the fixed element uses the transform ancestor's padding box as its containing block instead of the viewport.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

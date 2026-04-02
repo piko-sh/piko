@@ -1,0 +1,52 @@
+{
+  "description": "Tests error display in PKC component after action validation failure",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Fill form with invalid data to trigger validation error"
+    },
+    {
+      "action": "fill",
+      "selector": "error-form >>> #input-email",
+      "value": "not-an-email"
+    },
+    {
+      "action": "fill",
+      "selector": "error-form >>> #input-age",
+      "value": "5"
+    },
+    {
+      "action": "click",
+      "selector": "error-form >>> #submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "1000"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "error-form >>> #error-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "error-form >>> #error-status",
+      "expected": "422"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "error-form >>> #success-container"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_error.html"
+    }
+  ]
+}

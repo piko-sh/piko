@@ -1,0 +1,35 @@
+{
+  "description": "Tests client-side timeout handling using ActionBuilder timeout option",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#error-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-timeout",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-status",
+      "expected": "408"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_timeout.html"
+    }
+  ]
+}

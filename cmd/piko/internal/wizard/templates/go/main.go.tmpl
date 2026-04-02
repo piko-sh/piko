@@ -1,0 +1,75 @@
+package main
+
+import (
+	"os"
+
+	"piko.sh/piko"
+{{- if .EnableSonicJSON }}
+	sonicjson "piko.sh/piko/wdk/json/json_provider_sonic"
+{{- end }}
+	"piko.sh/piko/wdk/logger"
+	imaging "piko.sh/piko/wdk/media/image_provider_imaging"
+{{- if .EnableValidator }}
+	playground "piko.sh/piko/wdk/validation/validation_provider_playground"
+{{- end }}
+
+{{- if .EnableInterpreted }}
+	"{{ .ModuleName }}/internal/interpreted"
+{{- end }}
+	_ "{{ .ModuleName }}/dist"
+)
+
+func main() {
+	logger.AddPrettyOutput() // Uses LOG_LEVEL env var, defaults to INFO
+
+	command := piko.RunModeDev
+	if len(os.Args) > 1 {
+		command = os.Args[1]
+	}
+
+	// Uses pure-Go image transformer for development. For production, consider
+	// image_provider_vips which provides 10-20x lower memory usage and lossy WebP.
+	//
+	// AutoNextPort automatically picks the next available port if :8080 is busy.
+	ssr := piko.New(
+{{- if .EnableSonicJSON }}
+		piko.WithJSONProvider(sonicjson.New()),
+{{- end }}
+		piko.WithCSSReset(piko.WithCSSResetComplete()),
+		piko.WithImageProvider("imaging", imaging.NewProvider(imaging.Config{})),
+		piko.WithDevWidget(),
+		piko.WithDevHotreload(),
+		piko.WithServerConfigDefaults(&piko.ServerConfig{
+			Network: piko.NetworkConfig{
+				AutoNextPort: true,
+			},
+		}),
+
+{{- if .EnableValidator }}
+		piko.WithValidator(playground.NewValidator()),
+{{- end }}
+
+		// Uncomment to enable TUI integration.
+		// This starts a gRPC monitoring server on :9091 that the TUI connects to.
+		// Run the TUI with: go run ./cmd/tui
+		// piko.WithMonitoring(
+		//     piko.WithMonitoringTransport(monitoring_transport_grpc.Transport()),
+		// ),
+	)
+
+	// You can add your own chi middleware and routes here.
+	// ssr.AppRouter.Use(...)
+	// ssr.AppRouter.Get(...)
+
+{{- if .EnableInterpreted }}
+
+	// You can optionally define your symbols for interpreted mode.
+	// This is required for interpreted mode.
+	ssr.WithSymbols(&interpreted.Symbols)
+{{- end }}
+
+	// Run the Piko server.
+	if err := ssr.Run(command); err != nil {
+		panic(err)
+	}
+}

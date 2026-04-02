@@ -1,0 +1,17 @@
+{
+  "description": "Tests that :request. props correctly override defaults and are used for canonicalisation.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "pager",
+      "assert": {
+        "passedPropsCount": 1,
+        "hasProp": "page",
+        "propValueIs": {
+          "page": "request.QueryParam(\"p\")"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "description": "Verifies custom !404.pk error page renders for unknown routes",
+  "requestURL": "/this-page-does-not-exist",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Custom 404"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-message",
+      "expected": "The page you requested does not exist."
+    }
+  ]
+}

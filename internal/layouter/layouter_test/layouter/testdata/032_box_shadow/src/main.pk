@@ -1,0 +1,6 @@
+<template>
+  <div class="shadowed">Shadow box</div>
+</template>
+<style>
+  .shadowed { box-shadow: 5px 5px 10px 2px rgba(0, 0, 0, 0.3); width: 200px; height: 100px; }
+</style>

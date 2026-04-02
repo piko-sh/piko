@@ -1,0 +1,139 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Tooltip"
+            server.current-page="communication/tooltip">
+
+            <p class="demo-description">Tooltips display brief informative text when users hover over or focus on an element. They support four positions.</p>
+
+            <div class="demo-grid">
+                <!-- Top (Default) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Top (Default)</h3>
+                    <div class="demo-preview">
+                        <m3e-tooltip text="Save changes" position="top">
+                            <m3e-button variant="filled">Hover me</m3e-button>
+                        </m3e-tooltip>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tooltip text="Save changes" position="top"&gt;
+    &lt;m3e-button variant="filled"&gt;Hover me&lt;/m3e-button&gt;
+&lt;/m3e-tooltip&gt;</code></pre>
+                </section>
+
+                <!-- Bottom -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Bottom</h3>
+                    <div class="demo-preview">
+                        <m3e-tooltip text="More options" position="bottom">
+                            <m3e-button variant="filled">Hover me</m3e-button>
+                        </m3e-tooltip>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tooltip text="More options" position="bottom"&gt;
+    &lt;m3e-button variant="filled"&gt;Hover me&lt;/m3e-button&gt;
+&lt;/m3e-tooltip&gt;</code></pre>
+                </section>
+
+                <!-- Left -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Left</h3>
+                    <div class="demo-preview">
+                        <m3e-tooltip text="Go back" position="left">
+                            <m3e-button variant="filled">Hover me</m3e-button>
+                        </m3e-tooltip>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tooltip text="Go back" position="left"&gt;
+    &lt;m3e-button variant="filled"&gt;Hover me&lt;/m3e-button&gt;
+&lt;/m3e-tooltip&gt;</code></pre>
+                </section>
+
+                <!-- Right -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Right</h3>
+                    <div class="demo-preview">
+                        <m3e-tooltip text="Next step" position="right">
+                            <m3e-button variant="filled">Hover me</m3e-button>
+                        </m3e-tooltip>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tooltip text="Next step" position="right"&gt;
+    &lt;m3e-button variant="filled"&gt;Hover me&lt;/m3e-button&gt;
+&lt;/m3e-tooltip&gt;</code></pre>
+                </section>
+
+                <!-- Rich Tooltip -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Rich Tooltip</h3>
+                    <div class="demo-preview">
+                        <m3e-tooltip variant="rich" title="Permissions" text="You need admin access to change this setting.">
+                            <m3e-button variant="filled">Hover me</m3e-button>
+                        </m3e-tooltip>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tooltip variant="rich" title="Permissions" text="You need admin access to change this setting."&gt;
+    &lt;m3e-button variant="filled"&gt;Hover me&lt;/m3e-button&gt;
+&lt;/m3e-tooltip&gt;</code></pre>
+                </section>
+
+                <!-- Custom Delay - Instant -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Custom Delay - Instant</h3>
+                    <div class="demo-preview">
+                        <m3e-tooltip text="Instant tooltip" show_delay="0">
+                            <m3e-button variant="outlined">No delay</m3e-button>
+                        </m3e-tooltip>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tooltip text="Instant tooltip" show_delay="0"&gt;
+    &lt;m3e-button variant="outlined"&gt;No delay&lt;/m3e-button&gt;
+&lt;/m3e-tooltip&gt;</code></pre>
+                </section>
+
+                <!-- Custom Delay - Slow -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Custom Delay - Slow</h3>
+                    <div class="demo-preview">
+                        <m3e-tooltip text="Slow tooltip" show_delay="1000">
+                            <m3e-button variant="outlined">1s delay</m3e-button>
+                        </m3e-tooltip>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tooltip text="Slow tooltip" show_delay="1000"&gt;
+    &lt;m3e-button variant="outlined"&gt;1s delay&lt;/m3e-button&gt;
+&lt;/m3e-tooltip&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Tooltip - M3E Components",
+    }, nil
+}
+</script>

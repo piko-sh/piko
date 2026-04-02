@@ -1,0 +1,91 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="toggle-demo">
+    <div class="toggle-demo">
+        <div class="controls">
+            <button id="toggle-btn" p-on:click="toggle">Toggle Show</button>
+            <button id="update-btn" p-on:click="updateText">Update Text</button>
+        </div>
+
+        <div class="content">
+            <div p-if="state.show" class="conditional-block">
+                <p class="text-content">Text: <span class="dynamic-text" p-text="state.message"></span></p>
+                <p class="html-content">HTML: <span class="dynamic-html" p-html="state.htmlContent"></span></p>
+            </div>
+            <div p-else class="hidden-block">
+                <p>Content is hidden</p>
+            </div>
+        </div>
+
+        <div class="state-display">
+            <p>Show: <span id="show-value" p-text="state.show ? 'true' : 'false'"></span></p>
+            <p>Message: <span id="message-value" p-text="state.message"></span></p>
+        </div>
+    </div>
+</template>
+
+<style>
+    .controls {
+        margin: 1rem 0;
+    }
+    .controls button {
+        margin-right: 0.5rem;
+        padding: 0.5rem 1rem;
+    }
+    .content {
+        padding: 1rem;
+        border: 1px solid #ccc;
+        margin: 1rem 0;
+    }
+    .conditional-block {
+        background: #e8f5e9;
+        padding: 1rem;
+    }
+    .hidden-block {
+        background: #ffebee;
+        padding: 1rem;
+    }
+    .state-display {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        background: #f5f5f5;
+    }
+    .dynamic-text, .dynamic-html {
+        font-weight: bold;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        show: true as boolean,
+        message: "Initial Message" as string,
+        htmlContent: "<strong>Bold HTML</strong>" as string
+    };
+
+    function toggle() {
+        state.show = !state.show;
+    }
+
+    function updateText() {
+        state.message = "Updated Message";
+        state.htmlContent = "<em>Italic HTML</em>";
+    }
+</script>

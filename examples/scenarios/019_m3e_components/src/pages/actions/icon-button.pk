@@ -1,0 +1,247 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Icon Button"
+            server.current-page="actions/icon-button">
+
+            <p class="demo-description">Icon buttons allow users to take actions with a single tap. They come in four variants and support toggle behaviour.</p>
+
+            <div class="demo-grid">
+                <!-- Standard -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Standard</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-icon-button variant="standard">
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                        <m3e-icon-button variant="standard" disabled>
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="standard"&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;
+&lt;m3e-icon-button variant="standard" disabled&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-icon-button variant="filled">
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                        <m3e-icon-button variant="filled" disabled>
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="filled"&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;
+&lt;m3e-icon-button variant="filled" disabled&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Filled Tonal -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled Tonal</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-icon-button variant="filled-tonal">
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                        <m3e-icon-button variant="filled-tonal" disabled>
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="filled-tonal"&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;
+&lt;m3e-icon-button variant="filled-tonal" disabled&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-icon-button variant="outlined">
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                        <m3e-icon-button variant="outlined" disabled>
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="outlined"&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;
+&lt;m3e-icon-button variant="outlined" disabled&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Standard Unselected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Standard (Unselected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="standard" toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="standard" toggle&gt;
+  &lt;piko:svg src="@/lib/icons/favourite.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Filled Unselected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Filled (Unselected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="filled" toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="filled" toggle&gt;
+  &lt;piko:svg src="@/lib/icons/favourite.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Filled Tonal Unselected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Filled Tonal (Unselected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="filled-tonal" toggle>
+                            <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="filled-tonal" toggle&gt;
+  &lt;piko:svg src="@/lib/icons/star.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Outlined Unselected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Outlined (Unselected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="outlined" toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="outlined" toggle&gt;
+  &lt;piko:svg src="@/lib/icons/favourite.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Standard Selected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Standard (Selected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="standard" toggle selected>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="standard" toggle selected&gt;
+  &lt;piko:svg src="@/lib/icons/favourite.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Filled Selected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Filled (Selected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="filled" toggle selected>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="filled" toggle selected&gt;
+  &lt;piko:svg src="@/lib/icons/favourite.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Filled Tonal Selected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Filled Tonal (Selected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="filled-tonal" toggle selected>
+                            <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="filled-tonal" toggle selected&gt;
+  &lt;piko:svg src="@/lib/icons/star.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Toggle - Outlined Selected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Toggle - Outlined (Selected)</h3>
+                    <div class="demo-preview">
+                        <m3e-icon-button variant="outlined" toggle selected>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="outlined" toggle selected&gt;
+  &lt;piko:svg src="@/lib/icons/favourite.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+
+                <!-- Soft-Disabled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Soft-Disabled</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-icon-button variant="standard" soft-disabled>
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                        <m3e-icon-button variant="filled" soft-disabled>
+                            <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-icon-button variant="standard" soft-disabled&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;
+&lt;m3e-icon-button variant="filled" soft-disabled&gt;
+  &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+&lt;/m3e-icon-button&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Icon Button - M3E Components",
+    }, nil
+}
+</script>

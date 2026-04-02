@@ -1,0 +1,63 @@
+{
+  "specs": [
+    {
+      "description": "The first root element (h1) should NOT have PartialInfo directly",
+      "select": "h1.card-title",
+      "assert": {
+        "hasPartialInfo": false,
+        "originalPackageAlias": "partials/card.pk"
+      }
+    },
+    {
+      "description": "The parent fragment of h1 must have the PartialInfo",
+      "select": "h1.card-title",
+      "assert": {
+        "parentShouldHavePartialInfo": true
+      }
+    },
+    {
+      "description": "The first root element (h1) should NOT have the invoker's 'attribute' attribute",
+      "select": "h1.card-title",
+      "assert": {
+        "attr": {
+          "attribute": "null"
+        }
+      }
+    },
+    {
+      "description": "The second root element (div) should also NOT have the invoker's 'attribute' attribute",
+      "select": "div.card-body",
+      "assert": {
+        "attr": {
+          "attribute": "null"
+        }
+      }
+    },
+    {
+      "description": "Both root elements should share the same p-fragment group id",
+      "select": "h1.card-title",
+      "assert": {
+        "attr": {
+          "p-fragment": "card_attribute_test_attribute2_state_shouldappear_5aa31378"
+        }
+      }
+    },
+    {
+      "description": "Both root elements should share the same p-fragment group id",
+      "select": "div.card-body",
+      "assert": {
+        "attr": {
+          "p-fragment": "card_attribute_test_attribute2_state_shouldappear_5aa31378"
+        }
+      }
+    },
+    {
+      "description": "The slotted paragraph must be inside the div and retain its main.pk origin",
+      "select": "div.card-body > p[p-if]",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Visible from Main"
+      }
+    }
+  ]
+}

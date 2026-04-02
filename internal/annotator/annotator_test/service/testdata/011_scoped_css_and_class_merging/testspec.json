@@ -1,0 +1,19 @@
+{
+  "description": "Validates that CSS is correctly scoped and that the 'class' attribute is merged from the invoker to the partial's root.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "expectedCombinedCSSContains": [
+    ".btn[partial~=partials_button_6b4e1a5a]{color:red;font-weight:700}"
+  ],
+  "assertNodes": [
+    {
+      "select": "#my-button",
+      "description": "The expanded button div should have merged classes and the scope attribute.",
+      "assert": {
+        "attr": {
+          "class": "btn from-partial from-parent primary"
+        }
+      }
+    }
+  ]
+}

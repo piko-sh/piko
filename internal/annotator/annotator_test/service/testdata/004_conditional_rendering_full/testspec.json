@@ -1,0 +1,39 @@
+{
+  "description": "Validates a full p-if/p-else-if/p-else chain, ensuring directives are preserved and linked.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#status-ok",
+      "description": "The p-if directive should be present and correctly typed.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "state.Status == 'ok'",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "#status-warn",
+      "description": "The p-else-if directive should be preserved (not transformed) and correctly typed.",
+      "assertOnDirective": [
+        {
+          "name": "p-else-if",
+          "rawExpression": "state.Status == 'warn'",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "#status-error",
+      "description": "The p-else directive should be preserved.",
+      "assertOnDirective": [
+        {
+          "name": "p-else",
+          "rawExpression": ""
+        }
+      ]
+    }
+  ]
+}

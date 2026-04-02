@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of generic type definitions.",
+  "moduleName": "testcase_08_generics_definition",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_08_generics_definition"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Box' type should have one type parameter 'T'.",
+      "select": "packages.testcase_08_generics_definition.named_types.Box.type_params.0",
+      "expect": "T"
+    },
+    {
+      "description": "The 'Value' field on 'Box' should have the type string 'T'.",
+      "select": "packages.testcase_08_generics_definition.named_types.Box.fields.0.type_string",
+      "expect": "T"
+    },
+    {
+      "description": "The 'Pair' type should have two type parameters.",
+      "select": "packages.testcase_08_generics_definition.named_types.Pair.type_params.1",
+      "expect": "V"
+    },
+    {
+      "description": "The 'Key' field on 'Pair' should have the type string 'K'.",
+      "select": "packages.testcase_08_generics_definition.named_types.Pair.fields.0.type_string",
+      "expect": "K"
+    }
+  ]
+}

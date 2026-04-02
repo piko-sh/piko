@@ -1,0 +1,5 @@
+{
+  "description": "Tests CSS scoping when a partial with multiple root nodes contains another partial as one of its roots. Ensures nested partial CSS scope IDs are correctly applied.",
+  "packageName": "main_test",
+  "isPage": true
+}

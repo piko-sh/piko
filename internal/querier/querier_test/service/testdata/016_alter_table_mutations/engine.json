@@ -1,0 +1,63 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "uuid": { "category": "uuid", "engineName": "uuid" },
+    "text": { "category": "text", "engineName": "text" },
+    "timestamptz": { "category": "temporal", "engineName": "timestamptz" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, old_email text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "old_email", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "ALTER TABLE users RENAME COLUMN old_email TO email",
+      "mutation": {
+        "kind": "alterTableRenameColumn",
+        "schemaName": "",
+        "tableName": "users",
+        "columnName": "old_email",
+        "newName": "email"
+      }
+    },
+    {
+      "sql": "ALTER TABLE users ADD COLUMN created_at timestamptz NOT NULL DEFAULT now()",
+      "mutation": {
+        "kind": "alterTableAddColumn",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "created_at", "sqlType": { "category": "temporal", "engineName": "timestamptz" }, "nullable": false, "hasDefault": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, name, email, created_at FROM users WHERE id = $1",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "users", "columnName": "id" },
+          { "name": "name", "tableAlias": "users", "columnName": "name" },
+          { "name": "email", "tableAlias": "users", "columnName": "email" },
+          { "name": "created_at", "tableAlias": "users", "columnName": "created_at" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "users", "columnName": "id" } }
+        ],
+        "fromTables": [
+          { "name": "users" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

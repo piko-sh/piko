@@ -1,0 +1,54 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-model-number >>> #display",
+    "expected": "Quantity: 5"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-number >>> #doubled",
+    "expected": "Doubled: 10"
+  },
+  {
+    "action": "click",
+    "selector": "p-model-number >>> #increment"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-number >>> #display",
+    "expected": "Quantity: 6"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-number >>> #doubled",
+    "expected": "Doubled: 12"
+  },
+  {
+    "action": "click",
+    "selector": "p-model-number >>> #decrement"
+  },
+  {
+    "action": "click",
+    "selector": "p-model-number >>> #decrement"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-number >>> #display",
+    "expected": "Quantity: 4"
+  },
+  {
+    "action": "fill",
+    "selector": "p-model-number >>> #quantity",
+    "value": "25"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-number >>> #display",
+    "expected": "Quantity: 25"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-model-number >>> #doubled",
+    "expected": "Doubled: 50"
+  }
+]

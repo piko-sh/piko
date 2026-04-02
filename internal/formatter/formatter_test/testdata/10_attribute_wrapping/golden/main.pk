@@ -1,0 +1,31 @@
+<template>
+  <div
+    :data-mode="state.DisplayMode"
+    :data-permissions="state.UserPermissions"
+    :data-settings="state.ApplicationSettings"
+    :data-theme="state.SelectedTheme"
+    :data-user="state.CurrentUser"
+    class="very-long-class-name-that-will-trigger-wrapping"
+    id="main-container"
+  >
+    <p>Content</p>
+  </div>
+  <button
+    :data-action="state.CurrentAction"
+    :disabled="state.IsProcessing"
+    class="btn-primary"
+    type="submit"
+  >Submit</button>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{}, piko.Metadata{}, nil
+}
+</script>

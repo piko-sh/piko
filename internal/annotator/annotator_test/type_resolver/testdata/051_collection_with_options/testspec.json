@@ -1,0 +1,19 @@
+[{
+  "description": "GetCollection with WithProvider option parses correctly",
+  "expression": "r.GetCollection[Post](\"blog\", r.WithProvider(\"markdown\"))",
+  "expectedType": "[]Post",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}, {
+  "description": "GetCollection with WithFilter option parses correctly",
+  "expression": "r.GetCollection[Post](\"blog\", r.WithFilter(\"featured\", true))",
+  "expectedType": "[]Post",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}, {
+  "description": "GetCollection with multiple options parses correctly",
+  "expression": "r.GetCollection[Post](\"blog\", r.WithProvider(\"markdown\"), r.WithLocale(\"en\"), r.WithFilter(\"category\", \"tech\"))",
+  "expectedType": "[]Post",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

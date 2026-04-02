@@ -1,0 +1,25 @@
+[
+  {
+    "action": "checkText",
+    "selector": "boolean-attributes >>> #status",
+    "expected": "Disabled: true"
+  },
+  {
+    "action": "click",
+    "selector": "boolean-attributes >>> #toggle"
+  },
+  {
+    "action": "checkText",
+    "selector": "boolean-attributes >>> #status",
+    "expected": "Disabled: false"
+  },
+  {
+    "action": "click",
+    "selector": "boolean-attributes >>> #toggle"
+  },
+  {
+    "action": "checkText",
+    "selector": "boolean-attributes >>> #status",
+    "expected": "Disabled: true"
+  }
+]

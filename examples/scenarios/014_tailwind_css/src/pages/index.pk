@@ -1,0 +1,101 @@
+<template>
+  <piko:partial is="site_layout" server.current-page="home">
+    <div class="space-y-8">
+      <section>
+        <h1 class="text-3xl font-bold text-gray-900">{{ state.Heading }}</h1>
+        <p class="mt-2 text-lg text-gray-600 leading-relaxed">{{ state.Subheading }}</p>
+      </section>
+
+      <section class="grid gap-6 sm:grid-cols-2">
+        <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm" p-for="(i, card) in state.Cards" p-key="card.Title">
+          <div class="mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
+            p-class="{ 'bg-blue-100 text-blue-700': card.Colour == 'blue', 'bg-green-100 text-green-700': card.Colour == 'green', 'bg-purple-100 text-purple-700': card.Colour == 'purple', 'bg-amber-100 text-amber-700': card.Colour == 'amber' }">
+            <span p-text="card.Badge"></span>
+          </div>
+          <h2 class="text-lg font-semibold text-gray-900" p-text="card.Title"></h2>
+          <p class="mt-2 text-sm text-gray-500 leading-relaxed" p-text="card.Description"></p>
+        </div>
+      </section>
+
+      <section class="rounded-lg bg-blue-50 border border-blue-200 p-6">
+        <h2 class="text-lg font-semibold text-blue-900">How this works</h2>
+        <ul class="mt-3 space-y-2 text-sm text-blue-800">
+          <li class="flex items-start gap-2">
+            <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
+            Tailwind CLI scans .pk files for class names
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
+            Generates a purged stylesheet with only the classes used
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
+            Layout partial loads it via @import in a global style block
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
+            No framework changes needed - works with Piko today
+          </li>
+        </ul>
+      </section>
+    </div>
+  </piko:partial>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko"
+  site_layout "testmodule/partials/layout.pk"
+)
+
+type Card struct {
+  Title       string
+  Description string
+  Badge       string
+  Colour      string
+}
+
+type Response struct {
+  Heading    string
+  Subheading string
+  Cards      []Card
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+  return Response{
+    Heading:    "Tailwind CSS + Piko",
+    Subheading: "Utility-first CSS in server-rendered Piko pages, with full tree-shaking via the Tailwind CLI.",
+    Cards: []Card{
+      {
+        Title:       "Zero Framework Changes",
+        Description: "Tailwind runs as an external build step. Piko's existing @import support handles the rest.",
+        Badge:       "Architecture",
+        Colour:      "blue",
+      },
+      {
+        Title:       "Tree-Shaken Output",
+        Description: "Only the utility classes actually used in your .pk files end up in the final CSS.",
+        Badge:       "Performance",
+        Colour:      "green",
+      },
+      {
+        Title:       "Dynamic Classes Work",
+        Description: "p-class bindings with complete class names are found by Tailwind's plain-text scanner.",
+        Badge:       "Reactivity",
+        Colour:      "purple",
+      },
+      {
+        Title:       "No Node.js Required",
+        Description: "The Tailwind v4 standalone CLI is a single binary - no npm, no node_modules.",
+        Badge:       "Simplicity",
+        Colour:      "amber",
+      },
+    },
+  }, piko.Metadata{
+    Title:       "Tailwind CSS - Piko Example",
+    Description: "Using Tailwind CSS v4 with Piko's server-side rendering.",
+  }, nil
+}
+</script>

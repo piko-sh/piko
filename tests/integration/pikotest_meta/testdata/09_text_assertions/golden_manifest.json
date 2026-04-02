@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/messages.pk": {
+      "routePatterns": {
+        "en": "/messages"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_09_text_assertions/dist/pages/pages_messages_fdeccdaf",
+      "originalSourcePath": "pages/messages.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,55 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="page-layout theme-dark" :data-logged-in="state.IsLoggedIn" {P: state.IsLoggedIn, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_page_layout_d04fd246 OriginPath: partials/page_layout.pk PARTIAL InvKey: layout_data_logged_in_state_isloggedin_3d8e08d3 Package: partials_page_layout_d04fd246 InvPackage: main_aaf9a2e0]>
+  <main class="page-layout-main" [ANNOTATIONS: OriginPackage: partials_page_layout_d04fd246 OriginPath: partials/page_layout.pk]>
+    <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Welcome to the Dashboard"
+    </h1>
+    <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "This is the main content area provided by main.pk."
+    </p>
+  </main>
+  <aside class="page-layout-sidebar" [ANNOTATIONS: OriginPackage: partials_page_layout_d04fd246 OriginPath: partials/page_layout.pk]>
+    <div class="sidebar" :is-collapsible="true" {P: true, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_sidebar_959a74bf OriginPath: partials/sidebar.pk PARTIAL InvKey: sidebar_is_collapsible_true_bc6d3300 Package: partials_sidebar_959a74bf InvPackage: main_aaf9a2e0]>
+      <header [ANNOTATIONS: OriginPackage: partials_sidebar_959a74bf OriginPath: partials/sidebar.pk]>
+        <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+          "Main Navigation"
+        </h2>
+      </header>
+      <Fragment [ANNOTATIONS: OriginPackage: partials_sidebar_959a74bf PARTIAL InvKey: profile_notification_count_state_notifications_d2142e00 Package: partials_user_profile_c73fd2a9 InvPackage: partials_sidebar_959a74bf]>
+        <div class="avatar" p-fragment="profile_notification_count_state_notifications_d2142e00" p-fragment-id="0" :initial="state.UserInitial" {P: state.UserInitial, OriginPackage: partials_user_profile_c73fd2a9} :title="props.initial" {P: props.initial} [ANNOTATIONS: OriginPackage: partials_avatar_c3a790d9 OriginPath: partials/avatar.pk PARTIAL InvKey: avatar_initial_state_userinitial_0068e298 Package: partials_avatar_c3a790d9 InvPackage: partials_user_profile_c73fd2a9]>
+          <RichText>
+            "\n        "
+            {{ props.initial }}
+            "\n    "
+          </RichText>
+        </div>
+        <div class="user-profile-info" p-fragment="profile_notification_count_state_notifications_d2142e00" p-fragment-id="1" [ANNOTATIONS: OriginPackage: partials_user_profile_c73fd2a9 OriginPath: partials/user_profile.pk]>
+          <p [ANNOTATIONS: OriginPackage: partials_user_profile_c73fd2a9 OriginPath: partials/user_profile.pk]>
+            "User Info"
+          </p>
+          <span class="user-profile-notifications" [p-if: (props.notificationCount > 0)] [ANNOTATIONS: OriginPackage: partials_user_profile_c73fd2a9 OriginPath: partials/user_profile.pk]>
+            <RichText>
+              "\n            "
+              {{ props.notificationCount }}
+              " New\n        "
+            </RichText>
+          </span>
+        </div>
+      </Fragment>
+      <nav [ANNOTATIONS: OriginPackage: partials_sidebar_959a74bf OriginPath: partials/sidebar.pk]>
+        <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+          <RichText>
+            "Hello, "
+            {{ state.Username }}
+            "!"
+          </RichText>
+        </p>
+      </nav>
+    </div>
+  </aside>
+</div>
+
+--- END AST DUMP ---
+*/

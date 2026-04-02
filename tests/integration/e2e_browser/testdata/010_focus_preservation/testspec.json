@@ -1,0 +1,57 @@
+{
+  "description": "Tests focus is preserved during DOM morph operations",
+  "requestURL": "/form",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Focus Preservation Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".input-group"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "focus",
+      "selector": "#field2"
+    },
+    {
+      "action": "checkFocused",
+      "selector": "#field2"
+    },
+    {
+      "action": "fill",
+      "selector": "#field2",
+      "value": "TestValue"
+    },
+    {
+      "action": "fill",
+      "selector": "#field1",
+      "value": "trigger"
+    },
+    {
+      "action": "wait",
+      "value": "600"
+    },
+    {
+      "action": "checkValue",
+      "selector": "#field2",
+      "expected": "TestValue"
+    },
+    {
+      "action": "checkValue",
+      "selector": "#field1",
+      "expected": "trigger"
+    }
+  ]
+}

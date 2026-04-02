@@ -1,0 +1,8 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div id="explicit-nil" [ANNOTATIONS: OriginPackage: partials_profile_c5502d03 OriginPath: partials/profile.pk PARTIAL InvKey: profile_user_nil_52ce3984 Package: partials_profile_c5502d03 InvPackage: main_aaf9a2e0] />
+<div id="omitted" [ANNOTATIONS: OriginPackage: partials_profile_c5502d03 OriginPath: partials/profile.pk PARTIAL InvKey: profile_user_nil_52ce3984 Package: partials_profile_c5502d03 InvPackage: main_aaf9a2e0] />
+
+--- END AST DUMP ---
+*/

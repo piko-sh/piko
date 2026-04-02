@@ -1,0 +1,28 @@
+--- PACKAGE: testcase_47_multi_level_pointer ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 47_multi_level_pointer/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Session
+    - Defined In:      47_multi_level_pointer/src/main.go
+    - TypeString:      main.Session
+    - Underlying:      struct{CurrentUser **main.User}
+    - Stringability:   0
+    - Fields:
+      - CurrentUser          **main.User
+        (Canonical Package: testcase_47_multi_level_pointer)
+
+  > type User
+    - Defined In:      47_multi_level_pointer/src/main.go
+    - TypeString:      main.User
+    - Underlying:      struct{Name string}
+    - Stringability:   0
+    - Fields:
+      - Name                 string
+
+[Package-Level Functions]
+  (none)

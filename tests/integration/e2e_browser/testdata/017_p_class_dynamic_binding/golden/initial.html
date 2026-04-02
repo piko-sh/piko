@@ -1,0 +1,16 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">p-class Dynamic Binding Test</h1>
+    <styled-box partial="pages_main_594861c5" p-key="r.0:1" is-active>
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.container{padding: 1rem}.box{padding: 2rem;margin: 1rem 0;border: 2px solid #ccc;background: #f5f5f5;transition: all 0.2s}.box.active{border-color: #4caf50;background: #e8f5e9}.box.highlighted{box-shadow: 0 0 10px #ff9800}button{padding: 0.5rem 1rem;margin-right: 0.5rem;background: #2196f3;color: white;border: none;cursor: pointer}</style>
+        <div class="container">
+          <div id="target-box" class="box active"> Dynamic Class Box </div>
+          <div class="controls"><button id="toggle-active">Toggle Active</button><button id="toggle-highlight">Toggle Highlight</button></div>
+          <p id="status">Active: Yes, Highlighted: No</p>
+        </div>
+      </template>
+    </styled-box>
+  </div>
+</div>

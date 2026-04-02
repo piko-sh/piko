@@ -1,0 +1,10 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return { found: false };
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el || el.tagName !== 'INPUT' || el.type !== 'file') return { found: false };
+    // We can't directly get the backendNodeId from JS, but we can prepare the element
+    // and return enough info for the caller to locate it
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+    return { found: true };
+})()

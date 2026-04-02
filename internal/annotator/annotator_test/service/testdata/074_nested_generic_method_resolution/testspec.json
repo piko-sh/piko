@@ -1,0 +1,67 @@
+{
+  "description": "Validates that nested generic types resolve correctly. When Embedded[OpenViewingData].Data contains Ref[TeamMember], calling Ref.Get() should return TeamMember, not T.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "h1.title",
+      "description": "Direct field access through chained methods should resolve to string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.Title.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.date",
+      "description": "Field access through Embedded[T].Data should resolve correctly.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.OpenViewing.Data.Date.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.has-agent",
+      "description": "Ref[T].HasItem() should resolve to bool.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Property.OpenViewing.Data.ViewingAgent.HasItem()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.agent-name",
+      "description": "CRITICAL: Ref[TeamMember].Get().FullName() - Get() must return TeamMember, not T or any.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.OpenViewing.Data.ViewingAgent.Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.agent-first-name",
+      "description": "CRITICAL: Ref[TeamMember].Get().FirstName - Get() must return TeamMember so FirstName is accessible.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.OpenViewing.Data.ViewingAgent.Get().FirstName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.agent-phone",
+      "description": "CRITICAL: Ref[TeamMember].Get().PhoneNumber.String() - full chain through nested generics.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Property.OpenViewing.Data.ViewingAgent.Get().PhoneNumber.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

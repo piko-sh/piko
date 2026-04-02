@@ -1,0 +1,112 @@
+{
+  "description": "Tests optimistic updates execute immediately and rollback on error",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Verify initial state"
+    },
+    {
+      "action": "checkText",
+      "selector": "#like-count",
+      "expected": "0"
+    },
+    {
+      "action": "comment",
+      "value": "Click like - optimistic update should fire immediately"
+    },
+    {
+      "action": "click",
+      "selector": "#like-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#optimistic-fired",
+      "expected": "yes"
+    },
+    {
+      "action": "checkText",
+      "selector": "#like-count",
+      "expected": "1"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for server response to confirm"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#success-fired",
+      "expected": "yes"
+    },
+    {
+      "action": "checkText",
+      "selector": "#like-count",
+      "expected": "1"
+    },
+    {
+      "action": "comment",
+      "value": "Now click fail like - optimistic shows +1, then rollback"
+    },
+    {
+      "action": "click",
+      "selector": "#fail-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "comment",
+      "value": "Optimistic update should have incremented to 2"
+    },
+    {
+      "action": "checkText",
+      "selector": "#like-count",
+      "expected": "2"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for error and rollback"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-fired",
+      "expected": "yes"
+    },
+    {
+      "action": "comment",
+      "value": "Count should have rolled back to 1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#like-count",
+      "expected": "1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_optimistic.html"
+    }
+  ]
+}

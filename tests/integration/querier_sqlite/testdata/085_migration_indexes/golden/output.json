@@ -1,0 +1,42 @@
+{
+  "by_category": [
+    {
+      "ID": 6,
+      "Name": "Monitor",
+      "Price": 349
+    },
+    {
+      "ID": 3,
+      "Name": "Tablet",
+      "Price": 399
+    },
+    {
+      "ID": 2,
+      "Name": "Phone",
+      "Price": 699
+    },
+    {
+      "ID": 1,
+      "Name": "Laptop",
+      "Price": 999
+    }
+  ],
+  "by_category_and_price": [
+    {
+      "ID": 6,
+      "Name": "Monitor",
+      "Price": 349
+    },
+    {
+      "ID": 3,
+      "Name": "Tablet",
+      "Price": 399
+    }
+  ],
+  "by_sku": {
+    "Category": "furniture",
+    "ID": 4,
+    "Name": "Desk",
+    "Price": 250
+  }
+}

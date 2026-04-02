@@ -1,0 +1,7 @@
+{
+    "description": "Verifies flex and grid containers with zero or near-zero width do not crash or loop, items shrink correctly, and subsequent elements position normally.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

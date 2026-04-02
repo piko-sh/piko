@@ -1,0 +1,28 @@
+{
+  "category": {
+    "Category": "clothing",
+    "ID": 2,
+    "Name": "T-Shirt"
+  },
+  "electronics": [
+    {
+      "Category": "electronics",
+      "ID": 1,
+      "Name": "Laptop"
+    },
+    {
+      "Category": "electronics",
+      "ID": 3,
+      "Name": "Keyboard"
+    }
+  ],
+  "price": {
+    "ID": 1,
+    "Name": "Laptop",
+    "Price": "999"
+  },
+  "summary": {
+    "ID": 1,
+    "Summary": "{\"product_name\": \"Laptop\", \"product_price\": 999}"
+  }
+}

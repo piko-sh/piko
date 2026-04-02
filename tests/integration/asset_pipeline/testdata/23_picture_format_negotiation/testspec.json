@@ -1,0 +1,113 @@
+{
+  "description": "Picture format negotiation: verify multi-format variant generation for piko:picture (avif, webp, jpeg) at multiple widths",
+  "moduleName": "testmodule",
+  "transformer": "vips",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/test-image.bmp",
+      "expectedArtefactID": "testmodule/lib/images/test-image.bmp"
+    }
+  ],
+  "variantURLChecks": [
+    {
+      "description": "Generate and verify AVIF variant at 200px width",
+      "sourceAssetIndex": 0,
+      "profileName": "image_w200_avif",
+      "transformParams": {
+        "width": "200",
+        "format": "avif",
+        "quality": "80"
+      },
+      "expectedURLPattern": "/_piko/assets/{artefactID}?v={profile}",
+      "expected": {
+        "exactWidth": 200,
+        "mimeType": "image/avif",
+        "minSizeBytes": 100
+      },
+      "goldenFile": "variant-200w.avif"
+    },
+    {
+      "description": "Generate and verify AVIF variant at 640px width",
+      "sourceAssetIndex": 0,
+      "profileName": "image_w640_avif",
+      "transformParams": {
+        "width": "640",
+        "format": "avif",
+        "quality": "80"
+      },
+      "expectedURLPattern": "/_piko/assets/{artefactID}?v={profile}",
+      "expected": {
+        "exactWidth": 639,
+        "mimeType": "image/avif",
+        "minSizeBytes": 500
+      },
+      "goldenFile": "variant-640w.avif"
+    },
+    {
+      "description": "Generate and verify WebP variant at 200px width",
+      "sourceAssetIndex": 0,
+      "profileName": "image_w200_webp",
+      "transformParams": {
+        "width": "200",
+        "format": "webp",
+        "quality": "85"
+      },
+      "expectedURLPattern": "/_piko/assets/{artefactID}?v={profile}",
+      "expected": {
+        "exactWidth": 200,
+        "minSizeBytes": 500
+      },
+      "goldenFile": "variant-200w.webp"
+    },
+    {
+      "description": "Generate and verify WebP variant at 640px width",
+      "sourceAssetIndex": 0,
+      "profileName": "image_w640_webp",
+      "transformParams": {
+        "width": "640",
+        "format": "webp",
+        "quality": "85"
+      },
+      "expectedURLPattern": "/_piko/assets/{artefactID}?v={profile}",
+      "expected": {
+        "exactWidth": 639,
+        "minSizeBytes": 1000
+      },
+      "goldenFile": "variant-640w.webp"
+    },
+    {
+      "description": "Generate and verify JPEG fallback variant at 200px width",
+      "sourceAssetIndex": 0,
+      "profileName": "image_w200_jpg",
+      "transformParams": {
+        "width": "200",
+        "format": "jpeg",
+        "quality": "80"
+      },
+      "expectedURLPattern": "/_piko/assets/{artefactID}?v={profile}",
+      "expected": {
+        "exactWidth": 200,
+        "mimeType": "image/jpeg",
+        "minSizeBytes": 500
+      },
+      "goldenFile": "variant-200w.jpeg"
+    },
+    {
+      "description": "Generate and verify JPEG fallback variant at 640px width",
+      "sourceAssetIndex": 0,
+      "profileName": "image_w640_jpg",
+      "transformParams": {
+        "width": "640",
+        "format": "jpeg",
+        "quality": "80"
+      },
+      "expectedURLPattern": "/_piko/assets/{artefactID}?v={profile}",
+      "expected": {
+        "exactWidth": 639,
+        "mimeType": "image/jpeg",
+        "minSizeBytes": 3000
+      },
+      "goldenFile": "variant-640w.jpeg"
+    }
+  ]
+}

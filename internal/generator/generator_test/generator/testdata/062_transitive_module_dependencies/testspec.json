@@ -1,0 +1,6 @@
+{
+  "description": "Tests transitive module dependencies where composite-widgets imports from ui-components, creating a dependency chain: page → composite-widgets → ui-components",
+  "packageName": "testcase_062_transitive_module_dependencies",
+  "isPage": true,
+  "shouldError": false
+}

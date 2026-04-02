@@ -1,0 +1,3 @@
+<template>
+  <p style="text-indent: 2em; width: 200px;">This paragraph has a text indent applied to its first line.</p>
+</template>

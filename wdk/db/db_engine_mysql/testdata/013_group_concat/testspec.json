@@ -1,0 +1,3 @@
+{
+  "description": "GROUP_CONCAT aggregate function with ORDER BY and SEPARATOR clauses. Tests MySQL-specific aggregate syntax parsing and return type inference."
+}

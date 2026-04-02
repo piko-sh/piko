@@ -1,0 +1,92 @@
+//go:build e2e
+
+package e2e
+
+import (
+	"testing"
+
+	"piko.sh/piko/wdk/browser"
+)
+
+func TestHomepage_DefaultTitle(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/")
+	p.WaitFor(".hero-title")
+
+	p.Assert(".hero-title").HasText("Welcome to Piko")
+}
+
+func TestHomepage_PersonalizedTitle(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/?name=Alice")
+	p.WaitFor(".hero-title")
+
+	p.Assert(".hero-title").HasText("Welcome, Alice")
+}
+
+func TestHomepage_GreetingAppearsWithName(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/?name=Bob")
+	p.WaitFor(".hero-greeting")
+
+	p.Assert(".hero-greeting").Exists().ContainsText("Bob")
+}
+
+func TestHomepage_GreetingHiddenWithoutName(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/")
+	p.WaitFor(".hero-title")
+
+	p.Assert(".hero-greeting").NotExists()
+}
+
+func TestHomepage_FeatureCards(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/")
+	p.WaitFor(".features-grid")
+
+	p.Assert(".features-grid > div").Count(4)
+}
+
+func TestHomepage_QuickstartSteps(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/")
+	p.WaitFor(".steps")
+
+	p.Assert(".step").Count(3)
+}
+
+func TestHomepage_HeroStructure(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/")
+	p.WaitFor(".hero")
+
+	p.Assert(".hero-badge").Exists()
+	p.Assert(".hero-subtitle").ContainsText("Go web framework")
+	p.Assert(".btn-primary").Exists().ContainsText("Get Started")
+	p.Assert(".btn-secondary").Exists().ContainsText("Documentation")
+}
+
+func TestHomepage_NoConsoleErrors(t *testing.T) {
+	p := browser.New(t)
+	defer p.Close()
+
+	p.Navigate("/")
+	p.WaitFor(".hero")
+
+	p.AssertNoConsoleErrors()
+}

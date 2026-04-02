@@ -1,0 +1,16 @@
+{
+  "specs": [
+    {
+      "description": "The final div should have merged classes, the invoker's ID, and all other attributes",
+      "select": "div",
+      "assert": {
+        "attr": {
+          "id": "new-id",
+          "class": "card-class invoker-class",
+          "data-main": "",
+          "aria-label": "Default label"
+        }
+      }
+    }
+  ]
+}

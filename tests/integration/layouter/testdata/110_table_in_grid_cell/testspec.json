@@ -1,0 +1,7 @@
+{
+    "description": "Verifies table layout inside a grid cell: intrinsic table sizing for auto grid tracks, border-spacing and cell padding interactions.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

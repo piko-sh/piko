@@ -1,0 +1,88 @@
+<template>
+    <pml-row class="header-bar">
+        <pml-col>
+            <pml-p class="brand-name">Launchpad</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="progress-section">
+        <pml-col>
+            <pml-p class="progress-heading">3 of 5 Steps Completed</pml-p>
+            <pml-p class="progress-subtext">You are 60% of the way there. Just two more steps to get fully set up.</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-no-stack class="progress-bar-row">
+        <pml-col width="20%" class="progress-filled"></pml-col>
+        <pml-col width="20%" class="progress-filled"></pml-col>
+        <pml-col width="20%" class="progress-filled"></pml-col>
+        <pml-col width="20%" class="progress-empty"></pml-col>
+        <pml-col width="20%" class="progress-empty"></pml-col>
+    </pml-no-stack>
+    <pml-row class="steps-section">
+        <pml-col>
+            <pml-p class="step-completed">&#10003; Create your account</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="steps-section">
+        <pml-col>
+            <pml-p class="step-completed">&#10003; Set up your profile</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="steps-section">
+        <pml-col>
+            <pml-p class="step-completed">&#10003; Invite team members</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="steps-section">
+        <pml-col>
+            <pml-p class="step-current">&#8594; Connect your tools</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="steps-section">
+        <pml-col>
+            <pml-p class="step-pending">&#9675; Launch your first project</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="cta-section">
+        <pml-col>
+            <pml-button href="https://launchpad.example.com/setup" class="primary-cta">Continue Setup</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-hr class="section-divider"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row class="content-section">
+        <pml-col>
+            <pml-p class="help-text">Need help? Our setup guide walks you through each step in detail.</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row class="footer-bar">
+        <pml-col>
+            <pml-p class="footer-text">Launchpad Inc - London, UK</pml-p>
+            <pml-p class="footer-text">You are receiving this because you recently created a Launchpad account.</pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.header-bar { background-color: #ffffff; padding: 25px 0; border-bottom: 3px solid #00b894; }
+.brand-name { font-size: 24px; font-weight: bold; color: #2d3436; text-align: center; padding: 10px 25px; }
+.progress-section { padding: 30px 0; }
+.progress-heading { font-size: 26px; font-weight: bold; color: #2d3436; text-align: center; padding: 10px 25px; }
+.progress-subtext { font-size: 14px; color: #636e72; text-align: center; line-height: 1.5; padding: 5px 25px; }
+.progress-bar-row { padding: 5px 25px; }
+.progress-filled { background-color: #00b894; padding: 8px 0; }
+.progress-empty { background-color: #dfe6e9; padding: 8px 0; }
+.steps-section { padding: 3px 0; }
+.step-completed { font-size: 15px; color: #00b894; padding: 8px 30px; line-height: 1.6; }
+.step-current { font-size: 15px; font-weight: bold; color: #0984e3; background-color: #e8f4fd; padding: 10px 30px; line-height: 1.6; }
+.step-pending { font-size: 15px; color: #b2bec3; padding: 8px 30px; line-height: 1.6; }
+.cta-section { padding: 25px 0; }
+.primary-cta { background-color: #00b894; color: #ffffff; font-size: 16px; border-radius: 5px; padding: 15px 25px; inner-padding: 14px 35px; }
+.content-section { padding: 15px 0; }
+.section-divider { border-color: #eeeeee; border-width: 1px; padding: 0 25px; }
+.help-text { font-size: 13px; color: #636e72; text-align: center; line-height: 1.5; padding: 5px 25px; }
+.footer-bar { background-color: #2d3436; padding: 20px 0; }
+.footer-text { font-size: 11px; color: #b2bec3; text-align: center; padding: 3px 25px; }
+</style>

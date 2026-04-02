@@ -1,0 +1,16 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="layout" [ANNOTATIONS: OriginPackage: partials_layout_ee037d9a OriginPath: partials/layout.pk PARTIAL InvKey: layout_1745aa65 Package: partials_layout_ee037d9a InvPackage: main_aaf9a2e0]>
+  <div class="child" id="child" :count="state.ItemCount()" {P: state.ItemCount(), OriginPackage: main_aaf9a2e0} :items="state.GetActiveItems()" {P: state.GetActiveItems(), OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk PARTIAL InvKey: child_layout_1745aa65_count_state_itemcount_items_state_getactiveitems_4b4f7123 Package: partials_child_d247007e InvPackage: main_aaf9a2e0]>
+    <span [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk]>
+      <RichText>
+        "Total: "
+        {{ state.Total }}
+      </RichText>
+    </span>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,178 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-fab">
+    <button class="fab"
+            p-class="{
+                'small': state.size == 'small',
+                'medium': state.size == 'medium',
+                'large': state.size == 'large',
+                'surface': state.colour == 'surface',
+                'primary': state.colour == 'primary',
+                'secondary': state.colour == 'secondary',
+                'tertiary': state.colour == 'tertiary',
+                'lowered': state.lowered
+            }"
+            type="button"
+            aria-label="Floating action button">
+        <span class="state-layer"></span>
+        <span class="icon">
+            <slot>
+                <piko:svg src="piko.sh/piko/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg>
+            </slot>
+        </span>
+    </button>
+</template>
+
+<script lang="ts">
+    const state = {
+        size: 'medium' as string,
+        colour: 'primary' as string,
+        lowered: false as boolean,
+    };
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        flex-shrink: 0;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_primary-container: var(--m3e-primary-container, #eaddff);
+        --_on-primary-container: var(--m3e-on-primary-container, #21005d);
+        --_secondary-container: var(--m3e-secondary-container, #e8def8);
+        --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_tertiary-container: var(--m3e-tertiary-container, #ffd8e4);
+        --_on-tertiary-container: var(--m3e-on-tertiary-container, #31111d);
+        --_surface: var(--m3e-surface, #fffbfe);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_surface-container-high: var(--m3e-surface-container-high, #ece6f0);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-lg: var(--m3e-shape-lg, 16px);
+        --_shape-xl: var(--m3e-shape-xl, 28px);
+
+        &([touch-target="wrapper"][size="small"]) {
+            margin: 4px 0;
+        }
+    }
+
+    .fab {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        outline: none;
+        overflow: hidden;
+        appearance: none;
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.30);
+        transition: box-shadow var(--_duration-short) var(--_easing-standard);
+
+        &:hover {
+            box-shadow: 0px 6px 10px 4px rgba(0,0,0,0.15), 0px 2px 3px 0px rgba(0,0,0,0.30);
+        }
+
+        &:focus-visible .state-layer {
+            opacity: 0.12;
+        }
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+
+        &:active .state-layer {
+            opacity: 0.12;
+        }
+    }
+
+    .small {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--_shape-lg);
+    }
+
+    .medium {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--_shape-lg);
+    }
+
+    .large {
+        width: 96px;
+        height: 96px;
+        border-radius: var(--_shape-xl);
+
+        & .icon {
+            width: 36px;
+            height: 36px;
+        }
+    }
+
+    .surface {
+        background: var(--_surface-container-high);
+        color: var(--_primary);
+    }
+
+    .primary {
+        background: var(--_primary-container);
+        color: var(--_on-primary-container);
+    }
+
+    .secondary {
+        background: var(--_secondary-container);
+        color: var(--_on-secondary-container);
+    }
+
+    .tertiary {
+        background: var(--_tertiary-container);
+        color: var(--_on-tertiary-container);
+    }
+
+    .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        z-index: 1;
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: currentColor;
+        opacity: 0;
+        transition: opacity var(--_duration-short);
+        pointer-events: none;
+    }
+
+    .lowered {
+        box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.10);
+
+        &:hover {
+            box-shadow: 0px 2px 4px 1px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.20);
+        }
+    }
+</style>

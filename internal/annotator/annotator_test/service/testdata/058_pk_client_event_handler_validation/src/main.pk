@@ -1,0 +1,76 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type State struct {
+    Counter int
+    Message string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (State, piko.Metadata, error) {
+    return State{Counter: 0, Message: "Hello"}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+export function handleClick(): void {
+    console.log('clicked');
+}
+
+export function handleSubmit(event: Event): void {
+    event.preventDefault();
+    console.log('submitted');
+}
+
+export const handleChange = (): void => {
+    console.log('changed');
+};
+
+export function unusedHandler(): void {
+    console.log('this is not used');
+}
+
+function privateHelper(): void {
+    console.log('private');
+}
+</script>
+
+<template>
+    <div>
+        <button id="btn-valid-click" p-on:click="handleClick()">Click Me</button>
+
+        <form id="form-valid" p-on:submit="handleSubmit($event)">
+            <input type="text" />
+            <button type="submit">Submit</button>
+        </form>
+
+        <input id="input-valid" p-on:change="handleChange()" />
+
+        <button id="btn-invalid" p-on:click="nonExistentHandler()">Invalid</button>
+
+        <button id="btn-remote" p-on:click="action.actions.DeleteUser()">Action Call</button>
+
+        <button id="btn-helper" p-on:click="helpers.toggleModal()">Helper Call</button>
+    </div>
+</template>

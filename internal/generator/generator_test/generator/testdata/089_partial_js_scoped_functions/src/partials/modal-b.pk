@@ -1,0 +1,65 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div class="modal-b-wrapper">
+    <p>Modal B content. This partial also has its own open() function.</p>
+    <button class="open-b-btn" p-on:click="open()">
+      Open Modal B (local call)
+    </button>
+    <div class="modal-b-status" id="modal-b-status">Closed</div>
+  </div>
+</template>
+
+<style>
+  .modal-b-wrapper {
+    padding: 1rem;
+    border: 2px solid #dc3545;
+    border-radius: 8px;
+    margin: 1rem 0;
+    background: #ffe7e7;
+  }
+  .modal-b-status.open {
+    background: #dc3545;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+  }
+</style>
+
+<script type="application/x-go">
+  package main
+  import "piko.sh/piko"
+
+  func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+  }
+</script>
+
+<script lang="ts">
+export function open(): void {
+  const statusEl = document.getElementById('modal-b-status');
+  if (statusEl) {
+    statusEl.textContent = 'Modal B is OPEN!';
+    statusEl.classList.add('open');
+  }
+  console.log('modal-b open() was called');
+}
+</script>

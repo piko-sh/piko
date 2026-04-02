@@ -1,0 +1,152 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+  <div class="conditional-bindings-partial">
+    <h3>Conditional Bindings Test</h3>
+
+    <div class="test-case" id="case-inside-pif">
+      <h4>Case 1: Bindings INSIDE p-if (BUG)</h4>
+      <div p-if="state.ShowImage" class="image-container">
+        <img
+          id="img-inside-pif"
+          class="test-img"
+          :src="state.ImageURL"
+          :alt="state.ImageAlt"
+          p-ref="imgInsidePif">
+        <div
+          id="marker-inside-pif"
+          class="focal-marker"
+          :style="`left: ${state.MarkerX}%; top: ${state.MarkerY}%`"
+          p-ref="markerInsidePif">
+        </div>
+      </div>
+    </div>
+
+    <div class="test-case" id="case-outside-pif">
+      <h4>Case 2: Bindings OUTSIDE p-if (should work)</h4>
+      <div class="image-container">
+        <img
+          id="img-outside-pif"
+          class="test-img"
+          :src="state.ImageURL"
+          :alt="state.ImageAlt"
+          p-ref="imgOutsidePif">
+        <div
+          id="marker-outside-pif"
+          class="focal-marker"
+          :style="`left: ${state.MarkerX}%; top: ${state.MarkerY}%`"
+          p-ref="markerOutsidePif">
+        </div>
+      </div>
+    </div>
+
+    <div class="debug-info">
+      <strong>State values:</strong>
+      <div>ImageURL: <span id="debug-url" p-text="state.ImageURL"></span></div>
+      <div>ImageAlt: <span id="debug-alt" p-text="state.ImageAlt"></span></div>
+      <div>MarkerX: <span id="debug-x" p-text="state.MarkerX"></span></div>
+      <div>MarkerY: <span id="debug-y" p-text="state.MarkerY"></span></div>
+      <div>ShowImage: <span id="debug-show" p-text="state.ShowImage"></span></div>
+    </div>
+  </div>
+</template>
+
+<style>
+.conditional-bindings-partial {
+    border: 2px solid #10b981;
+    padding: 1.5rem;
+    border-radius: 8px;
+    background: #f0fdf4;
+}
+.test-case {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+.test-case h4 {
+    margin: 0 0 0.5rem 0;
+    color: #374151;
+}
+.image-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+.test-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.focal-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: red;
+    border: 2px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+.debug-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #fef3c7;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+.debug-info div {
+    margin: 0.25rem 0;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+    ShowImage bool
+    ImageURL  string
+    ImageAlt  string
+    MarkerX   int
+    MarkerY   int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        ShowImage: true,
+        ImageURL:  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='20'%3ETEST IMAGE%3C/text%3E%3C/svg%3E",
+        ImageAlt:  "Test Image Alt Text",
+        MarkerX:   75,
+        MarkerY:   25,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+console.log('conditional_bindings partial loaded');
+console.log('state:', state);
+console.log('refs:', refs);
+</script>

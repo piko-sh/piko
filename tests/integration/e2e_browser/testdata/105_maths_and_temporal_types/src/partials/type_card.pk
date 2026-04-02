@@ -1,0 +1,117 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="partial-display" class="type-card">
+    <h3>Partial Props</h3>
+    <ul>
+      <!-- String props reconstructed to maths types -->
+      <li id="partial-price">{{ state.Price }}</li>
+      <li id="partial-quantity">{{ state.Quantity }}</li>
+      <li id="partial-total">{{ state.Total }}</li>
+      <li id="partial-date">{{ state.Date }}</li>
+
+      <!-- Raw maths types in partial (MustString path) -->
+      <li id="partial-dec-raw">{{ state.DecPrice }}</li>
+      <li id="partial-big-raw">{{ state.BigQty }}</li>
+
+      <!-- Inline literal expressions inside partial -->
+      <li id="partial-inline-add" p-text="0.1d + 0.2d"></li>
+      <li id="partial-inline-mul" p-text="7.5d * 3d"></li>
+      <li id="partial-inline-cmp" p-text="10d > 5d"></li>
+      <li id="partial-inline-bigadd" p-text="999n + 1n"></li>
+
+      <!-- Mixed state + literal expressions -->
+      <li id="partial-mixed-gt" p-text="state.DecPrice > 10d"></li>
+      <li id="partial-mixed-tpl" p-text="`Price: ${state.PriceStr}`"></li>
+      <li id="partial-mixed-ternary" p-text="state.DecPrice > 10d ? 'expensive' : 'cheap'"></li>
+
+      <!-- Direct maths-typed props (passed through from parent) -->
+      <li id="partial-direct-dec">{{ state.DirectDec }}</li>
+      <li id="partial-direct-big">{{ state.DirectBig }}</li>
+      <li id="partial-direct-dec-ptext" p-text="state.DirectDec"></li>
+      <li id="partial-direct-dec-gt" p-text="state.DirectDec > 0.2d"></li>
+      <li id="partial-direct-dec-tpl" p-text="`Direct: ${state.DirectDec}`"></li>
+      <li id="partial-direct-dec-ternary" p-text="state.DirectDec > 0.25d ? 'above' : 'below'"></li>
+
+      <!-- LF() in partial -->
+      <li id="partial-lf-dec" p-text="LF(state.DecPrice)"></li>
+      <li id="partial-lf-direct" p-text="LF(state.DirectDec)"></li>
+    </ul>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/maths"
+)
+
+type Props struct {
+    PriceVal     string        `prop:"price-val"`
+    QuantityVal  string        `prop:"quantity-val"`
+    CurrencyCode string        `prop:"currency-code"`
+    DateVal      string        `prop:"date-val"`
+    DecDirect    maths.Decimal `prop:"dec-direct"`
+    BigDirect    maths.BigInt  `prop:"big-direct"`
+}
+
+type Response struct {
+    // Pre-computed strings (existing)
+    Price    string
+    Quantity string
+    Total    string
+    Date     string
+
+    // String control for template literals
+    PriceStr string
+
+    // Raw maths types (testing MustString path in partials)
+    DecPrice maths.Decimal
+    BigQty   maths.BigInt
+
+    // Direct maths-typed props (passed through from parent)
+    DirectDec maths.Decimal
+    DirectBig maths.BigInt
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    price := maths.NewDecimalFromString(props.PriceVal)
+    quantity := maths.NewBigIntFromString(props.QuantityVal)
+    total := maths.NewMoneyFromString(props.PriceVal, props.CurrencyCode)
+
+    return Response{
+        Price:    price.MustString(),
+        Quantity: quantity.MustString(),
+        Total:    total.MustString(),
+        Date:     props.DateVal,
+
+        PriceStr: price.MustString(),
+
+        DecPrice: price,
+        BigQty:   quantity,
+
+        DirectDec: props.DecDirect,
+        DirectBig: props.BigDirect,
+    }, piko.Metadata{}, nil
+}
+</script>

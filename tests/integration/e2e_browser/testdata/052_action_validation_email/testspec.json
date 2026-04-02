@@ -1,0 +1,34 @@
+{
+  "description": "Verifies struct input with email field works correctly",
+  "requestURL": "/email-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Submit with valid email via the action builder - should succeed"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-message",
+      "expected": "Subscribed successfully"
+    }
+  ]
+}

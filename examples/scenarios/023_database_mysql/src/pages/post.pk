@@ -1,0 +1,232 @@
+<!--
+  023: MySQL Blog - Single Post View with Comments
+
+  This page displays a single blog post with its full body and author
+  details. The comment list and comment form are rendered as a public
+  partial that can be reloaded independently after adding a comment
+  without refreshing the entire page.
+
+  The post ID is read from the query string (?id=N).
+-->
+
+<template>
+  <div id="app">
+    <nav class="breadcrumb">
+      <a href="/">Blog</a>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current" p-text="state.Post.Title"></span>
+    </nav>
+
+    <article class="post">
+      <header class="post-header">
+        <h1>{{ state.Post.Title }}</h1>
+        <div class="post-meta">
+          <span class="post-author">{{ state.Post.AuthorName }}</span>
+          <span p-if="!state.Post.Published" class="draft-badge">Draft</span>
+          <button p-if="!state.Post.Published" class="btn btn-publish" p-on:click="handlePublish(state.Post.ID)">Publish</button>
+        </div>
+      </header>
+      <div class="post-body">{{ state.Post.Body }}</div>
+    </article>
+
+    <!--
+      The comment list is a public partial. After adding a comment, the
+      partial's TypeScript calls piko.partials.reload("comment-list")
+      to re-render just the comments section.
+    -->
+    <piko:partial is="comment_list" :server.post-id="state.Post.ID" />
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "fmt"
+    "strconv"
+
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/db"
+
+    comment_list "testmodule/partials/comment-list.pk"
+
+    "testmodule/db/generated"
+)
+
+// PostDetail holds the full display data for a single post.
+type PostDetail struct {
+    ID          int32  `json:"id"`
+    Title       string `json:"title"`
+    Body        string `json:"body"`
+    Published   bool   `json:"published"`
+    AuthorName  string `json:"author_name"`
+    AuthorEmail string `json:"author_email"`
+}
+
+// Response is the data passed to the template.
+type Response struct {
+    Post PostDetail `json:"post"`
+}
+
+// Render fetches a single post by ID from the query string. The comment
+// list is handled by the comment_list partial.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    id_param := r.URL().Query().Get("id")
+    if id_param == "" {
+        return Response{}, piko.Metadata{}, fmt.Errorf("missing required query parameter: id")
+    }
+
+    post_id, err := strconv.ParseInt(id_param, 10, 32)
+    if err != nil {
+        return Response{}, piko.Metadata{}, fmt.Errorf("invalid post id: %w", err)
+    }
+
+    conn, err := db.GetDatabaseConnection("blog")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(conn)
+
+    // Fetch the post with author details.
+    post_row, err := queries.GetPost(r.Context(), int32(post_id))
+    if err != nil {
+        return Response{}, piko.Metadata{}, fmt.Errorf("post not found: %w", err)
+    }
+
+    post := PostDetail{
+        ID:          post_row.ID,
+        Title:       post_row.Title,
+        Body:        post_row.Body,
+        Published:   post_row.Published,
+        AuthorName:  post_row.AuthorName,
+        AuthorEmail: post_row.AuthorEmail,
+    }
+
+    return Response{
+        Post: post,
+    }, piko.Metadata{
+        Title: post.Title + " - Blog",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function handlePublish(id: number): Promise<void> {
+    try {
+        await action.posts.Publish({ id }).call();
+        pk.reload();
+    } catch (e: any) {
+        console.error('Failed to publish post:', e);
+    }
+}
+</script>
+
+<style>
+  #app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    font-family: "Georgia", "Times New Roman", serif;
+    color: #1a1a1a;
+  }
+
+  .breadcrumb {
+    font-size: 0.8125rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #9ca3af;
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumb a {
+    color: #3b82f6;
+    text-decoration: none;
+  }
+
+  .breadcrumb a:hover {
+    text-decoration: underline;
+  }
+
+  .breadcrumb-sep {
+    margin: 0 0.375rem;
+    color: #d1d5db;
+  }
+
+  .breadcrumb-current {
+    color: #6b7280;
+  }
+
+  .post {
+    margin-bottom: 2.5rem;
+  }
+
+  .post-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .post-header h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.75rem;
+    color: #111;
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .post-author {
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .draft-badge {
+    display: inline-block;
+    background-color: #fef3c7;
+    color: #92400e;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .post-body {
+    color: #374151;
+    line-height: 1.8;
+    font-size: 1.0625rem;
+    white-space: pre-wrap;
+  }
+
+  .btn {
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: system-ui, -apple-system, sans-serif;
+    transition: background-color 0.15s;
+  }
+
+  .btn-publish {
+    padding: 0.25rem 0.875rem;
+    font-size: 0.8125rem;
+    background-color: #059669;
+    color: white;
+  }
+
+  .btn-publish:hover {
+    background-color: #047857;
+  }
+</style>

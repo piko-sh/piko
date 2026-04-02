@@ -1,0 +1,26 @@
+{
+  "pages": {
+    "pages/blog/test-post.pk": {
+      "routePatterns": {
+        "en": "/blog/test-post"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_140_collection_typed_props_nested/dist/pages/pages_blog_slug_989a4cf3",
+      "originalSourcePath": "pages/blog/test-post.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {},
+  "collectionFallbackRoutes": [
+    {
+      "routePatterns": {
+        "en": "/blog/{slug}"
+      },
+      "i18nStrategy": "disabled"
+    }
+  ]
+}

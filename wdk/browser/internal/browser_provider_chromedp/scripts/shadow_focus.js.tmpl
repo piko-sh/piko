@@ -1,0 +1,15 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host || !host.shadowRoot) return false;
+    const el = host.shadowRoot.querySelector({{jsStr .Shadow}});
+    if (!el) return false;
+    let fired = false;
+    const handler = () => { fired = true; };
+    el.addEventListener('focus', handler, {once: true});
+    el.focus();
+    el.removeEventListener('focus', handler);
+    if (!fired) {
+        el.dispatchEvent(new FocusEvent('focus', {bubbles: true}));
+    }
+    return true;
+})()

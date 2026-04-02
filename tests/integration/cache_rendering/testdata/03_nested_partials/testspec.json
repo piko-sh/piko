@@ -1,0 +1,9 @@
+{
+  "description": "Tests that pages with nested partials render identically across no-cache, AST cache, and static cache modes.",
+  "pages": {
+    "nocache": "/nocache",
+    "astcache": "/astcache",
+    "staticcache": "/staticcache"
+  },
+  "expectedStatus": 200
+}

@@ -1,0 +1,91 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package notifications
+
+import "piko.sh/piko"
+
+type Response struct {
+	ShowSuccess bool
+	ShowWarning bool
+	ShowError   bool
+	ShowInfo    bool
+	MessageCount int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	showSuccess := r.QueryParam("success") == "true"
+	showWarning := r.QueryParam("warning") == "true"
+	showError := r.QueryParam("error") == "true"
+	showInfo := r.QueryParam("info") == "true"
+
+	messageCount := 0
+	if showSuccess {
+		messageCount++
+	}
+	if showWarning {
+		messageCount++
+	}
+	if showError {
+		messageCount++
+	}
+	if showInfo {
+		messageCount++
+	}
+
+	return Response{
+		ShowSuccess:  showSuccess,
+		ShowWarning:  showWarning,
+		ShowError:    showError,
+		ShowInfo:     showInfo,
+		MessageCount: messageCount,
+	}, piko.Metadata{
+		Title: "Notifications",
+	}, nil
+}
+</script>
+<template>
+	<div class="notification-panel">
+		<h1>Notifications</h1>
+		<p class="message-count">Messages: <span class="count-value">{{ state.MessageCount }}</span></p>
+		<div class="notifications">
+			<div p-show="state.ShowSuccess" class="notification success">
+				<span class="icon">✓</span>
+				<span class="message">Operation completed successfully</span>
+			</div>
+			<div p-show="state.ShowWarning" class="notification warning">
+				<span class="icon">⚠</span>
+				<span class="message">Please review your input</span>
+			</div>
+			<div p-show="state.ShowError" class="notification error">
+				<span class="icon">✗</span>
+				<span class="message">An error occurred</span>
+			</div>
+			<div p-show="state.ShowInfo" class="notification info">
+				<span class="icon">ℹ</span>
+				<span class="message">Here is some information</span>
+			</div>
+		</div>
+		<div class="no-messages" p-show="state.MessageCount == 0">
+			<p>No notifications to display</p>
+		</div>
+	</div>
+</template>

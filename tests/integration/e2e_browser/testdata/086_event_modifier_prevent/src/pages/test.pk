@@ -1,0 +1,57 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Event Modifier: .prevent</h1>
+
+    <a id="link" href="/other-page" p-on:click.prevent="handleLink()">Prevented Link</a>
+    <p id="link-result">not clicked</p>
+
+    <a id="link-no-prevent" href="/other-page" p-on:click="handleLinkNoPrevent()">Normal Link</a>
+    <p id="no-prevent-result">not clicked</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Event Modifier: .prevent",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+export function handleLink(): void {
+    const el = document.getElementById('link-result');
+    if (el) el.textContent = 'clicked';
+}
+
+export function handleLinkNoPrevent(): void {
+    const el = document.getElementById('no-prevent-result');
+    if (el) el.textContent = 'clicked';
+}
+</script>

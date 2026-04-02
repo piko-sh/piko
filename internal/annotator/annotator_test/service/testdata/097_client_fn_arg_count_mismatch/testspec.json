@@ -1,0 +1,10 @@
+{
+  "description": "Validates that calling a client-side TypeScript function with too many arguments emits a warning diagnostic.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Function 'greet' expects 1 argument(s), but 2 provided"
+    }
+  ]
+}

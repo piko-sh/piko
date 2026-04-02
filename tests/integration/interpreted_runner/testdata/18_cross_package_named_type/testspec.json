@@ -1,0 +1,5 @@
+{
+  "description": "Tests that named types from one registered package (google/uuid) resolve correctly when used as struct fields in another registered package. uuid.UUID must retain its named type identity (not degrade to [16]uint8) so that methods like String() are available.",
+  "requestURL": "/main",
+  "crossPackageNamedType": true
+}

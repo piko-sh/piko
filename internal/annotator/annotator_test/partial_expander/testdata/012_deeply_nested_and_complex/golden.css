@@ -1,0 +1,5 @@
+body{font-family:sans-serif}
+.avatar[partial~=partials_avatar_c3a790d9]{width:40px;height:40px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;font-weight:700}
+.page-layout[partial~=partials_page_layout_d04fd246]{display:flex;gap:1rem}.page-layout-main[partial~=partials_page_layout_d04fd246]{flex-grow:1}.page-layout-sidebar[partial~=partials_page_layout_d04fd246]{width:250px;border-left:1px solid #ccc}
+.sidebar[partial~=partials_sidebar_959a74bf]{padding:1rem}
+.user-profile-info[partial~=partials_user_profile_c73fd2a9]{margin-left:.5rem}.user-profile-notifications[partial~=partials_user_profile_c73fd2a9]{font-weight:700}

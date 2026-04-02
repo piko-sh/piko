@@ -1,0 +1,40 @@
+{
+  "all_items": [
+    {
+      "DiscountPct": 0,
+      "DiscountedPrice": 1000,
+      "ID": 1,
+      "Product": "Widget",
+      "Quantity": 5,
+      "TotalPrice": 1000,
+      "UnitPrice": 200
+    },
+    {
+      "DiscountPct": 10,
+      "DiscountedPrice": 405,
+      "ID": 2,
+      "Product": "Gadget",
+      "Quantity": 3,
+      "TotalPrice": 450,
+      "UnitPrice": 150
+    },
+    {
+      "DiscountPct": 25,
+      "DiscountedPrice": 375,
+      "ID": 3,
+      "Product": "Gizmo",
+      "Quantity": 10,
+      "TotalPrice": 500,
+      "UnitPrice": 50
+    }
+  ],
+  "item": {
+    "DiscountPct": 10,
+    "DiscountedPrice": 405,
+    "ID": 2,
+    "Product": "Gadget",
+    "Quantity": 3,
+    "TotalPrice": 450,
+    "UnitPrice": 150
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "description": "Tests that server-response helpers (AddHelper) are executed on the client after a successful action",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Click notify button to trigger action with server helpers"
+    },
+    {
+      "action": "click",
+      "selector": "#notify-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify showToast helper was executed"
+    },
+    {
+      "action": "checkText",
+      "selector": "#toast",
+      "expected": "Notification sent!"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#toast",
+      "attribute": "data-variant",
+      "expected": "success"
+    },
+    {
+      "action": "comment",
+      "value": "Verify updateBadge helper was executed"
+    },
+    {
+      "action": "checkText",
+      "selector": "#badge",
+      "expected": "3"
+    },
+    {
+      "action": "comment",
+      "value": "Verify action response was also received"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-success",
+      "expected": "true"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_notify.html"
+    }
+  ]
+}

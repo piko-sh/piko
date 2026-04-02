@@ -1,0 +1,13 @@
+Order Confirmed
+
+Hi there,
+
+Your order #12345 has been confirmed and is being processed. You will receive a shipping notification once your items are on their way.
+
+Order Total:
+
+£129.99
+
+ View Order (https://example.com/orders/12345)
+
+If you have questions, reply to this email or contact support.

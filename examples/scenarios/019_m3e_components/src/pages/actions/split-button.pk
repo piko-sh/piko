@@ -1,0 +1,109 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Split Button"
+            server.current-page="actions/split-button">
+
+            <p class="demo-description">Split buttons combine a primary action with a dropdown menu trigger. They come in filled, tonal, and outlined variants.</p>
+
+            <div class="demo-grid">
+                <!-- Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled</h3>
+                    <div class="demo-preview">
+                        <m3e-split-button variant="filled">Save</m3e-split-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-split-button variant="filled"&gt;Save&lt;/m3e-split-button&gt;</code></pre>
+                </section>
+
+                <!-- Tonal -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Tonal</h3>
+                    <div class="demo-preview">
+                        <m3e-split-button variant="tonal">Share</m3e-split-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-split-button variant="tonal"&gt;Share&lt;/m3e-split-button&gt;</code></pre>
+                </section>
+
+                <!-- Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined</h3>
+                    <div class="demo-preview">
+                        <m3e-split-button variant="outlined">Export</m3e-split-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-split-button variant="outlined"&gt;Export&lt;/m3e-split-button&gt;</code></pre>
+                </section>
+
+                <!-- Disabled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Disabled</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-split-button variant="filled" disabled>Save</m3e-split-button>
+                        <m3e-split-button variant="tonal" disabled>Share</m3e-split-button>
+                        <m3e-split-button variant="outlined" disabled>Export</m3e-split-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-split-button variant="filled" disabled&gt;Save&lt;/m3e-split-button&gt;
+&lt;m3e-split-button variant="tonal" disabled&gt;Share&lt;/m3e-split-button&gt;
+&lt;m3e-split-button variant="outlined" disabled&gt;Export&lt;/m3e-split-button&gt;</code></pre>
+                </section>
+
+                <!-- With Menu Items -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Menu Items</h3>
+                    <div class="demo-preview">
+                        <m3e-split-button variant="filled">Save
+                            <div slot="menu">
+                                <m3e-menu-item>Save as draft</m3e-menu-item>
+                                <m3e-menu-item>Save and close</m3e-menu-item>
+                                <m3e-menu-item>Save as template</m3e-menu-item>
+                            </div>
+                        </m3e-split-button>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-split-button variant="filled"&gt;Save
+  &lt;div slot="menu"&gt;
+    &lt;m3e-menu-item&gt;Save as draft&lt;/m3e-menu-item&gt;
+    &lt;m3e-menu-item&gt;Save and close&lt;/m3e-menu-item&gt;
+    &lt;m3e-menu-item&gt;Save as template&lt;/m3e-menu-item&gt;
+  &lt;/div&gt;
+&lt;/m3e-split-button&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Split Button - M3E Components",
+    }, nil
+}
+</script>

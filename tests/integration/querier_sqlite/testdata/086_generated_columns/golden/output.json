@@ -1,0 +1,29 @@
+{
+  "by_min_total": [
+    {
+      "ID": 1,
+      "Price": 10,
+      "Quantity": 5,
+      "Total": 50
+    },
+    {
+      "ID": 2,
+      "Price": 25,
+      "Quantity": 2,
+      "Total": 50
+    },
+    {
+      "ID": 3,
+      "Price": 100,
+      "Quantity": 1,
+      "Total": 100
+    }
+  ],
+  "item": {
+    "ID": 1,
+    "Label": "Item #1",
+    "Price": 10,
+    "Quantity": 5,
+    "Total": 50
+  }
+}

@@ -1,0 +1,39 @@
+{
+    "description": "Morph with partial attribute preservation syncs container attrs and inherits parent scopes",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/partial/results",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#results",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "#results .result",
+            "textContent": "Search found 5 items",
+            "description": "Result paragraph should have updated text"
+        },
+        {
+            "selector": "#results li",
+            "count": 2,
+            "description": "Should have 2 list items"
+        },
+        {
+            "selector": "#results",
+            "attributes": { "partial_name": "results", "partial_src": "/_piko/partials/results" },
+            "description": "Container should retain partial_name and partial_src (childrenOnly preserves container)"
+        },
+        {
+            "selector": "#results .result",
+            "attributes": { "partial": "results_new page_scope" },
+            "description": "Result paragraph should inherit parent scopes from existing children"
+        }
+    ]
+}

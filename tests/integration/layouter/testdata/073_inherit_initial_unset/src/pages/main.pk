@@ -1,0 +1,59 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <!-- Test 1: inherit forces a non-inheritable property (padding) to copy from parent -->
+  <div data-layout-id="inherit-parent" style="box-sizing: content-box; width: 300px; padding-left: 25px; margin: 0;">
+    <div data-layout-id="inherit-child" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding-left: inherit;"></div>
+  </div>
+
+  <!-- Test 2: initial resets a non-inheritable property to its CSS initial value (auto for width) -->
+  <div style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">
+    <div data-layout-id="initial-width" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; width: initial;"></div>
+  </div>
+
+  <!-- Test 3: unset on an inheritable property behaves like inherit (visibility) -->
+  <div style="box-sizing: content-box; width: 400px; margin: 0; padding: 0; visibility: hidden;">
+    <div data-layout-id="unset-inheritable" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; visibility: unset;"></div>
+  </div>
+
+  <!-- Test 4: unset on a non-inheritable property behaves like initial (padding resets to 0) -->
+  <div style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">
+    <div data-layout-id="unset-noninheritable" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding-left: 40px;"></div>
+    <div data-layout-id="unset-reset" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding-left: unset;"></div>
+  </div>
+
+  <!-- Test 5: inherit on margin copies from parent -->
+  <div data-layout-id="margin-parent" style="box-sizing: content-box; width: 300px; margin-left: 50px; margin-top: 0; margin-right: 0; margin-bottom: 0; padding: 0;">
+    <div data-layout-id="margin-inherit" style="box-sizing: content-box; width: 200px; height: 30px; margin-left: inherit; margin-top: 0; margin-right: 0; margin-bottom: 0; padding: 0;"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Inherit Initial Unset Test"}, nil
+}
+</script>

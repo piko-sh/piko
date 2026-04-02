@@ -1,0 +1,31 @@
+{
+  "PublishDate": "2025-09-15T00:00:00Z",
+  "Title": "Simple Markdown Test",
+  "Description": "",
+  "Navigation": null,
+  "Frontmatter": {
+    "author": "Piko",
+    "date": "2025-09-15"
+  },
+  "Tags": [
+    "piko",
+    "go"
+  ],
+  "Sections": [
+    {
+      "Title": "Hello World",
+      "Slug": "hello-world",
+      "Level": 1
+    }
+  ],
+  "Images": null,
+  "Links": [
+    {
+      "Href": "https://piko.sh",
+      "Text": "link to the Piko project"
+    }
+  ],
+  "ReadingTime": 1,
+  "WordCount": 18,
+  "Draft": false
+}

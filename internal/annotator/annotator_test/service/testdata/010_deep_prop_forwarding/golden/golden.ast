@@ -1,0 +1,17 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div class="component-b" :data-from-a="state.TopLevelData" {P: state.TopLevelData, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_component_b_88e00e3c OriginPath: partials/component_b.pk PARTIAL InvKey: compb_data_from_a_state_topleveldata_99cc6b47 Package: partials_component_b_88e00e3c InvPackage: main_aaf9a2e0]>
+    <div class="component-c" :data-from-b="props.DataFromA" {P: props.DataFromA, OriginPackage: partials_component_b_88e00e3c} [ANNOTATIONS: OriginPackage: partials_component_c_506c1d39 OriginPath: partials/component_c.pk PARTIAL InvKey: compc_compb_data_from_a_state_topleveldata_99cc6b47_data_from_b_props_datafroma_813321b9 Package: partials_component_c_506c1d39 InvPackage: partials_component_b_88e00e3c]>
+      <p id="final-output" [ANNOTATIONS: OriginPackage: partials_component_c_506c1d39 OriginPath: partials/component_c.pk]>
+        <RichText>
+          {{ props.DataFromB }}
+        </RichText>
+      </p>
+    </div>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

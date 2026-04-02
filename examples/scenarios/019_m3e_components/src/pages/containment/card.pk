@@ -1,0 +1,126 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Card"
+            server.current-page="containment/card">
+
+            <p class="demo-description">Cards contain content and actions about a single subject. They come in elevated, filled, and outlined variants.</p>
+
+            <div class="demo-grid">
+                <!-- Elevated (Default) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Elevated (Default)</h3>
+                    <div class="demo-preview">
+                        <m3e-card variant="elevated">
+                            <div style="padding: 16px;"><p>Elevated card content</p></div>
+                        </m3e-card>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-card variant="elevated"&gt;
+  &lt;p&gt;Elevated card content&lt;/p&gt;
+&lt;/m3e-card&gt;</code></pre>
+                </section>
+
+                <!-- Filled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled</h3>
+                    <div class="demo-preview">
+                        <m3e-card variant="filled">
+                            <div style="padding: 16px;"><p>Filled card content</p></div>
+                        </m3e-card>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-card variant="filled"&gt;
+  &lt;p&gt;Filled card content&lt;/p&gt;
+&lt;/m3e-card&gt;</code></pre>
+                </section>
+
+                <!-- Outlined -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined</h3>
+                    <div class="demo-preview">
+                        <m3e-card variant="outlined">
+                            <div style="padding: 16px;"><p>Outlined card content</p></div>
+                        </m3e-card>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-card variant="outlined"&gt;
+  &lt;p&gt;Outlined card content&lt;/p&gt;
+&lt;/m3e-card&gt;</code></pre>
+                </section>
+
+                <!-- Elevated - Clickable -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Elevated - Clickable</h3>
+                    <div class="demo-preview">
+                        <m3e-card variant="elevated" clickable>
+                            <div style="padding: 16px;"><p>Click this card</p></div>
+                        </m3e-card>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-card variant="elevated" clickable&gt;
+  &lt;p&gt;Click this card&lt;/p&gt;
+&lt;/m3e-card&gt;</code></pre>
+                </section>
+
+                <!-- Filled - Clickable -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filled - Clickable</h3>
+                    <div class="demo-preview">
+                        <m3e-card variant="filled" clickable>
+                            <div style="padding: 16px;"><p>Click this card</p></div>
+                        </m3e-card>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-card variant="filled" clickable&gt;
+  &lt;p&gt;Click this card&lt;/p&gt;
+&lt;/m3e-card&gt;</code></pre>
+                </section>
+
+                <!-- Outlined - Clickable -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Outlined - Clickable</h3>
+                    <div class="demo-preview">
+                        <m3e-card variant="outlined" clickable>
+                            <div style="padding: 16px;"><p>Click this card</p></div>
+                        </m3e-card>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-card variant="outlined" clickable&gt;
+  &lt;p&gt;Click this card&lt;/p&gt;
+&lt;/m3e-card&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Card - M3E Components",
+    }, nil
+}
+</script>

@@ -1,0 +1,47 @@
+{
+  "normal_query": [
+    {
+      "ID": 1,
+      "Name": "Alice",
+      "Role": "admin"
+    }
+  ],
+  "orderby_column_injection": {
+    "message": "unknown column: id; DROP TABLE users; --",
+    "panicked": true
+  },
+  "orderby_column_subquery": {
+    "message": "unknown column: (CASE WHEN (SELECT 1) THEN id ELSE name END)",
+    "panicked": true
+  },
+  "orderby_direction_injection": {
+    "message": "unknown direction: ASC; DROP TABLE users; --",
+    "panicked": true
+  },
+  "orderby_direction_subquery": {
+    "message": "unknown direction: ASC, (SELECT secret FROM users LIMIT 1)",
+    "panicked": true
+  },
+  "table_still_exists": [
+    {
+      "ID": 1,
+      "Name": "Alice",
+      "Role": "admin"
+    }
+  ],
+  "value_drop_injection": null,
+  "value_tautology": null,
+  "value_union_injection": null,
+  "where_column_injection": {
+    "message": "unknown column: id; DROP TABLE users; --",
+    "panicked": true
+  },
+  "where_column_subquery": {
+    "message": "unknown column: (SELECT secret FROM users LIMIT 1)",
+    "panicked": true
+  },
+  "where_operator_injection": {
+    "message": "unknown operator: = 1 OR 1=1; --",
+    "panicked": true
+  }
+}

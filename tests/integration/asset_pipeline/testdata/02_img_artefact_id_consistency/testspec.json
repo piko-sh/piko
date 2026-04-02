@@ -1,0 +1,12 @@
+{
+  "description": "Image artefact ID consistency: watcher stores PNG with module prefix, artefact retrievable by same ID",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/logo.png",
+      "expectedArtefactID": "testmodule/lib/images/logo.png"
+    }
+  ],
+  "requestURL": "/main",
+  "expectedStatus": 200
+}

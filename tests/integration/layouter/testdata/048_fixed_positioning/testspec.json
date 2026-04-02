@@ -1,0 +1,7 @@
+{
+    "description": "Verifies position: fixed relative to viewport.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

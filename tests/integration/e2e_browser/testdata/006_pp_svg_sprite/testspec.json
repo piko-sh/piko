@@ -1,0 +1,35 @@
+{
+  "description": "Tests SVG icons rendered in a partial",
+  "requestURL": "/icons",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "SVG Icons Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".icon-row"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": ".icon-item",
+      "expected": "3"
+    },
+    {
+      "action": "checkText",
+      "selector": ".icon-item:first-child .icon-label",
+      "expected": "Home"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "page.html"
+    }
+  ]
+}

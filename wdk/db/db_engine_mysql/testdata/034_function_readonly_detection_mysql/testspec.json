@@ -1,0 +1,1 @@
+{"description": "MySQL ReadOnly detection: SELECT calling READS SQL DATA function is read-only, calling unknown function is not"}

@@ -1,0 +1,5 @@
+{
+  "description": "Validates that partials with their own client script blocks have event handlers validated against their own exports, not the parent's exports.",
+  "shouldError": false,
+  "expectedDiagnostics": 0
+}

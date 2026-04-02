@@ -1,0 +1,15 @@
+<template>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p class="shorthand-test" padding="10px 25px">Shorthand text</pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.shorthand-test {
+    margin: 10px 20px 30px 40px;
+    padding: 5px 10px;
+    border: 1px solid #cccccc;
+}
+</style>

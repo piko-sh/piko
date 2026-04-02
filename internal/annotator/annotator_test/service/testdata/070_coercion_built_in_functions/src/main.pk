@@ -1,0 +1,88 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	"piko.sh/piko/wdk/maths"
+)
+
+type Response struct {
+	IntVal     int
+	FloatVal   float64
+	BoolVal    bool
+	StringVal  string
+	DecimalVal maths.Decimal
+	BigIntVal  maths.BigInt
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		IntVal:     42,
+		FloatVal:   3.14,
+		BoolVal:    true,
+		StringVal:  "123",
+		DecimalVal: maths.NewDecimalFromInt(100),
+		BigIntVal:  maths.NewBigIntFromInt(999),
+	}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+  <div>
+    <h1>Coercion Built-in Functions Test</h1>
+
+    <h2>String Coercion</h2>
+    <p id="string-from-int">{{ string(state.IntVal) }}</p>
+    <p id="string-from-float">{{ string(state.FloatVal) }}</p>
+    <p id="string-from-bool">{{ string(state.BoolVal) }}</p>
+    <p id="string-from-decimal">{{ string(state.DecimalVal) }}</p>
+
+    <h2>Int Coercion</h2>
+    <p id="int-from-string">{{ int(state.StringVal) }}</p>
+    <p id="int-from-float">{{ int(state.FloatVal) }}</p>
+
+    <h2>Int64/Int32 Coercion</h2>
+    <p id="int64-from-string">{{ int64(state.StringVal) }}</p>
+    <p id="int32-from-int">{{ int32(state.IntVal) }}</p>
+
+    <h2>Float Coercion</h2>
+    <p id="float64-from-int">{{ float64(state.IntVal) }}</p>
+    <p id="float64-from-string">{{ float64(state.StringVal) }}</p>
+    <p id="float-alias">{{ float(state.IntVal) }}</p>
+
+    <h2>Bool Coercion</h2>
+    <p id="bool-from-string">{{ bool(state.StringVal) }}</p>
+    <p id="bool-from-int">{{ bool(state.IntVal) }}</p>
+
+    <h2>Decimal Coercion</h2>
+    <p id="decimal-from-int">{{ decimal(state.IntVal) }}</p>
+    <p id="decimal-from-string">{{ decimal(state.StringVal) }}</p>
+
+    <h2>BigInt Coercion</h2>
+    <p id="bigint-from-int">{{ bigint(state.IntVal) }}</p>
+    <p id="bigint-from-string">{{ bigint(state.StringVal) }}</p>
+
+    <h2>Ternary with Coercion</h2>
+    <p id="ternary-coerced">{{ state.BoolVal ? string(state.IntVal) : state.StringVal }}</p>
+  </div>
+</template>

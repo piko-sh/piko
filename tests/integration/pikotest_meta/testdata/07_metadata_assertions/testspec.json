@@ -1,0 +1,6 @@
+{
+  "description": "Tests metadata assertions (title, description, meta tags, OG tags)",
+  "entryPoints": [
+    { "path": "pages/article.pk", "isPage": true }
+  ]
+}

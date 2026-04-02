@@ -1,0 +1,46 @@
+--- PACKAGE: testcase_05_embedding_promotion ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 05_embedding_promotion/src/main.go
+    - import "models"             -> testcase_05_embedding_promotion/models
+
+[Named Types]
+  > type User
+    - Defined In:      05_embedding_promotion/src/main.go
+    - TypeString:      main.User
+    - Underlying:      struct{models.Base; Name string}
+    - Stringability:   0
+    - Fields:
+      - Base                 models.Base (embedded)
+        (Canonical Package: testcase_05_embedding_promotion/models)
+      - Name                 string
+    - Methods:
+      - func (T) GetID           func() int
+        (Promoted from: testcase_05_embedding_promotion/models.Base)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_05_embedding_promotion/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 05_embedding_promotion/src/models/base.go
+    (no imports in this file)
+
+[Named Types]
+  > type Base
+    - Defined In:      05_embedding_promotion/src/models/base.go
+    - TypeString:      models.Base
+    - Underlying:      struct{ID int}
+    - Stringability:   0
+    - Fields:
+      - ID                   int
+    - Methods:
+      - func (T) GetID           func() int
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,35 @@
+<!--
+  021: Live Playground
+
+  Minimal shell page that mounts the pp-playground PKC component.
+  All client-side logic (Monaco Editor, WASM integration, preview) lives
+  in the component at components/pp-playground.pkc.
+-->
+
+<template>
+  <pp-playground></pp-playground>
+</template>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{}, piko.Metadata{
+		Title:       "Piko Live Playground",
+		Description: "A browser-based live coding IDE for Piko templates, powered by WebAssembly.",
+	}, nil
+}
+</script>

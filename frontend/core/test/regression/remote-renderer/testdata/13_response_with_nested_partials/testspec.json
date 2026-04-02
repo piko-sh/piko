@@ -1,0 +1,39 @@
+{
+    "description": "Server returns deeply nested partial structure - scopes propagate from container",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/nested-content",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".container",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".container",
+            "attributes": { "partial": "container_scope page_scope" },
+            "description": "Container preserves its scopes"
+        },
+        {
+            "selector": ".level1",
+            "attributes": { "partial": "level1_scope container_scope page_scope" },
+            "description": "Level 1 inherits container scopes"
+        },
+        {
+            "selector": ".level2",
+            "attributes": { "partial": "level2_scope container_scope page_scope" },
+            "description": "Level 2 inherits container scopes"
+        },
+        {
+            "selector": ".level3",
+            "attributes": { "partial": "level3_scope container_scope page_scope" },
+            "description": "Level 3 inherits container scopes"
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that border-radius does not affect layout positions. Elements with rounded corners should have identical positions to those without.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

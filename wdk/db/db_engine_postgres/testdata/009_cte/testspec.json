@@ -1,0 +1,3 @@
+{
+  "description": "Common Table Expressions (WITH ... AS): CTE with aggregation joined back to a base table. Tests CTE column resolution, GROUP BY, and parameter inference in HAVING/WHERE."
+}

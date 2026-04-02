@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button [Events: p-on:click.="greet(state.First, state.Last)" {P: greet(state.First, state.Last)}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Greet"
+  </button>
+</div>
+
+--- END AST DUMP ---
+*/

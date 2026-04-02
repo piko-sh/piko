@@ -1,0 +1,6 @@
+{
+  "title": "Receipt Email",
+  "description": "E-commerce order receipt with line items and totals",
+  "metadata": {"title": "Order Confirmation #ORD-7842"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

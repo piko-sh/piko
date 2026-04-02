@@ -1,0 +1,7 @@
+CREATE TABLE items (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT '2025-01-15 10:30:00'
+);

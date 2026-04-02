@@ -1,0 +1,5 @@
+{
+  "shouldError": true,
+  "expectedErrorContains": "Undefined partial alias 'card'",
+  "specs": []
+}

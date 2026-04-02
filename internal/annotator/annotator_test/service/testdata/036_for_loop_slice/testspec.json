@@ -1,0 +1,57 @@
+{
+  "description": "Validates a p-for loop over a slice, ensuring correct type inference for both index and item variables, and that a warning is generated for the missing p-key.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates",
+      "onLine": 25
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "li[p-for]",
+      "description": "The p-for loop should correctly resolve the types of its loop variables and their usage.",
+      "assertOnDirective": [
+        {
+          "name": "p-for",
+          "rawExpression": "(idx, item) in state.Items",
+          "resolvedTypeIs": "[]string"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "idx",
+          "resolvedTypeIs": "int",
+          "baseCodeGenVarName": "idx"
+        },
+        {
+          "rawExpression": "item",
+          "resolvedTypeIs": "string",
+          "baseCodeGenVarName": "item"
+        },
+        {
+          "rawExpression": "idx + 1",
+          "resolvedTypeIs": "int64"
+        }
+      ]
+    },
+    {
+      "select": "p[p-if]",
+      "description": "The conditional check on the slice length should be valid.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "len(state.Items) == 0",
+          "resolvedTypeIs": "bool"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "len(state.Items)",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    }
+  ]
+}

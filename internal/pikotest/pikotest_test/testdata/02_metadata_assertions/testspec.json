@@ -1,0 +1,7 @@
+{
+  "description": "Tests metadata assertions including title, description, OG tags, and language",
+  "entryPoints": [
+    { "path": "pages/home.pk", "isPage": true }
+  ],
+  "shouldFail": false
+}

@@ -1,0 +1,54 @@
+TalentBridge
+
+Good News About Your Application!
+
+Your application for Senior Engineer at Acme Corp has been moved to the next stage.
+
+Position:
+
+Senior Software Engineer
+
+Company:
+
+Acme Corp
+
+Status:
+
+Interview Scheduled
+
+Updated:
+
+1 April 2026
+
+Interview Details
+
+Format:
+
+Video Call (Google Meet)
+
+Date:
+
+Thursday, 10 April 2026
+
+Time:
+
+14:00 - 15:00 BST
+
+Interviewers:
+
+Jane Smith (Engineering Lead), Tom Brown (CTO)
+
+How to Prepare
+
+1. Review the job description and your application
+2. Prepare examples of past projects and technical challenges
+3. Test your camera and microphone before the call
+4. Have questions ready about the team and role
+
+ Confirm Interview (https://talentbridge.example.com/interview/confirm)
+
+ Request Reschedule (https://talentbridge.example.com/interview/reschedule)
+
+You are receiving this email because you applied through TalentBridge.
+
+TalentBridge Recruiting - Connecting talent with opportunity

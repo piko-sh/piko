@@ -1,0 +1,23 @@
+package greeter
+
+import "strings"
+
+type Loud struct{}
+
+func NewLoud() *Loud {
+	return &Loud{}
+}
+
+func (l *Loud) Speak(msg string) string {
+	return strings.ToUpper(msg)
+}
+
+type Quiet struct{}
+
+func NewQuiet() *Quiet {
+	return &Quiet{}
+}
+
+func (q *Quiet) Speak(msg string) string {
+	return strings.ToLower(msg)
+}

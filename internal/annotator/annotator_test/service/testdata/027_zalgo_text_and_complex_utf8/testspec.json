@@ -1,0 +1,22 @@
+{
+  "description": "Validates that the entire pipeline can handle complex UTF-8 characters, including emojis and Zalgo text with combining marks, without corruption or crashing.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#static-utf8",
+      "description": "Static content with complex UTF-8 should be parsed and preserved correctly.",
+      "assert": {
+        "textContent": "你好, 世界! 👋"
+      }
+    },
+    {
+      "select": "#dynamic-zalgo",
+      "description": "Dynamic Zalgo text from the state should be correctly typed as a string.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Zalgo",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

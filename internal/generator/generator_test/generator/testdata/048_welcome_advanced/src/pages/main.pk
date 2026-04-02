@@ -1,0 +1,67 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <piko:partial is="layout" test="hello" :test2="state.Title" :server.page_title="state.Title">
+    <div class="container">
+      <h1>{{ state.Title }}</h1>
+      <p>Your Piko application is running!</p>
+      <p>Edit <code>pages/index.pk</code> to get started.</p>
+    </div>
+  </piko:partial>
+</template>
+
+<style>
+.container {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--g-colour-grey-800);
+}
+p {
+  font-size: 1.25rem;
+  color: var(--g-colour-grey-600);
+}
+code {
+  background-color: var(--g-colour-grey-100);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testcase_048_welcome_advanced/partials/layout.pk"
+)
+
+type Response struct {
+    Title string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{Title: "Welcome to Piko"}, piko.Metadata{}, nil
+}
+</script>

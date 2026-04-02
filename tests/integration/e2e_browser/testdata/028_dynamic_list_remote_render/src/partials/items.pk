@@ -1,0 +1,163 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+  <pp-dynamic-list action_prefix="items">
+    <div slot="list" class="list">
+      <div class="item-row" p-for="(i, item) in state.Items" p-key="i">
+        <input type="hidden" :value="item.ID" :name="`items[${i}].id`"/>
+        <input class="item-name" type="text" :value="item.Name" :name="`items[${i}].name`" placeholder="Item name"/>
+        <input class="item-value" type="text" :value="item.Value" :name="`items[${i}].value`" placeholder="Item value"/>
+        <button type="button" class="remove-btn" p-action="remove-item" :data-index="i">Remove</button>
+      </div>
+    </div>
+    <div slot="add-button">
+      <button type="button" class="add-btn">Add item</button>
+    </div>
+  </pp-dynamic-list>
+</template>
+
+<style>
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .item-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 5px;
+    background: #f5f5f5;
+    border-radius: 4px;
+  }
+
+  .item-name, .item-value {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  .remove-btn {
+    padding: 8px 12px;
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .add-btn {
+    padding: 8px 16px;
+    background: #4444ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import (
+    "strconv"
+
+    "github.com/google/uuid"
+    "piko.sh/piko"
+)
+
+type Item struct {
+    ID    string
+    Name  string
+    Value string
+}
+
+type Response struct {
+    Items []Item
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    items := parseItemsFromForm(r)
+
+    if r.FormValue("_action_items_add") == "true" {
+        items = append(items, Item{
+            ID:    uuid.New().String(),
+            Name:  "",
+            Value: "",
+        })
+    }
+
+    if indexStr := r.FormValue("_action_items_remove"); indexStr != "" {
+        indexToRemove, err := strconv.Atoi(indexStr)
+        if err == nil && indexToRemove >= 0 && indexToRemove < len(items) {
+            items = append(items[:indexToRemove], items[indexToRemove+1:]...)
+        }
+    }
+
+    return Response{Items: items}, piko.Metadata{}, nil
+}
+
+func parseItemsFromForm(r *piko.RequestData) []Item {
+    var items []Item
+
+    allParams := r.FormData()
+
+    i := 0
+    for {
+        idKey := "items[" + strconv.Itoa(i) + "].id"
+        nameKey := "items[" + strconv.Itoa(i) + "].name"
+        valueKey := "items[" + strconv.Itoa(i) + "].value"
+
+        idVals := allParams[idKey]
+        nameVals := allParams[nameKey]
+        valueVals := allParams[valueKey]
+
+        if len(idVals) == 0 && len(nameVals) == 0 && len(valueVals) == 0 {
+            break
+        }
+
+        id := ""
+        name := ""
+        value := ""
+
+        if len(idVals) > 0 {
+            id = idVals[0]
+        }
+        if len(nameVals) > 0 {
+            name = nameVals[0]
+        }
+        if len(valueVals) > 0 {
+            value = valueVals[0]
+        }
+
+        items = append(items, Item{
+            ID:    id,
+            Name:  name,
+            Value: value,
+        })
+        i++
+    }
+
+    return items
+}
+</script>

@@ -1,0 +1,469 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Cheese Guide"
+            server.current-page="cheese-guide">
+
+            <section class="page-section">
+                <h2 class="section-title">The Cheese Encyclopaedia</h2>
+                <p class="section-subtitle">Curd your enthusiasm &mdash; everything you need to know about our favourite cheeses</p>
+
+                <!-- Search -->
+                <m3e-search placeholder="Search cheeses..." class="mb-lg"></m3e-search>
+
+                <!-- Category Tabs -->
+                <m3e-tabs>
+                    <m3e-tab selected>All</m3e-tab>
+                    <m3e-tab>Soft</m3e-tab>
+                    <m3e-tab>Semi-Soft</m3e-tab>
+                    <m3e-tab>Hard</m3e-tab>
+                    <m3e-tab>Blue</m3e-tab>
+                    <m3e-tab>Fresh</m3e-tab>
+                </m3e-tabs>
+
+                <!-- Content area with navigation rail sidebar -->
+                <div style="display: flex; gap: 16px; margin-top: 24px;">
+
+                    <!-- Navigation Rail (category quick-jump) -->
+                    <m3e-navigation-rail style="flex-shrink: 0; position: sticky; top: 64px; align-self: flex-start;">
+                        <m3e-icon-button>
+                            <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+
+                        <m3e-list>
+                            <m3e-list-item>
+                                <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20" slot="icon"></piko:svg>
+                                Soft
+                            </m3e-list-item>
+                            <m3e-list-item>
+                                <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20" slot="icon"></piko:svg>
+                                Semi-Soft
+                            </m3e-list-item>
+                            <m3e-list-item>
+                                <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20" slot="icon"></piko:svg>
+                                Hard
+                            </m3e-list-item>
+                            <m3e-list-item>
+                                <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20" slot="icon"></piko:svg>
+                                Blue
+                            </m3e-list-item>
+                            <m3e-list-item>
+                                <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20" slot="icon"></piko:svg>
+                                Fresh
+                            </m3e-list-item>
+                        </m3e-list>
+                    </m3e-navigation-rail>
+
+                <!-- Cheese Grid -->
+                <div class="recipe-grid" style="flex: 1; min-width: 0;">
+
+                    <!-- 1. Camembert (Soft) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-camembert.jpg" alt="Camembert" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Camembert</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Camembert was first made in 1791 by Marie Harel, a farmer from Normandy, reportedly with advice from a priest fleeing the Revolution.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Normandy, France</p>
+                            <p class="recipe-card-desc">The undisputed king of cheeses</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Creamy</m3e-chip>
+                                <m3e-chip size="s">Earthy</m3e-chip>
+                                <m3e-chip size="s">Mushroomy</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/camembert-believe-it">Camembert Believe It</m3e-button>
+                            </div>
+                            <m3e-badge value="Soft"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 2. Brie (Soft) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-brie.jpg" alt="Brie" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Brie</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Brie was crowned the "King of Cheeses" at the Congress of Vienna in 1815, beating over 60 other cheeses from across Europe.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">&Icirc;le-de-France, France</p>
+                            <p class="recipe-card-desc">The queen to Camembert's king</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Mild</m3e-chip>
+                                <m3e-chip size="s">Buttery</m3e-chip>
+                                <m3e-chip size="s">Slightly tangy</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/brie-lliant-caesar">Brie-lliant Caesar Salad</m3e-button>
+                            </div>
+                            <m3e-badge value="Soft"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 3. Raclette (Semi-Soft) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-raclette.jpg" alt="Raclette" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Raclette</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">The name "raclette" comes from the French word "racler," meaning "to scrape." Swiss shepherds would melt cheese by the fire and scrape it onto bread.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Valais, Switzerland</p>
+                            <p class="recipe-card-desc">Born to be melted</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Nutty</m3e-chip>
+                                <m3e-chip size="s">Creamy when melted</m3e-chip>
+                                <m3e-chip size="s">Slightly pungent</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/raclette-and-roll">Raclette &amp; Roll</m3e-button>
+                            </div>
+                            <m3e-badge value="Semi-Soft"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 4. Gouda (Semi-Soft) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-gouda.jpg" alt="Gouda" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Gouda</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Gouda accounts for 50-60% of the world's cheese consumption. The cheese market in the Dutch city of Gouda has been running since 1395.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">South Holland, Netherlands</p>
+                            <p class="recipe-card-desc">The world's most popular cheese</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Sweet</m3e-chip>
+                                <m3e-chip size="s">Caramelly when aged</m3e-chip>
+                                <m3e-chip size="s">Creamy</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/gouda-gracious-mac">Gouda Gracious Mac &amp; Cheese</m3e-button>
+                            </div>
+                            <m3e-badge value="Semi-Soft"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 5. Gruyère (Hard) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-gruyere.jpg" alt="Gruyère" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Gruy&egrave;re</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">It takes about 400 litres of milk to make a single 35 kg wheel of Gruy&egrave;re. The cheese must be aged for at least 5 months in special caves.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Fribourg, Switzerland</p>
+                            <p class="recipe-card-desc">The fondue champion</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Nutty</m3e-chip>
+                                <m3e-chip size="s">Slightly sweet</m3e-chip>
+                                <m3e-chip size="s">Complex</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/gouda-gracious-mac">Gouda Gracious Mac &amp; Cheese</m3e-button>
+                            </div>
+                            <m3e-badge value="Hard"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 6. Cheddar (Hard) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-cheddar.jpg" alt="Cheddar" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Cheddar</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Cheddar cheese originated in the village of Cheddar in Somerset, England, in the 12th century. The caves beneath the Cheddar Gorge provided the perfect temperature and humidity for ageing.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Somerset, England</p>
+                            <p class="recipe-card-desc">The backbone of British cheese</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Sharp</m3e-chip>
+                                <m3e-chip size="s">Tangy</m3e-chip>
+                                <m3e-chip size="s">Crumbly when aged</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/the-grate-burger">The Grate Burger</m3e-button>
+                            </div>
+                            <m3e-badge value="Hard"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 7. Parmesan (Hard) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-parmesan.jpg" alt="Parmesan" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Parmesan</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Italian banks accept wheels of Parmigiano-Reggiano as collateral for loans. The Credito Emiliano bank has vaults storing over 430,000 wheels worth hundreds of millions of euros.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Emilia-Romagna, Italy</p>
+                            <p class="recipe-card-desc">The king of Italian cheeses</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Intense</m3e-chip>
+                                <m3e-chip size="s">Savoury</m3e-chip>
+                                <m3e-chip size="s">Umami</m3e-chip>
+                                <m3e-chip size="s">Crystalline</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/parm-ageddon-chicken">Parm-ageddon Chicken</m3e-button>
+                            </div>
+                            <m3e-badge value="Hard"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 8. Stilton (Blue) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-stilton.jpg" alt="Stilton" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Stilton</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Stilton can only legally be produced in three English counties: Derbyshire, Leicestershire, and Nottinghamshire. Ironically, the village of Stilton itself is not in any of them!</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Leicestershire, England</p>
+                            <p class="recipe-card-desc">England's noble blue</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Rich</m3e-chip>
+                                <m3e-chip size="s">Tangy</m3e-chip>
+                                <m3e-chip size="s">Creamy with blue bite</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-tooltip text="Coming soon!">
+                                    <m3e-button variant="text" size="s" disabled>Not in a recipe yet</m3e-button>
+                                </m3e-tooltip>
+                            </div>
+                            <m3e-badge value="Blue"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 9. Feta (Fresh) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-feta.jpg" alt="Feta" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Feta</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Feta is mentioned in Homer's Odyssey! Polyphemus the Cyclops is described as making a cheese very similar to feta from sheep's milk in his cave.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Greece</p>
+                            <p class="recipe-card-desc">Mediterranean sunshine in cheese form</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Tangy</m3e-chip>
+                                <m3e-chip size="s">Salty</m3e-chip>
+                                <m3e-chip size="s">Crumbly</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/feta-accompli-pizza">Feta Accompli Pizza</m3e-button>
+                            </div>
+                            <m3e-badge value="Fresh"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 10. Mozzarella (Fresh) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-mozzarella.jpg" alt="Mozzarella" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Mozzarella</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">The word "mozzarella" comes from "mozzare," meaning "to cut off," referring to the technique of pulling and cutting the curd by hand. True mozzarella di bufala is made from water buffalo milk.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Campania, Italy</p>
+                            <p class="recipe-card-desc">The stretch champion</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Mild</m3e-chip>
+                                <m3e-chip size="s">Milky</m3e-chip>
+                                <m3e-chip size="s">Elastic</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/feta-accompli-pizza">Feta Accompli Pizza</m3e-button>,
+                                <m3e-button variant="text" size="s" href="/recipe/parm-ageddon-chicken">Parm-ageddon Chicken</m3e-button>,
+                                <m3e-button variant="text" size="s" href="/recipe/ricotta-be-kidding-lasagna">Ricotta Be Kidding Me Lasagna</m3e-button>
+                            </div>
+                            <m3e-badge value="Fresh"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 11. Ricotta (Fresh) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-ricotta.jpg" alt="Ricotta" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Ricotta</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Ricotta literally means "re-cooked" in Italian &mdash; it is made from the whey left over from other cheese production. Technically, it is a whey cheese, not a true cheese!</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Italy</p>
+                            <p class="recipe-card-desc">Not technically cheese, but we won't tell</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Light</m3e-chip>
+                                <m3e-chip size="s">Creamy</m3e-chip>
+                                <m3e-chip size="s">Slightly sweet</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-button variant="text" size="s" href="/recipe/ricotta-be-kidding-lasagna">Ricotta Be Kidding Me Lasagna</m3e-button>
+                            </div>
+                            <m3e-badge value="Fresh"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                    <!-- 12. Halloumi (Semi-Soft) -->
+                    <m3e-card variant="outlined">
+                        <piko:img src="@/lib/images/cheese-halloumi.jpg" alt="Halloumi" style="width: 100%; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div class="recipe-card-body">
+                            <div class="flex-between">
+                                <div class="recipe-card-title">Halloumi</div>
+                                <m3e-tooltip variant="rich">
+                                    <m3e-icon-button slot="trigger" size="s">
+                                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                                    </m3e-icon-button>
+                                    <div slot="headline">Fun Fact</div>
+                                    <div slot="supporting-text">Halloumi has the highest melting point of any cheese, which is why you can grill or fry it without it turning into a puddle. Its signature squeak comes from the long protein strands in the curd.</div>
+                                </m3e-tooltip>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 4px 0;">Cyprus</p>
+                            <p class="recipe-card-desc">The one you can grill</p>
+                            <m3e-chip-set class="mt-sm">
+                                <m3e-chip size="s">Salty</m3e-chip>
+                                <m3e-chip size="s">Squeaky</m3e-chip>
+                                <m3e-chip size="s">Holds its shape</m3e-chip>
+                            </m3e-chip-set>
+                            <m3e-divider class="mt-sm mb-sm"></m3e-divider>
+                            <div style="font-size: 0.8125rem;">
+                                <span class="text-muted">Best in:</span>
+                                <m3e-tooltip text="Recipe coming soon - we're grilling it!">
+                                    <m3e-button variant="text" size="s" disabled>Coming soon</m3e-button>
+                                </m3e-tooltip>
+                            </div>
+                            <m3e-badge value="Semi-Soft"></m3e-badge>
+                        </div>
+                    </m3e-card>
+
+                </div>
+                </div>
+            </section>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Cheese Guide - The Norman Kitchen",
+    }, nil
+}
+</script>

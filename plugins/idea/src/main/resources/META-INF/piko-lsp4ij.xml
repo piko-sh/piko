@@ -1,0 +1,17 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
+        <server
+            id="pikoLsp"
+            name="Piko LSP"
+            factoryClass="io.politepixels.piko.pk.lsp.PikoLanguageServerFactory">
+            <description><![CDATA[
+                Language server for Piko template files (.pk).
+                Provides code intelligence for the template block.
+            ]]></description>
+        </server>
+
+        <languageMapping
+            language="PK"
+            serverId="pikoLsp"/>
+    </extensions>
+</idea-plugin>

@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".task-container[partial~=partials_task_list_07441b8b]{padding:20px}.task-header[partial~=partials_task_list_07441b8b]{margin-bottom:10px}.task-list[partial~=partials_task_list_07441b8b]{list-style:none}.task-item[partial~=partials_task_list_07441b8b]{padding:10px;margin:5px 0;border:1px solid #ccc}.task-name[partial~=partials_task_list_07441b8b]{font-weight:700}.task-done[partial~=partials_task_list_07441b8b]{color:green}.task-pending[partial~=partials_task_list_07441b8b]{color:orange}",
+      "packagePath": "testcase_109_p_if_in_p_for_css_scoping/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

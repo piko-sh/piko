@@ -1,0 +1,25 @@
+{
+  "deleted": {
+    "DeletionLabel": "GADGET (DELETED)",
+    "ID": 2,
+    "Name": "Gadget"
+  },
+  "inserted": {
+    "CreatedAt": "2025-01-15T10:30:00Z",
+    "ID": 1,
+    "Total": 1500,
+    "UpperName": "WIDGET"
+  },
+  "inserted2": {
+    "CreatedAt": "2025-01-15T10:30:00Z",
+    "ID": 2,
+    "Total": 1500,
+    "UpperName": "GADGET"
+  },
+  "updated": {
+    "ID": 1,
+    "Name": "Widget",
+    "NewQuantity": 8,
+    "NewTotal": 2400
+  }
+}

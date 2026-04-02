@@ -1,0 +1,18 @@
+{
+    "description": "Verifies content spanning three pages is correctly distributed.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "block-a": {"pageIndex": 0, "x": 0, "y": 0, "width": 400, "height": 100},
+        "block-b": {"pageIndex": 0, "x": 0, "y": 100, "width": 400, "height": 100},
+        "block-c": {"pageIndex": 1, "x": 0, "y": 0, "width": 400, "height": 100},
+        "block-d": {"pageIndex": 1, "x": 0, "y": 100, "width": 400, "height": 100},
+        "block-e": {"pageIndex": 2, "x": 0, "y": 0, "width": 400, "height": 100},
+        "block-f": {"pageIndex": 2, "x": 0, "y": 100, "width": 400, "height": 100}
+    }
+}

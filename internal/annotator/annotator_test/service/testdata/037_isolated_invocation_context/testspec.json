@@ -1,0 +1,67 @@
+{
+  "description": "Validates that context is isolated for directives, not just interpolations.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates",
+      "onLine": 59
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#test-1 div.card:nth-of-type(1)",
+      "description": "First static card: Interpolation vs. Directive",
+      "assertOnSubExpression": [
+        {
+          "select": "p",
+          "rawExpression": "state.Title",
+          "description": "Interpolation should have the correct context for the FIRST invocation.",
+          "baseCodeGenVarName": "partials_card_bfc4a3cfData_card_title_state_firstcardtitle_c70ea489"
+        },
+        {
+          "select": "h3",
+          "rawExpression": "state.Title",
+          "description": "p-text directive should also have the correct context for the FIRST invocation. (THIS MAY FAIL)",
+          "baseCodeGenVarName": "partials_card_bfc4a3cfData_card_title_state_firstcardtitle_c70ea489"
+        }
+      ]
+    },
+    {
+      "select": "#test-1 div.card:nth-of-type(2)",
+      "description": "Second static card: Interpolation vs. Directive",
+      "assertOnSubExpression": [
+        {
+          "select": "p",
+          "rawExpression": "state.Title",
+          "description": "Interpolation should have the correct context for the SECOND invocation.",
+          "baseCodeGenVarName": "partials_card_bfc4a3cfData_card_title_state_secondcardtitle_13d929b8"
+        },
+        {
+          "select": "h3",
+          "rawExpression": "state.Title",
+          "description": "p-text directive should also have the correct context for the SECOND invocation.",
+          "baseCodeGenVarName": "partials_card_bfc4a3cfData_card_title_state_secondcardtitle_13d929b8"
+        }
+      ]
+    },
+    {
+      "select": "#test-2 li[p-for] div.card",
+      "description": "Looped card: Interpolation vs. Directive",
+      "assertOnSubExpression": [
+        {
+          "select": "p",
+          "rawExpression": "state.Title",
+          "description": "Interpolation in a loop should have the correct context.",
+          "baseCodeGenVarName": "partials_card_bfc4a3cfData_card_title_user_name_1544ecfa"
+        },
+        {
+          "select": "h3",
+          "rawExpression": "state.Title",
+          "description": "p-text directive in a loop should also have the correct context.",
+          "baseCodeGenVarName": "partials_card_bfc4a3cfData_card_title_user_name_1544ecfa"
+        }
+      ]
+    }
+  ]
+}

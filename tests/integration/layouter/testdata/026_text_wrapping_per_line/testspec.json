@@ -1,0 +1,7 @@
+{
+    "description": "Verifies per-line text positions after word wrapping. Text in a narrow container must produce the correct number of lines with matching positions.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

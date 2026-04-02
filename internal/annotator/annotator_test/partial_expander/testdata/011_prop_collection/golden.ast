@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="card" static-prop="hello world" :dynamic-prop="state.UserObject" {P: state.UserObject, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_req_method_state_method_dynamic_prop_state_userobject_server_user_state_userobject_static_prop_hello_world_8bb75066 Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+  <p [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+    "Check PartialInfo annotation on this node."
+  </p>
+</div>
+
+--- END AST DUMP ---
+*/

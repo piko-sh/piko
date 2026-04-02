@@ -1,0 +1,7 @@
+{
+  "description": "Tests that aliased imports in PK scripts are correctly discovered for interpreted mode.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

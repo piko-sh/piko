@@ -1,0 +1,133 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="FAB Menu"
+            server.current-page="actions/fab-menu">
+
+            <p class="demo-description">The FAB menu provides a speed-dial pattern, expanding action items from a floating action button.</p>
+
+            <div class="demo-grid">
+                <!-- Primary -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Primary</h3>
+                    <div class="demo-preview">
+                        <m3e-fab-menu variant="primary">
+                            <button data-group-item>New file</button>
+                            <button data-group-item>Upload</button>
+                            <button data-group-item>Scan</button>
+                        </m3e-fab-menu>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-fab-menu variant="primary"&gt;
+  &lt;button data-group-item&gt;New file&lt;/button&gt;
+  &lt;button data-group-item&gt;Upload&lt;/button&gt;
+  &lt;button data-group-item&gt;Scan&lt;/button&gt;
+&lt;/m3e-fab-menu&gt;</code></pre>
+                </section>
+
+                <!-- Secondary -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Secondary</h3>
+                    <div class="demo-preview">
+                        <m3e-fab-menu variant="secondary">
+                            <button data-group-item>Edit</button>
+                            <button data-group-item>Share</button>
+                        </m3e-fab-menu>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-fab-menu variant="secondary"&gt;
+  &lt;button data-group-item&gt;Edit&lt;/button&gt;
+  &lt;button data-group-item&gt;Share&lt;/button&gt;
+&lt;/m3e-fab-menu&gt;</code></pre>
+                </section>
+
+                <!-- Tertiary -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Tertiary</h3>
+                    <div class="demo-preview">
+                        <m3e-fab-menu variant="tertiary">
+                            <button data-group-item>Action one</button>
+                            <button data-group-item>Action two</button>
+                            <button data-group-item>Action three</button>
+                        </m3e-fab-menu>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-fab-menu variant="tertiary"&gt;
+  &lt;button data-group-item&gt;Action one&lt;/button&gt;
+  &lt;button data-group-item&gt;Action two&lt;/button&gt;
+  &lt;button data-group-item&gt;Action three&lt;/button&gt;
+&lt;/m3e-fab-menu&gt;</code></pre>
+                </section>
+
+                <!-- Surface -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Surface</h3>
+                    <div class="demo-preview">
+                        <m3e-fab-menu variant="surface">
+                            <button data-group-item>Option A</button>
+                            <button data-group-item>Option B</button>
+                        </m3e-fab-menu>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-fab-menu variant="surface"&gt;
+  &lt;button data-group-item&gt;Option A&lt;/button&gt;
+  &lt;button data-group-item&gt;Option B&lt;/button&gt;
+&lt;/m3e-fab-menu&gt;</code></pre>
+                </section>
+
+                <!-- Custom FAB Trigger -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Custom FAB Trigger</h3>
+                    <div class="demo-preview">
+                        <m3e-fab-menu variant="primary">
+                            <m3e-fab slot="fab" colour="tertiary">
+                                <piko:svg src="@/lib/icons/edit.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-fab>
+                            <button data-group-item>Action one</button>
+                            <button data-group-item>Action two</button>
+                        </m3e-fab-menu>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-fab-menu variant="primary"&gt;
+  &lt;m3e-fab slot="fab" colour="tertiary"&gt;
+    &lt;piko:svg src="@/lib/icons/edit.svg"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-fab&gt;
+  &lt;button data-group-item&gt;Action one&lt;/button&gt;
+  &lt;button data-group-item&gt;Action two&lt;/button&gt;
+&lt;/m3e-fab-menu&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "FAB Menu - M3E Components",
+    }, nil
+}
+</script>

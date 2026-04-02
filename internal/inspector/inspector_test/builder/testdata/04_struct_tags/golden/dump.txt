@@ -1,0 +1,22 @@
+--- PACKAGE: testcase_04_struct_tags ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 04_struct_tags/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type User
+    - Defined In:      04_struct_tags/src/main.go
+    - TypeString:      main.User
+    - Underlying:      struct{Email string; FullName string}
+    - Stringability:   0
+    - Fields:
+      - Email                string
+        (Tag: `prop:"user_email" validate:"required,email"`)
+      - FullName             string
+        (Tag: `json:"full_name"`)
+
+[Package-Level Functions]
+  (none)

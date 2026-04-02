@@ -1,0 +1,6 @@
+{
+  "title": "Container",
+  "description": "Container wrapping multiple rows",
+  "metadata": {"title": "Container Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

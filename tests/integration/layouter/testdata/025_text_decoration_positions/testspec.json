@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that text-decoration does not affect layout positions. Underline and line-through should not change element dimensions or positions.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

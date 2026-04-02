@@ -1,0 +1,17 @@
+{
+  "description": "User-declared custom functions from SQLite extensions are recognised during query analysis with correct return types and nullability.",
+  "customFunctions": [
+    {
+      "name": "vec_distance_L2",
+      "arguments": ["blob", "blob"],
+      "returnType": "real",
+      "nullable": "null_on_null"
+    },
+    {
+      "name": "vec_to_json",
+      "arguments": ["blob"],
+      "returnType": "text",
+      "nullable": "null_on_null"
+    }
+  ]
+}

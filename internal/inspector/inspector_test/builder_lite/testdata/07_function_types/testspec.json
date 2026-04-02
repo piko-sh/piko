@@ -1,0 +1,27 @@
+{
+  "description": "Function types as fields and named types",
+  "moduleName": "testcase_lite_07",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "Handler is a named function type",
+      "select": "packages.testcase_lite_07.named_types.Handler.name",
+      "expect": "Handler"
+    },
+    {
+      "description": "Button has OnClick function field",
+      "select": "packages.testcase_lite_07.named_types.Button.fields.1.name",
+      "expect": "OnClick"
+    },
+    {
+      "description": "Button has OnHover function field",
+      "select": "packages.testcase_lite_07.named_types.Button.fields.2.name",
+      "expect": "OnHover"
+    },
+    {
+      "description": "EventEmitter has OnError function field",
+      "select": "packages.testcase_lite_07.named_types.EventEmitter.fields.1.name",
+      "expect": "OnError"
+    }
+  ]
+}

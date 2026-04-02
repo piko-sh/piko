@@ -1,0 +1,45 @@
+{
+  "customer": {
+    "Email": "alice@example.com",
+    "ID": 1,
+    "Name": "Alice",
+    "Tier": "standard"
+  },
+  "order_1": {
+    "CustomerID": 1,
+    "ID": 1,
+    "Notes": "Express delivery requested",
+    "Status": "confirmed",
+    "Total": 5000
+  },
+  "order_2": {
+    "CustomerID": 1,
+    "ID": 2,
+    "Notes": null,
+    "Status": "pending",
+    "Total": 3000
+  },
+  "order_3": {
+    "CustomerID": 2,
+    "ID": 3,
+    "Notes": null,
+    "Status": "shipped",
+    "Total": 7500
+  },
+  "summary": [
+    {
+      "CustomerID": 1,
+      "Email": "alice@example.com",
+      "Name": "Alice",
+      "OrderCount": 2,
+      "TotalSpent": 8000
+    },
+    {
+      "CustomerID": 2,
+      "Email": "bob@example.com",
+      "Name": "Bob",
+      "OrderCount": 1,
+      "TotalSpent": 7500
+    }
+  ]
+}

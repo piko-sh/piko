@@ -1,0 +1,33 @@
+{
+    "description": "Replace patch method completely replaces children of target element",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/replace",
+        "patchMethod": "replace",
+        "childrenOnly": true,
+        "querySelector": "#content"
+    },
+    "assertions": [
+        {
+            "selector": "#content .new",
+            "exists": true,
+            "description": "New content element should exist after replace"
+        },
+        {
+            "selector": "#content .new",
+            "textContent": "Completely new content",
+            "description": "New content should have correct text"
+        },
+        {
+            "selector": "#content span",
+            "exists": false,
+            "description": "Old span element should be gone after replace"
+        }
+    ]
+}

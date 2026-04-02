@@ -1,0 +1,254 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Feta Accompli Pizza"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-feta-accompli-pizza.jpg" alt="Feta Accompli Pizza" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">Feta Accompli Pizza</h1>
+                <p class="recipe-pun">Consider it a feta accompli</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Feta + Mozzarella</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        30 mins (plus dough resting)
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Medium</m3e-chip>
+                    <m3e-chip variant="outlined">4 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="7" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="4" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>500g pizza dough (or make your own)</m3e-list-item>
+                    <m3e-list-item>400g tin San Marzano tomatoes</m3e-list-item>
+                    <m3e-list-item>250g fresh mozzarella, torn into pieces</m3e-list-item>
+                    <m3e-list-item>150g feta cheese, crumbled</m3e-list-item>
+                    <m3e-list-item>Handful of fresh basil leaves</m3e-list-item>
+                    <m3e-list-item>2 tbsp extra virgin olive oil</m3e-list-item>
+                    <m3e-list-item>2 cloves garlic, minced</m3e-list-item>
+                    <m3e-list-item>1 tsp dried oregano</m3e-list-item>
+                    <m3e-list-item>Salt, to taste</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>If using shop-bought dough, bring it to room temperature for at least 30 minutes. If making your own, allow the dough to prove until doubled in size. While you wait, open the feta. Just to check it&rsquo;s still there. It is? Good. Have a small piece. For quality control purposes.</li>
+                    <li>For the sauce, crush the San Marzano tomatoes by hand into a bowl. Yes, by hand &mdash; you&rsquo;re a pizza artisan now, act like one. Stir in the minced garlic, oregano, a glug of olive oil, and a pinch of salt. No cooking required. The Italians would respect your restraint. The mice certainly do.</li>
+                    <li>Preheat your oven to the highest setting (ideally 250&deg;C or higher &mdash; we&rsquo;re making pizza, not gently warming a dormouse). If you have a pizza stone, put it in now. On a floured surface, stretch the dough into rounds using your hands. No rolling pins! Rolling pins are for pastry. This is pizza. Have some respect.</li>
+                    <li>Spread a thin layer of sauce over each base, leaving a 2cm border. Scatter torn mozzarella across the surface, then crumble feta over the top in uneven chunks. The unevenness is important &mdash; you want little surprise pockets of tangy feta. It&rsquo;s like a treasure hunt, but the treasure is always cheese, which is the best kind of treasure hunt.</li>
+                    <li>Slide the pizza onto the hot stone (or a baking tray, we won&rsquo;t tell the Italians) and bake for 8&ndash;12 minutes. You&rsquo;ll know it&rsquo;s done when the crust is puffed and charred in spots, the mozzarella is doing that gorgeous bubbling thing, and the feta has gone golden. Your kitchen should smell unreasonably good at this point.</li>
+                    <li>Remove from the oven, scatter with fresh basil and a drizzle of olive oil. Now &mdash; and this is critical &mdash; you must eat it immediately. Not in five minutes. Not after you&rsquo;ve instagrammed it. NOW. Pizza waits for no mouse, and neither does melted feta.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 420 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 22g</m3e-list-item>
+                    <m3e-list-item>Fat: 18g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 48g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>PizzaPilgrim</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">This pizza is to die for! The combination of creamy mozzarella and tangy feta is absolutely divine. I've been making this every Friday night and the family demands it now.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>DoughDreamer</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Feta-stic combo! The tip about crumbling the feta unevenly was spot on - you get these amazing pockets of salty, tangy cheese throughout. Will definitely make again.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>BasilBandit</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Best homemade pizza ever. The San Marzano sauce is so simple but so flavourful. I added a drizzle of honey at the end for a sweet-salty contrast and it was phenomenal.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>FetaAddiction2024</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Ate all the feta while making the pizza. Went to the shop. Bought more feta. Ate that too. Third trip to the shop the cashier asked if I was okay. I was not okay. I was magnificent. Fourth batch of feta made it onto the pizza. Best Friday ever.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>ItalianNonna</strong>
+                        <m3e-chip variant="outlined">3 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Feta on pizza? My grandmother is rolling in her grave. I made it anyway. My grandmother would have loved it. I am now also rolling &mdash; rolling out more dough for round two. Nonna forgive me.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>WhitePizzaGhost</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I added so much feta the pizza was entirely white. You couldn&rsquo;t see the sauce. You couldn&rsquo;t see the dough. It was just a flat disc of feta. My flatmate asked me why I was eating &ldquo;a cheese frisbee.&rdquo; I regret nothing.</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>Preheat your oven as hot as it'll go - a screaming hot oven is the secret to a crispy, blistered crust.</m3e-list-item>
+                    <m3e-list-item>Use a pizza stone if you have one. It absorbs moisture from the dough and gives you that authentic pizzeria base.</m3e-list-item>
+                    <m3e-list-item>Crumble the feta unevenly for pockets of flavour - uniform distribution is the enemy of interesting pizza.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Feta must by law be made in Greece and contain at least 70% sheep's milk to be called 'feta'. Everything else is just 'white cheese'.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Feta Accompli Pizza - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        // In a real app this would open a time-picker dialog
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

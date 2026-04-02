@@ -1,0 +1,37 @@
+(function() {
+	const offset = {{jsInt .Offset}};
+	const range = document.createRange();
+	const sel = window.getSelection();
+
+	// Find text node and offset
+	let currentOffset = 0;
+	const walker = document.createTreeWalker(this, NodeFilter.SHOW_TEXT);
+	let node;
+
+	while (node = walker.nextNode()) {
+		if (currentOffset + node.length >= offset) {
+			range.setStart(node, offset - currentOffset);
+			range.collapse(true);
+			sel.removeAllRanges();
+			sel.addRange(range);
+			return true;
+		}
+		currentOffset += node.length;
+	}
+
+	// If offset is beyond the text, try to position at the end
+	if (offset >= currentOffset) {
+		const lastNode = walker.currentNode || this;
+		if (lastNode.nodeType === Node.TEXT_NODE) {
+			range.setStart(lastNode, lastNode.length);
+		} else {
+			range.selectNodeContents(this);
+			range.collapse(false);
+		}
+		sel.removeAllRanges();
+		sel.addRange(range);
+		return true;
+	}
+
+	return false;
+})

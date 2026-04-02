@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that mixed LTR/RTL text within a single container is handled correctly via the Unicode Bidi Algorithm, and that direction-aware text shaping produces correct widths.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

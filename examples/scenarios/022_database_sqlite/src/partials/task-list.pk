@@ -1,0 +1,196 @@
+<!--
+  Task List Partial
+
+  This partial renders the list of tasks from the database. It has a public
+  template so it can be reloaded independently after create, toggle, or
+  delete actions without refreshing the entire page.
+
+  The parent page mounts this with <piko:partial is="task_list" />.
+  After mutations, the TypeScript calls piko.partials.reload("task-list")
+  to re-render just this section.
+-->
+
+<template public>
+  <div class="task-list-container">
+    <ul class="task-list" p-if="len(state.Tasks) > 0">
+      <li p-for="(i, task) in state.Tasks" p-key="task.ID"
+          p-class="'task-item' + (task.Completed ? ' completed' : '')">
+        <button class="toggle-btn" :data-id="task.ID"
+                p-on:click="handleToggle(task.ID)">
+          <span p-if="task.Completed" class="check">&#10003;</span>
+          <span p-if="!task.Completed" class="circle">&#9675;</span>
+        </button>
+        <span class="task-title" p-text="task.Title"></span>
+        <button class="delete-btn" :data-id="task.ID"
+                p-on:click="handleDelete(task.ID)">
+          &times;
+        </button>
+      </li>
+    </ul>
+
+    <p p-if="len(state.Tasks) == 0" class="empty-message">
+      No tasks yet. Add one above!
+    </p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    pikoDb "piko.sh/piko/wdk/db"
+
+    "testmodule/db/generated"
+)
+
+// Task holds the display data for a single task row.
+type Task struct {
+    ID        int32  `json:"id"`
+    Title     string `json:"title"`
+    Completed bool   `json:"completed"`
+}
+
+// Response is the data available as state.* in the template.
+type Response struct {
+    Tasks []Task `json:"tasks"`
+}
+
+// Render fetches all tasks from the database.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    conn, err := pikoDb.GetDatabaseConnection("tasks")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(conn)
+    rows, err := queries.ListTasks(r.Context())
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    taskList := make([]Task, len(rows))
+    for i, row := range rows {
+        taskList[i] = Task{
+            ID:        row.ID,
+            Title:     row.Title,
+            Completed: row.Completed != 0,
+        }
+    }
+
+    return Response{Tasks: taskList}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+async function handleToggle(id: number): Promise<void> {
+    try {
+        await action.tasks.Toggle({ id }).call();
+        piko.partials.reload("task-list");
+    } catch (e: any) {
+        console.error('Failed to toggle task:', e);
+    }
+}
+
+async function handleDelete(id: number): Promise<void> {
+    try {
+        await action.tasks.Delete({ id }).call();
+        piko.partials.reload("task-list");
+    } catch (e: any) {
+        console.error('Failed to delete task:', e);
+    }
+}
+</script>
+
+<style>
+  .task-list-container {
+    margin-top: 1.5rem;
+  }
+
+  .task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color 0.15s;
+  }
+
+  .task-item:hover {
+    background-color: #f9fafb;
+  }
+
+  .task-item.completed .task-title {
+    text-decoration: line-through;
+    color: #9ca3af;
+  }
+
+  .toggle-btn {
+    background: none;
+    border: 2px solid #d1d5db;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+
+  .completed .toggle-btn {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: white;
+  }
+
+  .toggle-btn:hover {
+    border-color: #10b981;
+  }
+
+  .check {
+    font-size: 0.875rem;
+    line-height: 1;
+  }
+
+  .circle {
+    font-size: 0.75rem;
+    color: #d1d5db;
+  }
+
+  .task-title {
+    flex: 1;
+    font-size: 1rem;
+    color: #1f2937;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #d1d5db;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .delete-btn:hover {
+    color: #ef4444;
+  }
+
+  .empty-message {
+    text-align: center;
+    color: #9ca3af;
+    padding: 2rem;
+    font-style: italic;
+  }
+</style>

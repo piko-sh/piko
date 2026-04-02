@@ -1,0 +1,10 @@
+{
+  "description": "Validates that passing an argument with a mismatched primitive type to a client-side TypeScript function emits a warning diagnostic.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Type mismatch for parameter 'count' in function 'update': got 'string', expected 'number'"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies basic block layout: stacked divs with explicit widths, heights, padding, and margins match browser rendering.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,16 @@
+{
+  "category_summary": [
+    {
+      "Category": "books",
+      "NorthCount": 1,
+      "SouthTotal": 70,
+      "TotalCount": 3
+    },
+    {
+      "Category": "electronics",
+      "NorthCount": 2,
+      "SouthTotal": 200,
+      "TotalCount": 3
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+# Welcome to {{ .ProjectName }}!
+
+This project was bootstrapped with **Piko**, a Go-powered web framework for building fast, server-rendered websites with minimal client-side JavaScript.
+
+This README will guide you through the essential commands and the structure of your new application.
+
+---
+
+## Getting started
+
+You're just a few steps away from running your application.
+
+### 1. Build your project for the first time
+
+Before you can run the server, you need to run the Piko generator. This command compiles your `.pk` and `.pkc` files into optimised Go packages and JavaScript assets.
+
+```bash
+go run ./cmd/generator/main.go all
+```
+*You only need to run this once initially. The development server will handle re-builds for you after this.*
+
+### 2. Start the development server
+
+The best way to run your application during development is with `air`, which provides live reloading for both backend and frontend changes. Your project is already configured for it!
+
+```bash
+air
+```
+
+Your application will now be running at **http://localhost:8080** (or the next available port).
+
+Navigate to this URL in your browser. You should see the "Welcome to Piko" page. Now, try editing `pages/index.pk` and watch your browser update automatically!
+
+---
+
+##  Scripts and commands
+
+-   **`air`**: Starts the development server with live reloading. This is your primary command for development. It automatically re-runs the generator and rebuilds your main application when you save a file.
+
+-   **`go run ./cmd/generator/main.go all`**: Manually runs the Piko asset generator. You'll need to run this as part of your build process for production deployments.
+
+-   **`go run ./cmd/main/main.go`**: Starts the Piko web server without the live-reloading wrapper.
+
+-   **`go run ./cmd/main/main.go prod`**: Starts the Piko web server in production mode.
+
+-   **`piko fmt -w -r .`**: Formats all `.pk` template files in your project.
+
+---
+
+## Project structure
+
+Your Piko application is organised into several key directories. Here's a quick overview of what they're for:
+
+-   **`/cmd`**: Contains the main entry points for your executables (`generator` and `main` server). You typically won't need to change these much.
+
+-   **`/pages`**: **This is where you build your site's pages.** Each `.pk` file in this directory becomes a route. For example, `pages/about.pk` will be available at `/about`.
+
+-   **`/partials`**: Reusable server-side components (`.pk` files). Perfect for layouts, headers, footers, and other shared UI elements that are rendered on the server.
+
+-   **`/components`**: Reusable client-side components (`.pkc` files). These are your "islands of interactivity" like modals, dropdowns, and interactive forms, which are compiled to JavaScript.
+
+-   **`/actions`**: Your server-side business logic. Functions in this directory can be called securely from your client-side components to interact with your database or other backend services.
+
+-   **`/pkg`**: Your application's core Go packages. This is where you should put your data access layer (DAL), data transfer objects (DTOs), and other business logic that isn't a direct server action.
+
+-   **`config.json`**: Your application-specific configuration, like theme colours and fonts.
+
+---
+
+### To learn more
+
+This project is built on the Piko framework. To understand all its features, including the templating language, component model, and advanced features, please refer to the **[official Piko documentation](https://piko.sh/docs/get-started/introduction)**.

@@ -1,0 +1,11 @@
+{
+  "pages": {
+    "pages/home.pk": {
+      "routePatterns": {
+        "en": ""
+      },
+      "packagePath": "testmodule/dist/pages/pages_home_dab9c3dd",
+      "sourcePath": ""
+    }
+  }
+}

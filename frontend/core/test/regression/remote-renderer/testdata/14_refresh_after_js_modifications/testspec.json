@@ -1,0 +1,29 @@
+{
+    "description": "Refresh updates server content with scope preservation",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/refresh",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".container",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".container",
+            "attributes": { "partial": "container_scope page_scope" },
+            "description": "Container preserves parent scope"
+        },
+        {
+            "selector": ".server-item",
+            "attributes": { "partial": "server_item_scope container_scope page_scope" },
+            "description": "Server item inherits parent scopes"
+        }
+    ]
+}

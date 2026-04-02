@@ -1,0 +1,8 @@
+<template>
+    <pml-row>
+        <pml-col>
+            <pml-img src="https://example.com/photo.jpg" alt="A photograph" width="400px" align="center" padding="10px 0">
+            </pml-img>
+        </pml-col>
+    </pml-row>
+</template>

@@ -1,0 +1,5 @@
+{
+    "description": "Tests that custom HTTP method via Method() override is respected in generated code",
+    "packageName": "action_http_method_test",
+    "isPage": true
+}

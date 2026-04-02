@@ -1,0 +1,82 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package auth
+
+import "piko.sh/piko"
+
+type Response struct {
+	IsLoggedIn bool
+	IsAdmin    bool
+	Username   string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	isLoggedIn := false
+	isAdmin := false
+	username := ""
+
+	authState := r.QueryParam("auth")
+	if authState == "user" {
+		isLoggedIn = true
+		username = "JohnDoe"
+	} else if authState == "admin" {
+		isLoggedIn = true
+		isAdmin = true
+		username = "AdminUser"
+	}
+
+	return Response{
+		IsLoggedIn: isLoggedIn,
+		IsAdmin:    isAdmin,
+		Username:   username,
+	}, piko.Metadata{
+		Title: "Authentication State",
+	}, nil
+}
+</script>
+<template>
+	<div class="auth-container">
+		<header class="auth-header">
+			<h1>Authentication Demo</h1>
+		</header>
+		<section class="user-status">
+			<div p-if="state.IsLoggedIn" class="logged-in">
+				<p class="welcome-message">Welcome, {{ state.Username }}!</p>
+				<div p-if="state.IsAdmin" class="admin-badge">
+					<span class="badge admin">Administrator</span>
+				</div>
+				<div p-else class="user-badge">
+					<span class="badge user">Regular User</span>
+				</div>
+			</div>
+			<div p-else class="logged-out">
+				<p class="login-prompt">Please log in to continue</p>
+				<button class="login-btn">Sign In</button>
+			</div>
+		</section>
+		<section class="permissions">
+			<h2>Access Level</h2>
+			<p p-if="state.IsAdmin" class="access-admin">Full administrative access</p>
+			<p p-else class="access-default">Standard access only</p>
+		</section>
+	</div>
+</template>

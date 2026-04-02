@@ -1,0 +1,65 @@
+{
+  "description": "Tests that action.namespace.Name($form) template directive prevents default form submission and dispatches the action via ActionExecutor",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for DOMBinder to bind the form submit handler"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#contact-form[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#contact-form",
+      "goldenFile": "before_submit.html"
+    },
+    {
+      "action": "comment",
+      "value": "Click the submit button - should dispatch action, not navigate"
+    },
+    {
+      "action": "click",
+      "selector": "#send-btn"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify the server action helper displayed the result"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-summary",
+      "expected": "From Alice <alice@test.com>: Hello World"
+    },
+    {
+      "action": "comment",
+      "value": "Verify the page did not navigate (no query params from form submission)"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "document.getElementById('url-check').textContent = window.location.search || 'no-params'; document.getElementById('url-check').style.display = 'block';"
+    },
+    {
+      "action": "checkText",
+      "selector": "#url-check",
+      "expected": "no-params"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit.html"
+    }
+  ]
+}

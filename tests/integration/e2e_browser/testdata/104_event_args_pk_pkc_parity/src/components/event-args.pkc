@@ -1,0 +1,64 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="event-args">
+    <div>
+        <button id="bare-btn" p-on:click="handleBare">Bare</button>
+        <button id="event-btn" p-on:click="handleEvent($event)">Event</button>
+        <button id="empty-btn" p-on:click="handleEmpty()">Empty</button>
+        <button id="arg-btn" p-on:click="handleArg(42)">Arg</button>
+        <button id="mixed-btn" p-on:click="handleMixed(42, $event)">Mixed</button>
+        <span id="bare-result" p-text="state.bareResult"></span>
+        <span id="event-result" p-text="state.eventResult"></span>
+        <span id="empty-result" p-text="state.emptyResult"></span>
+        <span id="arg-result" p-text="state.argResult"></span>
+        <span id="mixed-result" p-text="state.mixedResult"></span>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        bareResult: 'pending' as string,
+        eventResult: 'pending' as string,
+        emptyResult: 'pending' as string,
+        argResult: 'pending' as string,
+        mixedResult: 'pending' as string,
+    };
+
+    function handleBare(event?: Event) {
+        state.bareResult = event?.type ?? 'no-event';
+    }
+
+    function handleEvent(event?: Event) {
+        state.eventResult = event?.type ?? 'no-event';
+    }
+
+    function handleEmpty(event?: Event) {
+        state.emptyResult = event?.type ?? 'no-event';
+    }
+
+    function handleArg(arg1: any, event?: Event) {
+        state.argResult = `${arg1}:${event?.type ?? 'no-event'}`;
+    }
+
+    function handleMixed(arg1: any, event?: Event) {
+        state.mixedResult = `${arg1}:${event?.type ?? 'no-event'}`;
+    }
+</script>

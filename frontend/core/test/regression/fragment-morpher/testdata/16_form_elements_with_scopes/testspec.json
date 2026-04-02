@@ -1,0 +1,24 @@
+{
+    "description": "Form elements preserve scopes while updating",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "input[name='email']",
+            "attributes": { "partial": "input_scope form_scope modal_scope" },
+            "description": "Input preserves scope chain"
+        },
+        {
+            "selector": "select",
+            "attributes": { "partial": "select_scope form_scope modal_scope" },
+            "description": "Select preserves scope chain"
+        },
+        {
+            "selector": "textarea",
+            "attributes": { "partial": "textarea_scope form_scope modal_scope" },
+            "description": "Textarea preserves scope chain"
+        }
+    ]
+}

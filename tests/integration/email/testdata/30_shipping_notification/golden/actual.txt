@@ -1,0 +1,51 @@
+SwiftBox
+
+📦
+
+Your Order Has Shipped!
+
+Great news! Your order #ORD-9156 is on its way.
+
+✓
+
+Ordered
+
+✓
+
+Packed
+
+✓
+
+Shipped
+
+○
+
+Delivered
+
+Tracking Number:
+
+SB-2026-041-7829
+
+Estimated Delivery:
+
+3-5 April 2026
+
+ Track Package (https://example.com/track/SB-2026-041-7829)
+
+Delivery Address
+
+Jane Smith
+
+42 Oak Lane
+
+Bristol, BS1 4QA
+
+Order Summary
+
+1x Wireless Headphones
+
+1x USB-C Cable
+
+Total: £67.98
+
+This is an automated shipping notification from SwiftBox. Need help? Contact support@swiftbox.example.com

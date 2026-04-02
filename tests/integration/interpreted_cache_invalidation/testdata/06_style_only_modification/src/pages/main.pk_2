@@ -1,0 +1,29 @@
+<template>
+<h1>Style Test</h1>
+<p>Script unchanged, only style changes.</p>
+</template>
+
+<style>
+body {
+	background: linear-gradient(to bottom, #ffffff, #e0e0e0);
+	color: #222;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	padding: 20px;
+}
+
+h1 {
+	color: #0066cc;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

@@ -1,0 +1,68 @@
+--- PACKAGE: testcase_18_promotion_external_method ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 18_promotion_external_method/src/main.go
+    - import "currency"           -> github.com/bojanz/currency
+
+[Named Types]
+  > type Price
+    - Defined In:      18_promotion_external_method/src/main.go
+    - TypeString:      main.Price
+    - Underlying:      struct{currency.Amount; Locale string}
+    - Stringability:   2
+    - Fields:
+      - Amount               currency.Amount (embedded)
+        (Canonical Package: github.com/bojanz/currency)
+      - Locale               string
+    - Methods:
+      - func (T) Add             func(currency.Amount) (currency.Amount, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) BigInt          func() *big.Int
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Cmp             func(currency.Amount) (int, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Convert         func(string, string) (currency.Amount, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) CurrencyCode    func() string
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Div             func(string) (currency.Amount, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Equal           func(currency.Amount) bool
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Int64           func() (int64, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) IsNegative      func() bool
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) IsPositive      func() bool
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) IsZero          func() bool
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) MarshalBinary   func() ([]byte, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) MarshalJSON     func() ([]byte, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Mul             func(string) (currency.Amount, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Number          func() string
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Round           func() currency.Amount
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) RoundTo         func(uint8, currency.RoundingMode) currency.Amount
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (*T) Scan            func(interface{}) error
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) String          func() string
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Sub             func(currency.Amount) (currency.Amount, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (*T) UnmarshalBinary func([]byte) error
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (*T) UnmarshalJSON   func([]byte) error
+        (Promoted from: github.com/bojanz/currency.Amount)
+      - func (T) Value           func() (driver.Value, error)
+        (Promoted from: github.com/bojanz/currency.Amount)
+
+[Package-Level Functions]
+  (none)

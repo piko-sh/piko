@@ -1,0 +1,26 @@
+{
+  "description": "Tests that types are correctly qualified when a package's declared name differs from its directory name.",
+  "moduleName": "testcase_33_pkg_name_mismatch",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_33_pkg_name_mismatch",
+    "testcase_33_pkg_name_mismatch/api/v1"
+  ],
+  "assertions": [
+    {
+      "description": "The package at path '.../api/v1' should have the name 'api'.",
+      "select": "packages.testcase_33_pkg_name_mismatch/api/v1.name",
+      "expect": "api"
+    },
+    {
+      "description": "The field's TypeString must use the declared package name 'api', not 'v1'.",
+      "select": "packages.testcase_33_pkg_name_mismatch.named_types.Request.fields.0.type_string",
+      "expect": "api.Response"
+    },
+    {
+      "description": "The field's PackagePath must still be the full, directory-based import path.",
+      "select": "packages.testcase_33_pkg_name_mismatch.named_types.Request.fields.0.pkg_path",
+      "expect": "testcase_33_pkg_name_mismatch/api/v1"
+    }
+  ]
+}

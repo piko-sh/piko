@@ -1,0 +1,3 @@
+{
+  "description": "Read-only query detection: plain SELECT (read-only), SELECT FOR UPDATE (not read-only), SELECT FOR SHARE (not read-only), LOCK IN SHARE MODE (not read-only), INSERT (not read-only), UPDATE (not read-only), DELETE (not read-only)."
+}

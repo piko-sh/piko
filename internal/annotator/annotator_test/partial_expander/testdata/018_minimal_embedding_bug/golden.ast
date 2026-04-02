@@ -1,0 +1,38 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="table-wrapper" [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk PARTIAL InvKey: data_table_3e7317fb Package: partials_data_table_a736e31a InvPackage: main_aaf9a2e0]>
+  <table class="data-table" [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+    <thead [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+      <tr [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+        <th [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+          "Name"
+        </th>
+        <th [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+          "Status"
+        </th>
+      </tr>
+    </thead>
+    <tbody [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+      <tr [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+        <td [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+          "Item 1"
+        </td>
+        <td [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+          "Active"
+        </td>
+      </tr>
+      <tr [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+        <td [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+          "Item 2"
+        </td>
+        <td [ANNOTATIONS: OriginPackage: partials_data_table_a736e31a OriginPath: partials/data_table.pk]>
+          "Inactive"
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+--- END AST DUMP ---
+*/

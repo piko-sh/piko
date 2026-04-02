@@ -1,0 +1,3 @@
+{
+  "description": "A div with a class matched by a CSS rule. Verifies CSS selector matching and percentage width resolution."
+}

@@ -1,0 +1,9 @@
+{
+  "product": {
+    "Active": true,
+    "ID": 1,
+    "Name": "Widget",
+    "Price": "29.99",
+    "Sku": "WGT-001"
+  }
+}

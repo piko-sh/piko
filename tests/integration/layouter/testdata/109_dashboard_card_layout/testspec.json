@@ -1,0 +1,7 @@
+{
+    "description": "Verifies dashboard layout: grid-template-areas with flex card row, min/max-width constraints, mixed border-box and content-box sizing.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

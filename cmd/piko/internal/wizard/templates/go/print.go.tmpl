@@ -1,0 +1,34 @@
+package greeting
+
+import "piko.sh/piko"
+
+// PrintAction handles GET requests that return a greeting message.
+//
+// The struct name determines how the action is called from a template:
+//
+//	action.greeting.Print()
+//	       ────┬───  ──┬──
+//	       package    struct name minus "Action" suffix
+//
+// Embedding piko.ActionMetadata gives the action access to helper methods:
+//   - Ctx()      - the request context (for timeouts, cancellation, tracing)
+//   - Request()  - the raw *http.Request (for headers, cookies, IP address)
+//   - Response() - the http.ResponseWriter (for setting headers, status codes)
+type PrintAction struct {
+	piko.ActionMetadata
+}
+
+// PrintInput takes no parameters.
+type PrintInput struct{}
+
+// PrintResponse defines the data returned by the action.
+type PrintResponse struct {
+	Message string `json:"message"`
+}
+
+// Call returns a hello world greeting.
+func (a PrintAction) Call(_ PrintInput) (PrintResponse, error) {
+	return PrintResponse{
+		Message: "Hello World!",
+	}, nil
+}

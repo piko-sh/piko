@@ -1,0 +1,7 @@
+{
+    "description": "Verifies position: absolute with top/left/right offsets relative to a positioned ancestor.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

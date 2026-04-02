@@ -1,0 +1,5 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return null;
+    return (function() { {{jsRaw .JS}} }).call(el);
+})()

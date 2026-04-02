@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="card" [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_price_100_05e4dc0a Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+  <RichText>
+    {{ FormatPrice(props.Price) }}
+  </RichText>
+</div>
+
+--- END AST DUMP ---
+*/

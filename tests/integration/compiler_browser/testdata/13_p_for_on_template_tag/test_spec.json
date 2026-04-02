@@ -1,0 +1,27 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "p-for-template \u003e\u003e\u003e dt",
+    "expected": "2"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-for-template \u003e\u003e\u003e dd",
+    "expected": "2"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-template \u003e\u003e\u003e dt:first-of-type",
+    "expected": "HTML"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-template \u003e\u003e\u003e dd:first-of-type",
+    "expected": "HyperText Markup Language"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-template \u003e\u003e\u003e dd:last-of-type",
+    "expected": "Cascading Style Sheets"
+  }
+]

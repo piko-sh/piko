@@ -1,0 +1,264 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Ricotta Be Kidding Me Lasagna"
+            server.current-page="recipes">
+
+            <!-- Hero Image -->
+            <piko:img src="@/lib/images/recipe-ricotta-be-kidding-lasagna.jpg" alt="Ricotta Be Kidding Me Lasagna" class="recipe-hero"></piko:img>
+
+            <!-- Recipe Header -->
+            <div class="recipe-header">
+                <h1 class="recipe-title">Ricotta Be Kidding Me Lasagna</h1>
+                <p class="recipe-pun">You ricotta be kidding me - three cheese layers!</p>
+
+                <div class="recipe-meta-row">
+                    <m3e-chip>Ricotta + Parmesan + Mozzarella</m3e-chip>
+                    <m3e-chip variant="outlined">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="14" height="14" slot="icon"></piko:svg>
+                        90 mins
+                    </m3e-chip>
+                    <m3e-chip variant="outlined">Medium</m3e-chip>
+                    <m3e-chip variant="outlined">8 servings</m3e-chip>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-row gap-sm">
+                    <m3e-split-button variant="filled">
+                        Save Recipe
+                        <m3e-menu slot="menu">
+                            <m3e-menu-item>Add to Meal Plan</m3e-menu-item>
+                            <m3e-menu-item>Share Recipe</m3e-menu-item>
+                            <m3e-menu-item>Print</m3e-menu-item>
+                        </m3e-menu>
+                    </m3e-split-button>
+
+                    <m3e-tooltip text="Add to favourites">
+                        <m3e-icon-button toggle>
+                            <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        </m3e-icon-button>
+                    </m3e-tooltip>
+
+                    <m3e-switch></m3e-switch>
+                    <span class="text-muted" style="font-size: 0.875rem;">Imperial</span>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="recipe-tabs-wrapper">
+                <m3e-tabs>
+                    <m3e-tab selected>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>
+                        Reviews
+                        <m3e-badge value="7" slot="badge"></m3e-badge>
+                    </m3e-tab>
+                </m3e-tabs>
+            </div>
+
+            <!-- Ingredients Panel -->
+            <div class="recipe-content">
+                <div class="flex-between mb-md">
+                    <h3>Ingredients</h3>
+                    <div class="flex-row gap-sm">
+                        <span class="text-muted" style="font-size: 0.875rem;">Servings:</span>
+                        <m3e-slider discrete min="1" max="12" value="8" step="1" style="width: 120px;"></m3e-slider>
+                    </div>
+                </div>
+
+                <m3e-list>
+                    <m3e-list-item>12 dried lasagna sheets</m3e-list-item>
+                    <m3e-list-item>500g ricotta cheese</m3e-list-item>
+                    <m3e-list-item>100g parmesan, finely grated</m3e-list-item>
+                    <m3e-list-item>250g mozzarella, sliced or grated</m3e-list-item>
+                    <m3e-list-item>500g beef mince</m3e-list-item>
+                    <m3e-list-item>2 tins (400g each) chopped tomatoes</m3e-list-item>
+                    <m3e-list-item>1 large onion, finely diced</m3e-list-item>
+                    <m3e-list-item>3 cloves garlic, minced</m3e-list-item>
+                    <m3e-list-item>1 large carrot, finely diced</m3e-list-item>
+                    <m3e-list-item>2 sticks celery, finely diced</m3e-list-item>
+                    <m3e-list-item>50g butter</m3e-list-item>
+                    <m3e-list-item>50g plain flour</m3e-list-item>
+                    <m3e-list-item>600ml whole milk</m3e-list-item>
+                    <m3e-list-item>A pinch of freshly grated nutmeg</m3e-list-item>
+                    <m3e-list-item>1 tsp dried oregano</m3e-list-item>
+                    <m3e-list-item>A handful of fresh basil leaves</m3e-list-item>
+                    <m3e-list-item>Salt, to taste</m3e-list-item>
+                    <m3e-list-item>Freshly ground black pepper, to taste</m3e-list-item>
+                    <m3e-list-item>2 tbsp olive oil</m3e-list-item>
+                </m3e-list>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Method Steps -->
+                <h3 class="mb-md">Method</h3>
+                <ol class="step-list">
+                    <li>Heat the olive oil in a large pan over medium heat. Add the onion, carrot, and celery, cooking for 5 minutes until softened. Add the garlic and cook for another minute. Then add the beef mince and brown it well, breaking it up with a wooden spoon. This is honest, wholesome work. You&rsquo;re building layers of flavour. You&rsquo;re also about to build actual layers. Stir in the tinned tomatoes, oregano, salt, and pepper. Simmer for 30 minutes.</li>
+                    <li>While the bolognese simmers, make the b&eacute;chamel. Melt butter, stir in flour, cook for 1 minute. Gradually add the milk, whisking continuously. Cook for 5&ndash;7 minutes until thick and velvety. Season with nutmeg. Now &mdash; taste the parmesan to check it&rsquo;s suitable for the dish. Have another taste to confirm. Actually, that&rsquo;s really good parmesan. One more piece. Okay, stop. You need that for the lasagna.</li>
+                    <li>In a bowl, mix the ricotta with half the grated parmesan. Season with salt and pepper. Stir it until smooth. Taste it. Oh no. Oh no, that&rsquo;s incredible. This is just the filling and it&rsquo;s already better than most things you&rsquo;ve eaten this week. Stay focused.</li>
+                    <li>Preheat the oven to 180&deg;C. Now begins the sacred ritual of layering. Bolognese on the bottom, then lasagna sheets, then ricotta, then b&eacute;chamel. Repeat three times. This is your masterwork. Each layer is a chapter in the story of cheese. Try not to eat the ricotta mix between layers. We believe in you. Mostly.</li>
+                    <li>Scatter the mozzarella and remaining parmesan over the top. Step back. Behold what you have built. A monument to cheese. An edible cathedral. If the parmesan pile looks a bit thin, it&rsquo;s because you ate some in step 2 and you know it.</li>
+                    <li>Bake for 40 minutes until golden and bubbling. If it browns too quickly, cover with foil &mdash; we&rsquo;re going for &ldquo;golden perfection,&rdquo; not &ldquo;charcoal surprise.&rdquo;</li>
+                    <li>Remove from the oven and rest for 10 minutes. Yes, ten whole minutes. We know the smell is making you feral. We know you&rsquo;re hovering over it with a spatula like a wolf. But resting lets the layers set so your slices look neat and not like a beautiful cheesy landslide. Garnish with fresh basil. Serve. Accept applause.</li>
+                </ol>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Nutrition -->
+                <h3 class="mb-md">Nutrition (per serving)</h3>
+                <div>
+                    <m3e-list-item>Calories: 520 kcal</m3e-list-item>
+                    <m3e-list-item>Protein: 32g</m3e-list-item>
+                    <m3e-list-item>Fat: 28g</m3e-list-item>
+                    <m3e-list-item>Carbohydrates: 38g</m3e-list-item>
+                </div>
+
+                <m3e-divider class="mt-lg mb-lg"></m3e-divider>
+
+                <!-- Reviews -->
+                <h3 class="mb-md">Reviews</h3>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>TripleCheeseFanatic</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">Three cheeses?! You ricotta be kidding me! But seriously, this is the best lasagna I've ever made at home. The layers are perfect and the b&eacute;chamel takes it to another level.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SundaySupperClub</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">This feeds a crowd beautifully. I made it for a family gathering of ten and there wasn't a single portion left. The resting time is essential - don't skip it!</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>BechamelBoss</strong>
+                        <m3e-chip variant="outlined">4 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">The b&eacute;chamel makes it. I've tried lasagna recipes without it and they just can't compare. This one is creamy, cheesy, and comforting in all the right ways.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>RicottaRobber</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I ate all the ricotta with a spoon before it made it into the lasagna. Had to go buy more. Ate half of that too. Third tub made it into the dish but I won&rsquo;t pretend I didn&rsquo;t stand at the counter eating spoonfuls between layers. The lasagna was thin. My happiness was not.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>LawyerByDay</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I made this for a dinner party. One guest said &ldquo;I think I can taste four cheeses.&rdquo; There were seven. I will never reveal my methods. The lasagna will go to the grave with me. Along with the empty cheese wrappers I hid under the recycling.</p>
+                </m3e-card>
+                <m3e-card variant="outlined" class="mb-md" style="padding: 20px 24px;">
+                    <div class="flex-between">
+                        <strong>SentientLasagna</strong>
+                        <m3e-chip variant="outlined">5 stars</m3e-chip>
+                    </div>
+                    <p class="mt-sm">I added so much cheese that when I opened the oven, the lasagna looked at me. It had achieved sentience. It whispered &ldquo;more parmesan.&rdquo; I obliged. We are friends now. Five stars.</p>
+                </m3e-card>
+
+                <!-- Add Review -->
+                <m3e-card variant="outlined" class="mt-lg" style="padding: 20px 24px;">
+                    <h4 class="mb-sm">Leave a Review</h4>
+                    <m3e-text-field variant="outlined" label="Your name" supporting-text="How should we address you?" class="mb-sm" style="width: 100%;"></m3e-text-field>
+                    <m3e-text-field variant="outlined" label="Your review" supporting-text="500 characters max" max-length="500" type="textarea" rows="3" style="width: 100%;"></m3e-text-field>
+                    <div class="flex-row mt-md gap-md" style="align-items: flex-end;">
+                        <m3e-select label="Rating">
+                            <option value="5">5 - The mice approve!</option>
+                            <option value="4">4 - Gouda job!</option>
+                            <option value="3">3 - Not bad, not bad</option>
+                            <option value="2">2 - Needs more cheese</option>
+                            <option value="1">1 - Un-brie-lievably disappointing</option>
+                        </m3e-select>
+                        <m3e-button variant="filled">Submit</m3e-button>
+                    </div>
+                </m3e-card>
+            </div>
+
+            <!-- Squeak Peek Bottom Sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Squeak Peek - Cooking Tips</h3>
+                <m3e-list>
+                    <m3e-list-item>No-boil lasagna sheets save time - just make sure your sauces are slightly thinner so the pasta absorbs enough moisture.</m3e-list-item>
+                    <m3e-list-item>Let it rest for at least 10 minutes before slicing. This is the secret to neat, clean portions rather than a cheesy avalanche.</m3e-list-item>
+                    <m3e-list-item>Make the bolognese a day ahead for deeper flavour. It thickens beautifully overnight and the spices meld together.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese Fact Dialog -->
+            <m3e-dialog p-ref="cheeseFact">
+                <h3 slot="headline">Cheese Fact!</h3>
+                <p>Ricotta is technically not a cheese - it's made from whey, the liquid left over from making other cheeses. So it's the cheese of cheeses!</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking Timer FAB -->
+            <m3e-tooltip text="Set cooking timer" position="left">
+                <m3e-fab variant="tertiary" style="position: fixed; bottom: 80px; right: 24px;" p-on:click="openTimer">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Ricotta Be Kidding Me Lasagna - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openTips() {
+        const sheet = pk.refs.tipsSheet;
+        if (sheet) { sheet.show(); }
+    }
+
+    function closeCheeseFact() {
+        const dialog = pk.refs.cheeseFact;
+        if (dialog) { dialog.close(); }
+    }
+
+    function openTimer() {
+        const snackbar = pk.refs.snackbar;
+        if (snackbar) { snackbar.show('Timer feature coming soon! Melting in progress...'); }
+    }
+</script>

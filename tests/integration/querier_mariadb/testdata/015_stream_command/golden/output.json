@@ -1,0 +1,58 @@
+{
+  "all_events": [
+    {
+      "ID": 1,
+      "Name": "login",
+      "Timestamp": 1000
+    },
+    {
+      "ID": 2,
+      "Name": "logout",
+      "Timestamp": 2000
+    },
+    {
+      "ID": 3,
+      "Name": "login",
+      "Timestamp": 3000
+    },
+    {
+      "ID": 4,
+      "Name": "purchase",
+      "Timestamp": 4000
+    },
+    {
+      "ID": 5,
+      "Name": "login",
+      "Timestamp": 5000
+    }
+  ],
+  "first_two": [
+    {
+      "ID": 1,
+      "Name": "login",
+      "Timestamp": 1000
+    },
+    {
+      "ID": 2,
+      "Name": "logout",
+      "Timestamp": 2000
+    }
+  ],
+  "login_events": [
+    {
+      "ID": 1,
+      "Name": "login",
+      "Timestamp": 1000
+    },
+    {
+      "ID": 3,
+      "Name": "login",
+      "Timestamp": 3000
+    },
+    {
+      "ID": 5,
+      "Name": "login",
+      "Timestamp": 5000
+    }
+  ]
+}

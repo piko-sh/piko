@@ -1,0 +1,3 @@
+{
+  "description": "Named parameters using :name syntax in MySQL queries. Tests that named parameter references are correctly parsed and typed from column context."
+}

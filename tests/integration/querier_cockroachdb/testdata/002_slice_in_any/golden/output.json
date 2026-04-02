@@ -1,0 +1,16 @@
+{
+  "fetch_by_statuses": [
+    {
+      "ID": "t1",
+      "Status": "PENDING"
+    },
+    {
+      "ID": "t2",
+      "Status": "PENDING"
+    },
+    {
+      "ID": "t6",
+      "Status": "RETRYING"
+    }
+  ]
+}

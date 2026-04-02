@@ -1,0 +1,33 @@
+{
+  "description": "Tests piko.sse.subscribe() frontend API connecting to an action SSE endpoint.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#start-btn"
+    },
+    {
+      "action": "wait",
+      "value": "5000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#sse-state",
+      "expected": "open"
+    },
+    {
+      "action": "checkText",
+      "selector": "#message-count",
+      "expected": "3"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "description": "Tests a local generic type instantiated with a type from an external dependency.",
+  "moduleName": "testcase_17_generics_external_arg",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_17_generics_external_arg"
+  ],
+  "assertions": [
+    {
+      "description": "The field's TypeString should correctly show the generic instantiation with the qualified external type.",
+      "select": "packages.testcase_17_generics_external_arg.named_types.Request.fields.0.type_string",
+      "expect": "main.Wrapper[uuid.UUID]"
+    },
+    {
+      "description": "The field's pkg_path should reflect where the base type (Wrapper) is defined, not the generic argument.",
+      "select": "packages.testcase_17_generics_external_arg.named_types.Request.fields.0.pkg_path",
+      "expect": "testcase_17_generics_external_arg"
+    },
+    {
+      "description": "The composite part's pkg_path should reflect where the generic argument (uuid.UUID) is defined.",
+      "select": "packages.testcase_17_generics_external_arg.named_types.Request.fields.0.composite_parts.0.pkg_path",
+      "expect": "github.com/google/uuid"
+    }
+  ]
+}

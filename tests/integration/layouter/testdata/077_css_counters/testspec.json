@@ -1,0 +1,7 @@
+{
+    "description": "Verifies CSS counters with counter-reset, counter-increment, and counter() in pseudo-element content.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

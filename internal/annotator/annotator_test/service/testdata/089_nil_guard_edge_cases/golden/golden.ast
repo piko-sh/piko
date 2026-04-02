@@ -1,0 +1,64 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div [p-if: ((props.A != nil) || (props.B != nil))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="or-not-guarded-a" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.A.Value }}
+      </RichText>
+    </span>
+    <span id="or-not-guarded-b" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.B.Value }}
+      </RichText>
+    </span>
+  </div>
+  <div [p-if: (props.Outer != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div [p-if: (props.Outer.Middle != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <span id="triple-nested-partial" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ props.Outer.Middle.Value }}
+        </RichText>
+      </span>
+      <span id="triple-nested-unguarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ props.Outer.Middle.Inner.Value }}
+        </RichText>
+      </span>
+    </div>
+  </div>
+  <div [p-if: ((props.Valid != nil) && props.Enabled)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="and-with-unrelated" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Valid.Name }}
+      </RichText>
+    </span>
+  </div>
+  <div [p-if: ((props.A != nil) && (props.B != nil))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="both-guarded-a" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.A.Value }}
+      </RichText>
+    </span>
+    <span id="both-guarded-b" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.B.Value }}
+      </RichText>
+    </span>
+  </div>
+  <div [p-if: (props.Outer != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div [p-if: (props.Outer.Middle != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <div [p-if: (props.Outer.Middle.Inner != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <span id="fully-guarded-deep" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+          <RichText>
+            {{ props.Outer.Middle.Inner.Value }}
+          </RichText>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

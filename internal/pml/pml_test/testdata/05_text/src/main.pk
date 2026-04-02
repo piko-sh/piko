@@ -1,0 +1,9 @@
+<template>
+    <pml-row>
+        <pml-col>
+            <pml-p font-size="16px" line-height="1.5" color="#333333" padding="10px 25px">
+                This is a paragraph of text with custom styling applied.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>

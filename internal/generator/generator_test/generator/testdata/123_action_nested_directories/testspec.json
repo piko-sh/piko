@@ -1,0 +1,5 @@
+{
+    "description": "Tests that actions in deeply nested directories generate correct names like admin.users.delete",
+    "packageName": "action_nested_directories_test",
+    "isPage": true
+}

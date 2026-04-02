@@ -1,0 +1,16 @@
+{
+  "description": "Partial should be able to reference its own exported functions in template expressions.",
+  "shouldError": false,
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "div.card",
+      "description": "The interpolation in the partial should resolve FormatPrice as a function call.",
+      "assertOnInterpolation": {
+        "rawExpression": "FormatPrice(props.Price)",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "by_author": [
+    {
+      "Author": "Alice",
+      "ID": 1,
+      "Title": "Introduction to MariaDB"
+    },
+    {
+      "Author": "Alice",
+      "ID": 3,
+      "Title": "MariaDB Performance Tuning"
+    }
+  ],
+  "by_title": {
+    "Author": "Bob",
+    "ID": 2,
+    "Title": "Advanced SQL Queries"
+  },
+  "fulltext": [
+    {
+      "Author": "Alice",
+      "ID": 1,
+      "Title": "Introduction to MariaDB"
+    },
+    {
+      "Author": "Alice",
+      "ID": 3,
+      "Title": "MariaDB Performance Tuning"
+    }
+  ]
+}

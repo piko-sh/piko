@@ -1,0 +1,19 @@
+--- PACKAGE: testcase_44_pointer_to_map ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 44_pointer_to_map/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Response
+    - Defined In:      44_pointer_to_map/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{Headers *map[string][]string}
+    - Stringability:   0
+    - Fields:
+      - Headers              *map[string][]string
+
+[Package-Level Functions]
+  (none)

@@ -1,0 +1,3 @@
+{
+  "description": "A small, single page with one dynamic interpolation. Tests baseline pipeline overhead."
+}

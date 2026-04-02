@@ -1,0 +1,304 @@
+{
+  "description": "Stress test for p-ref system with deeply nested partials (4 levels), multiple RemoteRender calls, cross-slot ref access, and complex partial hierarchies. Tests that refs work correctly regardless of nesting depth and dynamic loading.",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "PK Refs Chaos Stress Test"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "comment",
+      "value": "Test page-level refs and cross-slot access"
+    },
+    {
+      "action": "click",
+      "selector": "#page-action"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#page-status",
+      "expected": "action-1"
+    },
+    {
+      "action": "click",
+      "selector": "#page-header-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#page-card-body",
+      "expected": "body-1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#page-card-footer",
+      "expected": "Footer 1"
+    },
+    {
+      "action": "comment",
+      "value": "Load level_one via RemoteRender"
+    },
+    {
+      "action": "click",
+      "selector": "#load-everything"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".level-one"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_load_l1.html"
+    },
+    {
+      "action": "comment",
+      "value": "Test Level 1 refs"
+    },
+    {
+      "action": "click",
+      "selector": "#l1-toggle"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l1-value",
+      "expected": "TOGGLED"
+    },
+    {
+      "action": "comment",
+      "value": "Load level_two via RemoteRender"
+    },
+    {
+      "action": "click",
+      "selector": "#l1-load-l2"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".level-two"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_load_l2.html"
+    },
+    {
+      "action": "comment",
+      "value": "Test Level 2 refs"
+    },
+    {
+      "action": "click",
+      "selector": "#l2-action"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l2-status",
+      "expected": "action 1x"
+    },
+    {
+      "action": "comment",
+      "value": "Load level_three via RemoteRender into chaos-card"
+    },
+    {
+      "action": "click",
+      "selector": "#l2-load-l3"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#l3-increment"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_load_l3.html"
+    },
+    {
+      "action": "comment",
+      "value": "Test Level 3 refs (cross-slot within chaos-card)"
+    },
+    {
+      "action": "click",
+      "selector": "#l3-increment"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l3-counter",
+      "expected": "1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l3-header-status",
+      "expected": "L3 Count: 1"
+    },
+    {
+      "action": "click",
+      "selector": "#l3-header-toggle"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l3-header-status",
+      "expected": "TOGGLED!"
+    },
+    {
+      "action": "click",
+      "selector": "#l3-update-all"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l3-counter",
+      "expected": "999"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l3-header-status",
+      "expected": "ALL UPDATED"
+    },
+    {
+      "action": "checkText",
+      "selector": "#l3-footer-msg",
+      "expected": "Footer Updated!"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_l3_actions.html"
+    },
+    {
+      "action": "comment",
+      "value": "Load remote_inject into L2"
+    },
+    {
+      "action": "click",
+      "selector": "#l2-load-remote"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".remote-inject"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_l2_remote.html"
+    },
+    {
+      "action": "comment",
+      "value": "Test remote partial refs (cross-slot in nested chaos-card)"
+    },
+    {
+      "action": "click",
+      "selector": "#remote-action"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#remote-value",
+      "expected": "remote-1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#nested-header",
+      "expected": "Remote Action 1"
+    },
+    {
+      "action": "click",
+      "selector": "#nested-footer-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "#nested-counter",
+      "expected": "1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#nested-header",
+      "expected": "Nested: 1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#remote-value",
+      "expected": "nested-action-1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_remote_actions.html"
+    },
+    {
+      "action": "comment",
+      "value": "Load second instance of remote_inject at L1 level"
+    },
+    {
+      "action": "click",
+      "selector": "#l1-load-remote"
+    },
+    {
+      "action": "wait",
+      "value": "400"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "final.html"
+    }
+  ]
+}

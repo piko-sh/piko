@@ -1,0 +1,1 @@
+{"description": "CSS specificity ordering with competing selectors. Verifies that more-specific selectors override less-specific ones and complex selectors (descendant, child) match correctly."}

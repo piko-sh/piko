@@ -1,0 +1,22 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".modal-wrapper[partial~=partials_modal_wrapper_d5dc2916]{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:1000}.modal-wrapper.open[partial~=partials_modal_wrapper_d5dc2916]{display:flex;align-items:center;justify-content:center}.modal-backdrop[partial~=partials_modal_wrapper_d5dc2916]{position:absolute;top:0;left:0;width:100%;height:100%;background-color:#00000080}.modal-content[partial~=partials_modal_wrapper_d5dc2916]{position:relative;background:#fff;padding:2rem;border-radius:8px;max-width:500px;width:90%}.modal-content.active[partial~=partials_modal_wrapper_d5dc2916]{box-shadow:0 4px 20px #0000004d}.modal-backdrop.visible[partial~=partials_modal_wrapper_d5dc2916]{opacity:1}",
+      "jsArtefactIds": [
+        "pk-js/partials/modal-wrapper.js"
+      ],
+      "packagePath": "testcase_086_css_scoping_runtime_class/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

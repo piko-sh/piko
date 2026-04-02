@@ -1,0 +1,33 @@
+{
+  "description": "SSE streaming progress tracker - action sends 5 progress events and a complete event via StreamProgress",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#start-btn"
+    },
+    {
+      "action": "wait",
+      "value": "5000"
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='status']",
+      "expected": "complete"
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='progress_text']",
+      "expected": "100%"
+    }
+  ]
+}

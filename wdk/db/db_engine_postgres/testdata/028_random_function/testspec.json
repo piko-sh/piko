@@ -1,0 +1,3 @@
+{
+  "description": "RANDOM() function: ORDER BY RANDOM() should be accepted and LIMIT with a parameter should infer integer type."
+}

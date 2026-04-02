@@ -1,0 +1,33 @@
+{
+  "description": "Reproduces bug where generic field access in slotted content resolves to wrong Response type. The main page uses a layout partial with slotted content that accesses a generic field (SearchResult[T]). The type resolver should use the page's Response type, not the layout's Response type.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "div[p-for]",
+      "description": "The loop over state.Results should resolve Results from the search page's Response, not the layout's Response.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.Results",
+          "resolvedTypeIs": "[]runtime.SearchResult[models.Doc]",
+          "description": "state.Results must resolve to the search page's Response.Results field, which is a generic slice. Note: piko.SearchResult is an alias to runtime.SearchResult."
+        },
+        {
+          "rawExpression": "result",
+          "resolvedTypeIs": "runtime.SearchResult[models.Doc]",
+          "description": "Loop variable should be correctly typed as the generic SearchResult (resolved through piko alias)."
+        },
+        {
+          "rawExpression": "result.Item",
+          "resolvedTypeIs": "models.Doc",
+          "description": "Accessing the generic Item field should unwrap to the concrete type."
+        },
+        {
+          "rawExpression": "result.Item.Title",
+          "resolvedTypeIs": "string",
+          "description": "Should access fields on the unwrapped generic type."
+        }
+      ]
+    }
+  ]
+}

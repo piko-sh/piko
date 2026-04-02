@@ -1,0 +1,45 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div data-layout-id="parent-small" style="box-sizing: content-box; width: 200px; height: 100px; margin: 0; padding: 10px;">
+    <div data-layout-id="child-large" style="box-sizing: content-box; width: 400px; height: 200px; margin: 0; padding: 0;"></div>
+  </div>
+  <div data-layout-id="neg-parent" style="box-sizing: content-box; width: 300px; height: 80px; margin: 20px 0 0 0; padding: 10px; position: relative;">
+    <div data-layout-id="neg-child" style="box-sizing: content-box; width: 200px; height: 60px; margin: -30px 0 0 -40px; padding: 0;"></div>
+  </div>
+  <div data-layout-id="abs-parent" style="box-sizing: content-box; width: 200px; height: 100px; margin: 20px 0 0 0; padding: 0; position: relative;">
+    <div data-layout-id="abs-child" style="box-sizing: content-box; width: 300px; height: 150px; position: absolute; top: -20px; left: -30px; margin: 0; padding: 0;"></div>
+    <div data-layout-id="abs-sibling" style="box-sizing: content-box; width: 100px; height: 50px; margin: 0; padding: 0;"></div>
+  </div>
+  <div data-layout-id="after-all" style="box-sizing: content-box; width: 300px; height: 40px; margin: 20px 0 0 0; padding: 0;"></div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Overflow Child Exceeds Parent Test"}, nil
+}
+</script>

@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of interfaces, including embedded interfaces.",
+  "moduleName": "testcase_11_interfaces",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_11_interfaces"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Log' method on 'Logger' should have the correct signature.",
+      "select": "packages.testcase_11_interfaces.named_types.Logger.methods.0.signature.params.0",
+      "expect": "string"
+    },
+    {
+      "description": "The 'Log' method should return 'error'.",
+      "select": "packages.testcase_11_interfaces.named_types.Logger.methods.0.signature.results.0",
+      "expect": "error"
+    },
+    {
+      "description": "The 'Service' interface should have a 'Close' method from io.Closer.",
+      "select": "packages.testcase_11_interfaces.named_types.Service.methods.0.name",
+      "expect": "Close"
+    },
+    {
+      "description": "The 'Service' interface should have a 'Log' method.",
+      "select": "packages.testcase_11_interfaces.named_types.Service.methods.1.name",
+      "expect": "Log"
+    }
+  ]
+}

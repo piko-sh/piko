@@ -1,0 +1,29 @@
+{
+  "tree": [
+    {
+      "Depth": 0,
+      "ID": 1,
+      "Name": "Root"
+    },
+    {
+      "Depth": 1,
+      "ID": 2,
+      "Name": "Child A"
+    },
+    {
+      "Depth": 1,
+      "ID": 3,
+      "Name": "Child B"
+    },
+    {
+      "Depth": 2,
+      "ID": 4,
+      "Name": "Grandchild A1"
+    },
+    {
+      "Depth": 2,
+      "ID": 5,
+      "Name": "Grandchild B1"
+    }
+  ]
+}

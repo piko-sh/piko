@@ -1,0 +1,3 @@
+{
+  "description": "COUNT over a derived table subquery. Validates that nested aggregate-over-subquery does not panic and correctly infers int8 return type."
+}

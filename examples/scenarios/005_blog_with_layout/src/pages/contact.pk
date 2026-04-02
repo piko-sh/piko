@@ -1,0 +1,178 @@
+<template>
+  <div id="app">
+    <piko:partial is="blog_layout"
+      :server.title="state.Title"
+      :server.description="state.Description"
+      server.current-page="contact"
+    >
+
+      <section class="contact-intro">
+        <p>We would love to hear from you. Whether you have a question about Piko, want to report a bug, or just want to say hello, here is how to reach us.</p>
+      </section>
+
+      <section class="contact-methods" id="contact-info">
+        <div class="contact-card">
+          <piko:svg src="@/lib/icons/email.svg" class="contact-icon"></piko:svg>
+          <div class="contact-detail">
+            <h3>Email</h3>
+            <p id="contact-email">hello@example.com</p>
+          </div>
+        </div>
+
+        <div class="contact-card">
+          <piko:svg src="@/lib/icons/phone.svg" class="contact-icon"></piko:svg>
+          <div class="contact-detail">
+            <h3>Phone</h3>
+            <p id="contact-phone">+44 117 496 0000</p>
+          </div>
+        </div>
+
+        <div class="contact-card">
+          <piko:svg src="@/lib/icons/location.svg" class="contact-icon"></piko:svg>
+          <div class="contact-detail">
+            <h3>Address</h3>
+            <p id="contact-address">Bristol, United Kingdom</p>
+          </div>
+        </div>
+      </section>
+
+      <div p-slot="sidebar" class="sidebar-content">
+        <div class="sidebar-card">
+          <h3>Office Hours</h3>
+          <p>Monday to Friday, 09:00 - 17:00 GMT</p>
+        </div>
+        <div class="sidebar-card">
+          <h3>Quick Navigation</h3>
+          <ul class="sidebar-nav">
+            <li><piko:a href="/">Back to home</piko:a></li>
+            <li><piko:a href="/blog">Read the blog</piko:a></li>
+            <li><piko:a href="/about">About the team</piko:a></li>
+          </ul>
+        </div>
+      </div>
+
+    </piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko"
+  blog_layout "testmodule/partials/layout.pk"
+)
+
+type Response struct {
+  Title       string
+  Description string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+  return Response{
+    Title:       "Contact Us",
+    Description: "Get in touch with the Piko team.",
+  }, piko.Metadata{
+    Title:       "Contact - Piko Blog",
+    Description: "Contact information for the Piko team.",
+  }, nil
+}
+</script>
+
+<style>
+  #app {
+    margin: 0;
+    padding: 0;
+  }
+
+  .contact-intro {
+    margin-bottom: 2rem;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+
+  .contact-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .contact-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+  }
+
+  .contact-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #2563eb;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .contact-detail h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  .contact-detail p {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sidebar-card {
+    background-color: #f9fafb;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  .sidebar-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #111827;
+  }
+
+  .sidebar-card p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sidebar-nav li {
+    margin-bottom: 0.5rem;
+  }
+
+  .sidebar-nav a {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .sidebar-nav a:hover {
+    text-decoration: underline;
+  }
+</style>

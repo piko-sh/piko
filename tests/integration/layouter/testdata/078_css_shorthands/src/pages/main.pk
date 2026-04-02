@@ -1,0 +1,72 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <!-- Test 1: margin shorthand 2-value -->
+  <div data-layout-id="margin-2val" style="box-sizing: content-box; width: 200px; height: 30px; margin: 10px 20px; padding: 0; background-color: #eee;"></div>
+
+  <!-- Test 2: margin shorthand 4-value -->
+  <div data-layout-id="margin-4val" style="box-sizing: content-box; width: 200px; height: 30px; margin: 5px 10px 15px 20px; padding: 0; background-color: #ddd;"></div>
+
+  <!-- Test 3: padding shorthand 3-value -->
+  <div data-layout-id="padding-3val" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 5px 10px 15px; background-color: #ccc;"></div>
+
+  <!-- Test 4: border shorthand -->
+  <div data-layout-id="border-shorthand" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; border: 2px solid red;"></div>
+
+  <!-- Test 5: border-top shorthand -->
+  <div data-layout-id="border-top-shorthand" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; border-top: 3px dashed blue;"></div>
+
+  <!-- Test 6: border-width 4-value shorthand -->
+  <div data-layout-id="border-width-4val" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; border-style: solid; border-width: 1px 2px 3px 4px; border-color: black;"></div>
+
+  <!-- Test 7: border-style 2-value shorthand -->
+  <div data-layout-id="border-style-2val" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; border-style: solid dashed; border-width: 2px; border-color: green;"></div>
+
+  <!-- Test 8: border-color 4-value shorthand -->
+  <div data-layout-id="border-color-4val" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; border-style: solid; border-width: 2px; border-color: red green blue yellow;"></div>
+
+  <!-- Test 9: border-radius 2-value shorthand -->
+  <div data-layout-id="border-radius-2val" style="box-sizing: content-box; width: 200px; height: 30px; margin: 0; padding: 0; border-radius: 5px 10px; background-color: #bbb;"></div>
+
+  <!-- Test 10: flex shorthand (flex: 1) -->
+  <div data-layout-id="flex-parent" style="box-sizing: content-box; display: flex; width: 300px; height: 40px; margin: 0; padding: 0;">
+    <div data-layout-id="flex-child-1" style="box-sizing: content-box; flex: 1; height: 40px; margin: 0; padding: 0; background-color: #aaa;"></div>
+    <div data-layout-id="flex-child-2" style="box-sizing: content-box; flex: 2; height: 40px; margin: 0; padding: 0; background-color: #999;"></div>
+  </div>
+
+  <!-- Test 11: flex-flow shorthand -->
+  <div data-layout-id="flex-flow-parent" style="box-sizing: content-box; display: flex; flex-flow: column wrap; width: 200px; height: 100px; margin: 0; padding: 0;">
+    <div data-layout-id="flex-flow-child-1" style="box-sizing: content-box; width: 100px; height: 40px; margin: 0; padding: 0; background-color: #888;"></div>
+    <div data-layout-id="flex-flow-child-2" style="box-sizing: content-box; width: 100px; height: 40px; margin: 0; padding: 0; background-color: #777;"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "CSS Shorthands Test"}, nil
+}
+</script>

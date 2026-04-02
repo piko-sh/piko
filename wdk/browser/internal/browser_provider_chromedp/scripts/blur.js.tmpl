@@ -1,0 +1,13 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return false;
+    let fired = false;
+    const handler = () => { fired = true; };
+    el.addEventListener('blur', handler, {once: true});
+    el.blur();
+    el.removeEventListener('blur', handler);
+    if (!fired) {
+        el.dispatchEvent(new FocusEvent('blur', {bubbles: true}));
+    }
+    return true;
+})()

@@ -1,0 +1,6 @@
+{
+    "description": "Synthetic bold and italic when no matching font variant is registered.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/",
+    "regularOnly": true
+}

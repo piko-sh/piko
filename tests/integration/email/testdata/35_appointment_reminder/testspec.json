@@ -1,0 +1,6 @@
+{
+  "title": "Appointment Reminder",
+  "description": "Appointment reminder email with details and preparation instructions",
+  "metadata": {"title": "Your Appointment is Tomorrow"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

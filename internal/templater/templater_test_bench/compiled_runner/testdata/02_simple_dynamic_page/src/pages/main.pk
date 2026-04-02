@@ -1,0 +1,68 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>{{ state.PageTitle }}</h1>
+    <ul>
+      <li p-for="product in state.Products" p-key="product.ID">
+        <strong>{{ product.Name }}</strong> - ${{ product.Price }}
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "fmt"
+import "piko.sh/piko"
+
+// Product defines the structure for a single item in our list.
+type Product struct {
+	ID    string
+	Name  string
+	Price float64
+}
+
+// Response defines the shape of our 'state' object in the template.
+type Response struct {
+	PageTitle string
+	Products  []Product
+}
+
+// Render function provides the dynamic data for the page.
+// In a real app, this data would come from a database.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	products := make([]Product, 50) // Create a reasonably sized list for the benchmark
+	for i := 0; i < 50; i++ {
+		products[i] = Product{
+			ID:    fmt.Sprintf("prod-%d", i),
+			Name:  fmt.Sprintf("Product Name %d", i),
+			Price: 19.99 + float64(i),
+		}
+	}
+
+	return Response{
+		PageTitle: "Our Products",
+		Products:  products,
+	}, piko.Metadata{ Title: "Product List" }, nil
+}
+</script>

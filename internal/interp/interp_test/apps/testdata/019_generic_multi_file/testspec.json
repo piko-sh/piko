@@ -1,0 +1,4 @@
+{
+  "description": "Generic functions defined in one file, called from another",
+  "expected": "20"
+}

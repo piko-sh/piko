@@ -1,0 +1,7 @@
+[{
+  "description": "Validates a call to an imported, package-level Go function.",
+  "expression": "helpers.Format(state.Name)",
+  "expectedType": "string",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

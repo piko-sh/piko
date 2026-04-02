@@ -1,0 +1,3 @@
+{
+  "description": "string_agg aggregate function: string_agg() should return text, not an incorrect or unknown type."
+}

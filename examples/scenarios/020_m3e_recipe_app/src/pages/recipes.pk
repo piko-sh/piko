@@ -1,0 +1,289 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Recipes"
+            server.current-page="recipes">
+
+            <section class="page-section">
+                <h2 class="section-title">All Recipes</h2>
+                <p class="section-subtitle">Mouse-watering meals, all featuring the finest cheeses</p>
+
+                <!-- Search Bar -->
+                <m3e-search variant="docked" placeholder="Search recipes..." class="mb-lg">
+                    <m3e-list slot="suggestions">
+                        <m3e-list-item>The Grate Burger</m3e-list-item>
+                        <m3e-list-item>Camembert Believe It</m3e-list-item>
+                        <m3e-list-item>Raclette &amp; Roll</m3e-list-item>
+                        <m3e-list-item>Feta Accompli Pizza</m3e-list-item>
+                    </m3e-list>
+                </m3e-search>
+
+                <!-- Active Filters + View Toggle Row -->
+                <div class="flex-between flex-wrap mb-md">
+                    <m3e-chip-set>
+                        <m3e-chip variant="filter" selected>All Cheeses</m3e-chip>
+                        <m3e-chip variant="filter">Cheddar</m3e-chip>
+                        <m3e-chip variant="filter">Brie</m3e-chip>
+                        <m3e-chip variant="filter">Mozzarella</m3e-chip>
+                        <m3e-chip variant="filter">Parmesan</m3e-chip>
+                        <m3e-chip variant="filter">Camembert</m3e-chip>
+                        <m3e-chip variant="filter">Raclette</m3e-chip>
+                    </m3e-chip-set>
+
+                    <div class="flex-row">
+                        <!-- Sort Menu -->
+                        <m3e-menu>
+                            <m3e-button variant="outlined" size="s" slot="trigger">
+                                <piko:svg src="@/lib/icons/arrow-drop-down.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                                Sort
+                            </m3e-button>
+                            <m3e-menu-item>Most Popular</m3e-menu-item>
+                            <m3e-menu-item>Newest First</m3e-menu-item>
+                            <m3e-menu-item>Quickest</m3e-menu-item>
+                            <m3e-menu-item>A to Z</m3e-menu-item>
+                        </m3e-menu>
+
+                        <!-- View Toggle -->
+                        <m3e-segmented-button>
+                            <m3e-button selected>Grid</m3e-button>
+                            <m3e-button>List</m3e-button>
+                        </m3e-segmented-button>
+                    </div>
+                </div>
+
+                <!-- Progress Bar (shown while filtering) -->
+                <m3e-progress variant="linear" style="margin-bottom: 16px;"></m3e-progress>
+
+                <!-- Recipe Grid -->
+                <div class="recipe-grid">
+                    <piko:partial is="recipe_card"
+                        server.title="The Grate Burger"
+                        server.slug="the-grate-burger"
+                        server.pun="The gratest burger you'll ever taste"
+                        server.description="A towering double cheeseburger with aged cheddar, caramelised onions, and our secret sauce."
+                        server.image="@/lib/images/recipe-the-grate-burger.jpg"
+                        server.cook-time="25 mins"
+                        server.cheese="Cheddar"
+                        server.difficulty="Easy"
+                        server.href="/recipe/the-grate-burger"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Brie-lliant Caesar Salad"
+                        server.slug="brie-lliant-caesar"
+                        server.pun="Brie-lieve us, this Caesar is different"
+                        server.description="Classic Caesar salad elevated with golden brie croutons and shaved parmesan."
+                        server.image="@/lib/images/recipe-brie-lliant-caesar.jpg"
+                        server.cook-time="15 mins"
+                        server.cheese="Brie"
+                        server.difficulty="Easy"
+                        server.href="/recipe/brie-lliant-caesar"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Feta Accompli Pizza"
+                        server.slug="feta-accompli-pizza"
+                        server.pun="Consider it a feta accompli"
+                        server.description="Wood-fired Margherita with crumbled feta and fresh mozzarella, basil, and olive oil."
+                        server.image="@/lib/images/recipe-feta-accompli-pizza.jpg"
+                        server.cook-time="30 mins"
+                        server.cheese="Feta"
+                        server.difficulty="Medium"
+                        server.href="/recipe/feta-accompli-pizza"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Gouda Gracious Mac & Cheese"
+                        server.slug="gouda-gracious-mac"
+                        server.pun="Gouda gracious, that's creamy!"
+                        server.description="Rich baked mac and cheese with Gouda and Gruyère, topped with a golden breadcrumb crust."
+                        server.image="@/lib/images/recipe-gouda-gracious-mac.jpg"
+                        server.cook-time="45 mins"
+                        server.cheese="Gouda"
+                        server.difficulty="Easy"
+                        server.href="/recipe/gouda-gracious-mac"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Ricotta Be Kidding Me Lasagna"
+                        server.slug="ricotta-be-kidding-lasagna"
+                        server.pun="You ricotta be kidding me - three cheese layers!"
+                        server.description="Three-cheese lasagna with ricotta, parmesan béchamel, and rich bolognese."
+                        server.image="@/lib/images/recipe-ricotta-be-kidding-lasagna.jpg"
+                        server.cook-time="90 mins"
+                        server.cheese="Ricotta"
+                        server.difficulty="Medium"
+                        server.href="/recipe/ricotta-be-kidding-lasagna"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Parm-ageddon Chicken"
+                        server.slug="parm-ageddon-chicken"
+                        server.pun="Parm-ageddon is here, and it's delicious"
+                        server.description="Crispy parmesan-crusted chicken with melted mozzarella and rich tomato sauce."
+                        server.image="@/lib/images/recipe-parm-ageddon-chicken.jpg"
+                        server.cook-time="45 mins"
+                        server.cheese="Parmesan"
+                        server.difficulty="Medium"
+                        server.href="/recipe/parm-ageddon-chicken"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Camembert Believe It"
+                        server.slug="camembert-believe-it"
+                        server.pun="The king of cheeses, baked to perfection"
+                        server.description="Whole baked Camembert with rosemary, garlic, and crusty bread soldiers."
+                        server.image="@/lib/images/recipe-camembert-believe-it.jpg"
+                        server.cook-time="30 mins"
+                        server.cheese="Camembert"
+                        server.difficulty="Easy"
+                        server.href="/recipe/camembert-believe-it"
+                        :server.is-new="true"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Raclette & Roll"
+                        server.slug="raclette-and-roll"
+                        server.pun="Ready to raclette and roll!"
+                        server.description="Classic Swiss raclette with baby potatoes, cornichons, pickled onions, and charcuterie."
+                        server.image="@/lib/images/recipe-raclette-and-roll.jpg"
+                        server.cook-time="40 mins"
+                        server.cheese="Raclette"
+                        server.difficulty="Medium"
+                        server.href="/recipe/raclette-and-roll"
+                        :server.is-new="true"
+                    ></piko:partial>
+                </div>
+            </section>
+
+            <!-- Filter Side Sheet -->
+            <m3e-side-sheet p-ref="filterSheet">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">Filter Recipes</h3>
+
+                <div class="filter-section">
+                    <div class="filter-title">Difficulty</div>
+                    <div class="filter-options">
+                        <div class="filter-row">
+                            <m3e-radio name="difficulty" value="easy" checked></m3e-radio>
+                            <label>Easy</label>
+                        </div>
+                        <div class="filter-row">
+                            <m3e-radio name="difficulty" value="medium"></m3e-radio>
+                            <label>Medium</label>
+                        </div>
+                        <div class="filter-row">
+                            <m3e-radio name="difficulty" value="hard"></m3e-radio>
+                            <label>Hard</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-title">Cheese Type</div>
+                    <div class="filter-options">
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Cheddar</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Brie</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Mozzarella</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Parmesan</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Feta</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Gouda</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Camembert</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Raclette</label></div>
+                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Ricotta</label></div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-title">Max Cook Time</div>
+                    <m3e-slider min="0" max="120" value="60" discrete step="15" show_ticks></m3e-slider>
+                    <p class="text-muted" style="font-size: 0.8125rem;">Up to 60 minutes</p>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-title">Dietary</div>
+                    <div class="filter-row">
+                        <m3e-switch></m3e-switch>
+                        <label>Vegetarian only</label>
+                    </div>
+                </div>
+
+                <div class="flex-row mt-lg">
+                    <m3e-button variant="filled">Apply Filters</m3e-button>
+                    <m3e-button variant="text">Clear All</m3e-button>
+                </div>
+            </m3e-side-sheet>
+
+            <!-- Floating Toolbar (mobile) -->
+            <m3e-toolbar variant="floating" style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 50;">
+                <m3e-icon-button>
+                    <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                </m3e-icon-button>
+                <m3e-tooltip text="Filter recipes">
+                    <m3e-icon-button p-on:click="openFilters">
+                        <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                    </m3e-icon-button>
+                </m3e-tooltip>
+            </m3e-toolbar>
+
+            <!-- Speed Dial FAB Menu -->
+            <m3e-fab-menu variant="primary" style="position: fixed; bottom: 80px; right: 24px;">
+                <m3e-icon-button slot="fab">
+                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                </m3e-icon-button>
+                <m3e-button variant="filled-tonal">Add to Meal Plan</m3e-button>
+                <m3e-button variant="filled-tonal">Share Collection</m3e-button>
+                <m3e-button variant="filled-tonal">Random Recipe</m3e-button>
+            </m3e-fab-menu>
+
+            <!-- Snackbar for filter feedback -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    recipe_card "testmodule/partials/recipe-card.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "All Recipes - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    function openFilters() {
+        const sheet = pk.refs.filterSheet;
+        if (sheet) {
+            sheet.show();
+        }
+    }
+</script>

@@ -1,0 +1,95 @@
+{
+  "description": "Validates shadowing behaviour: loop variables that shadow guarded expressions should NOT inherit the guard, and guards on loop item pointer fields work correctly.",
+  "expectedDiagnostics": 2,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'member.Profile.Bio' on potentially nil pointer 'member.Profile'",
+      "onLine": 35
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Accessing 'ptr.Value' on potentially nil pointer 'ptr'",
+      "onLine": 48
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#outer-guarded",
+      "description": "props.User guarded by outer p-if",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.User.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#loop-shadowed",
+      "description": "User is loop variable (non-pointer struct value), NOT props.User - different variable",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "User.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#loop-item-guarded",
+      "description": "Loop item pointer field explicitly guarded with p-if",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "member.Profile.Bio",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#loop-item-unguarded",
+      "description": "Loop item pointer field NOT guarded - needs runtime safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "member.Profile.Bio",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    },
+    {
+      "select": "#inner-loop-shadowed",
+      "description": "Inner loop shadows outer item variable - accesses inner item",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "item.Name",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#pointer-loop-item-guarded",
+      "description": "Loop over pointer slice - item guarded by p-if",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "ptr.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#pointer-loop-item-unguarded",
+      "description": "Loop over pointer slice - item NOT guarded, needs safety check",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "ptr.Value",
+          "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": true
+        }
+      ]
+    }
+  ]
+}

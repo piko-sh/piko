@@ -1,0 +1,5 @@
+{
+    "description": "Boxes with visibility: hidden are not visible, but visible children of hidden parents are visible.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

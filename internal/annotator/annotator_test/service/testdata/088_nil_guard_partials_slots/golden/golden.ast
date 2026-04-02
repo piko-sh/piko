@@ -1,0 +1,43 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div class="data-display" [ANNOTATIONS: OriginPackage: partials_data_display_2ee457b2 OriginPath: partials/data_display.pk PARTIAL InvKey: data_display_30d06343 Package: partials_data_display_2ee457b2 InvPackage: main_aaf9a2e0]>
+    <div [p-if: (props.Data != nil)] [ANNOTATIONS: OriginPackage: partials_data_display_2ee457b2 OriginPath: partials/data_display.pk]>
+      <span id="partial-internal-guard" [ANNOTATIONS: OriginPackage: partials_data_display_2ee457b2 OriginPath: partials/data_display.pk]>
+        <RichText>
+          {{ props.Data.Value }}
+        </RichText>
+      </span>
+    </div>
+    <span id="partial-unguarded" [ANNOTATIONS: OriginPackage: partials_data_display_2ee457b2 OriginPath: partials/data_display.pk]>
+      <RichText>
+        {{ props.Data.Value }}
+      </RichText>
+    </span>
+  </div>
+  <div [p-if: (props.Item != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div class="slot-wrapper" [ANNOTATIONS: OriginPackage: partials_slot_wrapper_82652e43 OriginPath: partials/slot_wrapper.pk PARTIAL InvKey: slot_wrapper_7aa7a776 Package: partials_slot_wrapper_82652e43 InvPackage: main_aaf9a2e0]>
+      <span id="slot-in-guarded-context" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <RichText>
+          {{ props.Item.Name }}
+        </RichText>
+      </span>
+    </div>
+  </div>
+  <div [p-if: (props.Item != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <span id="main-guarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        {{ props.Item.Name }}
+      </RichText>
+    </span>
+  </div>
+  <span id="main-unguarded" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ props.Item.Name }}
+    </RichText>
+  </span>
+</div>
+
+--- END AST DUMP ---
+*/

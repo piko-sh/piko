@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when calling a function with the wrong number of arguments.",
+  "expression": "state.User.SetName()",
+  "expectedType": "nil",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Incorrect number of arguments for call to 'state.User.SetName': expected 1, but got 0"
+    }
+  ]
+}]

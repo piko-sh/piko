@@ -1,0 +1,14 @@
+<template>
+    <pml-container background-color="#f5f5f5" padding="20px 0">
+        <pml-row>
+            <pml-col>
+                <pml-p padding="10px 25px">First row in container</pml-p>
+            </pml-col>
+        </pml-row>
+        <pml-row>
+            <pml-col>
+                <pml-p padding="10px 25px">Second row in container</pml-p>
+            </pml-col>
+        </pml-row>
+    </pml-container>
+</template>

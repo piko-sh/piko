@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when trying to call a function that does not exist.",
+  "expression": "formatText('hello')",
+  "expectedType": "any",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Undefined variable: formatText"
+    }
+  ]
+}]

@@ -1,0 +1,108 @@
+{
+  "description": "Tests reactive array updates with DOM mutations via p-for",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Mutation Observer Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "mutation-watcher"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #children-count",
+      "expected": "Children: 2"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #action-log",
+      "expected": "Last action: none"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "mutation-watcher >>> #add-child"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #children-count",
+      "expected": "Children: 3"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #action-log",
+      "expected": "Last action: added: Child 3"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_add.html"
+    },
+    {
+      "action": "click",
+      "selector": "mutation-watcher >>> #remove-child"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #children-count",
+      "expected": "Children: 2"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #action-log",
+      "expected": "Last action: removed: Child 3"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_remove.html"
+    },
+    {
+      "action": "click",
+      "selector": "mutation-watcher >>> #clear-all"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #children-count",
+      "expected": "Children: 0"
+    },
+    {
+      "action": "checkText",
+      "selector": "mutation-watcher >>> #action-log",
+      "expected": "Last action: cleared all"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_clear.html"
+    }
+  ]
+}

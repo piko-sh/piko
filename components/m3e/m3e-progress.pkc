@@ -1,0 +1,252 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-progress">
+    <div class="progress"
+         p-class="{
+             'linear': state.variant == 'linear',
+             'circular': state.variant == 'circular',
+             'indeterminate': state.indeterminate
+         }"
+         role="progressbar"
+         :aria-valuemin="state.indeterminate ? null : '0'"
+         :aria-valuemax="state.indeterminate ? null : '1'"
+         :aria-valuenow="state.indeterminate ? null : String(state.value)">
+
+        <div class="linear-track" p-if="state.variant == 'linear'">
+            <div class="linear-buffer" p-ref="linearBuffer"></div>
+            <div class="linear-indicator"
+                 p-ref="linearIndicator"
+                 p-class="{ 'indeterminate-anim': state.indeterminate }">
+            </div>
+        </div>
+
+        <div class="circular-container" p-if="state.variant == 'circular'">
+            <svg class="circular-track" viewBox="0 0 48 48">
+                <circle class="circular-bg" cx="24" cy="24" r="20" fill="none" stroke-width="4"></circle>
+                <circle class="circular-indicator"
+                        cx="24" cy="24" r="20" fill="none" stroke-width="4"
+                        stroke-linecap="round"></circle>
+            </svg>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'linear' as string,
+        value: 0 as number,
+        buffer: -1 as number,
+        indeterminate: false as boolean,
+    };
+
+    pkc.onConnected(() => {
+        updateVisuals();
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('value') || changedProps.has('indeterminate') || changedProps.has('buffer') || changedProps.has('variant')) {
+            updateVisuals();
+        }
+    });
+
+    function normaliseValue(v) {
+        if (v > 1) v = v / 100;
+        return Math.max(0, Math.min(1, v));
+    }
+
+    function updateVisuals() {
+        if (state.variant === 'circular') {
+            const indicator = pkc.shadowRoot?.querySelector('.circular-indicator');
+            const track = pkc.shadowRoot?.querySelector('.circular-track');
+            if (indicator) {
+                if (state.indeterminate) {
+                    indicator.classList.add('indeterminate-spin');
+                } else {
+                    indicator.classList.remove('indeterminate-spin');
+                    const clamped = normaliseValue(state.value);
+                    const circumference = 2 * Math.PI * 20;
+                    const offset = circumference * (1 - clamped);
+                    indicator.style.strokeDasharray = String(circumference);
+                    indicator.style.strokeDashoffset = String(offset);
+                }
+            }
+            if (track) {
+                if (state.indeterminate) {
+                    track.classList.add('indeterminate-rotate');
+                } else {
+                    track.classList.remove('indeterminate-rotate');
+                }
+            }
+            return;
+        }
+
+        if (state.indeterminate) return;
+
+        const clamped = normaliseValue(state.value);
+
+        const indicator = pkc.refs.linearIndicator;
+        if (indicator) {
+            indicator.style.transform = 'scaleX(' + clamped + ')';
+        }
+        const bufferEl = pkc.refs.linearBuffer;
+        if (bufferEl && state.buffer >= 0) {
+            const bufferClamped = normaliseValue(state.buffer);
+            bufferEl.style.transform = 'scaleX(' + bufferClamped + ')';
+            bufferEl.style.display = '';
+        } else if (bufferEl) {
+            bufferEl.style.display = 'none';
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_primary-container: var(--m3e-primary-container, #eaddff);
+        --_surface-container-highest: var(--m3e-surface-container-highest, #e6e0e9);
+    }
+
+    .progress {
+        &.linear {
+            width: 100%;
+            height: 4px;
+        }
+
+        &.circular {
+            width: 48px;
+            height: 48px;
+        }
+    }
+
+    .linear-track {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: var(--m3e-shape-full, 9999px);
+        background: var(--_surface-container-highest);
+        overflow: hidden;
+    }
+
+    .linear-buffer {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--_primary-container);
+        transform-origin: left;
+        transform: scaleX(0);
+        transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+        display: none;
+    }
+
+    .linear-indicator {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--_primary);
+        transform-origin: left;
+        transform: scaleX(0);
+        transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+
+        &.indeterminate-anim {
+            transform: scaleX(1) !important;
+            animation: linear-indeterminate 2s cubic-bezier(0.65, 0, 0.35, 1) infinite,
+                       linear-colour-cycle 8s steps(1) infinite;
+        }
+    }
+
+    @keyframes linear-indeterminate {
+        0% {
+            transform: translateX(-100%) scaleX(0.3);
+        }
+        50% {
+            transform: translateX(0%) scaleX(0.5);
+        }
+        100% {
+            transform: translateX(100%) scaleX(0.3);
+        }
+    }
+
+    @keyframes linear-colour-cycle {
+        0%   { background: var(--_primary); }
+        25%  { background: var(--_primary-container); }
+        50%  { background: var(--m3e-tertiary, #7d5260); }
+        75%  { background: var(--m3e-tertiary-container, #ffd8e4); }
+    }
+
+    .circular-container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .circular-track {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+
+        &.indeterminate-rotate {
+            animation: circular-rotate 2s linear infinite;
+        }
+    }
+
+    .circular-bg {
+        stroke: var(--_surface-container-highest);
+    }
+
+    .circular-indicator {
+        stroke: var(--_primary);
+        stroke-dasharray: 125.66;
+        stroke-dashoffset: 125.66;
+        transition: stroke-dashoffset 200ms cubic-bezier(0.2, 0, 0, 1);
+
+        &.indeterminate-spin {
+            animation: circular-indeterminate 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite,
+                       circular-colour-cycle 6s steps(1) infinite;
+        }
+    }
+
+    @keyframes circular-colour-cycle {
+        0%   { stroke: var(--_primary); }
+        25%  { stroke: var(--_primary-container); }
+        50%  { stroke: var(--m3e-tertiary, #7d5260); }
+        75%  { stroke: var(--m3e-tertiary-container, #ffd8e4); }
+    }
+
+    @keyframes circular-rotate {
+        100% {
+            transform: rotate(270deg);
+        }
+    }
+
+    @keyframes circular-indeterminate {
+        0% {
+            stroke-dashoffset: 100;
+        }
+        50% {
+            stroke-dashoffset: 25;
+        }
+        100% {
+            stroke-dashoffset: 100;
+        }
+    }
+</style>

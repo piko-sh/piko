@@ -1,0 +1,261 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-navigation-drawer">
+    <div class="drawer-wrapper"
+         p-class="{
+             'visible': state.open,
+             'modal': state.modal
+         }">
+        <div class="scrim" p-if="state.modal" p-on:click="close"></div>
+        <aside class="drawer" role="navigation">
+            <h3 class="headline" p-if="state.headline" p-text="state.headline"></h3>
+            <div class="content">
+                <slot></slot>
+            </div>
+        </aside>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        open: false as boolean,
+        modal: false as boolean,
+        headline: '' as string,
+    };
+
+    let escHandler = null;
+    let focusTrapHandler = null;
+
+    function close() {
+        state.open = false;
+        pkc.dispatchEvent(new CustomEvent('close', {
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('open')) {
+            if (state.modal) {
+                document.body.style.overflow = state.open ? 'hidden' : '';
+            }
+            if (state.open && state.modal) {
+                escHandler = (e) => {
+                    if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        close();
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+
+                focusTrapHandler = (e) => {
+                    if (e.key !== 'Tab') return;
+                    const focusable = pkc.shadowRoot.querySelectorAll(
+                        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                    );
+                    if (focusable.length === 0) return;
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                };
+                pkc.addEventListener('keydown', focusTrapHandler);
+
+                requestAnimationFrame(() => {
+                    const firstFocusable = pkc.shadowRoot.querySelector(
+                        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                    );
+                    if (firstFocusable) firstFocusable.focus();
+                });
+            } else if (escHandler) {
+                document.removeEventListener('keydown', escHandler);
+                escHandler = null;
+                if (focusTrapHandler) {
+                    pkc.removeEventListener('keydown', focusTrapHandler);
+                    focusTrapHandler = null;
+                }
+            }
+        }
+    });
+
+    pkc.onDisconnected(() => {
+        document.body.style.overflow = '';
+        if (escHandler) {
+            document.removeEventListener('keydown', escHandler);
+            escHandler = null;
+        }
+        if (focusTrapHandler) {
+            pkc.removeEventListener('keydown', focusTrapHandler);
+            focusTrapHandler = null;
+        }
+    });
+
+    pkc.show = () => { state.open = true; };
+    pkc.close = () => { close(); };
+    pkc.toggle = () => { state.open ? close() : state.open = true; };
+</script>
+
+<style>
+    :host {
+        --_surface-container-low: var(--m3e-surface-container-low, #f7f2fa);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_secondary-container: var(--m3e-secondary-container, #e8def8);
+        --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_duration-medium: var(--m3e-duration-medium, 400ms);
+        --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
+        --_shape-lg: var(--m3e-shape-lg, 16px);
+        font-family: system-ui, -apple-system, sans-serif;
+
+        &(:not([modal])) .drawer {
+            height: 100%;
+        }
+    }
+
+    .drawer-wrapper {
+        display: flex;
+        height: 100%;
+
+        &.modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            pointer-events: none;
+
+            &.visible {
+                pointer-events: auto;
+            }
+        }
+
+        &.visible .scrim {
+            opacity: 1;
+        }
+
+        &.visible .drawer {
+            transform: translateX(0);
+        }
+    }
+
+    .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.32);
+        opacity: 0;
+        transition: opacity var(--_duration-medium) var(--_easing-emphasized);
+    }
+
+    .drawer {
+        width: 360px;
+        max-width: calc(100vw - 56px);
+        background: var(--_surface-container-low);
+        border-radius: 0 var(--_shape-lg) var(--_shape-lg) 0;
+        z-index: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal .drawer {
+        transform: translateX(-100%);
+        transition: transform var(--_duration-medium) var(--_easing-emphasized);
+        box-shadow: 0px 8px 12px 6px rgba(0,0,0,0.15), 0px 4px 4px 0px rgba(0,0,0,0.30);
+    }
+
+    .headline {
+        margin: 0;
+        padding: 28px 28px 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.1px;
+        color: var(--_on-surface-variant);
+    }
+
+    .content {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+
+        ::slotted(*) {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            height: 56px;
+            padding: 0 24px 0 16px;
+            border-radius: var(--m3e-shape-full, 9999px);
+            cursor: pointer;
+            color: var(--_on-surface-variant);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.1px;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 200ms, color 200ms;
+        }
+
+        ::slotted(*:hover) {
+            background: rgba(73, 69, 79, 0.08);
+        }
+
+        ::slotted([data-active]) {
+            background: var(--_secondary-container);
+            color: var(--_on-secondary-container);
+        }
+
+        ::slotted(.drawer-header) {
+            height: auto;
+            padding: 24px 16px;
+            border-radius: 0;
+            border-bottom: 1px solid var(--m3e-outline-variant, #cac4d0);
+            cursor: default;
+            font-size: inherit;
+            font-weight: inherit;
+            letter-spacing: inherit;
+        }
+
+        ::slotted(.drawer-header:hover) {
+            background: transparent;
+        }
+
+        ::slotted(m3e-divider) {
+            height: auto;
+            padding: 0;
+            border-radius: 0;
+            cursor: default;
+        }
+
+        ::slotted(.drawer-footer) {
+            height: auto;
+            padding: 16px 24px;
+            border-radius: 0;
+            cursor: default;
+            font-size: 0.75rem;
+        }
+
+        ::slotted(.drawer-footer:hover) {
+            background: transparent;
+        }
+    }
+</style>

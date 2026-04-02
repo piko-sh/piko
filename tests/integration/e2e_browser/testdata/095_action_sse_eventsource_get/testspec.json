@@ -1,0 +1,33 @@
+{
+  "description": "Tests EventSource (GET) connecting to a POST-only action endpoint. Requires GET route registration for SSE-capable actions.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#start-btn"
+    },
+    {
+      "action": "wait",
+      "value": "5000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#connection-state",
+      "expected": "complete"
+    },
+    {
+      "action": "checkText",
+      "selector": "#event-count",
+      "expected": "3"
+    }
+  ]
+}

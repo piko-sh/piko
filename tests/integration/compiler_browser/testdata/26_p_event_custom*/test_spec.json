@@ -1,0 +1,32 @@
+[
+  {
+    "action": "checkText",
+    "selector": "parent-component \u003e\u003e\u003e p",
+    "expected": "Parent selected: None"
+  },
+  {
+    "action": "eval",
+    "selector": "window",
+    "value": "() =\u003e customElements.define('child-component', class extends HTMLElement {})"
+  },
+  {
+    "action": "eval",
+    "selector": "parent-component \u003e\u003e\u003e child-component",
+    "value": "() =\u003e this.dispatchEvent(new CustomEvent('item-selected', { detail: { name: 'Apple' }, bubbles: true, composed: true }))"
+  },
+  {
+    "action": "checkText",
+    "selector": "parent-component \u003e\u003e\u003e p",
+    "expected": "Parent selected: Apple"
+  },
+  {
+    "action": "eval",
+    "selector": "parent-component \u003e\u003e\u003e child-component",
+    "value": "() =\u003e this.dispatchEvent(new CustomEvent('item-selected', { detail: { name: 'Banana' }, bubbles: true, composed: true }))"
+  },
+  {
+    "action": "checkText",
+    "selector": "parent-component \u003e\u003e\u003e p",
+    "expected": "Parent selected: Banana"
+  }
+]

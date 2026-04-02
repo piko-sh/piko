@@ -1,0 +1,195 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-radio">
+    <div class="radio"
+         p-class="{
+             'checked': state.checked,
+             'disabled': state.disabled
+         }"
+         role="radio"
+         :aria-checked="state.checked ? 'true' : 'false'"
+         :aria-disabled="state.disabled ? 'true' : 'false'"
+         :tabindex="state.disabled ? '-1' : '0'"
+         p-on:click="select"
+         p-on:keydown="handleKeydown">
+        <div class="container">
+            <div class="outer-circle"></div>
+            <div class="inner-circle"></div>
+        </div>
+        <div class="state-layer"></div>
+        <input p-if="state.name" type="hidden" :name="state.name" :value="state.checked ? state.value : ''" />
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        checked: false as boolean,
+        disabled: false as boolean,
+        name: '' as string,
+        value: '' as string,
+    };
+
+    function select() {
+        if (state.disabled || state.checked) return;
+
+        state.checked = true;
+
+        pkc.dispatchEvent(new CustomEvent('change', {
+            detail: { checked: true, name: state.name, value: state.value },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function handleKeydown(event) {
+        if (event.key === ' ' || event.key === 'Enter') {
+            event.preventDefault();
+            select();
+            return;
+        }
+
+        const isNav = event.key === 'ArrowDown' || event.key === 'ArrowRight' ||
+                       event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+        if (!isNav || !state.name) return;
+
+        event.preventDefault();
+        const group = Array.from(document.querySelectorAll('m3e-radio[name="' + state.name + '"]:not([disabled])'));
+        if (group.length < 2) return;
+
+        const currentIndex = group.indexOf(pkc);
+        let nextIndex;
+        if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+            nextIndex = currentIndex < group.length - 1 ? currentIndex + 1 : 0;
+        } else {
+            nextIndex = currentIndex > 0 ? currentIndex - 1 : group.length - 1;
+        }
+
+        const target = group[nextIndex];
+        target.focus();
+        target.click();
+    }
+
+    pkc.onConnected(() => {
+        syncGroupTabIndices();
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('checked')) {
+            syncGroupTabIndices();
+        }
+    });
+
+    function syncGroupTabIndices() {
+        if (!state.name) return;
+        const group = Array.from(document.querySelectorAll('m3e-radio[name="' + state.name + '"]'));
+        const checked = group.find((r) => r.hasAttribute('checked'));
+        for (const radio of group) {
+            const inner = radio.shadowRoot?.querySelector('.radio');
+            if (!inner) continue;
+            inner.tabIndex = radio === (checked || group[0]) ? 0 : -1;
+        }
+    }
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
+    }
+
+    .radio {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+        border-radius: 50%;
+
+        &:focus-visible .state-layer {
+            opacity: 0.12;
+        }
+
+        &.disabled {
+            cursor: default;
+            opacity: 0.38;
+            pointer-events: none;
+        }
+
+        &.checked {
+            & .outer-circle {
+                border-color: var(--_primary);
+            }
+
+            & .inner-circle {
+                transform: scale(1);
+            }
+
+            &:hover .state-layer {
+                background: var(--_primary);
+            }
+        }
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+    }
+
+    .container {
+        position: relative;
+        width: 20px;
+        height: 20px;
+    }
+
+    .outer-circle {
+        position: absolute;
+        inset: 0;
+        border: 2px solid var(--_on-surface-variant);
+        border-radius: 50%;
+        transition: border-color var(--_duration-short) var(--_easing-emphasized);
+    }
+
+    .inner-circle {
+        position: absolute;
+        inset: 5px;
+        border-radius: 50%;
+        background: var(--_primary);
+        transform: scale(0);
+        transition: transform var(--_duration-short) var(--_easing-emphasized);
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: var(--_on-surface);
+        opacity: 0;
+        transition: opacity var(--_duration-short);
+        pointer-events: none;
+    }
+</style>

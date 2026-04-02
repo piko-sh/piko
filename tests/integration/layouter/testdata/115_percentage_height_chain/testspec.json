@@ -1,0 +1,7 @@
+{
+    "description": "Verifies percentage height resolution through nested elements inside a grid cell with a definite row height: grandchild percentages resolve against parent percentages that resolve against the grid track size.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

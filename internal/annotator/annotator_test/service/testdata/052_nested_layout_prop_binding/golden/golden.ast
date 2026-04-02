@@ -1,0 +1,30 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="outer-layout" [ANNOTATIONS: OriginPackage: partials_outer_layout_643254a4 OriginPath: partials/outer_layout.pk PARTIAL InvKey: outer_layout_118242d2 Package: partials_outer_layout_643254a4 InvPackage: main_aaf9a2e0]>
+  <header [ANNOTATIONS: OriginPackage: partials_outer_layout_643254a4 OriginPath: partials/outer_layout.pk]>
+    "Outer Layout Header"
+  </header>
+  <div class="outer-content" [ANNOTATIONS: OriginPackage: partials_outer_layout_643254a4 OriginPath: partials/outer_layout.pk]>
+    <section class="inner-layout" [ANNOTATIONS: OriginPackage: partials_inner_layout_981558c4 OriginPath: partials/inner_layout.pk PARTIAL InvKey: inner_layout_outer_layout_118242d2_503bec27 Package: partials_inner_layout_981558c4 InvPackage: main_aaf9a2e0]>
+      <div class="inner-header" [ANNOTATIONS: OriginPackage: partials_inner_layout_981558c4 OriginPath: partials/inner_layout.pk]>
+        "Inner Layout"
+      </div>
+      <main class="inner-content" [ANNOTATIONS: OriginPackage: partials_inner_layout_981558c4 OriginPath: partials/inner_layout.pk]>
+        <div class="child-component" id="nested-child" :theme="state.Theme" {P: state.Theme, OriginPackage: main_aaf9a2e0} :user_id="state.UserID" {P: state.UserID, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk PARTIAL InvKey: child_inner_layout_outer_layout_118242d2_503bec27_theme_state_theme_user_id_state_userid_a03891c3 Package: partials_child_d247007e InvPackage: main_aaf9a2e0]>
+          <span [ANNOTATIONS: OriginPackage: partials_child_d247007e OriginPath: partials/child.pk]>
+            <RichText>
+              {{ state.DisplayText }}
+            </RichText>
+          </span>
+        </div>
+      </main>
+    </section>
+  </div>
+  <footer [ANNOTATIONS: OriginPackage: partials_outer_layout_643254a4 OriginPath: partials/outer_layout.pk]>
+    "Outer Layout Footer"
+  </footer>
+</div>
+
+--- END AST DUMP ---
+*/

@@ -1,0 +1,30 @@
+{
+  "description": "Verifies error page context provides status code, message, and original path",
+  "requestURL": "/missing-user",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Not Found"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-code",
+      "expected": "404"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-message",
+      "expected": "user not found: abc123"
+    },
+    {
+      "action": "checkText",
+      "selector": "#original-path",
+      "expected": "/missing-user"
+    }
+  ]
+}

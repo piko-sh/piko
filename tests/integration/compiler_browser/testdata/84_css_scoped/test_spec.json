@@ -1,0 +1,22 @@
+[
+  {
+    "action": "checkText",
+    "selector": "css-scoped >>> .title",
+    "expected": "Scoped Styles"
+  },
+  {
+    "action": "checkText",
+    "selector": "css-scoped >>> .description",
+    "expected": "This component has scoped CSS"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "css-scoped >>> .container",
+    "expected": "1"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "css-scoped >>> .action-btn",
+    "expected": "1"
+  }
+]

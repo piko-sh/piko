@@ -1,0 +1,38 @@
+<template>
+    <pml-row background-color="#1a1a2e" padding="20px 0">
+        <pml-col>
+            <pml-p color="#ffffff" font-size="24px" align="center" padding="10px 25px">Weekly Digest</pml-p>
+            <pml-p color="#e0e0e0" font-size="14px" align="center" padding="0 25px">Issue 42 - 1 April 2026</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="25px 0">
+        <pml-col>
+            <pml-p font-size="20px" color="#2c3e50" padding="10px 25px">Top Story</pml-p>
+            <pml-p font-size="14px" color="#666666" line-height="1.6" padding="5px 25px">
+                A significant development occurred this week that impacts our community.
+                Read on to learn more about what happened and what it means for the future.
+            </pml-p>
+            <pml-button href="https://example.com/story" background-color="#3498db" color="#ffffff" padding="10px 25px" inner-padding="10px 20px">Read More</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col width="50%">
+            <pml-p font-size="16px" color="#2c3e50" padding="5px 25px">Quick Links</pml-p>
+            <pml-ul>
+                <pml-li>Community updates</pml-li>
+                <pml-li>Upcoming events</pml-li>
+                <pml-li>New resources</pml-li>
+            </pml-ul>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="16px" color="#2c3e50" padding="5px 25px">Stats</pml-p>
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Members: 12,450</pml-p>
+            <pml-p font-size="14px" color="#666666" padding="5px 25px">Articles: 89</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

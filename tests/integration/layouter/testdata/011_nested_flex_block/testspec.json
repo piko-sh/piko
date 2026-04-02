@@ -1,0 +1,7 @@
+{
+    "description": "Verifies nested layout: flex container with block children containing their own block flow.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -1,0 +1,18 @@
+<template>
+<h1>Stage 2: Script Changed</h1>
+<p>Script modified - should trigger full rebuild (both caches miss).</p>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+// Stage 2: Script MODIFIED - this comment makes it different!
+// NEW: Adding a comment to change the script hash
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

@@ -1,0 +1,189 @@
+{
+  "packages": {
+    "testcase_54_embedded_generic_param": {
+      "file_imports": {
+        "54_embedded_generic_param/src/main.go": {}
+      },
+      "named_types": {
+        "MyType": {
+          "name": "MyType",
+          "package_path": "testcase_54_embedded_generic_param",
+          "defined_in_file_path": "54_embedded_generic_param/src/main.go",
+          "type_string": "main.MyType",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "DoWork",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "testcase_54_embedded_generic_param",
+              "declaring_type_name": "MyType",
+              "definition_file_path": "54_embedded_generic_param/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 24,
+              "definition_column": 17,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        },
+        "StringWorker": {
+          "name": "StringWorker",
+          "package_path": "testcase_54_embedded_generic_param",
+          "defined_in_file_path": "54_embedded_generic_param/src/main.go",
+          "type_string": "main.StringWorker",
+          "underlying_type_string": "struct{main.Worker[string]}",
+          "fields": [
+            {
+              "definition_file_path": "54_embedded_generic_param/src/main.go",
+              "declaring_pkg_path": "testcase_54_embedded_generic_param",
+              "pkg_path": "testcase_54_embedded_generic_param",
+              "underlying_type_string": "struct{Data string}",
+              "declaring_type_name": "StringWorker",
+              "name": "Worker",
+              "type_string": "main.Worker[string]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "generic_arg",
+                  "type_string": "string",
+                  "role": "generic_arg_0",
+                  "underlying_type_string": "string",
+                  "pkg_path": "",
+                  "index": 0,
+                  "is_internal_type": true,
+                  "is_underlying_internal_type": true,
+                  "is_underlying_primitive": true
+                }
+              ],
+              "composite_type": 7,
+              "definition_line": 43,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [
+            {
+              "name": "Process",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "testcase_54_embedded_generic_param",
+              "declaring_type_name": "Worker",
+              "definition_file_path": "54_embedded_generic_param/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 36,
+              "definition_column": 20,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 42,
+          "definition_column": 6
+        },
+        "Worker": {
+          "name": "Worker",
+          "package_path": "testcase_54_embedded_generic_param",
+          "defined_in_file_path": "54_embedded_generic_param/src/main.go",
+          "type_string": "main.Worker[T]",
+          "underlying_type_string": "struct{Data T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_54_embedded_generic_param",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Worker",
+              "name": "Data",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [
+            {
+              "name": "Process",
+              "type_string": "T",
+              "underlying_type_string": "T",
+              "declaring_pkg_path": "testcase_54_embedded_generic_param",
+              "declaring_type_name": "Worker",
+              "definition_file_path": "54_embedded_generic_param/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "T"
+                ]
+              },
+              "definition_line": 36,
+              "definition_column": 20,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 32,
+          "definition_column": 6
+        },
+        "Wrapper": {
+          "name": "Wrapper",
+          "package_path": "testcase_54_embedded_generic_param",
+          "defined_in_file_path": "54_embedded_generic_param/src/main.go",
+          "type_string": "main.Wrapper[T]",
+          "underlying_type_string": "struct{Value T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_54_embedded_generic_param",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Wrapper",
+              "name": "Value",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 27,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_54_embedded_generic_param",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "54_embedded_generic_param/src/main.go": "testcase_54_embedded_generic_param"
+  }
+}

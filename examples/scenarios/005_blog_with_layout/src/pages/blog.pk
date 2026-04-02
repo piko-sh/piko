@@ -1,0 +1,235 @@
+<template>
+  <div id="app">
+    <piko:partial is="blog_layout"
+      :server.title="state.Title"
+      :server.description="'A blog post about getting started with the Piko framework'"
+      server.current-page="blog"
+    >
+
+      <article class="blog-post">
+        <div class="blog-meta">
+          <piko:svg src="@/lib/icons/user.svg" class="meta-icon"></piko:svg>
+          <span class="author" p-text="state.Author"></span>
+          <span class="meta-separator">|</span>
+          <time class="date" p-text="state.Date"></time>
+        </div>
+
+        <piko:img
+          src="@/lib/images/blog-post.png"
+          alt="Getting started with Piko"
+          class="blog-hero"
+        ></piko:img>
+
+        <div class="blog-content" p-html="state.Content"></div>
+
+        <div class="blog-tags">
+          <span class="tag" p-for="tag in state.Tags" p-key="tag" p-text="tag"></span>
+        </div>
+      </article>
+
+      <div p-slot="sidebar" class="sidebar-content">
+        <div class="author-card">
+          <h3>About the Author</h3>
+          <p class="author-name" p-text="state.Author"></p>
+          <p class="author-bio">Software engineer and technical writer. Passionate about developer experience and modern web frameworks.</p>
+        </div>
+
+        <div class="related-links">
+          <h3>Related Posts</h3>
+          <ul>
+            <li><piko:a href="/blog">Understanding Piko Partials</piko:a></li>
+            <li><piko:a href="/blog">CSS Scoping in Piko</piko:a></li>
+            <li><piko:a href="/blog">Server Actions Deep Dive</piko:a></li>
+          </ul>
+        </div>
+      </div>
+
+    </piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko"
+  blog_layout "testmodule/partials/layout.pk"
+)
+
+type Response struct {
+  Title   string
+  Author  string
+  Date    string
+  Content string
+  Tags    []string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+  return Response{
+    Title:  "Getting Started with Piko",
+    Author: "Alice Williams",
+    Date:   "15 January 2026",
+    Content: `<p>Piko is a full-stack web framework for Go that brings server-side
+rendering and client-side interactivity together in a single cohesive
+development experience. This post walks through the fundamentals.</p>
+
+<h2>Why Piko?</h2>
+<p>Modern web development often means choosing between a server-rendered
+approach and a client-side single-page application. Piko takes a different
+path: pages are server-rendered by default, with client-side components
+available when you need interactivity.</p>
+
+<h2>Layout Partials</h2>
+<p>One of Piko's most useful patterns is the layout partial. Instead of
+duplicating navigation, footers, and structural markup across every page,
+you define a layout once as a partial and wrap your page content inside it.
+The layout uses slots to project page-specific content into the right
+places.</p>`,
+    Tags: []string{"piko", "go", "web-framework", "tutorial"},
+  }, piko.Metadata{
+    Title:       "Getting Started with Piko - Blog",
+    Description: "An introduction to the Piko web framework.",
+  }, nil
+}
+</script>
+
+<style>
+  #app {
+    margin: 0;
+    padding: 0;
+  }
+
+  .blog-post {
+    line-height: 1.7;
+  }
+
+  .blog-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+    color: #6b7280;
+  }
+
+  .meta-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: #9ca3af;
+  }
+
+  .author {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .meta-separator {
+    color: #d1d5db;
+  }
+
+  .date {
+    color: #6b7280;
+  }
+
+  .blog-hero {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+    display: block;
+  }
+
+  .blog-content {
+    margin-bottom: 2rem;
+  }
+
+  .blog-content h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+
+  .blog-content p {
+    margin-bottom: 1rem;
+    color: #374151;
+  }
+
+  .blog-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #eff6ff;
+    color: #2563eb;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  .sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .author-card {
+    background-color: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  .author-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+
+  .author-name {
+    font-weight: 600;
+    color: #2563eb;
+    margin-bottom: 0.5rem;
+  }
+
+  .author-bio {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  .related-links h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+
+  .related-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .related-links li {
+    margin-bottom: 0.5rem;
+  }
+
+  .related-links a {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .related-links a:hover {
+    text-decoration: underline;
+  }
+</style>

@@ -1,0 +1,79 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app-container">
+    <h1>{{ state.Title }}</h1>
+    <p data-testid="message">{{ state.Message }}</p>
+    <div id="user-display" data-testid="user-display"></div>
+    <button id="greet-btn" data-testid="greet-btn">Greet User</button>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+	Title   string
+	Message string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Title:   "TypeScript Client Script Test",
+		Message: "This page includes client-side TypeScript that gets transpiled to JavaScript.",
+	}, piko.Metadata{
+		Title: "TypeScript Client Script Test Page",
+	}, nil
+}
+</script>
+
+<script lang="ts">
+// TypeScript client-side code with type annotations that should be stripped by esbuild
+
+interface User {
+	name: string;
+	age: number;
+}
+
+function createUser(name: string, age: number): User {
+	return { name, age };
+}
+
+function formatGreeting(user: User): string {
+	return `Hello, ${user.name}! You are ${user.age} years old.`;
+}
+
+document.addEventListener('DOMContentLoaded', (): void => {
+	const btn: HTMLElement | null = document.getElementById('greet-btn');
+	const display: HTMLElement | null = document.getElementById('user-display');
+
+	if (btn && display) {
+		btn.addEventListener('click', (): void => {
+			const user: User = createUser('Alice', 30);
+			const greeting: string = formatGreeting(user);
+			display.textContent = greeting;
+			console.log('Greeting displayed:', greeting);
+		});
+	}
+});
+</script>

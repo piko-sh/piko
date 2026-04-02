@@ -1,0 +1,15 @@
+{
+    "description": "Verifies single-page content produces correct positions with pagination enabled.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 800,
+    "pageWidthPx": 800,
+    "pageHeightPx": 600,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "block-a": {"pageIndex": 0, "x": 0, "y": 0, "width": 400, "height": 100},
+        "block-b": {"pageIndex": 0, "x": 0, "y": 100, "width": 400, "height": 100},
+        "block-c": {"pageIndex": 0, "x": 0, "y": 200, "width": 400, "height": 100}
+    }
+}

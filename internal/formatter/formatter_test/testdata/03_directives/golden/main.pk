@@ -1,0 +1,25 @@
+<template>
+  <div>
+    <ul>
+      <li
+        :class="item.Class"
+        p-for="item in state.Items"
+        p-key="item.ID"
+        p-on:click="handleClick(item)"
+      >
+        {{ item.Name }}
+      </li>
+    </ul>
+    <div class="alert" p-if="state.IsVisible">
+      <p p-text="state.Message"></p>
+    </div>
+    <div p-else-if="state.IsWarning">
+      <p>Warning!</p>
+    </div>
+    <div p-else>
+      <p>Nothing to show</p>
+    </div>
+    <button p-bind:disabled="state.IsProcessing" p-on:click="submit">Submit</button>
+    <input p-model="state.Username" placeholder="Username" type="text" />
+  </div>
+</template>

@@ -1,0 +1,3 @@
+{
+  "description": "Table-valued functions in FROM clauses. Verifies json_each and generate_series produce correct column schemas, parameters inside TVF arguments are tracked, and aliases work."
+}

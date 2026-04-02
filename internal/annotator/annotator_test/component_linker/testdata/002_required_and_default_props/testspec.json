@@ -1,0 +1,24 @@
+{
+  "description": "Checks required and default prop handling.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Missing required prop 'title' for component <card>"
+    }
+  ],
+  "expectedUniqueInvocations": 2,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "card",
+      "selectByPropValue": {"title": "state.MainTitle"},
+      "assert": {
+        "passedPropsCount": 2,
+        "hasProp": "theme",
+        "propValueIs": {
+          "theme": "\"dark\""
+        }
+      }
+    }
+  ]
+}

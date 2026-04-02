@@ -1,0 +1,22 @@
+{
+  "after_remove": {
+    "Config": "{\"theme\": \"light\", \"language\": \"en\", \"font_size\": \"14\"}",
+    "ID": 1,
+    "Name": "user_prefs"
+  },
+  "after_replace": {
+    "Config": "{\"theme\": \"light\", \"language\": \"en\", \"font_size\": \"14\", \"notifications\": true}",
+    "ID": 1,
+    "Name": "user_prefs"
+  },
+  "after_set": {
+    "Config": "{\"theme\": \"dark\", \"language\": \"en\", \"font_size\": \"14\", \"notifications\": true}",
+    "ID": 1,
+    "Name": "user_prefs"
+  },
+  "original": {
+    "Config": "{\"theme\": \"dark\", \"language\": \"en\", \"notifications\": true}",
+    "ID": 1,
+    "Name": "user_prefs"
+  }
+}

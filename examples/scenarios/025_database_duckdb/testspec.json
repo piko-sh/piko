@@ -1,0 +1,16 @@
+{
+  "description": "Verifies a DuckDB-powered sales analytics dashboard with aggregate queries, GROUP BY, and date formatting",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "#total-orders",
+      "expected": "20"
+    }
+  ]
+}

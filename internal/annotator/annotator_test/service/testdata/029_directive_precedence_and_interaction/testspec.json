@@ -1,0 +1,47 @@
+{
+  "description": "Validates that p-for has higher precedence than p-if on the same element, and warns when source order is confusing.",
+  "expectedDiagnostics": 2,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "`p-if` is written before `p-for`, but `p-for` always has the highest precedence",
+      "expression": "p-if"
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates",
+      "expression": "p-for"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#the-item",
+      "description": "The p-if directive should correctly resolve the 'item' variable from the p-for loop, proving p-for has higher precedence.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "item == 'B'",
+          "resolvedTypeIs": "bool"
+        },
+        {
+          "name": "p-for",
+          "rawExpression": "item in state.Items"
+        }
+      ],
+      "assertOnInterpolation": {
+        "rawExpression": "item",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "item",
+          "description": "Assert that the 'item' variable inside the p-if condition resolves correctly to the loop variable.",
+          "inDirective": "p-if",
+          "resolvedTypeIs": "string",
+          "isSymbol": "item",
+          "codeGenVarIs": "item"
+        }
+      ]
+    }
+  ]
+}

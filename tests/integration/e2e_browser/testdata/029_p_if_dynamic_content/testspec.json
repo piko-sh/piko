@@ -1,0 +1,115 @@
+{
+  "description": "Tests p-text and p-html inside p-if blocks update correctly (regression test for static hoisting bug)",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "p-if Dynamic Content Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "toggle-demo"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "toggle-demo >>> .conditional-block"
+    },
+    {
+      "action": "checkText",
+      "selector": "toggle-demo >>> .dynamic-text",
+      "expected": "Initial Message"
+    },
+    {
+      "action": "checkText",
+      "selector": "toggle-demo >>> #show-value",
+      "expected": "true"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "toggle-demo >>> #toggle-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "toggle-demo >>> .hidden-block"
+    },
+    {
+      "action": "checkText",
+      "selector": "toggle-demo >>> .hidden-block p",
+      "expected": "Content is hidden"
+    },
+    {
+      "action": "checkText",
+      "selector": "toggle-demo >>> #show-value",
+      "expected": "false"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_hide.html"
+    },
+    {
+      "action": "click",
+      "selector": "toggle-demo >>> #toggle-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "toggle-demo >>> .conditional-block"
+    },
+    {
+      "action": "checkText",
+      "selector": "toggle-demo >>> .dynamic-text",
+      "expected": "Initial Message"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_show.html"
+    },
+    {
+      "action": "click",
+      "selector": "toggle-demo >>> #update-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "toggle-demo >>> .dynamic-text",
+      "expected": "Updated Message"
+    },
+    {
+      "action": "checkText",
+      "selector": "toggle-demo >>> #message-value",
+      "expected": "Updated Message"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_update.html"
+    }
+  ]
+}

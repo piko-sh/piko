@@ -1,0 +1,4 @@
+<template>
+  <p style="text-align: center; width: 400px;">Centred text content here</p>
+  <p style="text-align: right; width: 400px;">Right-aligned text</p>
+</template>

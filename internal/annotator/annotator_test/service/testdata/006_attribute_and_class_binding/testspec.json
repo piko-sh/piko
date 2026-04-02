@@ -1,0 +1,45 @@
+{
+  "description": "Validates that :class, p-class, and p-style are correctly parsed and their expressions are type-checked.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#my-link",
+      "description": "The link should have its class and style sources correctly annotated.",
+      "assertOnDirective": [
+        {
+          "name": "p-class",
+          "rawExpression": "{ 'active': state.IsActive, 'inactive': !state.IsActive }",
+          "resolvedTypeIs": "map[string]bool"
+        },
+        {
+          "name": "p-style",
+          "rawExpression": "{ color: state.Color, 'font-weight': 'bold' }",
+          "resolvedTypeIs": "map[string]string"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.ExtraClasses",
+          "resolvedTypeIs": "[]string"
+        },
+        {
+          "rawExpression": "state.URL",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "state.IsActive",
+          "resolvedTypeIs": "bool"
+        },
+        {
+          "rawExpression": "!state.IsActive",
+          "resolvedTypeIs": "bool"
+        },
+        {
+          "rawExpression": "state.Color",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

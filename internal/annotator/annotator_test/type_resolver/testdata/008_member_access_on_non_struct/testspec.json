@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when trying to access a property on a non-struct type (e.g., an integer).",
+  "expression": "state.Count.Value",
+  "expectedType": "any",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Property 'Value' does not exist on type 'int'"
+    }
+  ]
+}]

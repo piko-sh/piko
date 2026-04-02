@@ -1,0 +1,3 @@
+{
+  "description": "A div with explicit width and height. Verifies explicit dimension resolution from inline styles."
+}

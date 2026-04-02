@@ -1,0 +1,17 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="container" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div id="status-ok" [p-if: (state.Status == "ok")] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Status is OK."
+  </div>
+  <div id="status-warn" [p-else-if: (state.Status == "warn")] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Status is Warning."
+  </div>
+  <div id="status-error" [p-else] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Status is Error."
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

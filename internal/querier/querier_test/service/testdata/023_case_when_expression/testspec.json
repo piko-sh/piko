@@ -1,0 +1,3 @@
+{
+  "description": "CASE WHEN expression type resolution. Tests common supertype across branches, nullable when no ELSE clause, and nullable branch propagation."
+}

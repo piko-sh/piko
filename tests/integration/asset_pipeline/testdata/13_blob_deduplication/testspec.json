@@ -1,0 +1,21 @@
+{
+  "description": "Blob deduplication: identical content should share a single blob with proper reference counting",
+  "moduleName": "testmodule",
+  "deduplicationChecks": [
+    {
+      "description": "Two identical assets should share one blob with refcount 2",
+      "assets": [
+        {
+          "sourcePath": "src/lib/images/asset1.jpg",
+          "expectedArtefactID": "testmodule/lib/images/asset1.jpg"
+        },
+        {
+          "sourcePath": "src/lib/images/asset2.jpg",
+          "expectedArtefactID": "testmodule/lib/images/asset2.jpg"
+        }
+      ],
+      "expectSingleBlob": true,
+      "expectRefCount": 2
+    }
+  ]
+}

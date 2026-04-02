@@ -1,0 +1,180 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-button-group">
+    <div class="button-group"
+         p-class="{ 'multi': state.multiselect }"
+         role="group">
+        <slot></slot>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        multiselect: false as boolean,
+    };
+
+    pkc.onConnected(() => {
+        pkc.addEventListener('click', handleButtonClick);
+        pkc.addEventListener('keydown', handleKeydown);
+        updateStyles();
+    });
+
+    pkc.onDisconnected(() => {
+        pkc.removeEventListener('click', handleButtonClick);
+        pkc.removeEventListener('keydown', handleKeydown);
+    });
+
+    const handleButtonClick = function(event) {
+        const button = event.target.closest('[data-group-item]');
+        if (!button) return;
+
+        const buttons = pkc.querySelectorAll('[data-group-item]');
+
+        if (state.multiselect) {
+            const isSelected = button.hasAttribute('data-selected');
+            if (isSelected) {
+                button.removeAttribute('data-selected');
+            } else {
+                button.setAttribute('data-selected', '');
+            }
+        } else {
+            buttons.forEach((b) => b.removeAttribute('data-selected'));
+            button.setAttribute('data-selected', '');
+        }
+
+        const selected = [];
+        pkc.querySelectorAll('[data-group-item][data-selected]').forEach((b) => {
+            selected.push(b.getAttribute('data-group-item'));
+        });
+
+        pkc.dispatchEvent(new CustomEvent('change', {
+            detail: { selected: selected },
+            bubbles: true,
+            composed: true,
+        }));
+    };
+
+    const handleKeydown = function(event) {
+        const isLeft = event.key === 'ArrowLeft';
+        const isRight = event.key === 'ArrowRight';
+        const isHome = event.key === 'Home';
+        const isEnd = event.key === 'End';
+
+        if (!isLeft && !isRight && !isHome && !isEnd) return;
+
+        event.preventDefault();
+        const buttons = Array.from(pkc.querySelectorAll('[data-group-item]'));
+        if (buttons.length < 2) return;
+
+        const focused = document.activeElement;
+        let index = buttons.indexOf(focused);
+        if (index < 0) index = 0;
+
+        let nextIndex;
+        if (isHome) {
+            nextIndex = 0;
+        } else if (isEnd) {
+            nextIndex = buttons.length - 1;
+        } else if (isRight) {
+            nextIndex = index < buttons.length - 1 ? index + 1 : 0;
+        } else {
+            nextIndex = index > 0 ? index - 1 : buttons.length - 1;
+        }
+
+        buttons[nextIndex].focus();
+    };
+
+    function updateStyles() {
+        const buttons = pkc.querySelectorAll('[data-group-item]');
+        const selected = pkc.querySelector('[data-group-item][data-selected]');
+        buttons.forEach((button) => {
+            button.tabIndex = button === (selected || buttons[0]) ? 0 : -1;
+        });
+    }
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        flex-shrink: 0;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_outline: var(--m3e-outline, #79747e);
+        --_secondary-container: var(--m3e-secondary-container, #e8def8);
+        --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-full: var(--m3e-shape-full, 9999px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .button-group {
+        display: inline-flex;
+
+        & ::slotted(*) {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            min-width: 48px;
+            padding: 0 24px;
+            border: 1px solid var(--_outline);
+            border-right-width: 0;
+            background: transparent;
+            color: var(--_on-surface);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background var(--_duration-short) var(--_easing-standard),
+                        color var(--_duration-short) var(--_easing-standard);
+        }
+
+        & ::slotted(*:first-child) {
+            border-radius: var(--_shape-full) 0 0 var(--_shape-full);
+        }
+
+        & ::slotted(*:last-child) {
+            border-radius: 0 var(--_shape-full) var(--_shape-full) 0;
+            border-right-width: 1px;
+        }
+
+        & ::slotted(*:only-child) {
+            border-radius: var(--_shape-full);
+        }
+
+        & ::slotted(*:hover) {
+            background: rgba(73, 69, 79, 0.08);
+        }
+
+        & ::slotted([data-selected]) {
+            background: var(--_secondary-container);
+            color: var(--_on-secondary-container);
+        }
+    }
+</style>

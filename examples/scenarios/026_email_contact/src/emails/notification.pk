@@ -1,0 +1,172 @@
+<!--
+  Internal notification email using PML (Piko Mail Language) elements for
+  Outlook and cross-client compatibility. PML tags like pml-container,
+  pml-row, pml-col are transformed into table-based layouts that render
+  consistently across email clients including Outlook.
+-->
+
+<template>
+  <pml-container class="wrapper">
+    <pml-row class="header-row">
+      <pml-col>
+        <pml-p class="header-icon">&#128232;</pml-p>
+        <pml-p class="header-title">New Contact Submission</pml-p>
+      </pml-col>
+    </pml-row>
+
+    <pml-row class="body-row">
+      <pml-col class="content">
+        <pml-p class="intro">A new message was submitted via the contact form.</pml-p>
+
+        <pml-br height="20px"></pml-br>
+
+        <pml-p class="field-label">From</pml-p>
+        <pml-p class="field-value">{{ props.Name }}</pml-p>
+
+        <pml-br height="4px"></pml-br>
+
+        <pml-p class="field-label">Email</pml-p>
+        <pml-p class="field-value email-value">{{ props.Email }}</pml-p>
+
+        <pml-br height="16px"></pml-br>
+
+        <pml-p class="field-label">Message</pml-p>
+        <pml-br height="6px"></pml-br>
+        <pml-p class="message-text">{{ props.Message }}</pml-p>
+      </pml-col>
+    </pml-row>
+
+    <pml-row class="footer-row">
+      <pml-col>
+        <pml-p class="footer-text">
+          This is an automated notification from the Piko Email Demo.
+        </pml-p>
+      </pml-col>
+    </pml-row>
+  </pml-container>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+
+    "testmodule/internal/dto"
+)
+
+func Render(r *piko.RequestData, props dto.NotificationEmailProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "New Contact Submission",
+    }, nil
+}
+
+func Preview() []piko.PreviewScenario {
+    return []piko.PreviewScenario{
+        {
+            Name: "default",
+            Props: dto.NotificationEmailProps{
+                Name:    "Jane Smith",
+                Email:   "jane.smith@example.com",
+                Message: "Hi, I'd like to learn more about your services.",
+            },
+        },
+        {
+            Name:        "short message",
+            Description: "Minimal content to check the layout holds up",
+            Props: dto.NotificationEmailProps{
+                Name:    "J",
+                Email:   "j@x.co",
+                Message: "Hello",
+            },
+        },
+    }
+}
+</script>
+
+<style>
+  .wrapper {
+    max-width: 600px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    background-color: #f3f4f6;
+  }
+
+  .header-row {
+    background-color: #1e293b;
+    padding: 28px 32px;
+    text-align: center;
+  }
+
+  .header-icon {
+    font-size: 28px;
+    margin: 0 0 6px 0;
+  }
+
+  .header-title {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .body-row {
+    padding: 20px 16px;
+  }
+
+  .content {
+    padding: 28px 32px;
+    background-color: #ffffff;
+  }
+
+  .intro {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  .field-label {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .field-value {
+    margin: 3px 0 0 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .email-value {
+    font-weight: 400;
+    color: #2563eb;
+  }
+
+  .message-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    background-color: #f9fafb;
+    border-left: 3px solid #1e293b;
+    padding: 16px;
+    white-space: pre-wrap;
+  }
+
+  .footer-row {
+    padding: 20px 32px;
+  }
+
+  .footer-text {
+    margin: 0;
+    font-size: 12px;
+    color: #9ca3af;
+    text-align: center;
+  }
+</style>

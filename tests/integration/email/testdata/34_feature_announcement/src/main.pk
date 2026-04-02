@@ -1,0 +1,81 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" font-weight="bold" color="#ffffff" background-color="#2c3e50" align="center" padding="10px 25px">Prism</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#667eea" padding="60px 0">
+        <pml-col>
+            <pml-p color="#ffffff" font-size="32px" align="center" padding="10px 25px">Introducing Prism 3.0</pml-p>
+            <pml-p color="#e8e8ff" font-size="16px" align="center" padding="5px 30px">
+                The biggest update yet. Faster, smarter, more powerful.
+            </pml-p>
+            <pml-button href="https://example.com/whats-new" background-color="#ffffff" color="#2c3e50" font-size="14px" border-radius="4px" padding="20px 25px" inner-padding="12px 30px">
+                See What's New
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="30px 0">
+        <pml-col>
+            <pml-p background-color="#f0f0f0" color="#aaaaaa" font-size="14px" align="center" padding="60px 20px">App Screenshot</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="33.33%">
+            <pml-p background-color="#fff3e0" color="#e67e22" font-size="28px" align="center" padding="10px 0">&#9889;</pml-p>
+            <pml-p font-size="16px" color="#2c3e50" align="center" padding="5px 10px">2x Faster</pml-p>
+            <pml-p font-size="13px" color="#666666" align="center" line-height="1.5" padding="5px 15px">
+                Rebuilt rendering engine for instant previews
+            </pml-p>
+        </pml-col>
+        <pml-col width="33.33%">
+            <pml-p background-color="#e8f5e9" color="#27ae60" font-size="28px" align="center" padding="10px 0">&#9899;</pml-p>
+            <pml-p font-size="16px" color="#2c3e50" align="center" padding="5px 10px">Enterprise Security</pml-p>
+            <pml-p font-size="13px" color="#666666" align="center" line-height="1.5" padding="5px 15px">
+                SOC 2 compliance and SSO support
+            </pml-p>
+        </pml-col>
+        <pml-col width="33.34%">
+            <pml-p background-color="#e3f2fd" color="#2196f3" font-size="28px" align="center" padding="10px 0">Thumbs Up</pml-p>
+            <pml-p font-size="16px" color="#2c3e50" align="center" padding="5px 10px">Easier Than Ever</pml-p>
+            <pml-p font-size="13px" color="#666666" align="center" line-height="1.5" padding="5px 15px">
+                Redesigned interface with guided workflows
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="20px" color="#2c3e50" align="center" padding="10px 25px">Getting Started</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-ol>
+                <pml-li>Update to the latest version</pml-li>
+                <pml-li>Explore the new dashboard</pml-li>
+                <pml-li>Join our live walkthrough on 5 April</pml-li>
+            </pml-ol>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="25px 0">
+        <pml-col>
+            <pml-button href="https://example.com/update" background-color="#667eea" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 45px">
+                Update Now
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f5f5f5" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#999999" align="center" padding="5px 25px">
+                You received this email because you are a Prism user.
+            </pml-p>
+            <pml-p font-size="11px" color="#999999" align="center" padding="0 25px">
+                © 2026 Prism Design Inc. All rights reserved.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.feature-card { text-align: center; }
+</style>

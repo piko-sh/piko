@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text-indent combined with text-align, multi-line justify with last line left-aligned, line-height: 2 spacing, and text-indent only on first line of wrapped text. Tolerance is high because HarfBuzz shaping produces ~5% wider advances than Chrome for NotoSans at 14px.",
+    "requestURL": "/main",
+    "tolerance": 12.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

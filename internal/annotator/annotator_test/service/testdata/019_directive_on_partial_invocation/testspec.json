@@ -1,0 +1,33 @@
+{
+  "description": "Validates that structural directives (p-if, p-for) and attribute bindings placed on a partial invocation tag are correctly applied to the partial's root element.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "should have a unique 'p-key' binding for efficient updates"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "span.badge[p-if]",
+      "description": "The expanded partial for the active user should have the p-if directive and title attribute applied to its root span.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "user.IsActive",
+          "resolvedTypeIs": "bool"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "user.IsActive",
+          "resolvedTypeIs": "bool"
+        },
+        {
+          "rawExpression": "user.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

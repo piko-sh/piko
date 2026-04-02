@@ -1,0 +1,7 @@
+{
+    "description": "Verifies float elements wider than their BFC container overflow correctly, subsequent content wraps below oversized floats, and stacked floats drop when they cannot fit side by side.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

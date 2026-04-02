@@ -1,0 +1,168 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Chip"
+            server.current-page="selection/chip">
+
+            <p class="demo-description">Chips help people enter information, make selections, filter content, or trigger actions. They come in four variants.</p>
+
+            <div class="demo-grid">
+                <!-- Assist -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Assist</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-chip-set>
+                            <m3e-chip variant="assist">Add to calendar</m3e-chip>
+                            <m3e-chip variant="assist">Get directions</m3e-chip>
+                            <m3e-chip variant="assist">Share</m3e-chip>
+                        </m3e-chip-set>
+                        <m3e-chip-set>
+                            <m3e-chip variant="assist" disabled>Disabled</m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip-set&gt;
+  &lt;m3e-chip variant="assist"&gt;Add to calendar&lt;/m3e-chip&gt;
+  &lt;m3e-chip variant="assist"&gt;Get directions&lt;/m3e-chip&gt;
+  &lt;m3e-chip variant="assist"&gt;Share&lt;/m3e-chip&gt;
+&lt;/m3e-chip-set&gt;
+&lt;m3e-chip-set&gt;
+  &lt;m3e-chip variant="assist" disabled&gt;Disabled&lt;/m3e-chip&gt;
+&lt;/m3e-chip-set&gt;</code></pre>
+                </section>
+
+                <!-- Filter - Unselected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filter - Unselected</h3>
+                    <div class="demo-preview">
+                        <m3e-chip-set>
+                            <m3e-chip variant="filter">Vegetarian</m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip variant="filter"&gt;Vegetarian&lt;/m3e-chip&gt;</code></pre>
+                </section>
+
+                <!-- Filter - Selected -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filter - Selected</h3>
+                    <div class="demo-preview">
+                        <m3e-chip-set>
+                            <m3e-chip variant="filter" selected>Vegetarian</m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip variant="filter" selected&gt;Vegetarian&lt;/m3e-chip&gt;</code></pre>
+                </section>
+
+                <!-- Filter with Icon -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Filter with Icon</h3>
+                    <div class="demo-preview">
+                        <m3e-chip-set>
+                            <m3e-chip variant="filter">
+                                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                                Favourites
+                            </m3e-chip>
+                            <m3e-chip variant="filter" selected>
+                                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                                Starred
+                            </m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip variant="filter"&gt;
+  &lt;piko:svg src="@/lib/icons/star.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Favourites
+&lt;/m3e-chip&gt;
+&lt;m3e-chip variant="filter" selected&gt;
+  &lt;piko:svg src="@/lib/icons/star.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Starred
+&lt;/m3e-chip&gt;</code></pre>
+                </section>
+
+                <!-- Input - Removable -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Input - Removable</h3>
+                    <div class="demo-preview">
+                        <m3e-chip-set>
+                            <m3e-chip variant="input" removable>Tag</m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip variant="input" removable&gt;Tag&lt;/m3e-chip&gt;</code></pre>
+                </section>
+
+                <!-- Suggestion -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Suggestion</h3>
+                    <div class="demo-preview">
+                        <m3e-chip-set>
+                            <m3e-chip variant="suggestion">Try this</m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip variant="suggestion"&gt;Try this&lt;/m3e-chip&gt;</code></pre>
+                </section>
+
+                <!-- Elevated -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Elevated</h3>
+                    <div class="demo-preview">
+                        <m3e-chip-set>
+                            <m3e-chip variant="assist" elevated>Elevated</m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip variant="assist" elevated&gt;Elevated&lt;/m3e-chip&gt;</code></pre>
+                </section>
+
+                <!-- With Icon -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">With Icon</h3>
+                    <div class="demo-preview">
+                        <m3e-chip-set>
+                            <m3e-chip variant="assist">
+                                <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                                Create
+                            </m3e-chip>
+                        </m3e-chip-set>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-chip variant="assist"&gt;
+  &lt;piko:svg src="@/lib/icons/add.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Create
+&lt;/m3e-chip&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Chip - M3E Components",
+    }, nil
+}
+</script>

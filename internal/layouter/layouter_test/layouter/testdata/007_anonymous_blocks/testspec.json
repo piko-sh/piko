@@ -1,0 +1,3 @@
+{
+  "description": "A div with mixed inline and block content. Verifies anonymous block wrapping when inline and block children coexist."
+}

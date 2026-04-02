@@ -1,0 +1,7 @@
+{
+  "description": "Tests rendering a page with deeply nested partials (5 levels: page → layout → header → profile → avatar → subtext).",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

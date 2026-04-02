@@ -1,0 +1,67 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int2": { "category": "integer", "engineName": "int2" },
+    "int4": { "category": "integer", "engineName": "int4" },
+    "numeric": { "category": "decimal", "engineName": "numeric" },
+    "float4": { "category": "float", "engineName": "float4" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE products ( id int4 PRIMARY KEY, quantity int2 NOT NULL, price numeric(10,2) NOT NULL, discount float4 )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "products",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "quantity", "sqlType": { "category": "integer", "engineName": "int2" }, "nullable": false },
+          { "name": "price", "sqlType": { "category": "decimal", "engineName": "numeric", "precision": 10, "scale": 2 }, "nullable": false },
+          { "name": "discount", "sqlType": { "category": "float", "engineName": "float4" }, "nullable": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT price * quantity as total, price + discount as adjusted_price, quantity / 2 as half_quantity FROM products WHERE id = $1",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "total",
+            "expression": {
+              "kind": "binary_op",
+              "operator": "*",
+              "left": { "kind": "column_ref", "tableAlias": "products", "columnName": "price" },
+              "right": { "kind": "column_ref", "tableAlias": "products", "columnName": "quantity" }
+            }
+          },
+          {
+            "name": "adjusted_price",
+            "expression": {
+              "kind": "binary_op",
+              "operator": "+",
+              "left": { "kind": "column_ref", "tableAlias": "products", "columnName": "price" },
+              "right": { "kind": "column_ref", "tableAlias": "products", "columnName": "discount" }
+            }
+          },
+          {
+            "name": "half_quantity",
+            "expression": {
+              "kind": "binary_op",
+              "operator": "/",
+              "left": { "kind": "column_ref", "tableAlias": "products", "columnName": "quantity" },
+              "right": { "kind": "literal", "typeName": "int4" }
+            }
+          }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "products", "columnName": "id" } }
+        ],
+        "fromTables": [
+          { "name": "products" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

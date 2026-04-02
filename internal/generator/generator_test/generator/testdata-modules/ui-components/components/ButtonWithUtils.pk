@@ -1,0 +1,78 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <button class="btn" p-attr:class="state.CssClass">
+    <span p-text="state.FormattedLabel"></span>
+  </button>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    "github.com/example/ui-components/pkg/utils"
+  )
+
+  type Props struct {
+    Label   string
+    Variant string
+  }
+
+  type Response struct {
+    FormattedLabel string
+    CssClass       string
+  }
+
+  func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    formattedLabel := utils.FormatButtonLabel(props.Label)
+
+    variant := utils.ButtonVariant(props.Variant)
+    cssClass := utils.GetButtonClass(variant)
+
+    return Response{
+      FormattedLabel: formattedLabel,
+      CssClass:       cssClass,
+    }, piko.Metadata{}, nil
+  }
+</script>
+
+<style>
+  .btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background-color: #007bff;
+    color: white;
+  }
+  .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+  }
+  .btn-danger {
+    background-color: #dc3545;
+    color: white;
+  }
+</style>

@@ -1,0 +1,6 @@
+{
+  "title": "Invoice Email",
+  "description": "Professional invoice with line items, tax, and payment details",
+  "metadata": {"title": "Invoice #INV-2026-0342"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

@@ -1,0 +1,98 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <img id="guarded-same-element" p-if="props.Image != nil" :src="props.Image.URL" />
+
+    <div id="guarded-children" p-if="props.User != nil">
+      <span id="guarded-child-name">{{ props.User.Name }}</span>
+    </div>
+
+    <div id="nested-guard-outer" p-if="props.User != nil">
+      <span id="nested-outer-field">{{ props.User.Name }}</span>
+      <div id="nested-guard-inner" p-if="props.User.Profile != nil">
+        <span id="nested-inner-field">{{ props.User.Profile.Bio }}</span>
+      </div>
+      <span id="nested-unguarded-inner">{{ props.User.Profile.Bio }}</span>
+    </div>
+
+    <span id="unguarded">{{ props.Unguarded.Name }}</span>
+
+    <div id="combined-guard" p-if="props.User != nil && props.Image != nil">
+      <span id="combined-user">{{ props.User.Name }}</span>
+      <span id="combined-image">{{ props.Image.URL }}</span>
+    </div>
+
+    <div id="loop-guard-outer" p-if="props.Team != nil">
+      <div p-for="(idx, member) in props.Team.Members" p-key="idx">
+        <span id="loop-member-name">{{ member.Name }}</span>
+      </div>
+    </div>
+
+    <div id="alternate-guard" p-if="props.MaybeUser != nil">
+      <span id="alternate-guarded">{{ props.MaybeUser.Name }}</span>
+    </div>
+
+    <div id="negated-guard" p-if="!(props.Other == nil)">
+      <span id="negated-guarded">{{ props.Other.Value }}</span>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type User struct {
+    Name    string
+    Profile *Profile
+}
+
+type Profile struct {
+    Bio string
+}
+
+type Image struct {
+    URL string
+}
+
+type Team struct {
+    Members []User
+}
+
+type Other struct {
+    Value string
+}
+
+type Props struct {
+    Image     *Image `prop:"image"`
+    User      *User  `prop:"user"`
+    Unguarded *User  `prop:"unguarded"`
+    Team      *Team  `prop:"team"`
+    MaybeUser *User  `prop:"maybeUser"`
+    Other     *Other `prop:"other"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

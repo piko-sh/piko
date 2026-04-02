@@ -1,0 +1,20 @@
+/*
+--- BEGIN AST DUMP ---
+
+<ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <li [p-for: (i, user) in state.Users] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ i }}
+      ": "
+      {{ user.Name }}
+    </RichText>
+  </li>
+</ul>
+<p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ user }}
+  </RichText>
+</p>
+
+--- END AST DUMP ---
+*/

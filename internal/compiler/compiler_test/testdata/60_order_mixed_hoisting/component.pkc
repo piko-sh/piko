@@ -1,0 +1,59 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="mixed-hoisting">
+    <div>
+        <p>Result A: {{ state.resultA }}</p>
+        <p>Result B: {{ state.resultB }}</p>
+        <button p-on:click="refresh">Refresh</button>
+    </div>
+</template>
+
+<script lang="ts">
+    const arrowUsingHoisted = () => hoistedHelper() * 2;
+
+    const MULTIPLIER = 10;
+    const arrowUsingConst = () => MULTIPLIER * 3;
+
+    function hoistedHelper() {
+        return 21;
+    }
+
+    const COMPUTED_A = arrowUsingHoisted();  // 42
+    const COMPUTED_B = arrowUsingConst();    // 30
+
+    const laterArrow = () => {
+        return hoistedHelper() + MULTIPLIER;
+    };
+
+    const state = {
+        resultA: COMPUTED_A as number,
+        resultB: COMPUTED_B as number
+    };
+
+    function refresh() {
+        state.resultA = laterArrow();
+        state.resultB = arrowUsingHoisted() + arrowUsingConst();
+    }
+
+    function anotherHelper() {
+        return 100;
+    }
+</script>

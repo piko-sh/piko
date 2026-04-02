@@ -1,0 +1,22 @@
+--- PACKAGE: testcase_40_embedding_error_interface ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 40_embedding_error_interface/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type MyError
+    - Defined In:      40_embedding_error_interface/src/main.go
+    - TypeString:      main.MyError
+    - Underlying:      struct{error; Code int}
+    - Stringability:   0
+    - Fields:
+      - Code                 int
+    - Methods:
+      - func (T) Error           func() string
+        (Promoted from: builtin.error)
+
+[Package-Level Functions]
+  (none)

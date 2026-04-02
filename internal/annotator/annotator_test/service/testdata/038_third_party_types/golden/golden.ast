@@ -1,0 +1,111 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <p id="direct-implicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.DirectUUID }}
+    </RichText>
+  </p>
+  <p id="direct-explicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.DirectUUID.String() }}
+    </RichText>
+  </p>
+  <p id="model-implicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.ModelData.UserID }}
+    </RichText>
+  </p>
+  <p id="model-explicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.ModelData.UserID.String() }}
+    </RichText>
+  </p>
+  <p id="aliased-implicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.AliasedUUID }}
+    </RichText>
+  </p>
+  <p id="aliased-explicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.AliasedUUID.String() }}
+    </RichText>
+  </p>
+  <p id="aliased-implicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.Deep.Data.UserID }}
+    </RichText>
+  </p>
+  <p id="aliased-explicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.Deep.Data.UserID.String() }}
+    </RichText>
+  </p>
+  <p id="aliased-implicit" :test="state.Deep.Data.UserID" {P: state.Deep.Data.UserID} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <p id="aliased-implicit" :test="state.Deep.Data.UserID.String()" {P: state.Deep.Data.UserID.String()} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <p id="model-implicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.MoreModelData.UserID }}
+    </RichText>
+  </p>
+  <p id="model-implicit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ state.FinalModelData.UserID }}
+    </RichText>
+  </p>
+  <div id="prop-implicit-string" :title="state.DirectUUID" {P: state.DirectUUID, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk PARTIAL InvKey: consumer_title_state_directuuid_string_e857cbf2 Package: partials_prop_consumer_45fb2f06 InvPackage: main_aaf9a2e0]>
+    <p id="title" [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.Title }}
+      </RichText>
+    </p>
+    <p id="id" [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.UUID }}
+      </RichText>
+    </p>
+    <p id="optional" [p-if: (props.OptionalTitle != nil)] [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.OptionalTitle }}
+      </RichText>
+    </p>
+  </div>
+  <div id="prop-exact-match" :uuid="state.DirectUUID" {P: state.DirectUUID, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk PARTIAL InvKey: consumer_uuid_state_directuuid_31ebf6ff Package: partials_prop_consumer_45fb2f06 InvPackage: main_aaf9a2e0]>
+    <p id="title" [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.Title }}
+      </RichText>
+    </p>
+    <p id="id" [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.UUID }}
+      </RichText>
+    </p>
+    <p id="optional" [p-if: (props.OptionalTitle != nil)] [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.OptionalTitle }}
+      </RichText>
+    </p>
+  </div>
+  <div id="prop-explicit-string" :title="state.DirectUUID.String()" {P: state.DirectUUID.String(), OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk PARTIAL InvKey: consumer_title_state_directuuid_string_e857cbf2 Package: partials_prop_consumer_45fb2f06 InvPackage: main_aaf9a2e0]>
+    <p id="title" [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.Title }}
+      </RichText>
+    </p>
+    <p id="id" [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.UUID }}
+      </RichText>
+    </p>
+    <p id="optional" [p-if: (props.OptionalTitle != nil)] [ANNOTATIONS: OriginPackage: partials_prop_consumer_45fb2f06 OriginPath: partials/prop_consumer.pk]>
+      <RichText>
+        {{ props.OptionalTitle }}
+      </RichText>
+    </p>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

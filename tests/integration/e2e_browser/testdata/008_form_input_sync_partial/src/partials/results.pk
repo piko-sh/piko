@@ -1,0 +1,70 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+  <form class="search-form" pk-no-track>
+    <input type="text" name="query" id="search-input" placeholder="Type to search..." autocomplete="off" :value="state.Query" pk-no-refresh>
+    <div class="results">
+      <div p-if="state.HasQuery">
+        <p class="status">Results for: <span class="query-text" p-text="state.Query"></span></p>
+        <ul class="result-list">
+          <li>Result 1 for <span p-text="state.Query"></span></li>
+          <li>Result 2 for <span p-text="state.Query"></span></li>
+        </ul>
+      </div>
+      <p p-else class="status no-results">No results - enter a search term</p>
+    </div>
+  </form>
+</template>
+
+<style>
+  .results {
+    padding: 1rem;
+    border: 1px solid #ccc;
+    margin-top: 1rem;
+  }
+  .no-results {
+    color: #666;
+    font-style: italic;
+  }
+  .query-text {
+    font-weight: bold;
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+    Query    string
+    HasQuery bool
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    query := r.FormValue("query")
+
+    return Response{
+        Query:    query,
+        HasQuery: query != "",
+    }, piko.Metadata{}, nil
+}
+</script>

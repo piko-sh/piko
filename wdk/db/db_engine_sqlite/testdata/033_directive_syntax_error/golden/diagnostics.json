@@ -1,0 +1,24 @@
+[
+  {
+    "Filename": "invalid_command.sql",
+    "Message": "unknown query command \"invalid\"",
+    "Code": "Q007",
+    "Suggestion": "",
+    "Line": 2,
+    "Column": 18,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  },
+  {
+    "Filename": "invalid_command.sql",
+    "Message": "missing piko.command directive",
+    "Code": "Q008",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  }
+]

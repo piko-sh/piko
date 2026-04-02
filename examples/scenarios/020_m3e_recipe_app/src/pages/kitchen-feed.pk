@@ -1,0 +1,331 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Live Kitchen Feed"
+            server.current-page="kitchen-feed">
+
+            <section class="page-section">
+                <!-- Hero -->
+                <div class="feed-hero">
+                    <piko:img src="@/lib/images/security-camera.jpg" alt="Kitchen security camera feed" class="feed-hero-image"></piko:img>
+                    <div class="feed-hero-overlay">
+                        <span class="feed-hero-rec">REC</span>
+                        <span class="feed-hero-cam">CAM 03 - KITCHEN</span>
+                    </div>
+                </div>
+
+                <div class="feed-header">
+                    <div>
+                        <h1 class="section-title" style="font-size: 2rem;">Live Kitchen Feed</h1>
+                        <p class="section-subtitle">Real-time dispatches from The Norman Kitchen. Powered by cheese and questionable decisions.</p>
+                    </div>
+                    <div class="flex-row gap-sm">
+                        <m3e-chip p-ref="statusBadge" variant="outlined">Disconnected</m3e-chip>
+                        <m3e-button p-ref="connectBtn" variant="filled" p-on:click="toggleFeed">Start Feed</m3e-button>
+                    </div>
+                </div>
+
+                <!-- Feed Container -->
+                <div p-ref="feedContainer" class="feed-container">
+                    <div class="feed-empty" style="background: url('@/lib/images/loading-placeholder.jpg') center/cover no-repeat; border-radius: var(--m3e-shape-lg);">
+                        <div style="background: rgba(255,253,247,0.85); padding: 48px 24px; border-radius: var(--m3e-shape-lg);">
+                            <p class="text-muted" style="font-size: 1rem;">Press <strong>Start Feed</strong> to begin receiving live updates from the kitchen.</p>
+                            <p class="text-muted" style="font-size: 0.875rem; margin-top: 8px;">The mice are standing by.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    footer "testmodule/partials/footer.pk"
+    feed "testmodule/actions/kitchen/feed.go"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title:       "Live Kitchen Feed - The Norman Kitchen",
+        Description: "Real-time dispatches from The Norman Kitchen. Watch the chaos unfold.",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+let connected = false;
+let abortController: AbortController | null = null;
+
+const categoryStyles: Record<string, { label: string; colour: string }> = {
+    mouse:    { label: 'Mouse',    colour: 'var(--m3e-primary)' },
+    cheese:   { label: 'Cheese',   colour: 'var(--m3e-tertiary)' },
+    alarm:    { label: 'Alarm',    colour: 'var(--m3e-error)' },
+    chef:     { label: 'Chef',     colour: 'var(--m3e-secondary)' },
+    review:   { label: 'Review',   colour: 'var(--m3e-primary)' },
+    delivery: { label: 'Delivery', colour: '#5B7553' },
+    mystery:  { label: 'Mystery',  colour: 'var(--m3e-on-surface-variant)' },
+};
+
+function setStatus(text: string, variant: string) {
+    const badge = pk.refs.statusBadge;
+    if (badge) {
+        badge.textContent = text;
+        badge.setAttribute('variant', variant);
+    }
+}
+
+export async function toggleFeed(): Promise<void> {
+    if (connected) {
+        // Disconnect.
+        connected = false;
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+        setStatus('Disconnected', 'outlined');
+        const btn = pk.refs.connectBtn;
+        if (btn) btn.textContent = 'Start Feed';
+        return;
+    }
+
+    // Connect.
+    connected = true;
+    const btn = pk.refs.connectBtn;
+    if (btn) btn.textContent = 'Stop Feed';
+
+    // Clear the empty state.
+    const container = pk.refs.feedContainer;
+    if (container) {
+        const empty = container.querySelector('.feed-empty');
+        if (empty) empty.remove();
+    }
+
+    setStatus('Connecting...', 'outlined');
+
+    try {
+        await action.kitchen.Feed({})
+            .withOnProgress((data: unknown, eventType: string) => {
+                if (eventType !== 'event') return;
+
+                setStatus('Connected', 'filled');
+
+                const evt = data as { text: string; category: string; time: string };
+                appendEvent(evt.text, evt.category, evt.time);
+            })
+            .withRetryStream({
+                maxReconnects: Infinity,
+                baseDelay: 3000,
+                backoff: 'exponential',
+                onDisconnect: () => {
+                    setStatus('Reconnecting...', 'outlined');
+                },
+                onReconnect: () => {
+                    setStatus('Connected', 'filled');
+                },
+            })
+            .call();
+    } catch {
+        setStatus('Disconnected', 'outlined');
+        connected = false;
+        if (btn) btn.textContent = 'Start Feed';
+    }
+}
+
+function appendEvent(text: string, category: string, time: string): void {
+    const container = pk.refs.feedContainer;
+    if (!container) return;
+
+    const style = categoryStyles[category] || categoryStyles.mystery;
+
+    const card = document.createElement('div');
+    card.className = 'feed-event';
+    card.innerHTML =
+        '<div class="feed-event-header">' +
+            '<span class="feed-event-category" style="background: ' + style.colour + ';">' + escapeHtml(style.label) + '</span>' +
+            '<span class="feed-event-time">' + escapeHtml(time) + '</span>' +
+        '</div>' +
+        '<p class="feed-event-text">' + escapeHtml(text) + '</p>';
+
+    container.prepend(card);
+
+    // Trigger animation.
+    requestAnimationFrame(() => {
+        card.classList.add('visible');
+    });
+
+    // Limit to 50 visible events.
+    while (container.children.length > 50) {
+        container.removeChild(container.lastChild!);
+    }
+}
+
+function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+
+<style>
+.feed-hero {
+    position: relative;
+    max-width: 720px;
+    border-radius: var(--m3e-shape-xl);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.feed-hero-image {
+    width: 100%;
+    aspect-ratio: 16 / 7;
+    object-fit: cover;
+    filter: brightness(0.7) saturate(0.8);
+}
+
+.feed-hero-overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.feed-hero-rec {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(186, 26, 26, 0.85);
+    color: #FFFFFF;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: blink-rec 1.5s ease-in-out infinite;
+}
+
+.feed-hero-cam {
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.06em;
+}
+
+@keyframes blink-rec {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.feed-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.feed-container {
+    max-width: 720px;
+    max-height: 600px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scroll-behavior: smooth;
+}
+
+.feed-empty {
+    text-align: center;
+    padding: 64px 24px;
+}
+
+.feed-event {
+    background: var(--m3e-surface-container-low);
+    border-radius: var(--m3e-shape-md);
+    padding: 12px 16px;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.3s var(--m3e-easing-emphasized),
+                transform 0.3s var(--m3e-easing-emphasized);
+}
+
+.feed-event.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.feed-event-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.feed-event-category {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #FFFFFF;
+}
+
+.feed-event-time {
+    font-size: 0.75rem;
+    color: var(--m3e-on-surface-variant);
+    margin-left: auto;
+}
+
+.feed-event-text {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--m3e-on-surface);
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .feed-header {
+        flex-direction: column;
+    }
+
+    .feed-container {
+        max-height: 70vh;
+    }
+}
+</style>

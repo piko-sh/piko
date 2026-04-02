@@ -1,0 +1,34 @@
+{
+  "description": "Tests that rapid, sequential file modifications are all detected (catches timing bugs)",
+  "requestURL": "/main",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial render",
+      "expectedGolden": "stage_0.html",
+      "expectCacheHit": false
+    },
+    {
+      "stage": 1,
+      "description": "First rapid modification",
+      "expectedGolden": "stage_1.html",
+      "expectChange": true,
+      "delayBeforeRenderMs": 5
+    },
+    {
+      "stage": 2,
+      "description": "Second rapid modification (5ms after first)",
+      "expectedGolden": "stage_2.html",
+      "expectChange": true,
+      "delayBeforeRenderMs": 5
+    },
+    {
+      "stage": 3,
+      "description": "Third rapid modification (5ms after second)",
+      "expectedGolden": "stage_3.html",
+      "expectChange": true,
+      "delayBeforeRenderMs": 5
+    }
+  ]
+}

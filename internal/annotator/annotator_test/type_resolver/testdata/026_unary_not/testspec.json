@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that a unary logical NOT operator (!) resolves to a bool.",
+  "expression": "!state.IsActive",
+  "expectedType": "bool",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

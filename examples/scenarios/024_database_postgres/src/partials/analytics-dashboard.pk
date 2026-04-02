@@ -1,0 +1,241 @@
+<!--
+  Analytics Dashboard Partial
+
+  This partial renders the analytics dashboard panels: revenue by category,
+  top products, and daily revenue. It has a public template so it can be
+  reloaded independently if needed.
+
+  Read queries are routed through GetDatabaseReader, which targets replicas
+  when configured. This partial is read-only and has no actions.
+
+  The parent page mounts this with
+  <piko:partial is="analytics_dashboard" />.
+-->
+
+<template public>
+  <div class="analytics-container">
+    <section class="panel">
+      <h2>Revenue by Category</h2>
+      <table p-if="len(state.Categories) > 0">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Revenue</th>
+            <th>Orders</th>
+            <th>Running Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr p-for="(i, cat) in state.Categories" p-key="cat.Category">
+            <td p-text="cat.Category"></td>
+            <td>{{ cat.Revenue }}</td>
+            <td>{{ cat.OrderCount }}</td>
+            <td>{{ cat.RunningTotal }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p p-if="len(state.Categories) == 0" class="empty-message">No order data yet. Add some products and orders first.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Top Products</h2>
+      <table p-if="len(state.TopProducts) > 0">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Revenue</th>
+            <th>Orders</th>
+            <th>Category Rank</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr p-for="(i, product) in state.TopProducts" p-key="product.Name">
+            <td p-text="product.Name"></td>
+            <td p-text="product.Category"></td>
+            <td>{{ product.Revenue }}</td>
+            <td>{{ product.OrderCount }}</td>
+            <td>{{ product.CategoryRank }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p p-if="len(state.TopProducts) == 0" class="empty-message">No product sales data yet.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Daily Revenue</h2>
+      <table p-if="len(state.DailyRevenue) > 0">
+        <thead>
+          <tr>
+            <th>Day (Timestamp)</th>
+            <th>Revenue</th>
+            <th>Orders</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr p-for="(i, day) in state.DailyRevenue" p-key="day.DayTimestamp">
+            <td>{{ day.DayTimestamp }}</td>
+            <td>{{ day.Revenue }}</td>
+            <td>{{ day.OrderCount }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p p-if="len(state.DailyRevenue) == 0" class="empty-message">No daily revenue data yet.</p>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/db"
+
+    "testmodule/db/generated"
+)
+
+// CategorySummary holds the display data for a category revenue row.
+type CategorySummary struct {
+    Category     string  `json:"category"`
+    Revenue      float64 `json:"revenue"`
+    OrderCount   int64   `json:"order_count"`
+    RunningTotal float64 `json:"running_total"`
+}
+
+// TopProduct holds the display data for a top-selling product row.
+type TopProduct struct {
+    Name         string  `json:"name"`
+    Category     string  `json:"category"`
+    Revenue      float64 `json:"revenue"`
+    OrderCount   int64   `json:"order_count"`
+    CategoryRank int64   `json:"category_rank"`
+}
+
+// DailyRevenueEntry holds the display data for a single day's revenue.
+type DailyRevenueEntry struct {
+    DayTimestamp int64   `json:"day_timestamp"`
+    Revenue      float64 `json:"revenue"`
+    OrderCount   int64   `json:"order_count"`
+}
+
+// Response is the data available as state.* in the template.
+type Response struct {
+    Categories   []CategorySummary   `json:"categories"`
+    TopProducts  []TopProduct        `json:"top_products"`
+    DailyRevenue []DailyRevenueEntry `json:"daily_revenue"`
+}
+
+// Render fetches analytics data from the database using read replicas and
+// returns it for display.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    reader, err := db.GetDatabaseReader("analytics")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(reader)
+
+    categories, err := queries.GetCategorySummary(r.Context())
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    top_products_rows, err := queries.GetTopProducts(r.Context(), 10)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    daily_revenue_rows, err := queries.GetDailyRevenue(r.Context(), 30)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    category_list := make([]CategorySummary, len(categories))
+    for i, row := range categories {
+        category_list[i] = CategorySummary{
+            Category:     row.Category,
+            Revenue:      row.Revenue,
+            OrderCount:   row.OrderCount,
+            RunningTotal: row.RunningTotal,
+        }
+    }
+
+    top_products := make([]TopProduct, len(top_products_rows))
+    for i, row := range top_products_rows {
+        top_products[i] = TopProduct{
+            Name:         row.Name,
+            Category:     row.Category,
+            Revenue:      row.Revenue,
+            OrderCount:   row.OrderCount,
+            CategoryRank: row.CategoryRank,
+        }
+    }
+
+    daily_revenue := make([]DailyRevenueEntry, len(daily_revenue_rows))
+    for i, row := range daily_revenue_rows {
+        daily_revenue[i] = DailyRevenueEntry{
+            DayTimestamp: row.DayTimestamp,
+            Revenue:     row.Revenue,
+            OrderCount:  row.OrderCount,
+        }
+    }
+
+    return Response{
+        Categories:   category_list,
+        TopProducts:  top_products,
+        DailyRevenue: daily_revenue,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .analytics-container {
+    margin-top: 1rem;
+  }
+
+  h2 {
+    color: #374151;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+  }
+
+  .panel {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #fafafa;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  th {
+    background: #f3f4f6;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  td {
+    font-size: 0.9375rem;
+  }
+
+  .empty-message {
+    text-align: center;
+    color: #9ca3af;
+    margin-top: 1rem;
+    font-style: italic;
+  }
+</style>

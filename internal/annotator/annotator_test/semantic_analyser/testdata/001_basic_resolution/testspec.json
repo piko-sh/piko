@@ -1,0 +1,29 @@
+{
+  "description": "Tests basic type resolution for state, props, and detects a simple type error.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Invalid operation: cannot compare type 'int' to 'string' with operator '>'"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "div[p-if]",
+      "description": "The invalid p-if expression should still resolve to a boolean type",
+      "assertOnDirective": {
+        "name": "p-if",
+        "resolvedTypeIs": "bool"
+      }
+    },
+    {
+      "description": "The 'props.Title' interpolation should resolve to a string",
+      "select": "div:nth-of-type(2)",
+      "assertOnInterpolation": {
+        "rawExpression": "props.Title",
+        "resolvedTypeIs": "string",
+        "symbolNameIs": "Title"
+      }
+    }
+  ]
+}

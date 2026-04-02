@@ -1,0 +1,6 @@
+{
+  "title": "Transactional Email",
+  "description": "Realistic transactional email (order confirmation)",
+  "metadata": {"title": "Order Confirmation #12345"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

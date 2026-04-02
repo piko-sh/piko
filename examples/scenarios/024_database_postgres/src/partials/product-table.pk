@@ -1,0 +1,119 @@
+<!--
+  Product Table Partial
+
+  This partial renders the product table from the database. It has a
+  public template so it can be reloaded independently after adding a
+  product without refreshing the entire page.
+
+  The parent page mounts this with <piko:partial is="product_table" />.
+  After creating a product, the page calls
+  piko.partials.reload("product-table") to re-render just this section.
+-->
+
+<template public>
+  <div class="product-table-container">
+    <table p-if="len(state.Products) > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr p-for="(i, product) in state.Products" p-key="product.ID">
+          <td>{{ product.ID }}</td>
+          <td p-text="product.Name"></td>
+          <td p-text="product.Category"></td>
+          <td>{{ product.Price }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p p-if="len(state.Products) == 0" class="empty-message">No products yet. Add one above!</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/db"
+
+    "testmodule/db/generated"
+)
+
+// ProductEntry holds the display data for a single product row.
+type ProductEntry struct {
+    ID       int32   `json:"id"`
+    Name     string  `json:"name"`
+    Category string  `json:"category"`
+    Price    float64 `json:"price"`
+}
+
+// Response is the data available as state.* in the template.
+type Response struct {
+    Products []ProductEntry `json:"products"`
+}
+
+// Render fetches all products from the database using a read replica and
+// returns them for display.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    reader, err := db.GetDatabaseReader("analytics")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(reader)
+    rows, err := queries.ListProducts(r.Context())
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    product_list := make([]ProductEntry, len(rows))
+    for i, row := range rows {
+        product_list[i] = ProductEntry{
+            ID:       row.ID,
+            Name:     row.Name,
+            Category: row.Category,
+            Price:    row.Price,
+        }
+    }
+
+    return Response{Products: product_list}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .product-table-container {
+    margin-top: 1rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  th {
+    background: #f3f4f6;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .empty-message {
+    text-align: center;
+    color: #9ca3af;
+    margin-top: 2rem;
+    font-style: italic;
+  }
+</style>

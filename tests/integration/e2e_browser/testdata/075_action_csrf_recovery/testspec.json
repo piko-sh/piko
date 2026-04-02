@@ -1,0 +1,50 @@
+{
+  "description": "Tests CSRF expiry detection - when server returns csrf_expired, client handles the error gracefully",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Monkey-patch fetch to return csrf_expired on first action call"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "const originalFetch = window.fetch; let callCount = 0; window.fetch = function(...args) { callCount++; document.getElementById('intercept-count').textContent = String(callCount); document.getElementById('intercept-count').style.display = 'block'; if (callCount === 1 && String(args[0]).includes('/_piko/actions/')) { return Promise.resolve(new Response(JSON.stringify({ status: 403, error: 'csrf_expired', message: 'CSRF token expired' }), { status: 403, headers: {'Content-Type':'application/json'} })); } return originalFetch.apply(this, args); };"
+    },
+    {
+      "action": "comment",
+      "value": "Click action button - first call will get csrf_expired"
+    },
+    {
+      "action": "click",
+      "selector": "#action-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify the intercepted call was made"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "const count = document.getElementById('intercept-count'); if (count && parseInt(count.textContent || '0') === 0) { count.textContent = 'no-calls'; count.style.display = 'block'; }"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_recovery.html"
+    }
+  ]
+}

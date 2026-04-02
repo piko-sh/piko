@@ -1,0 +1,23 @@
+<template>
+  <!-- This is a long comment that should definitely be on its own line because it exceeds the inline character limit -->
+  <div>
+    <p>Text with <!-- short --> inline comment</p>
+    <!-- Another standalone block comment for documentation -->
+    <span>Content</span>
+    <!-- Multi-line comment
+      that spans several lines
+      should stay on its own line -->
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{}, piko.Metadata{}, nil
+}
+</script>

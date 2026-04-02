@@ -1,0 +1,20 @@
+[
+  {
+    "Name": "BadQuery",
+    "Command": 1,
+    "SQL": "-- piko.name: BadQuery\n-- piko.command: many\nSELECT FROM WHERE",
+    "Filename": "malformed_sql.sql",
+    "Line": 1,
+    "OutputColumns": [],
+    "Parameters": [],
+    "IsDynamic": false,
+    "GroupByKey": null,
+    "Directives": {
+      "Embeds": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "NullableOverride": null
+    }
+  }
+]

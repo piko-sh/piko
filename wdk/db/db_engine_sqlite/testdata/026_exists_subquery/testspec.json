@@ -1,0 +1,3 @@
+{
+  "description": "EXISTS subquery expression. Verifies parameters inside EXISTS subqueries are tracked and counted correctly, and that the inner query is parsed rather than skipped."
+}

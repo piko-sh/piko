@@ -1,0 +1,383 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="image-uploader">
+  <div class="uploader-container">
+    <h2>Image Upload Preview</h2>
+
+    <div class="upload-zone">
+      <div class="upload-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+      </div>
+      <p class="upload-text">Select images to preview</p>
+
+      <input
+        type="file"
+        id="file-input"
+        accept="image/*"
+        multiple
+        class="file-input"
+        p-on:change="handleFileSelect"
+      />
+      <label for="file-input" class="btn btn-primary">Choose Images</label>
+
+      <div class="button-row">
+        <button id="clear-all" p-on:click="clearAll" class="btn btn-secondary">Clear All</button>
+      </div>
+    </div>
+
+    <div class="preview-section">
+      <h3 id="preview-heading" p-text="state.images.length > 0 ? 'Selected Images (' + state.images.length + ')' : 'No images selected'"></h3>
+
+      <div class="preview-grid" p-if="state.images.length > 0">
+        <div
+            p-for="img in state.images"
+            p-key="img.id"
+            class="preview-card"
+            :data-image-id="img.id"
+        >
+          <div class="preview-image-wrapper">
+            <img :src="img.dataUrl" :alt="img.name" class="preview-image" />
+          </div>
+          <div class="preview-info">
+            <p class="preview-name" p-text="img.name"></p>
+            <p class="preview-size" p-text="img.size"></p>
+          </div>
+          <button class="remove-btn" p-on:click="removeImage(img.id)" title="Remove image">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="empty-state" p-if="state.images.length == 0">
+        <p>No images selected yet. Click "Choose Images" above to add images.</p>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span id="image-count" p-text="state.images.length + ' image(s) selected'"></span>
+      <span id="last-action" p-text="'Last action: ' + state.lastAction"></span>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+    interface ImageInfo {
+        id: string;
+        name: string;
+        dataUrl: string;
+        size: string;
+    }
+
+    const state = {
+        images: [] as ImageInfo[],
+        nextId: 1 as number,
+        lastAction: 'none' as string
+    };
+
+    const generateId = (): string => {
+        const id = 'img-' + state.nextId;
+        state.nextId = state.nextId + 1;
+        return id;
+    };
+
+    const formatFileSize = (bytes: number): string => {
+        if (bytes < 1024) {
+            return bytes + ' B';
+        }
+        if (bytes < 1024 * 1024) {
+            return (bytes / 1024).toFixed(1) + ' KB';
+        }
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    function handleFileSelect(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const files = input.files;
+
+        if (!files || files.length === 0) {
+            return;
+        }
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            if (!file.type.startsWith('image/')) {
+                continue;
+            }
+
+            const reader = new FileReader();
+            const fileName = file.name;
+            const fileSize = formatFileSize(file.size);
+
+            reader.onload = (e) => {
+                const dataUrl = e.target?.result as string;
+                const newImage: ImageInfo = {
+                    id: generateId(),
+                    name: fileName,
+                    dataUrl: dataUrl,
+                    size: fileSize
+                };
+
+                state.images = [...state.images, newImage];
+                state.lastAction = 'added ' + fileName;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        input.value = '';
+    }
+
+    function removeImage(imageId: string) {
+        const imageToRemove = state.images.find(img => img.id === imageId);
+        if (imageToRemove) {
+            state.images = state.images.filter(img => img.id !== imageId);
+            state.lastAction = 'removed ' + imageToRemove.name;
+        }
+    }
+
+    function clearAll() {
+        const count = state.images.length;
+        state.images = [];
+        state.lastAction = 'cleared ' + count + ' image(s)';
+    }
+
+    (window as any).__processUploadedFiles = (input: HTMLInputElement) => {
+        handleFileSelect({ target: input } as unknown as Event);
+    };
+</script>
+
+<style>
+.uploader-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+h2 {
+    margin: 0 0 24px 0;
+    color: #1a1a2e;
+    font-size: 1.5rem;
+}
+
+h3 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.upload-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    background: #f8fafc;
+    margin-bottom: 24px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.upload-zone:hover {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+}
+
+.upload-icon {
+    color: #64748b;
+    margin-bottom: 12px;
+}
+
+.upload-text {
+    color: #64748b;
+    margin: 0 0 20px 0;
+    font-size: 0.95rem;
+}
+.file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.button-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.btn-secondary:hover {
+    background: #cbd5e1;
+}
+.preview-section {
+    margin-bottom: 24px;
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.preview-card {
+    position: relative;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.preview-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.preview-image-wrapper {
+    aspect-ratio: 1;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.preview-info {
+    padding: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.preview-name {
+    margin: 0 0 4px 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.preview-size {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.preview-card:hover .remove-btn {
+    opacity: 1;
+}
+
+.remove-btn:hover {
+    background: #ef4444;
+}
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #e2e8f0;
+}
+
+.empty-state p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: #475569;
+}
+
+#image-count {
+    font-weight: 500;
+}
+
+#last-action {
+    color: #64748b;
+}
+</style>

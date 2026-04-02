@@ -1,0 +1,54 @@
+/*
+--- BEGIN AST DUMP ---
+
+<p class="node-value" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.CategoryTree.GetValue().FullName() }}
+  </RichText>
+</p>
+<p class="node-haschildren" [p-if: props.Data.CategoryTree.HasChildren()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Has children"
+</p>
+<p class="node-firstchild" [p-if: (props.Data.CategoryTree.FirstChild() != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.CategoryTree.FirstChild().GetValue().FullName() }}
+  </RichText>
+</p>
+<p class="node-children-value" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.CategoryTree.Children[0].GetValue().Name.String() }}
+  </RichText>
+</p>
+<p class="node-parent" [p-if: props.Data.CategoryTree.Children[0].HasParent()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Parent exists"
+</p>
+<p class="list-value" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.TaskList.GetValue().Display() }}
+  </RichText>
+</p>
+<p class="list-hasnext" [p-if: props.Data.TaskList.HasNext()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  "Has next"
+</p>
+<p class="list-next" [p-if: (props.Data.TaskList.GetNext() != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.TaskList.GetNext().GetValue().Title.String() }}
+  </RichText>
+</p>
+<p class="list-chain" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ props.Data.TaskList.GetNext().GetNext().GetValue().Display() }}
+  </RichText>
+</p>
+<ul class="children-loop" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <li [p-for: child in props.Data.CategoryTree.Children] [p-key: child.GetValue().Name.String()] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "\n            "
+      {{ child.GetValue().Name.String() }}
+      "\n        "
+    </RichText>
+  </li>
+</ul>
+
+--- END AST DUMP ---
+*/

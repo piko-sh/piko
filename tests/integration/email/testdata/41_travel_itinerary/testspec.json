@@ -1,0 +1,6 @@
+{
+  "title": "Travel Itinerary",
+  "description": "Flight and hotel booking confirmation with full itinerary",
+  "metadata": {"title": "Your Trip to Barcelona is Confirmed"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

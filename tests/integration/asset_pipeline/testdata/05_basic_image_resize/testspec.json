@@ -1,0 +1,33 @@
+{
+  "description": "Basic image resize: BMP source to 200x200 WebP thumbnail via image-transform capability",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/mercury.bmp",
+      "expectedArtefactID": "testmodule/lib/images/mercury.bmp"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "thumbnail-200",
+      "capabilityName": "image-transform",
+      "params": {
+        "width": "200",
+        "height": "200",
+        "format": "webp",
+        "quality": "80",
+        "fit": "cover"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "minSizeBytes": 100,
+        "maxSizeBytes": 100000,
+        "exactWidth": 200,
+        "exactHeight": 200
+      },
+      "goldenFile": "thumbnail-200x200.webp"
+    }
+  ]
+}

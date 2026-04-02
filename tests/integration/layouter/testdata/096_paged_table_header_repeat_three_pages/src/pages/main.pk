@@ -1,0 +1,88 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<style>
+@page {
+  size: 800px 200px;
+  margin: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 400px;
+  margin: 0;
+  padding: 0;
+}
+
+th, td {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+</style>
+
+<template>
+  <table>
+    <thead>
+      <tr data-layout-id="header-row" style="height: 40px;">
+        <th style="height: 40px;">Header</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr data-layout-id="row-1" style="height: 60px;">
+        <td style="height: 60px;">Row 1</td>
+      </tr>
+      <tr data-layout-id="row-2" style="height: 60px;">
+        <td style="height: 60px;">Row 2</td>
+      </tr>
+      <tr data-layout-id="row-3" style="height: 60px;">
+        <td style="height: 60px;">Row 3</td>
+      </tr>
+      <tr data-layout-id="row-4" style="height: 60px;">
+        <td style="height: 60px;">Row 4</td>
+      </tr>
+      <tr data-layout-id="row-5" style="height: 60px;">
+        <td style="height: 60px;">Row 5</td>
+      </tr>
+      <tr data-layout-id="row-6" style="height: 60px;">
+        <td style="height: 60px;">Row 6</td>
+      </tr>
+    </tbody>
+  </table>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Table Header Repeat Three Pages Test"}, nil
+}
+</script>

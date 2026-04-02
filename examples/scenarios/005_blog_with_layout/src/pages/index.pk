@@ -1,0 +1,206 @@
+<!-- Blog home page. Uses the layout partial with slot content projection,
+     piko:a for SPA navigation, piko:img for images, and piko:svg for icons.
+     See https://piko.sh/docs/guide/partials -->
+<template>
+  <div id="app">
+    <piko:partial is="blog_layout"
+      :server.title="state.Title"
+      :server.description="state.Description"
+      server.current-page="home"
+    >
+
+      <section class="hero">
+        <piko:img
+          src="@/lib/images/hero-placeholder.png"
+          alt="Piko Blog hero banner"
+          class="hero-image"
+        ></piko:img>
+      </section>
+
+      <section class="featured" id="featured-posts">
+        <h2>Featured Posts</h2>
+        <div class="post-cards">
+          <div class="post-card" p-for="(i, post) in state.Posts" p-key="post.Slug">
+            <div class="post-card-icon">
+              <piko:svg src="@/lib/icons/pen.svg" class="icon"></piko:svg>
+            </div>
+            <h3 p-text="post.Title"></h3>
+            <p class="post-excerpt" p-text="post.Excerpt"></p>
+
+            <piko:a :href="'/blog'" class="read-more">
+              Read more <piko:svg src="@/lib/icons/arrow-right.svg" class="icon-inline"></piko:svg>
+            </piko:a>
+          </div>
+        </div>
+      </section>
+
+      <div p-slot="sidebar" class="sidebar-content">
+        <div class="quick-links">
+          <h3>Quick Links</h3>
+          <ul>
+            <li><piko:a href="/blog">Latest post</piko:a></li>
+            <li><piko:a href="/about">About us</piko:a></li>
+            <li><piko:a href="/contact">Get in touch</piko:a></li>
+          </ul>
+        </div>
+      </div>
+
+    </piko:partial>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+  "piko.sh/piko"
+  blog_layout "testmodule/partials/layout.pk"
+)
+
+type Post struct {
+  Title   string
+  Slug    string
+  Excerpt string
+}
+
+type Response struct {
+  Title       string
+  Description string
+  Posts       []Post
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+  return Response{
+    Title:       "Welcome to the Piko Blog",
+    Description: "Tutorials, guides, and insights about building modern web applications with the Piko framework.",
+    Posts: []Post{
+      {
+        Title:   "Getting Started with Piko",
+        Slug:    "getting-started",
+        Excerpt: "A comprehensive introduction to the Piko web framework, covering layout partials, server-side rendering, and component composition.",
+      },
+      {
+        Title:   "Understanding Layout Partials",
+        Slug:    "layout-partials",
+        Excerpt: "Learn how to build reusable page layouts with slots, props, and nested partial composition.",
+      },
+    },
+  }, piko.Metadata{
+    Title:       "Home - Piko Blog",
+    Description: "Tutorials and guides about the Piko web framework.",
+  }, nil
+}
+</script>
+
+<style>
+  #app {
+    margin: 0;
+    padding: 0;
+  }
+
+  .hero {
+    margin-bottom: 2rem;
+  }
+
+  .hero-image {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    display: block;
+  }
+
+  .featured h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #111827;
+  }
+
+  .post-cards {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .post-card {
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+  }
+
+  .post-card-icon {
+    margin-bottom: 0.75rem;
+  }
+
+  .post-card-icon .icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #2563eb;
+  }
+
+  .post-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+  }
+
+  .post-excerpt {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .read-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .read-more:hover {
+    text-decoration: underline;
+  }
+
+  .icon-inline {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .quick-links h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+
+  .quick-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .quick-links li {
+    margin-bottom: 0.5rem;
+  }
+
+  .quick-links a {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .quick-links a:hover {
+    text-decoration: underline;
+  }
+</style>

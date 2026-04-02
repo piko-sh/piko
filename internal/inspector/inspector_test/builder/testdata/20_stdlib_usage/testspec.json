@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of types from the Go standard library.",
+  "moduleName": "testcase_20_stdlib_usage",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_20_stdlib_usage"
+  ],
+  "assertions": [
+    {
+      "description": "The http.Request field should have the correct TypeString.",
+      "select": "packages.testcase_20_stdlib_usage.named_types.Server.fields.0.type_string",
+      "expect": "*http.Request"
+    },
+    {
+      "description": "The http.Request field should have the correct PackagePath.",
+      "select": "packages.testcase_20_stdlib_usage.named_types.Server.fields.0.pkg_path",
+      "expect": "net/http"
+    },
+    {
+      "description": "The time.Time field should have the correct PackagePath.",
+      "select": "packages.testcase_20_stdlib_usage.named_types.Server.fields.1.pkg_path",
+      "expect": "time"
+    },
+    {
+      "description": "The 'net/http' package should be present in the serialised output.",
+      "select": "packages.net/http.name",
+      "expect": "http"
+    }
+  ]
+}

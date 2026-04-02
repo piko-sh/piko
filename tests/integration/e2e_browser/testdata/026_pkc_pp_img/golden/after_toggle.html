@@ -1,0 +1,29 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">PPC piko:img Test</h1>
+    <image-gallery partial="pages_main_594861c5" p-key="r.0:1" dynamic-src="@/lib/images/test-blue.png">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.gallery{padding: 1rem}.gallery-item{display: flex;flex-direction: column;align-items: center;margin: 1rem 0}.gallery-image{width: 100px;height: 100px;object-fit: cover;border: 2px solid #ccc}.caption{margin-top: 0.5rem;font-size: 0.875rem;color: #666}</style>
+        <div class="gallery">
+          <h2>Image Gallery Component</h2>
+          <div class="gallery-item"><img
+              alt="Red test image"
+              data-testid="static-img"
+              src="/_piko/assets/testmodule/lib/images/test-red.png"
+              class="gallery-image"
+             />
+            <span class="caption">Static Image</span></div>
+          <div class="gallery-item"><img
+              alt="Dynamic image"
+              data-testid="dynamic-img"
+              class="gallery-image"
+              src="/_piko/assets/testmodule/lib/images/test-blue.png"
+             />
+            <span class="caption">Dynamic Image</span></div>
+          <button data-testid="toggle-btn">Toggle Image</button>
+        </div>
+      </template>
+    </image-gallery>
+  </div>
+</div>

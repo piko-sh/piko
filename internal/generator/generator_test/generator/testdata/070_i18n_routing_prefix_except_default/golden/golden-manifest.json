@@ -1,0 +1,32 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "de": "/de/main",
+        "en": "/main",
+        "fr": "/fr/main"
+      },
+      "localTranslations": {
+        "de": {
+          "greeting": "Guten Tag!"
+        },
+        "en": {
+          "greeting": "Hello!"
+        },
+        "fr": {
+          "greeting": "Bonjour!"
+        }
+      },
+      "i18nStrategy": "prefix_except_default",
+      "packagePath": "testcase_052_i18n_routing_prefix_except_default/dist/pages/pages_main_594861c5",
+      "supportedLocalesFuncName": "SupportedLocales",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": true
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

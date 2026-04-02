@@ -1,0 +1,68 @@
+<template>
+    <pml-row background-color="#1a1a2e" padding="25px 0">
+        <pml-col>
+            <pml-p font-size="18px" font-weight="bold" color="#ffffff" background-color="#1a1a2e" align="center" padding="10px 25px">The Morning Brief</pml-p>
+            <pml-p color="#e0e0e0" font-size="14px" align="center" padding="5px 25px">Week of 31 March 2026</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="25px 0">
+        <pml-col>
+            <pml-p background-color="#3498db" color="#ffffff" font-size="14px" font-weight="bold" align="center" padding="50px 10px">Technology</pml-p>
+            <pml-p font-size="22px" color="#2c3e50" padding="15px 25px" font-weight="bold">AI Breakthrough Promises Faster Drug Discovery</pml-p>
+            <pml-p font-size="14px" color="#666666" line-height="1.6" padding="5px 25px">
+                Researchers have unveiled a new machine learning model that can predict molecular interactions with unprecedented accuracy, potentially cutting drug development timelines by years.
+            </pml-p>
+            <pml-button href="https://example.com/article-1" background-color="#3498db" color="#ffffff" padding="10px 25px" inner-padding="10px 25px">Read More</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="50%">
+            <pml-p background-color="#27ae60" color="#ffffff" font-size="14px" font-weight="bold" align="center" padding="40px 10px">Science</pml-p>
+            <pml-p font-size="16px" color="#2c3e50" padding="10px 15px" font-weight="bold">Ocean Currents Shift Raises Alarms</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="5px 15px">
+                Marine scientists report significant changes in North Atlantic circulation patterns that could affect weather across Europe.
+            </pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p background-color="#8e44ad" color="#ffffff" font-size="14px" font-weight="bold" align="center" padding="40px 10px">Culture</pml-p>
+            <pml-p font-size="16px" color="#2c3e50" padding="10px 15px" font-weight="bold">Revival of Analogue Photography</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="5px 15px">
+                Film camera sales surge as younger generations embrace the tactile experience of analogue photography.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px" font-weight="bold">Quick Links</pml-p>
+            <pml-ul>
+                <pml-li>Global markets wrap: Stocks rally on positive data</pml-li>
+                <pml-li>Interview: The future of remote work in 2026</pml-li>
+                <pml-li>Opinion: Why digital privacy matters more than ever</pml-li>
+                <pml-li>Sport: Premier League weekend preview</pml-li>
+                <pml-li>Lifestyle: Five books to read this April</pml-li>
+            </pml-ul>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#1a1a2e" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#cccccc" align="center" padding="5px 25px">
+                You're receiving this because you subscribed to The Morning Brief.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>

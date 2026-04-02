@@ -1,0 +1,7 @@
+<template>
+    <div>
+        <p>Visible</p>
+        <p style="display: none;">Hidden</p>
+        <p>Also visible</p>
+    </div>
+</template>

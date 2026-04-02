@@ -1,0 +1,64 @@
+--- PACKAGE: testcase_50_kitchen_sink ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 50_kitchen_sink/src/main.go
+    - import "context"            -> context
+    - import "io"                 -> io
+    - import "models"             -> testcase_50_kitchen_sink/models
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Event
+    - Defined In:      50_kitchen_sink/src/main.go
+    - TypeString:      main.Event[T]
+    - Underlying:      struct{Payload T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Payload              T
+
+  > type Report
+    - Defined In:      50_kitchen_sink/src/main.go
+    - TypeString:      main.Report[T]
+    - Underlying:      struct{models.Auditable[uuid.UUID]; EventsByTopic map[string][]*main.Event[T]; Output *io.Writer}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Auditable            models.Auditable[uuid.UUID] (embedded)
+        (Canonical Package: testcase_50_kitchen_sink/models)
+      - EventsByTopic        map[string][]*main.Event[T]
+        (Canonical Package: testcase_50_kitchen_sink)
+      - Output               *io.Writer
+        (Canonical Package: io)
+    - Methods:
+      - func (T) GetID           func() uuid.UUID
+        (Promoted from: testcase_50_kitchen_sink/models.Auditable)
+      - func (*T) Summarise       func(context.Context) (T, error)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_50_kitchen_sink/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 50_kitchen_sink/src/models/auditable.go
+    (no imports in this file)
+
+[Named Types]
+  > type Auditable
+    - Defined In:      50_kitchen_sink/src/models/auditable.go
+    - TypeString:      models.Auditable[I]
+    - Underlying:      struct{ID I}
+    - Stringability:   0
+    - Type Params:     [I]
+    - Fields:
+      - ID                   I
+    - Methods:
+      - func (T) GetID           func() I
+
+[Package-Level Functions]
+  (none)

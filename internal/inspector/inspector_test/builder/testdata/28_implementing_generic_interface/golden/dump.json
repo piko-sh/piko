@@ -1,0 +1,83 @@
+{
+  "packages": {
+    "testcase_28_implementing_generic_interface": {
+      "file_imports": {
+        "28_implementing_generic_interface/src/main.go": {}
+      },
+      "named_types": {
+        "Producer": {
+          "name": "Producer",
+          "package_path": "testcase_28_implementing_generic_interface",
+          "defined_in_file_path": "28_implementing_generic_interface/src/main.go",
+          "type_string": "main.Producer[T]",
+          "underlying_type_string": "interface{Produce() T}",
+          "fields": null,
+          "methods": [
+            {
+              "name": "Produce",
+              "type_string": "T",
+              "underlying_type_string": "T",
+              "declaring_pkg_path": "testcase_28_implementing_generic_interface",
+              "declaring_type_name": "Producer",
+              "definition_file_path": "28_implementing_generic_interface/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "T"
+                ]
+              },
+              "definition_line": 23,
+              "definition_column": 2,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        },
+        "StringProducer": {
+          "name": "StringProducer",
+          "package_path": "testcase_28_implementing_generic_interface",
+          "defined_in_file_path": "28_implementing_generic_interface/src/main.go",
+          "type_string": "main.StringProducer",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "Produce",
+              "type_string": "string",
+              "underlying_type_string": "string",
+              "declaring_pkg_path": "testcase_28_implementing_generic_interface",
+              "declaring_type_name": "StringProducer",
+              "definition_file_path": "28_implementing_generic_interface/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 29,
+              "definition_column": 25,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 27,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_28_implementing_generic_interface",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "28_implementing_generic_interface/src/main.go": "testcase_28_implementing_generic_interface"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "description": "Tests that p-for loop variables are correctly scoped and typed, and detects out-of-scope usage.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Undefined variable: user"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "li[p-for]",
+      "description": "The p-for collection should be resolved to a slice of users",
+      "assertOnDirective": {
+        "name": "p-for",
+        "resolvedTypeIs": "[]models.User"
+      }
+    },
+    {
+      "select": "li",
+      "description": "The index variable 'i' inside the loop should be an integer",
+      "assertOnInterpolation": {
+        "rawExpression": "i",
+        "resolvedTypeIs": "int",
+        "symbolNameIs": "i"
+      }
+    },
+    {
+      "select": "li",
+      "description": "The item variable 'user.Name' inside the loop should resolve to a string",
+      "assertOnInterpolation": {
+        "rawExpression": "user.Name",
+        "resolvedTypeIs": "string",
+        "symbolNameIs": "Name"
+      }
+    }
+  ]
+}

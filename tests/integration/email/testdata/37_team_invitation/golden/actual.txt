@@ -1,0 +1,34 @@
+You've Been Invited!
+
+Alex Morgan has invited you to join the** Engineering** team on Collab.
+
+**Workspace:**
+
+Acme Corp
+
+**Team:**
+
+Engineering
+
+**Your Role:**
+
+Member
+
+**Invited By:**
+
+Alex Morgan (alex@acme.io)
+
+What you'll have access to:
+
+1. Shared project boards and task lists
+2. Team chat channels and direct messages
+3. Shared file storage (50 GB)
+4. Weekly standup reports
+
+ Accept Invitation (https://collab.example.com/invite/accept)
+
+This invitation expires in 48 hours.
+
+Collab - Where teams do their best work
+
+You received this email because someone invited you to a workspace.

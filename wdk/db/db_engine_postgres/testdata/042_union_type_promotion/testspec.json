@@ -1,0 +1,3 @@
+{
+  "description": "UNION ALL between tables with different integer widths. Validates type promotion from smallint to bigint."
+}

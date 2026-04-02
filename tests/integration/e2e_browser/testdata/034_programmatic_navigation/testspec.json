@@ -1,0 +1,115 @@
+{
+  "description": "Tests programmatic SPA navigation via piko.nav.navigate()",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Programmatic Navigation Test"
+    },
+    {
+      "action": "checkText",
+      "selector": ".page-indicator",
+      "expected": "Current Page: Index"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "index.html"
+    },
+    {
+      "action": "comment",
+      "value": "Navigate to target page via button click calling piko.nav.navigate()"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-target"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Target Page"
+    },
+    {
+      "action": "checkText",
+      "selector": ".page-indicator",
+      "expected": "Current Page: Target"
+    },
+    {
+      "action": "checkText",
+      "selector": "#message",
+      "expected": "Navigation successful!"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "target.html"
+    },
+    {
+      "action": "comment",
+      "value": "Navigate back to index, then to params page"
+    },
+    {
+      "action": "eval",
+      "value": "history.back()"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Programmatic Navigation Test"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-params"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Page With Params"
+    },
+    {
+      "action": "checkText",
+      "selector": ".page-indicator",
+      "expected": "Current Page: With Params"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "with_params.html"
+    },
+    {
+      "action": "comment",
+      "value": "Test browser history navigation still works"
+    },
+    {
+      "action": "eval",
+      "value": "history.back()"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Programmatic Navigation Test"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "description": "CSS artefact ID consistency: watcher stores CSS with module prefix, artefact retrievable by same ID",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/styles/main.css",
+      "expectedArtefactID": "testmodule/lib/styles/main.css"
+    }
+  ],
+  "requestURL": "/main",
+  "expectedStatus": 200
+}

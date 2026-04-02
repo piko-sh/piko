@@ -1,0 +1,10 @@
+[{
+  "description": "GetCollection with WithFilter having wrong number of arguments produces error",
+  "expression": "r.GetCollection[Post](\"blog\", r.WithFilter(\"featured\"))",
+  "expectedType": "",
+  "expectedDiagnostics": 1,
+  "diagnostics": [{
+    "severity": "error",
+    "messageContains": "WithFilter expects 2 arguments"
+  }]
+}]

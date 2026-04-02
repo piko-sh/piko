@@ -1,0 +1,3 @@
+Left column content
+
+Right column content

@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text-overflow: ellipsis works correctly with nested span elements, applying truncation to the correct text run inside nested inline boxes.",
+    "requestURL": "/main",
+    "tolerance": 4.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

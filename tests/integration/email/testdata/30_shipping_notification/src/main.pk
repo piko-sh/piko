@@ -1,0 +1,103 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="18px" font-weight="bold" color="#ffffff" background-color="#2c3e50" align="center" padding="10px 25px">SwiftBox</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p background-color="#e8d4a0" color="#8b6914" font-size="28px" align="center" padding="15px 25px">&#128230;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#2c3e50" align="center" padding="10px 25px" font-weight="bold">Your Order Has Shipped!</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-p font-size="14px" color="#666666" line-height="1.6" align="center" padding="5px 40px">
+                Great news! Your order #ORD-9156 is on its way.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0" pml-no-stack="true">
+        <pml-col width="25%">
+            <pml-p background-color="#e8f5e9" color="#27ae60" font-size="18px" align="center" padding="5px 0">&#10003;</pml-p>
+            <pml-p font-size="11px" color="#27ae60" align="center" padding="3px 5px">Ordered</pml-p>
+        </pml-col>
+        <pml-col width="25%">
+            <pml-p background-color="#e8f5e9" color="#27ae60" font-size="18px" align="center" padding="5px 0">&#10003;</pml-p>
+            <pml-p font-size="11px" color="#27ae60" align="center" padding="3px 5px">Packed</pml-p>
+        </pml-col>
+        <pml-col width="25%">
+            <pml-p background-color="#e8f5e9" color="#27ae60" font-size="18px" align="center" padding="5px 0">&#10003;</pml-p>
+            <pml-p font-size="11px" color="#27ae60" align="center" padding="3px 5px">Shipped</pml-p>
+        </pml-col>
+        <pml-col width="25%">
+            <pml-p background-color="#f5f5f5" color="#cccccc" font-size="18px" align="center" padding="5px 0">&#9675;</pml-p>
+            <pml-p font-size="11px" color="#cccccc" align="center" padding="3px 5px">Delivered</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f4f4f4" padding="15px 0">
+        <pml-col width="50%">
+            <pml-p font-size="13px" color="#333333" padding="5px 25px">Tracking Number:</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="13px" color="#333333" align="right" padding="5px 25px" font-weight="bold">SB-2026-041-7829</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f4f4f4" padding="5px 0">
+        <pml-col width="50%">
+            <pml-p font-size="13px" color="#333333" padding="5px 25px">Estimated Delivery:</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="13px" color="#333333" align="right" padding="5px 25px" font-weight="bold">3-5 April 2026</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://example.com/track/SB-2026-041-7829" background-color="#27ae60" color="#ffffff" font-size="16px" border-radius="4px" padding="10px 25px" inner-padding="14px 35px">
+                Track Package
+            </pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px" font-weight="bold">Delivery Address</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="5px 25px">
+                Jane Smith
+            </pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="0px 25px">
+                42 Oak Lane
+            </pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="0px 25px">
+                Bristol, BS1 4QA
+            </pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#2c3e50" padding="5px 25px" font-weight="bold">Order Summary</pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="5px 25px">
+                1x Wireless Headphones
+            </pml-p>
+            <pml-p font-size="13px" color="#666666" line-height="1.5" padding="0px 25px">
+                1x USB-C Cable
+            </pml-p>
+            <pml-p font-size="13px" color="#333333" padding="5px 25px" font-weight="bold">
+                Total: £67.98
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f4f4f4" padding="15px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#999999" align="center" padding="5px 25px">
+                This is an automated shipping notification from SwiftBox. Need help? Contact support@swiftbox.example.com
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>

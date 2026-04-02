@@ -1,0 +1,40 @@
+--- PACKAGE: testcase_03_cross_package_struct_field ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 03_cross_package_struct_field/src/main.go
+    - import "models"             -> testcase_03_cross_package_struct_field/models
+
+[Named Types]
+  > type Request
+    - Defined In:      03_cross_package_struct_field/src/main.go
+    - TypeString:      main.Request
+    - Underlying:      struct{UserData models.User}
+    - Stringability:   0
+    - Fields:
+      - UserData             models.User
+        (Canonical Package: testcase_03_cross_package_struct_field/models)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_03_cross_package_struct_field/models ---
+[Package Info]
+  - Name:    models
+
+[File-Scoped Imports]
+  > File: 03_cross_package_struct_field/src/models/user.go
+    (no imports in this file)
+
+[Named Types]
+  > type User
+    - Defined In:      03_cross_package_struct_field/src/models/user.go
+    - TypeString:      models.User
+    - Underlying:      struct{ID int}
+    - Stringability:   0
+    - Fields:
+      - ID                   int
+
+[Package-Level Functions]
+  (none)

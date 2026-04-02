@@ -1,0 +1,8 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="16px" color="#333333" padding="10px 25px">Hello from PML</pml-p>
+            <pml-img src="https://example.com/logo.png" alt="Logo" width="200px" align="center" padding="10px 0"></pml-img>
+        </pml-col>
+    </pml-row>
+</template>

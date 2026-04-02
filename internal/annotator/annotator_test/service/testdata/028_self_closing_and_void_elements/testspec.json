@@ -1,0 +1,35 @@
+{
+  "description": "Validates that the HTML parser correctly handles self-closing tags for non-void elements and standard void elements.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#input1",
+      "description": "The <input> void element should have no children.",
+      "assert": {
+        "childElementCount": 0
+      }
+    },
+    {
+      "select": "#divider",
+      "description": "The <hr> void element should have no children.",
+      "assert": {
+        "childElementCount": 0
+      }
+    },
+    {
+      "select": "#self-closing",
+      "description": "The self-closing <div> should be parsed as having no children.",
+      "assert": {
+        "childElementCount": 0
+      }
+    },
+    {
+      "select": "#wrapper > #after-self-closing",
+      "description": "The paragraph after the self-closing div must be a direct child of the wrapper, proving the self-closing tag was handled correctly.",
+      "assert": {
+        "nodeCount": 1
+      }
+    }
+  ]
+}

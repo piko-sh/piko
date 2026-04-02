@@ -1,0 +1,7 @@
+<template>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="16px" padding="10px 25px" direction="rtl">محتوى باللغة العربية</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

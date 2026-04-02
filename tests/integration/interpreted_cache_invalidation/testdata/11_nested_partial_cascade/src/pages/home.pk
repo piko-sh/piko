@@ -1,0 +1,19 @@
+<template>
+<div class="page-wrapper">
+  <h1>Home Page</h1>
+  <sidebar is="sidebar"></sidebar>
+</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	sidebar "testcase_cache_nested_11/partials/sidebar.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

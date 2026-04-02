@@ -1,0 +1,148 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-loading-indicator">
+    <div class="loading"
+         p-class="{
+             'small': state.size == 'small',
+             'medium': state.size == 'medium',
+             'large': state.size == 'large'
+         }"
+         role="progressbar"
+         aria-label="Loading">
+        <div class="sparkle">
+            <div class="point point-1"></div>
+            <div class="point point-2"></div>
+            <div class="point point-3"></div>
+            <div class="point point-4"></div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        size: 'medium' as string,
+    };
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        --_primary: var(--m3e-primary, #6750a4);
+    }
+
+    .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.small {
+            width: 24px;
+            height: 24px;
+
+            & .point {
+                width: 3px;
+                height: 3px;
+            }
+        }
+
+        &.medium {
+            width: 40px;
+            height: 40px;
+
+            & .point {
+                width: 4px;
+                height: 4px;
+            }
+        }
+
+        &.large {
+            width: 56px;
+            height: 56px;
+
+            & .point {
+                width: 6px;
+                height: 6px;
+            }
+        }
+    }
+
+    .sparkle {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        animation: sparkle-rotate 1.5s linear infinite;
+    }
+
+    .point {
+        position: absolute;
+        background: var(--_primary);
+        border-radius: 50%;
+        animation: sparkle-pulse 0.6s ease-in-out infinite alternate;
+    }
+
+    .point-1 {
+        top: 0;
+        left: 50%;
+        translate: -50% 0;
+        animation-delay: 0s;
+    }
+
+    .point-2 {
+        right: 0;
+        top: 50%;
+        translate: 0 -50%;
+        animation-delay: 0.15s;
+    }
+
+    .point-3 {
+        bottom: 0;
+        left: 50%;
+        translate: -50% 0;
+        animation-delay: 0.3s;
+    }
+
+    .point-4 {
+        left: 0;
+        top: 50%;
+        translate: 0 -50%;
+        animation-delay: 0.45s;
+    }
+
+    @keyframes sparkle-rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes sparkle-pulse {
+        from {
+            transform: scale(0.3);
+            opacity: 0.4;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+</style>

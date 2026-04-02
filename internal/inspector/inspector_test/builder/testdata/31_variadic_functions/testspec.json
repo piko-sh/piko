@@ -1,0 +1,25 @@
+{
+  "description": "Tests the serialisation of variadic function and method signatures.",
+  "moduleName": "testcase_31_variadic_functions",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_31_variadic_functions"
+  ],
+  "assertions": [
+    {
+      "description": "The package function 'Sum' should have a variadic parameter '...int'.",
+      "select": "packages.testcase_31_variadic_functions.funcs.Sum.signature.params.0",
+      "expect": "...int"
+    },
+    {
+      "description": "The 'Printf' method should have a regular first parameter.",
+      "select": "packages.testcase_31_variadic_functions.named_types.Logger.methods.0.signature.params.0",
+      "expect": "string"
+    },
+    {
+      "description": "The 'Printf' method should have a variadic second parameter '...any'.",
+      "select": "packages.testcase_31_variadic_functions.named_types.Logger.methods.0.signature.params.1",
+      "expect": "...any"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "description": "Tests that showToast helper dispatches pk-show-toast CustomEvent but without a listener nothing renders. Replicates the nd-estates-website scenario where ModuleToasts is enabled but no toast container exists.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for DOMBinder to bind form submit handler"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#contact-form[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "comment",
+      "value": "Verify toast placeholder is hidden initially"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "#toast"
+    },
+    {
+      "action": "comment",
+      "value": "Fill in form fields"
+    },
+    {
+      "action": "fill",
+      "selector": "#name",
+      "value": "Alice"
+    },
+    {
+      "action": "fill",
+      "selector": "#message",
+      "value": "Hello from the contact form"
+    },
+    {
+      "action": "comment",
+      "value": "Submit form - action will return showToast helper but no listener exists"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "3000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify toast is STILL hidden (no listener to render it)"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "#toast"
+    },
+    {
+      "action": "comment",
+      "value": "Verify the action DID succeed (response was received)"
+    },
+    {
+      "action": "checkText",
+      "selector": "#action-result",
+      "expected": "success"
+    },
+    {
+      "action": "comment",
+      "value": "Verify pk-show-toast event was dispatched (captured by probe)"
+    },
+    {
+      "action": "checkText",
+      "selector": "#event-probe",
+      "expected": "dispatched"
+    },
+    {
+      "action": "comment",
+      "value": "Verify resetForm helper still works (it is a core helper, not event-based)"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#name",
+      "attribute": "value",
+      "expected": ""
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_submit_no_listener.html"
+    }
+  ]
+}

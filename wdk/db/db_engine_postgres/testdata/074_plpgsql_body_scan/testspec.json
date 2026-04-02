@@ -1,0 +1,1 @@
+{"description": "plpgsql body scanning: function with INSERT in body becomes DataAccessModifiesData, function with only SELECT stays read-only"}

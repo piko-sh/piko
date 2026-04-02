@@ -1,0 +1,44 @@
+{
+    "description": "PPC modal with nested list - simulates pp-dynamic-list adding contact inside customer modal",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/partials/lists/company_contacts",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": ".list-container",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".modal",
+            "attributes": { "partial": "modal_scope page_scope" },
+            "description": "Modal scope unchanged (not part of patch)"
+        },
+        {
+            "selector": ".list-container",
+            "attributes": { "partial": "list_scope modal_scope page_scope" },
+            "description": "List container preserves parent scopes"
+        },
+        {
+            "selector": ".contact-row:first-child",
+            "attributes": { "partial": "contact1_scope list_scope modal_scope page_scope" },
+            "description": "First contact preserves full scope chain"
+        },
+        {
+            "selector": ".contact-row:nth-child(2)",
+            "attributes": { "partial": "contact2_scope list_scope modal_scope page_scope" },
+            "description": "New contact inherits parent scopes"
+        },
+        {
+            "selector": ".contact-row:nth-child(2) input",
+            "attributes": { "partial": "contact2_scope list_scope modal_scope page_scope" },
+            "description": "New input inherits full scope chain"
+        }
+    ]
+}

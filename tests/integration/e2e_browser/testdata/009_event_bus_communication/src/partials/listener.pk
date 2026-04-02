@@ -1,0 +1,75 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div class="listener-partial">
+    <h3>Listener Partial</h3>
+    <p class="status" p-text="state.Status"></p>
+    <p class="message" p-text="state.Message"></p>
+  </div>
+</template>
+
+<style>
+  .listener-partial {
+    border: 2px solid #4caf50;
+    padding: 1rem;
+  }
+  .status {
+    font-weight: bold;
+  }
+  .message {
+    color: #666;
+    font-style: italic;
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+    Status  string
+    Message string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Status:  "Waiting...",
+        Message: "No events received yet",
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+piko.bus.on('item-added', (data: { count: number; message: string }) => {
+    const partial = document.querySelector('.listener-partial');
+    if (partial) {
+        const statusEl = partial.querySelector('.status');
+        const messageEl = partial.querySelector('.message');
+        if (statusEl) {
+            statusEl.textContent = 'Received: ' + data.count + ' events';
+        }
+        if (messageEl) {
+            messageEl.textContent = data.message;
+        }
+    }
+});
+</script>

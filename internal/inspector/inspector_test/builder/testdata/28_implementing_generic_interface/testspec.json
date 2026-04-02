@@ -1,0 +1,20 @@
+{
+  "description": "Tests the serialisation of a concrete type that implements an instantiated generic interface.",
+  "moduleName": "testcase_28_implementing_generic_interface",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_28_implementing_generic_interface"
+  ],
+  "assertions": [
+    {
+      "description": "The 'StringProducer' type should have one method.",
+      "select": "packages.testcase_28_implementing_generic_interface.named_types.StringProducer.methods.0.name",
+      "expect": "Produce"
+    },
+    {
+      "description": "The 'Produce' method must have the concrete return type 'string'.",
+      "select": "packages.testcase_28_implementing_generic_interface.named_types.StringProducer.methods.0.signature.results.0",
+      "expect": "string"
+    }
+  ]
+}

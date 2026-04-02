@@ -1,0 +1,19 @@
+{
+  "active_events": [
+    {
+      "EventDate": "2025-06-01",
+      "ID": 1,
+      "Name": "Conference"
+    },
+    {
+      "EventDate": "2025-08-20",
+      "ID": 3,
+      "Name": "Meetup"
+    }
+  ],
+  "single_event": {
+    "EventDate": "2025-06-01",
+    "ID": 1,
+    "Name": "Conference"
+  }
+}

@@ -1,0 +1,9 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [p-for: (i, user) in state.Users] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <tr [ANNOTATIONS: OriginPackage: partials_user_row_7ab08aa2 OriginPath: partials/user-row.pk PARTIAL InvKey: user_row_index_i_user_user_c0ffd7f2 Package: partials_user_row_7ab08aa2 InvPackage: main_aaf9a2e0] />
+</div>
+
+--- END AST DUMP ---
+*/

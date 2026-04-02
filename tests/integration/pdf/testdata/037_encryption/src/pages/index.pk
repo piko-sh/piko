@@ -1,0 +1,18 @@
+<template>
+  <div style="padding: 20px; font-family: sans-serif;">
+    <h1>Encryption Test</h1>
+    <p>This page exists for the comparison URL. The PDF version is encrypted with AES-256.</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Encryption Test"}, nil
+}
+</script>

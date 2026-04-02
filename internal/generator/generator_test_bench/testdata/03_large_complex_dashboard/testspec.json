@@ -1,0 +1,3 @@
+{
+  "description": "A complex dashboard page with nested p-for loops, p-if/p-else conditions, and complex state types (slices of structs). Tests the type resolver and code generator with realistic data structures."
+}

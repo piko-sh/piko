@@ -1,0 +1,7 @@
+{
+    "description": "Verifies that visual-only CSS properties (text-shadow, outline, background-image, clip-path, mask) parse without error and do not affect layout positions.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

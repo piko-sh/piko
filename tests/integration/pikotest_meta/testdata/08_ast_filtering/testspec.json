@@ -1,0 +1,6 @@
+{
+  "description": "Tests AST query methods: Count, Index, selectors, and existence checks",
+  "entryPoints": [
+    { "path": "pages/tasks.pk", "isPage": true }
+  ]
+}

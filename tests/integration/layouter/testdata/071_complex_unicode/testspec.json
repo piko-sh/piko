@@ -1,0 +1,7 @@
+{
+    "description": "Verifies correct layout of complex Unicode content including emoji, combining marks, CJK, Arabic, Hebrew, and mixed bidirectional text.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

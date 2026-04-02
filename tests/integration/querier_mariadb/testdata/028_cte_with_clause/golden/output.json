@@ -1,0 +1,56 @@
+{
+  "ancestors_of_iphones": [
+    {
+      "Depth": 0,
+      "ID": 7,
+      "Name": "iPhones"
+    },
+    {
+      "Depth": 1,
+      "ID": 4,
+      "Name": "Phones"
+    },
+    {
+      "Depth": 2,
+      "ID": 2,
+      "Name": "Electronics"
+    },
+    {
+      "Depth": 3,
+      "ID": 1,
+      "Name": "Root"
+    }
+  ],
+  "root_categories": [
+    {
+      "ID": 1,
+      "Name": "Root"
+    }
+  ],
+  "subtree_from_electronics": [
+    {
+      "Depth": 0,
+      "ID": 2,
+      "Name": "Electronics",
+      "ParentID": 1
+    },
+    {
+      "Depth": 1,
+      "ID": 4,
+      "Name": "Phones",
+      "ParentID": 2
+    },
+    {
+      "Depth": 1,
+      "ID": 5,
+      "Name": "Laptops",
+      "ParentID": 2
+    },
+    {
+      "Depth": 2,
+      "ID": 7,
+      "Name": "iPhones",
+      "ParentID": 4
+    }
+  ]
+}

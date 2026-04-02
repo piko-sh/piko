@@ -1,0 +1,13 @@
+{
+    "description": "Whitespace handling - multiple spaces and trim handling in scope strings",
+    "options": {
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".item",
+            "attributes": { "partial": "new_scope parent1 parent2" },
+            "description": "Scopes should be properly joined with single spaces"
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "description": "Initial load (empty container) - server scopes should NOT be modified when no existing children",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".item",
+            "attributes": { "partial": "server_scope" },
+            "description": "Server scope should be preserved as-is when no existing children to inherit from"
+        }
+    ]
+}

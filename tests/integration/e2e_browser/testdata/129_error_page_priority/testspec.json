@@ -1,0 +1,38 @@
+{
+  "description": "Verifies error page priority: exact !404.pk beats range !400-499.pk beats catch-all !error.pk",
+  "requestURL": "/nonexistent",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Exact 404"
+    },
+    {
+      "action": "checkText",
+      "selector": "#tier",
+      "expected": "exact"
+    },
+    {
+      "action": "navigate",
+      "value": "/trigger-forbidden"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Range 4xx"
+    },
+    {
+      "action": "checkText",
+      "selector": "#tier",
+      "expected": "range"
+    }
+  ]
+}

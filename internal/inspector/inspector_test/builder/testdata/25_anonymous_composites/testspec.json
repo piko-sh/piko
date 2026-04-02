@@ -1,0 +1,20 @@
+{
+  "description": "Tests serialisation of fields that use anonymous (inline) struct and interface types.",
+  "moduleName": "testcase_25_anonymous_composites",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_25_anonymous_composites"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Meta' field's TypeString should represent the anonymous struct.",
+      "select": "packages.testcase_25_anonymous_composites.named_types.Response.fields.0.type_string",
+      "expect": "struct{Status int; Message string}"
+    },
+    {
+      "description": "The 'Task' field's TypeString should represent the anonymous interface.",
+      "select": "packages.testcase_25_anonymous_composites.named_types.Runner.fields.0.type_string",
+      "expect": "interface{Run() error}"
+    }
+  ]
+}

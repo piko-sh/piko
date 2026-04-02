@@ -1,0 +1,7 @@
+<template>
+  <div style="display: flex; gap: 10px 20px; width: 300px;">
+    <div style="width: 60px; height: 40px;">1</div>
+    <div style="width: 60px; height: 40px;">2</div>
+    <div style="width: 60px; height: 40px;">3</div>
+  </div>
+</template>

@@ -1,0 +1,110 @@
+{
+  "packages": {
+    "testcase_30_unexported_embedded_cross_package": {
+      "file_imports": {
+        "30_unexported_embedded_cross_package/src/main.go": {
+          "auth": "testcase_30_unexported_embedded_cross_package/auth"
+        }
+      },
+      "named_types": {
+        "Service": {
+          "name": "Service",
+          "package_path": "testcase_30_unexported_embedded_cross_package",
+          "defined_in_file_path": "30_unexported_embedded_cross_package/src/main.go",
+          "type_string": "main.Service",
+          "underlying_type_string": "struct{auth.AuthProvider}",
+          "fields": [
+            {
+              "definition_file_path": "30_unexported_embedded_cross_package/src/main.go",
+              "declaring_pkg_path": "testcase_30_unexported_embedded_cross_package",
+              "pkg_path": "testcase_30_unexported_embedded_cross_package/auth",
+              "underlying_type_string": "struct{auth.provider}",
+              "declaring_type_name": "Service",
+              "name": "AuthProvider",
+              "type_string": "auth.AuthProvider",
+              "raw_tag": "",
+              "definition_line": 25,
+              "definition_column": 7,
+              "is_internal_type": false,
+              "is_embedded": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [
+            {
+              "name": "Authenticate",
+              "type_string": "bool",
+              "underlying_type_string": "bool",
+              "declaring_pkg_path": "testcase_30_unexported_embedded_cross_package/auth",
+              "declaring_type_name": "provider",
+              "definition_file_path": "30_unexported_embedded_cross_package/src/auth/provider.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "bool"
+                ]
+              },
+              "definition_line": 25,
+              "definition_column": 19,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_30_unexported_embedded_cross_package",
+      "name": "main"
+    },
+    "testcase_30_unexported_embedded_cross_package/auth": {
+      "file_imports": {
+        "30_unexported_embedded_cross_package/src/auth/provider.go": {}
+      },
+      "named_types": {
+        "AuthProvider": {
+          "name": "AuthProvider",
+          "package_path": "testcase_30_unexported_embedded_cross_package/auth",
+          "defined_in_file_path": "30_unexported_embedded_cross_package/src/auth/provider.go",
+          "type_string": "auth.AuthProvider",
+          "underlying_type_string": "struct{auth.provider}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "Authenticate",
+              "type_string": "bool",
+              "underlying_type_string": "bool",
+              "declaring_pkg_path": "testcase_30_unexported_embedded_cross_package/auth",
+              "declaring_type_name": "provider",
+              "definition_file_path": "30_unexported_embedded_cross_package/src/auth/provider.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "bool"
+                ]
+              },
+              "definition_line": 25,
+              "definition_column": 19,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 28,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_30_unexported_embedded_cross_package/auth",
+      "name": "auth"
+    }
+  },
+  "file_to_package": {
+    "30_unexported_embedded_cross_package/src/auth/provider.go": "testcase_30_unexported_embedded_cross_package/auth",
+    "30_unexported_embedded_cross_package/src/main.go": "testcase_30_unexported_embedded_cross_package"
+  }
+}

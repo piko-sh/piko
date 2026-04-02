@@ -1,0 +1,64 @@
+{
+  "description": "Tests piko:img element rendering in PPC components with @/ path alias resolution",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "PPC piko:img Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "image-gallery"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "image-gallery >>> [data-testid='static-img']"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "image-gallery >>> [data-testid='static-img']",
+      "attribute": "src",
+      "contains": "/_piko/assets/testmodule/lib/images/test-red.png"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "image-gallery >>> [data-testid='dynamic-img']",
+      "attribute": "src",
+      "contains": "/_piko/assets/testmodule/lib/images/test-red.png"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "image-gallery >>> [data-testid='toggle-btn']"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "image-gallery >>> [data-testid='dynamic-img']",
+      "attribute": "src",
+      "contains": "/_piko/assets/testmodule/lib/images/test-blue.png"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_toggle.html"
+    }
+  ]
+}

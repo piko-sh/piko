@@ -1,0 +1,72 @@
+[
+  {
+    "metadata": {
+      "Draft": true,
+      "Sections": [
+        {
+          "Title": "Draft Post",
+          "Slug": "draft-post",
+          "Level": 1
+        }
+      ],
+      "Title": "Draft Post",
+      "WordCount": 8,
+      "date": "2024-06-01"
+    },
+    "id": "draft-post",
+    "slug": "draft-post",
+    "locale": "en",
+    "translationKey": "blog/draft-post",
+    "url": "/blog/draft-post",
+    "publishedAt": "2024-06-01T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Undated Post",
+          "Slug": "undated-post",
+          "Level": 1
+        }
+      ],
+      "Title": "Undated Post",
+      "WordCount": 8
+    },
+    "id": "no-date-post",
+    "slug": "no-date-post",
+    "locale": "en",
+    "translationKey": "blog/no-date-post",
+    "url": "/blog/no-date-post",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Published Post",
+          "Slug": "published-post",
+          "Level": 1
+        }
+      ],
+      "Title": "Published Post",
+      "WordCount": 6,
+      "date": "2024-05-15"
+    },
+    "id": "published-post",
+    "slug": "published-post",
+    "locale": "en",
+    "translationKey": "blog/published-post",
+    "url": "/blog/published-post",
+    "publishedAt": "2024-05-15T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

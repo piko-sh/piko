@@ -1,0 +1,76 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" },
+    "numeric": { "category": "decimal", "engineName": "numeric" },
+    "float4": { "category": "float", "engineName": "float4" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE orders ( id int4 PRIMARY KEY, status text NOT NULL, amount numeric(10,2) NOT NULL, discount float4 )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "orders",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "status", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "amount", "sqlType": { "category": "decimal", "engineName": "numeric", "precision": 10, "scale": 2 }, "nullable": false },
+          { "name": "discount", "sqlType": { "category": "float", "engineName": "float4" }, "nullable": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, CASE status WHEN 'active' THEN amount WHEN 'discounted' THEN discount ELSE 0 END as effective_amount, CASE WHEN amount > 100 THEN 'large' WHEN amount > 50 THEN 'medium' END as size_label FROM orders",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "id",
+            "tableAlias": "orders",
+            "columnName": "id"
+          },
+          {
+            "name": "effective_amount",
+            "expression": {
+              "kind": "case_when",
+              "branches": [
+                {
+                  "condition": { "kind": "comparison", "operator": "=", "left": { "kind": "column_ref", "tableAlias": "orders", "columnName": "status" }, "right": { "kind": "literal", "typeName": "text" } },
+                  "result": { "kind": "column_ref", "tableAlias": "orders", "columnName": "amount" }
+                },
+                {
+                  "condition": { "kind": "comparison", "operator": "=", "left": { "kind": "column_ref", "tableAlias": "orders", "columnName": "status" }, "right": { "kind": "literal", "typeName": "text" } },
+                  "result": { "kind": "column_ref", "tableAlias": "orders", "columnName": "discount" }
+                }
+              ],
+              "elseResult": { "kind": "literal", "typeName": "int4" }
+            }
+          },
+          {
+            "name": "size_label",
+            "expression": {
+              "kind": "case_when",
+              "branches": [
+                {
+                  "condition": { "kind": "comparison", "operator": ">", "left": { "kind": "column_ref", "tableAlias": "orders", "columnName": "amount" }, "right": { "kind": "literal", "typeName": "int4" } },
+                  "result": { "kind": "literal", "typeName": "text" }
+                },
+                {
+                  "condition": { "kind": "comparison", "operator": ">", "left": { "kind": "column_ref", "tableAlias": "orders", "columnName": "amount" }, "right": { "kind": "literal", "typeName": "int4" } },
+                  "result": { "kind": "literal", "typeName": "text" }
+                }
+              ]
+            }
+          }
+        ],
+        "parameterReferences": [],
+        "fromTables": [
+          { "name": "orders" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

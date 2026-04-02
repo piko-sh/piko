@@ -1,0 +1,28 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">PK Refs Across Slots Test</h1>
+    <p partial="pages_index_032f49b1" p-key="r.0:1">Tests that p-ref elements can be accessed across slot boundaries when a partial is loaded into a multi-slot component.</p>
+    <button
+      partial="pages_index_032f49b1"
+      p-key="r.0:2"
+      id="load-btn"
+      p-on:click="eyJmIjoibG9hZFBhcnRpYWxJbnRvQ2FyZCIsImEiOltdfQ"
+      pk-ev-bound="true"
+    >Load Partial</button>
+    <multi-slot-card partial="pages_index_032f49b1" p-key="r.0:3" id="card-container">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.card{border: 2px solid #3b82f6;border-radius: 8px;overflow: hidden}.card-content{padding: 1.5rem;background: #eff6ff}.card-actions{padding: 1rem;background: #dbeafe;border-top: 1px solid #93c5fd;display: flex;gap: 0.5rem}</style>
+        <div class="card">
+          <div class="card-content">
+            <slot></slot>
+          </div>
+          <div class="card-actions">
+            <slot name="actions"></slot>
+          </div>
+        </div>
+      </template>
+      <p partial="pages_index_032f49b1" p-key="r.0:3:0" class="placeholder">Click "Load Partial" to load content...</p>
+    </multi-slot-card>
+  </div>
+</div>

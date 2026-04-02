@@ -1,0 +1,6 @@
+{
+  "description": "Tests that the builder fails correctly when encountering an invalid method receiver whose base type is a pointer.",
+  "moduleName": "testcase_45_method_on_pointer_type_def",
+  "shouldError": true,
+  "errorContains": "invalid receiver type UserPtr"
+}

@@ -1,0 +1,17 @@
+{
+  "app.title": "My Application",
+  "app.version": "Version 1.0",
+  "nav.home": "Home",
+  "nav.about": "About",
+  "nav.contact": "Contact",
+  "nav.profile": "Profile",
+  "button.submit": "Submit",
+  "button.cancel": "Cancel",
+  "button.save": "Save",
+  "button.delete": "Delete",
+  "message.welcome": "Welcome to our application",
+  "message.goodbye": "Thank you for visiting",
+  "error.required": "This field is required",
+  "error.invalid": "Invalid input",
+  "error.network": "Network error occurred"
+}

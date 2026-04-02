@@ -1,0 +1,41 @@
+{
+  "description": "Tests piko hook lifecycle events: navigation, form, and network hooks registered in script lang=ts",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {"action": "comment", "value": "=== SETUP: Wait for page load ==="},
+    {"action": "waitForSelector", "selector": "h1"},
+    {"action": "checkText", "selector": "h1", "expected": "Hooks Test"},
+
+    {"action": "comment", "value": "=== TEST 1: form:dirty hook ==="},
+    {"action": "comment", "value": "Wait for form tracking deferred snapshot"},
+    {"action": "wait", "value": "1500"},
+    {"action": "fill", "selector": "#test-input", "value": "changed"},
+    {"action": "wait", "value": "300"},
+    {"action": "checkText", "selector": "#hook-form-dirty", "expected": "dirty:test-form"},
+
+    {"action": "comment", "value": "=== TEST 2: form:clean hook ==="},
+    {"action": "fill", "selector": "#test-input", "value": ""},
+    {"action": "wait", "value": "300"},
+    {"action": "checkText", "selector": "#hook-form-clean", "expected": "clean:test-form"},
+
+    {"action": "comment", "value": "=== TEST 3: network:offline hook ==="},
+    {"action": "eval", "value": "window.dispatchEvent(new Event('offline'));"},
+    {"action": "wait", "value": "200"},
+    {"action": "checkText", "selector": "#hook-network-offline", "expected": "offline:number"},
+
+    {"action": "comment", "value": "=== TEST 4: network:online hook ==="},
+    {"action": "eval", "value": "window.dispatchEvent(new Event('online'));"},
+    {"action": "wait", "value": "200"},
+    {"action": "checkText", "selector": "#hook-network-online", "expected": "online:number"},
+
+    {"action": "comment", "value": "=== TEST 5: navigation:start + navigation:complete + page:view (SPA nav) ==="},
+    {"action": "eval", "value": "sessionStorage.clear();"},
+    {"action": "eval", "value": "piko.nav.navigate('/other');"},
+    {"action": "wait", "value": "1500"},
+    {"action": "checkText", "selector": "h1", "expected": "Other Page"},
+    {"action": "eval", "value": "var v = sessionStorage.getItem('hook-nav-start'); if (v !== 'nav-start:ok') { throw new Error('navigation:start hook did not fire: ' + v); }"},
+    {"action": "eval", "value": "var v = sessionStorage.getItem('hook-nav-complete'); if (!v || !v.startsWith('nav-complete:')) { throw new Error('navigation:complete hook did not fire: ' + v); }"},
+    {"action": "eval", "value": "var v = sessionStorage.getItem('hook-pageview-nav'); if (v !== 'pageview:nav') { throw new Error('page:view (SPA nav) hook did not fire: ' + v); }"}
+  ]
+}

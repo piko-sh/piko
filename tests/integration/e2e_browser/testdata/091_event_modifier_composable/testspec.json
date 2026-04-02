@@ -1,0 +1,100 @@
+{
+  "description": "Tests that multiple event modifiers compose correctly - .prevent.stop.once all apply on a single element",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "First click on composed link - should fire once, prevent navigation, stop propagation"
+    },
+    {
+      "action": "click",
+      "selector": "#composed-link"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Handler should have fired once"
+    },
+    {
+      "action": "checkText",
+      "selector": "#composed-count",
+      "expected": "1"
+    },
+    {
+      "action": "comment",
+      "value": ".stop should have prevented outer handler from firing"
+    },
+    {
+      "action": "checkText",
+      "selector": "#outer-count",
+      "expected": "0"
+    },
+    {
+      "action": "comment",
+      "value": "Page should not have navigated (.prevent)"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Second click - .once should prevent handler from firing again"
+    },
+    {
+      "action": "click",
+      "selector": "#composed-link"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Count should still be 1 (.once prevents second execution)"
+    },
+    {
+      "action": "checkText",
+      "selector": "#composed-count",
+      "expected": "1"
+    },
+    {
+      "action": "comment",
+      "value": "Third click for good measure"
+    },
+    {
+      "action": "click",
+      "selector": "#composed-link"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#composed-count",
+      "expected": "1"
+    },
+    {
+      "action": "comment",
+      "value": "Outer should still be 0 even after .once expired - .stop still applied on first click"
+    },
+    {
+      "action": "checkText",
+      "selector": "#outer-count",
+      "expected": "0"
+    }
+  ]
+}

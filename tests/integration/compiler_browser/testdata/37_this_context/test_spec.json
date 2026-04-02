@@ -1,0 +1,32 @@
+[
+  {
+    "action": "checkText",
+    "selector": "this-context >>> p",
+    "expected": "Message from queried div: none"
+  },
+  {
+    "action": "listenForEvent",
+    "selector": "this-context",
+    "eventName": "my-event"
+  },
+  {
+    "action": "click",
+    "selector": "this-context >>> button:first-of-type"
+  },
+  {
+    "action": "checkEventReceived",
+    "eventName": "my-event",
+    "detail": {
+      "message": "Hello from component"
+    }
+  },
+  {
+    "action": "click",
+    "selector": "this-context >>> button:last-of-type"
+  },
+  {
+    "action": "checkText",
+    "selector": "this-context >>> p",
+    "expected": "Message from queried div: Internal Div"
+  }
+]

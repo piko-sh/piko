@@ -1,0 +1,3 @@
+{
+  "description": "PostgreSQL-specific types: JSONB, TEXT[], JSON, INET, UUID, NUMERIC, BYTEA. Tests that the engine correctly resolves PG-native type categories."
+}

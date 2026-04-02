@@ -1,0 +1,101 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Action Namespace Object Test</h1>
+    <p>Tests multiple actions across multiple namespaces</p>
+
+    <button id="test-btn" p-on:click="runTest()">Run Test</button>
+
+    <div id="namespace-check">
+      <h2>Namespace Structure:</h2>
+      <p>Has user namespace: <span id="has-user" p-ref="hasUser">false</span></p>
+      <p>Has user.Create: <span id="has-user-create" p-ref="hasUserCreate">false</span></p>
+      <p>Has user.Delete: <span id="has-user-delete" p-ref="hasUserDelete">false</span></p>
+      <p>Has order namespace: <span id="has-order" p-ref="hasOrder">false</span></p>
+      <p>Has order.Submit: <span id="has-order-submit" p-ref="hasOrderSubmit">false</span></p>
+    </div>
+
+    <div id="results">
+      <h2>Action Results:</h2>
+      <p>User Created: <span id="result-user-create" p-ref="resultUserCreate">pending</span></p>
+      <p>User Deleted: <span id="result-user-delete" p-ref="resultUserDelete">pending</span></p>
+      <p>Order Submitted: <span id="result-order-submit" p-ref="resultOrderSubmit">pending</span></p>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Action Namespace Object Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+async function runTest(): Promise<void> {
+  try {
+    const a = action;
+    pk.refs.hasUser.textContent = (a && a.user) ? 'true' : 'false';
+    pk.refs.hasUserCreate.textContent = (a && a.user && typeof a.user.Create === 'function') ? 'true' : 'false';
+    pk.refs.hasUserDelete.textContent = (a && a.user && typeof a.user.Delete === 'function') ? 'true' : 'false';
+    pk.refs.hasOrder.textContent = (a && a.order) ? 'true' : 'false';
+    pk.refs.hasOrderSubmit.textContent = (a && a.order && typeof a.order.Submit === 'function') ? 'true' : 'false';
+
+    const promises = [];
+
+    if (a.user && a.user.Create) {
+      promises.push(
+        a.user.Create({ name: 'Test User', email: 'test@example.com' }).call().then((r: any) => {
+          pk.refs.resultUserCreate.textContent = r.id;
+        }),
+      );
+    }
+
+    if (a.user && a.user.Delete) {
+      promises.push(
+        a.user.Delete({ id: 'usr_001' }).call().then((r: any) => {
+          pk.refs.resultUserDelete.textContent = r.deleted ? 'deleted' : 'failed';
+        }),
+      );
+    }
+
+    if (a.order && a.order.Submit) {
+      promises.push(
+        a.order.Submit({ productId: 'prod_123', quantity: 2 }).call().then((r: any) => {
+          pk.refs.resultOrderSubmit.textContent = r.orderId;
+        }),
+      );
+    }
+
+    await Promise.all(promises);
+  } catch (e: any) {
+    console.error('Error:', e);
+  }
+}
+</script>

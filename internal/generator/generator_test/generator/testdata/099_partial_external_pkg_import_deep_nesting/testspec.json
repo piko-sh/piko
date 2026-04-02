@@ -1,0 +1,5 @@
+{
+  "description": "Tests that Go package imports propagate through multiple levels of nested partials.",
+  "packageName": "partial_external_pkg_import_deep_test",
+  "isPage": true
+}

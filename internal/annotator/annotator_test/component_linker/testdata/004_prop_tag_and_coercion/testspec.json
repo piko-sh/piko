@@ -1,0 +1,26 @@
+{
+  "description": "Tests 'prop' tag mapping and static value coercion from string to bool/int.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "card",
+      "assert": {
+        "passedPropsCount": 2,
+        "propValueIs": {
+          "is-primary": "true",
+          "item-count": "42"
+        }
+      }
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "div",
+      "description": "The invocation key should be based on the coerced boolean and integer values.",
+      "assert": {
+        "invocationKeyShouldBe": "card_is_primary_true_item_count_42_38ba2dd2"
+      }
+    }
+  ]
+}

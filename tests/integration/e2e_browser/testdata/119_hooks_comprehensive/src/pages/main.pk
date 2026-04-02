@@ -1,0 +1,85 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Hooks Test</h1>
+
+    <span id="hook-nav-start"></span>
+    <span id="hook-nav-complete"></span>
+    <span id="hook-pageview-nav"></span>
+    <span id="hook-form-dirty"></span>
+    <span id="hook-form-clean"></span>
+    <span id="hook-network-offline"></span>
+    <span id="hook-network-online"></span>
+
+    <form id="test-form">
+      <input type="text" id="test-input" name="field">
+    </form>
+  </div>
+</template>
+
+<script lang="ts">
+piko.hooks.on('page:view', (payload) => {
+  if (!payload.isInitialLoad) {
+    sessionStorage.setItem('hook-pageview-nav', 'pageview:nav');
+  }
+});
+
+piko.hooks.on('form:dirty', (payload) => {
+  const el = document.getElementById('hook-form-dirty');
+  if (el) el.textContent = 'dirty:' + (payload.formId || '');
+});
+
+piko.hooks.on('form:clean', (payload) => {
+  const el = document.getElementById('hook-form-clean');
+  if (el) el.textContent = 'clean:' + (payload.formId || '');
+});
+
+piko.hooks.on('network:offline', (payload) => {
+  const el = document.getElementById('hook-network-offline');
+  if (el) el.textContent = 'offline:' + (typeof payload.timestamp);
+});
+
+piko.hooks.on('network:online', (payload) => {
+  const el = document.getElementById('hook-network-online');
+  if (el) el.textContent = 'online:' + (typeof payload.timestamp);
+});
+
+piko.hooks.on('navigation:start', (payload) => {
+  sessionStorage.setItem('hook-nav-start', 'nav-start:ok');
+});
+
+piko.hooks.on('navigation:complete', (payload) => {
+  sessionStorage.setItem('hook-nav-complete',
+    'nav-complete:' + (payload.duration >= 0 ? 'yes' : 'no'));
+});
+
+</script>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{Title: "Hooks Test"}, nil
+}
+</script>

@@ -1,0 +1,3 @@
+{
+  "description": "LATERAL subquery: LEFT JOIN LATERAL should see outer query columns and resolve inner column types correctly, with nullable results from the lateral side."
+}

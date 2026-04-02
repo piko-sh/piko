@@ -1,0 +1,123 @@
+{
+  "packages": {
+    "testcase_23_implementing_external_interface": {
+      "file_imports": {
+        "23_implementing_external_interface/src/main.go": {
+          "io": "io"
+        }
+      },
+      "named_types": {
+        "Container": {
+          "name": "Container",
+          "package_path": "testcase_23_implementing_external_interface",
+          "defined_in_file_path": "23_implementing_external_interface/src/main.go",
+          "type_string": "main.Container",
+          "underlying_type_string": "struct{Data any}",
+          "fields": [
+            {
+              "definition_file_path": "23_implementing_external_interface/src/main.go",
+              "declaring_pkg_path": "testcase_23_implementing_external_interface",
+              "pkg_path": "",
+              "underlying_type_string": "interface{}",
+              "declaring_type_name": "Container",
+              "name": "Data",
+              "type_string": "any",
+              "raw_tag": "",
+              "definition_line": 45,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": true,
+              "is_embedded": false,
+              "is_alias": true,
+              "is_underlying_internal_type": true
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 44,
+          "definition_column": 6
+        },
+        "MyRuneReader": {
+          "name": "MyRuneReader",
+          "package_path": "testcase_23_implementing_external_interface",
+          "defined_in_file_path": "23_implementing_external_interface/src/main.go",
+          "type_string": "main.MyRuneReader",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "ReadRune",
+              "type_string": "rune",
+              "underlying_type_string": "rune",
+              "declaring_pkg_path": "testcase_23_implementing_external_interface",
+              "declaring_type_name": "MyRuneReader",
+              "definition_file_path": "23_implementing_external_interface/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "rune",
+                  "int",
+                  "error"
+                ]
+              },
+              "definition_line": 39,
+              "definition_column": 24,
+              "is_pointer_receiver": true
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 34,
+          "definition_column": 6
+        },
+        "MyWriter": {
+          "name": "MyWriter",
+          "package_path": "testcase_23_implementing_external_interface",
+          "defined_in_file_path": "23_implementing_external_interface/src/main.go",
+          "type_string": "main.MyWriter",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "Write",
+              "type_string": "int",
+              "underlying_type_string": "int",
+              "declaring_pkg_path": "testcase_23_implementing_external_interface",
+              "declaring_type_name": "MyWriter",
+              "definition_file_path": "23_implementing_external_interface/src/main.go",
+              "signature": {
+                "params": [
+                  "[]byte"
+                ],
+                "param_names": [
+                  "p"
+                ],
+                "results": [
+                  "int",
+                  "error"
+                ]
+              },
+              "definition_line": 29,
+              "definition_column": 20,
+              "is_pointer_receiver": true
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_23_implementing_external_interface",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "23_implementing_external_interface/src/main.go": "testcase_23_implementing_external_interface"
+  }
+}

@@ -1,0 +1,7 @@
+[{
+  "description": "Validates a complex expression involving nested member access and a call to a standard library function.",
+  "expression": "strings.ToUpper(state.User.GetFirstName())",
+  "expectedType": "string",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

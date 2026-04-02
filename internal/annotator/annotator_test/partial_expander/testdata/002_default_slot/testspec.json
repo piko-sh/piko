@@ -1,0 +1,25 @@
+{
+  "specs": [
+    {
+      "description": "The card div from the partial should exist",
+      "select": "div.card",
+      "assert": {
+        "originalPackageAlias": "partials/card.pk"
+      }
+    },
+    {
+      "description": "The slotted paragraph should be a child of the card div",
+      "select": "div.card p",
+      "assert": {
+        "textContentContains": "This is content passed into the default slot."
+      }
+    },
+    {
+      "description": "The slotted paragraph must retain its origin from the main component",
+      "select": "div.card p",
+      "assert": {
+        "originalPackageAlias": "main.pk"
+      }
+    }
+  ]
+}

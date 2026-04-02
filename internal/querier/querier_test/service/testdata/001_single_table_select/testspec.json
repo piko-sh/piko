@@ -1,0 +1,3 @@
+{
+  "description": "Basic scenario: single CREATE TABLE migration, single SELECT query with parameter. Tests catalogue building, column type resolution, and parameter inference from comparison context."
+}

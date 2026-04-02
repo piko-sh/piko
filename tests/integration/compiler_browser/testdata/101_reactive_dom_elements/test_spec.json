@@ -1,0 +1,33 @@
+[
+  {
+    "action": "eval",
+    "selector": "reactive-dom-test",
+    "value": "() => this.innerHTML = '<div slot=\"items\" data-id=\"a\">Item A</div><div slot=\"items\" data-id=\"b\">Item B</div><div slot=\"items\" data-id=\"c\">Item C</div>'"
+  },
+  {
+    "action": "wait",
+    "value": "200"
+  },
+  {
+    "action": "checkText",
+    "selector": "reactive-dom-test >>> .status",
+    "expected": "Status: success"
+  },
+  {
+    "action": "checkText",
+    "selector": "reactive-dom-test >>> .attr-result",
+    "expected": "Attr: a,b,c"
+  },
+  {
+    "action": "checkConsoleMessage",
+    "expected": "DOM_METHODS_SUCCESS"
+  },
+  {
+    "action": "checkNoConsoleMessage",
+    "expected": "DOM_METHODS_FAILED"
+  },
+  {
+    "action": "checkNoConsoleMessage",
+    "expected": "getAttribute"
+  }
+]

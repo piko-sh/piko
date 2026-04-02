@@ -1,0 +1,24 @@
+{
+    "description": "Scopes preserved at 3+ levels deep in tree",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".level1",
+            "attributes": { "partial": "l1_new parent1 parent2" },
+            "description": "Level 1 preserves parents"
+        },
+        {
+            "selector": ".level2",
+            "attributes": { "partial": "l2_new parent1 parent2" },
+            "description": "Level 2 preserves parents"
+        },
+        {
+            "selector": ".level3",
+            "attributes": { "partial": "l3_new parent1 parent2" },
+            "description": "Level 3 preserves parents"
+        }
+    ]
+}

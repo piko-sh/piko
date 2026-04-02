@@ -1,0 +1,67 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package messages
+
+import "piko.sh/piko"
+
+type Message struct {
+	ID      string
+	Author  string
+	Content string
+	Type    string
+}
+
+type Response struct {
+	Header   string
+	Messages []Message
+	Footer   string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Header: "Welcome to the Message Board",
+		Messages: []Message{
+			{ID: "1", Author: "Alice", Content: "Hello, World!", Type: "greeting"},
+			{ID: "2", Author: "Bob", Content: "The quick brown fox jumps over the lazy dog.", Type: "pangram"},
+			{ID: "3", Author: "Charlie", Content: "Testing 123", Type: "test"},
+			{ID: "4", Author: "Diana", Content: "Special chars: <>&\"'", Type: "special"},
+			{ID: "5", Author: "Eve", Content: "Multi-word content with several terms", Type: "complex"},
+		},
+		Footer: "End of messages - Copyright 2024",
+	}, piko.Metadata{
+		Title: "Message Board",
+	}, nil
+}
+</script>
+<template>
+	<div class="message-board">
+		<h1 class="header">{{ state.Header }}</h1>
+		<div class="messages">
+			<article p-for="msg in state.Messages" class="message" data-type="{{ msg.Type }}">
+				<span class="author">{{ msg.Author }}</span>
+				<p class="content">{{ msg.Content }}</p>
+				<small class="id">ID: {{ msg.ID }}</small>
+			</article>
+		</div>
+		<footer class="footer">{{ state.Footer }}</footer>
+	</div>
+</template>

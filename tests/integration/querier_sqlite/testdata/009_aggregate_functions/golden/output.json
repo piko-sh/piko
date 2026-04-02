@@ -1,0 +1,21 @@
+{
+  "by_product": [
+    {
+      "Product": "Gadget",
+      "SaleCount": 2,
+      "TotalAmount": 40.75
+    },
+    {
+      "Product": "Widget",
+      "SaleCount": 2,
+      "TotalAmount": 30.5
+    }
+  ],
+  "summary": {
+    "AverageAmount": 17.8125,
+    "MaxAmount": 25,
+    "MinAmount": 10.5,
+    "TotalAmount": 71.25,
+    "TotalCount": 4
+  }
+}

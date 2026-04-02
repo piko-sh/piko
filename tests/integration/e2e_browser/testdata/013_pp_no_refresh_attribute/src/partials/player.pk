@@ -1,0 +1,92 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+  <div class="player-partial">
+    <p>Server render count: <span p-text="state.RenderCount"></span></p>
+    <div class="counter-container">
+      <span id="client-counter" pk-no-refresh data-count="0">0</span>
+      <button id="increment-btn" p-on:click="increment()">Increment</button>
+    </div>
+    <p class="note">The counter above has pk-no-refresh and should preserve its value on partial reload</p>
+  </div>
+</template>
+
+<style>
+  .player-partial {
+    border: 1px solid #ccc;
+    padding: 1rem;
+  }
+  .counter-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin: 1rem 0;
+  }
+  #client-counter {
+    font-size: 2rem;
+    font-weight: bold;
+    min-width: 50px;
+    text-align: center;
+  }
+  .note {
+    color: #666;
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import (
+    "strconv"
+    "piko.sh/piko"
+)
+
+type Response struct {
+    RenderCount int
+}
+
+var renderCount int
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    countStr := r.QueryParam("_render_count")
+    if countStr != "" {
+        renderCount, _ = strconv.Atoi(countStr)
+    }
+    renderCount++
+
+    return Response{
+        RenderCount: renderCount,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+export function increment(): void {
+    const el = document.getElementById('client-counter');
+    if (el) {
+        const count = parseInt(el.getAttribute('data-count') ?? '0') + 1;
+        el.setAttribute('data-count', String(count));
+        el.textContent = String(count);
+    }
+}
+</script>

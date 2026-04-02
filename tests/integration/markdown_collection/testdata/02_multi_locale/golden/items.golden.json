@@ -1,0 +1,112 @@
+[
+  {
+    "metadata": {
+      "Alternates": {
+        "fr": "/fr/blog/about"
+      },
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "About Us",
+          "Slug": "about-us",
+          "Level": 1
+        }
+      ],
+      "Title": "About Us",
+      "WordCount": 6,
+      "date": "2024-06-15"
+    },
+    "id": "about",
+    "slug": "about",
+    "locale": "en",
+    "translationKey": "blog/about",
+    "url": "/blog/about",
+    "publishedAt": "2024-06-15T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Alternates": {
+        "en": "/blog/about"
+      },
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "A Propos",
+          "Slug": "a-propos",
+          "Level": 1
+        }
+      ],
+      "Title": "A Propos",
+      "WordCount": 5,
+      "date": "2024-06-15"
+    },
+    "id": "about",
+    "slug": "about",
+    "locale": "fr",
+    "translationKey": "blog/about",
+    "url": "/fr/blog/about",
+    "publishedAt": "2024-06-15T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Alternates": {
+        "fr": "/fr/blog/welcome"
+      },
+      "Description": "Welcome to our blog",
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Welcome",
+          "Slug": "welcome",
+          "Level": 1
+        }
+      ],
+      "Title": "Welcome",
+      "WordCount": 9,
+      "date": "2024-06-01"
+    },
+    "id": "welcome",
+    "slug": "welcome",
+    "locale": "en",
+    "translationKey": "blog/welcome",
+    "url": "/blog/welcome",
+    "publishedAt": "2024-06-01T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Alternates": {
+        "en": "/blog/welcome"
+      },
+      "Description": "Bienvenue sur notre blog",
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Bienvenue",
+          "Slug": "bienvenue",
+          "Level": 1
+        }
+      ],
+      "Title": "Bienvenue",
+      "WordCount": 9,
+      "date": "2024-06-01"
+    },
+    "id": "welcome",
+    "slug": "welcome",
+    "locale": "fr",
+    "translationKey": "blog/welcome",
+    "url": "/fr/blog/welcome",
+    "publishedAt": "2024-06-01T00:00:00Z",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "action": "checkElementCount",
+    "selector": "p-for-simple \u003e\u003e\u003e li",
+    "expected": "2"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-simple \u003e\u003e\u003e li:nth-of-type(2)",
+    "expected": "Second"
+  },
+  {
+    "action": "click",
+    "selector": "p-for-simple \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "p-for-simple \u003e\u003e\u003e li",
+    "expected": "3"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-for-simple \u003e\u003e\u003e li:nth-of-type(3)",
+    "expected": "Item 3"
+  }
+]

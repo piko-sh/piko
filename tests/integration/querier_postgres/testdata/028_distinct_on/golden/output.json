@@ -1,0 +1,42 @@
+{
+  "cheapest": [
+    {
+      "Category": "gadgets",
+      "ID": 4,
+      "Name": "Simple Gadget",
+      "Price": 1000
+    },
+    {
+      "Category": "tools",
+      "ID": 6,
+      "Name": "Intro Tool",
+      "Price": 750
+    },
+    {
+      "Category": "widgets",
+      "ID": 1,
+      "Name": "Basic Widget",
+      "Price": 500
+    }
+  ],
+  "most_expensive": [
+    {
+      "Category": "gadgets",
+      "ID": 5,
+      "Name": "Pro Gadget",
+      "Price": 4000
+    },
+    {
+      "Category": "tools",
+      "ID": 7,
+      "Name": "Master Tool",
+      "Price": 5000
+    },
+    {
+      "Category": "widgets",
+      "ID": 3,
+      "Name": "Deluxe Widget",
+      "Price": 3500
+    }
+  ]
+}

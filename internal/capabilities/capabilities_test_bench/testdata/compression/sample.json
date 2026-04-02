@@ -1,0 +1,286 @@
+{
+  "status": "ok",
+  "record_count": 15,
+  "generated_at": "2025-09-12T18:00:00Z",
+  "data_source": "production-log-aggregator-us-east-1",
+  "events": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "timestamp": "2025-09-12T17:55:01Z",
+      "event_type": "user_login_success",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "location": "New York, USA",
+        "login_method": "password"
+      },
+      "metadata": null
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+      "timestamp": "2025-09-12T17:55:15Z",
+      "event_type": "page_view",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "path": "/products/quantum-widget",
+        "referrer": "https://www.google.com/"
+      },
+      "metadata": {
+        "utm_source": "google",
+        "utm_medium": "organic"
+      }
+    },
+    {
+      "id": "c3d4e5f6-a7b8-9012-3456-7890abcdef12",
+      "timestamp": "2025-09-12T17:55:45Z",
+      "event_type": "add_to_cart",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "product_id": "p-001",
+        "product_name": "Quantum Widget",
+        "quantity": 2,
+        "price_per_unit": 99.99
+      },
+      "metadata": null
+    },
+    {
+      "id": "d4e5f6a7-b8c9-0123-4567-890abcdef123",
+      "timestamp": "2025-09-12T17:56:02Z",
+      "event_type": "page_view",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "path": "/products/hyperbolic-gizmo",
+        "referrer": "/products/quantum-widget"
+      },
+      "metadata": null
+    },
+    {
+      "id": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
+      "timestamp": "2025-09-12T17:56:18Z",
+      "event_type": "user_login_failure",
+      "user_id": "usr_b8c7d6e5",
+      "session_id": "sess_e2d3c4b5",
+      "source": "mobile_api",
+      "status": "processed",
+      "is_critical": true,
+      "details": {
+        "ip_address": "198.51.100.42",
+        "user_agent": "PikoApp/2.1.0 (iPhone; iOS 18.0; Scale/3.00)",
+        "reason": "invalid_credentials",
+        "attempt_count": 3
+      },
+      "metadata": {
+        "api_version": "v2"
+      }
+    },
+    {
+      "id": "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
+      "timestamp": "2025-09-12T17:57:05Z",
+      "event_type": "add_to_cart",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "product_id": "p-002",
+        "product_name": "Hyperbolic Gizmo",
+        "quantity": 1,
+        "price_per_unit": 149.50
+      },
+      "metadata": null
+    },
+    {
+      "id": "a7b8c9d0-e1f2-3456-7890-abcdef123456",
+      "timestamp": "2025-09-12T17:57:30Z",
+      "event_type": "checkout_start",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "cart_total": 349.48,
+        "item_count": 2
+      },
+      "metadata": null
+    },
+    {
+      "id": "b8c9d0e1-f2a3-4567-8901-bcdef1234567",
+      "timestamp": "2025-09-12T17:57:55Z",
+      "event_type": "checkout_failure",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": true,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "reason": "payment_declined",
+        "payment_provider": "Stripe"
+      },
+      "metadata": null
+    },
+    {
+      "id": "c9d0e1f2-a3b4-5678-9012-cdef12345678",
+      "timestamp": "2025-09-12T17:58:10Z",
+      "event_type": "user_logout",
+      "user_id": "usr_a9b8c7d6",
+      "session_id": "sess_f1e2d3c4",
+      "source": "webapp",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "203.0.113.1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "reason": "user_initiated"
+      },
+      "metadata": null
+    },
+    {
+      "id": "d0e1f2a3-b4c5-6789-0123-def123456789",
+      "timestamp": "2025-09-12T17:58:12Z",
+      "event_type": "user_login_success",
+      "user_id": "usr_c7d6e5f4",
+      "session_id": "sess_d3c4b5a6",
+      "source": "mobile_api",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "192.0.2.88",
+        "user_agent": "PikoApp/2.1.0 (Android 14; Pixel 9 Pro)",
+        "location": "London, UK",
+        "login_method": "oauth_google"
+      },
+      "metadata": {
+        "api_version": "v2"
+      }
+    },
+    {
+      "id": "e1f2a3b4-c5d6-7890-1234-ef1234567890",
+      "timestamp": "2025-09-12T17:58:20Z",
+      "event_type": "page_view",
+      "user_id": "usr_c7d6e5f4",
+      "session_id": "sess_d3c4b5a6",
+      "source": "mobile_api",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "192.0.2.88",
+        "user_agent": "PikoApp/2.1.0 (Android 14; Pixel 9 Pro)",
+        "path": "/dashboard",
+        "referrer": null
+      },
+      "metadata": {
+        "api_version": "v2"
+      }
+    },
+    {
+      "id": "f2a3b4c5-d6e7-8901-2345-f12345678901",
+      "timestamp": "2025-09-12T17:59:01Z",
+      "event_type": "api_rate_limit_exceeded",
+      "user_id": null,
+      "session_id": null,
+      "source": "load_balancer",
+      "status": "failed",
+      "is_critical": true,
+      "details": {
+        "ip_address": "203.0.113.100",
+        "user_agent": "Go-http-client/1.1",
+        "path": "/api/v2/status",
+        "limit": 100,
+        "window_seconds": 60
+      },
+      "metadata": {
+        "source_region": "eu-west-1"
+      }
+    },
+    {
+      "id": "a3b4c5d6-e7f8-9012-3456-123456789012",
+      "timestamp": "2025-09-12T17:59:15Z",
+      "event_type": "add_to_cart",
+      "user_id": "usr_c7d6e5f4",
+      "session_id": "sess_d3c4b5a6",
+      "source": "mobile_api",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "192.0.2.88",
+        "user_agent": "PikoApp/2.1.0 (Android 14; Pixel 9 Pro)",
+        "product_id": "p-008",
+        "product_name": "A Simple Paperclip",
+        "quantity": 500,
+        "price_per_unit": 0.05
+      },
+      "metadata": {
+        "api_version": "v2"
+      }
+    },
+    {
+      "id": "b4c5d6e7-f8a9-0123-4567-234567890123",
+      "timestamp": "2025-09-12T17:59:40Z",
+      "event_type": "checkout_success",
+      "user_id": "usr_c7d6e5f4",
+      "session_id": "sess_d3c4b5a6",
+      "source": "mobile_api",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "192.0.2.88",
+        "user_agent": "PikoApp/2.1.0 (Android 14; Pixel 9 Pro)",
+        "cart_total": 25.00,
+        "item_count": 1,
+        "order_id": "ord_z1y2x3w4"
+      },
+      "metadata": {
+        "api_version": "v2"
+      }
+    },
+    {
+      "id": "c5d6e7f8-a9b0-1234-5678-345678901234",
+      "timestamp": "2025-09-12T17:59:59Z",
+      "event_type": "user_logout",
+      "user_id": "usr_c7d6e5f4",
+      "session_id": "sess_d3c4b5a6",
+      "source": "mobile_api",
+      "status": "processed",
+      "is_critical": false,
+      "details": {
+        "ip_address": "192.0.2.88",
+        "user_agent": "PikoApp/2.1.0 (Android 14; Pixel 9 Pro)",
+        "reason": "session_timeout"
+      },
+      "metadata": {
+        "api_version": "v2"
+      }
+    }
+  ]
+}

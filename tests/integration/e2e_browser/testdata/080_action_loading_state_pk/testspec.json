@@ -1,0 +1,81 @@
+{
+  "description": "Tests loading state management (pk-loading class and aria-busy) in .pk pages",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Verify no loading state before action"
+    },
+    {
+      "action": "checkAttributeNotContains",
+      "selector": "#submit-btn",
+      "attribute": "class",
+      "expected": "pk-loading"
+    },
+    {
+      "action": "comment",
+      "value": "Click button to trigger slow action"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "comment",
+      "value": "Verify loading state is active during action"
+    },
+    {
+      "action": "checkAttributeContains",
+      "selector": "#submit-btn",
+      "attribute": "class",
+      "expected": "pk-loading"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#submit-btn",
+      "attribute": "aria-busy",
+      "expected": "true"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for action to complete"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#done",
+      "timeout": 10000
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "comment",
+      "value": "Verify loading state is removed after action completes"
+    },
+    {
+      "action": "checkAttributeNotContains",
+      "selector": "#submit-btn",
+      "attribute": "class",
+      "expected": "pk-loading"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_loading.html"
+    }
+  ]
+}

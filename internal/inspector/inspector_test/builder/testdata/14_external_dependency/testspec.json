@@ -1,0 +1,25 @@
+{
+  "description": "Tests serialisation of a field whose type comes from a direct external dependency in go.mod.",
+  "moduleName": "testcase_14_external_dependency",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_14_external_dependency"
+  ],
+  "assertions": [
+    {
+      "description": "The field's TypeString should be qualified with the external package's name.",
+      "select": "packages.testcase_14_external_dependency.named_types.Request.fields.0.type_string",
+      "expect": "uuid.UUID"
+    },
+    {
+      "description": "The field's PackagePath must be the canonical import path of the external library.",
+      "select": "packages.testcase_14_external_dependency.named_types.Request.fields.0.pkg_path",
+      "expect": "github.com/google/uuid"
+    },
+    {
+      "description": "The external package itself (google/uuid) should be serialised.",
+      "select": "packages.github.com/google/uuid.name",
+      "expect": "uuid"
+    }
+  ]
+}

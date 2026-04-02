@@ -1,0 +1,130 @@
+{
+  "description": "Format conversion matrix: BMP source to JPEG, PNG, WebP with quality variations",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/mercury.bmp",
+      "expectedArtefactID": "testmodule/lib/images/mercury.bmp"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "jpeg-low-quality",
+      "capabilityName": "image-transform",
+      "description": "BMP to JPEG at quality 50",
+      "params": {
+        "width": "400",
+        "height": "284",
+        "format": "jpeg",
+        "quality": "50",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 284
+      },
+      "goldenFile": "jpeg-q50.jpg"
+    },
+    {
+      "profileName": "jpeg-high-quality",
+      "capabilityName": "image-transform",
+      "description": "BMP to JPEG at quality 95",
+      "params": {
+        "width": "400",
+        "height": "284",
+        "format": "jpeg",
+        "quality": "95",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 284
+      },
+      "goldenFile": "jpeg-q95.jpg"
+    },
+    {
+      "profileName": "png-from-bmp",
+      "capabilityName": "image-transform",
+      "description": "BMP to PNG (lossless)",
+      "params": {
+        "width": "400",
+        "height": "284",
+        "format": "png",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/png",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 284
+      },
+      "goldenFile": "from-bmp.png"
+    },
+    {
+      "profileName": "webp-lossy",
+      "capabilityName": "image-transform",
+      "description": "BMP to WebP lossy at quality 80",
+      "params": {
+        "width": "400",
+        "height": "284",
+        "format": "webp",
+        "quality": "80",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 284
+      },
+      "goldenFile": "webp-q80.webp"
+    },
+    {
+      "profileName": "webp-high-quality",
+      "capabilityName": "image-transform",
+      "description": "BMP to WebP at quality 95",
+      "params": {
+        "width": "400",
+        "height": "284",
+        "format": "webp",
+        "quality": "95",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 284
+      },
+      "goldenFile": "webp-q95.webp"
+    },
+    {
+      "profileName": "png-small",
+      "capabilityName": "image-transform",
+      "description": "BMP to small PNG (200px)",
+      "params": {
+        "width": "200",
+        "height": "142",
+        "format": "png",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/png",
+        "outputNotEmpty": true,
+        "exactWidth": 200,
+        "exactHeight": 142
+      },
+      "goldenFile": "png-200x142.png"
+    }
+  ]
+}

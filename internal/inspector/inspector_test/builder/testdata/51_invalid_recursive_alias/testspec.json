@@ -1,0 +1,6 @@
+{
+  "description": "Tests that the builder fails gracefully on an invalid recursive type alias, propagating the error from the go/packages loader.",
+  "moduleName": "testcase_51_invalid_recursive_alias",
+  "shouldError": true,
+  "errorContains": "invalid recursive type"
+}

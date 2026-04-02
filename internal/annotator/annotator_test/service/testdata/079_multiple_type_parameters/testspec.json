@@ -1,0 +1,147 @@
+{
+  "description": "Validates that generics with multiple type parameters resolve correctly. Pair[K, V].GetValue() should return V, Triple[A, B, C].GetSecond() should return B, etc.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "p.pair-key",
+      "description": "CRITICAL: Pair[User, Product].GetKey() should return User (K), not V.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.UserProduct.GetKey()",
+          "resolvedTypeIs": "dto.User"
+        },
+        {
+          "rawExpression": "props.Data.UserProduct.GetKey().FullInfo()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.pair-value",
+      "description": "CRITICAL: Pair[User, Product].GetValue() should return Product (V), not K.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.UserProduct.GetValue()",
+          "resolvedTypeIs": "dto.Product"
+        },
+        {
+          "rawExpression": "props.Data.UserProduct.GetValue().Description()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.pair-swap-key",
+      "description": "Swap() returns Pair[V, K], so GetKey() returns Product.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.UserProduct.Swap()",
+          "resolvedTypeIs": "fields.Pair[dto.Product, dto.User]"
+        },
+        {
+          "rawExpression": "props.Data.UserProduct.Swap().GetKey()",
+          "resolvedTypeIs": "dto.Product"
+        },
+        {
+          "rawExpression": "props.Data.UserProduct.Swap().GetKey().Description()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.pair-swap-value",
+      "description": "After Swap(), GetValue() returns User.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.UserProduct.Swap().GetValue()",
+          "resolvedTypeIs": "dto.User"
+        },
+        {
+          "rawExpression": "props.Data.UserProduct.Swap().GetValue().FullInfo()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.triple-first",
+      "description": "Triple[User, Product, ErrorInfo].GetFirst() returns User (A).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Mixed.GetFirst()",
+          "resolvedTypeIs": "dto.User"
+        },
+        {
+          "rawExpression": "props.Data.Mixed.GetFirst().Name.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.triple-second",
+      "description": "Triple[User, Product, ErrorInfo].GetSecond() returns Product (B).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Mixed.GetSecond()",
+          "resolvedTypeIs": "dto.Product"
+        },
+        {
+          "rawExpression": "props.Data.Mixed.GetSecond().Title.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.triple-third",
+      "description": "Triple[User, Product, ErrorInfo].GetThird() returns ErrorInfo (C).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Mixed.GetThird()",
+          "resolvedTypeIs": "dto.ErrorInfo"
+        },
+        {
+          "rawExpression": "props.Data.Mixed.GetThird().Display()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.result-check",
+      "description": "Result.IsSuccess() returns bool.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.UserResult.IsSuccess()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "p.result-value",
+      "description": "Result[User, ErrorInfo].GetValue() returns User (T).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.UserResult.GetValue()",
+          "resolvedTypeIs": "dto.User"
+        },
+        {
+          "rawExpression": "props.Data.UserResult.GetValue().FullInfo()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.field-access",
+      "description": "Direct field access on multi-param generic types.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.UserProduct.Key.Name.String()",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "props.Data.UserProduct.Value.Title.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+(() => {
+    const host = document.querySelector({{jsStr .Host}});
+    if (!host) return 0;
+    if (!host.shadowRoot) return 0;
+    const els = host.shadowRoot.querySelectorAll({{jsStr .Shadow}});
+    return els.length;
+})()

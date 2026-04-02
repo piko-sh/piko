@@ -1,0 +1,45 @@
+{
+  "description": "Validates the correct parsing and type-checking of empty and boolean attributes, both static and dynamic.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#input1",
+      "description": "A static, valueless boolean attribute should be present.",
+      "assert": {
+        "attr": {
+          "disabled": ""
+        }
+      }
+    },
+    {
+      "select": "#input2",
+      "description": "A dynamic boolean attribute should resolve to a bool type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.IsDisabled",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "#input3",
+      "description": "A static attribute with an empty string value should be present.",
+      "assert": {
+        "attr": {
+          "value": ""
+        }
+      }
+    },
+    {
+      "select": "#input4",
+      "description": "A dynamic attribute bound to an empty string should resolve to a string type.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.EmptyVal",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

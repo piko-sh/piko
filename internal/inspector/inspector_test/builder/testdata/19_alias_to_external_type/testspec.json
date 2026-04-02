@@ -1,0 +1,25 @@
+{
+  "description": "Tests a local type alias that points to an external type.",
+  "moduleName": "testcase_19_alias_to_external_type",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_19_alias_to_external_type"
+  ],
+  "assertions": [
+    {
+      "description": "The 'MyUUID' type should be marked as an alias.",
+      "select": "packages.testcase_19_alias_to_external_type.named_types.MyUUID.is_alias",
+      "expect": true
+    },
+    {
+      "description": "The alias's TypeString should be the fully qualified external type.",
+      "select": "packages.testcase_19_alias_to_external_type.named_types.MyUUID.type_string",
+      "expect": "uuid.UUID"
+    },
+    {
+      "description": "The field using the alias should resolve to the underlying external type.",
+      "select": "packages.testcase_19_alias_to_external_type.named_types.Object.fields.0.type_string",
+      "expect": "main.MyUUID"
+    }
+  ]
+}

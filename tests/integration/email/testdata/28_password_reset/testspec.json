@@ -1,0 +1,6 @@
+{
+  "title": "Password Reset",
+  "description": "Security-focused password reset with minimal layout",
+  "metadata": {"title": "Reset Your Password"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

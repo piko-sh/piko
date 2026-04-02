@@ -1,0 +1,4 @@
+{
+  "description": "Tests that a partial invocation appearing as a sibling AFTER a nested p-for loop is correctly processed. The partial has mixed props: some from parent state (state.*) and some from the outer loop variable (row.*). This was a regression where the Walk function's return false stopped the entire traversal instead of just skipping the nested loop's children, causing sibling partials to be missed.",
+  "tags": ["partial", "p-for", "nested-loop", "regression"]
+}

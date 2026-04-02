@@ -1,0 +1,41 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">p-on with Arguments Test</h1>
+    <event-handler
+      partial="pages_main_594861c5"
+      p-key="r.0:1"
+      count="0"
+      message="None"
+      event-type="None"
+      selected="None"
+    >
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.container{padding: 1rem}.controls,.output,.loop-section{margin: 1rem 0;padding: 1rem;border: 1px solid #eee}button{padding: 0.5rem 1rem;margin-right: 0.5rem;background: #673ab7;color: white;border: none;cursor: pointer}.clickable-item{padding: 0.5rem;cursor: pointer;border-bottom: 1px solid #eee}.clickable-item:hover{background: #f0f0f0}</style>
+        <div class="container">
+          <div class="controls"><button id="simple-btn">Simple Click</button><button id="args-btn">Click with Args</button><button id="event-btn">Click with $event</button></div>
+          <div class="output">
+            <p id="count">Count: 0</p>
+            <p id="message">Message: None</p>
+            <p id="event-type">Event type: None</p>
+          </div>
+          <div class="loop-section">
+            <h3>Click items in loop:</h3>
+            <ul id="item-list">
+              <li class="clickable-item">
+                Apple
+              </li>
+              <li class="clickable-item">
+                Banana
+              </li>
+              <li class="clickable-item">
+                Cherry
+              </li>
+            </ul>
+            <p id="selected">Selected: None</p>
+          </div>
+        </div>
+      </template>
+    </event-handler>
+  </div>
+</div>

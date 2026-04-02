@@ -1,0 +1,12 @@
+{
+  "description": "Validates that Go compiler errors for wrong argument count are converted to diagnostics pointing to the PK source.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "not enough arguments",
+      "onLine": 34
+    }
+  ]
+}

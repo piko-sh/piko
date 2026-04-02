@@ -1,0 +1,65 @@
+{
+  "01_empty_count": {
+    "Total": 0
+  },
+  "02_single_item": {
+    "Category": "misc",
+    "Description": null,
+    "ID": 1,
+    "Name": "Solo",
+    "Price": 999
+  },
+  "03_small_items": [
+    {
+      "Category": "fruit",
+      "Description": "A crisp fruit",
+      "ID": 1,
+      "Name": "Apple",
+      "Price": 100
+    },
+    {
+      "Category": "fruit",
+      "Description": null,
+      "ID": 2,
+      "Name": "Banana",
+      "Price": 50
+    },
+    {
+      "Category": "veg",
+      "Description": "An orange root",
+      "ID": 3,
+      "Name": "Carrot",
+      "Price": 75
+    }
+  ],
+  "04_boundary_count": {
+    "Total": 199
+  },
+  "05_over_boundary_count": {
+    "Total": 200
+  },
+  "06_over_boundary_last_item": {
+    "Category": "bulk",
+    "Description": "desc_200",
+    "ID": 200,
+    "Name": "item_200",
+    "Price": 1990
+  },
+  "07_large_count": {
+    "Total": 300
+  },
+  "08_large_first_item": {
+    "Category": "bulk",
+    "Description": "desc_1",
+    "ID": 1,
+    "Name": "item_1",
+    "Price": 0
+  },
+  "09_large_last_item": {
+    "Category": "bulk",
+    "Description": "desc_300",
+    "ID": 300,
+    "Name": "item_300",
+    "Price": 2990
+  }
+}

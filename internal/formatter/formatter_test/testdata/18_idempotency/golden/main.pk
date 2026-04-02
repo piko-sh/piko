@@ -1,0 +1,14 @@
+<template>
+  <div class="container">
+    <header>
+      <h1>Title</h1>
+    </header>
+    <main>
+      <p>Content with <strong>inline</strong> elements.</p>
+      <ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+      </ul>
+    </main>
+  </div>
+</template>

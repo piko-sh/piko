@@ -1,0 +1,219 @@
+{
+  "packages": {
+    "testcase_67_slice_of_generics": {
+      "file_imports": {
+        "67_slice_of_generics/src/main.go": {
+          "models": "testcase_67_slice_of_generics/models"
+        }
+      },
+      "named_types": {
+        "Box": {
+          "name": "Box",
+          "package_path": "testcase_67_slice_of_generics",
+          "defined_in_file_path": "67_slice_of_generics/src/main.go",
+          "type_string": "main.Box[T]",
+          "underlying_type_string": "struct{Content T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_67_slice_of_generics",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Box",
+              "name": "Content",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 24,
+          "definition_column": 6
+        },
+        "GenericResponse": {
+          "name": "GenericResponse",
+          "package_path": "testcase_67_slice_of_generics",
+          "defined_in_file_path": "67_slice_of_generics/src/main.go",
+          "type_string": "main.GenericResponse[T]",
+          "underlying_type_string": "struct{Items []T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_67_slice_of_generics",
+              "pkg_path": "",
+              "underlying_type_string": "[]T",
+              "declaring_type_name": "GenericResponse",
+              "name": "Items",
+              "type_string": "[]T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 30,
+          "definition_column": 6
+        },
+        "Response": {
+          "name": "Response",
+          "package_path": "testcase_67_slice_of_generics",
+          "defined_in_file_path": "67_slice_of_generics/src/main.go",
+          "type_string": "main.Response",
+          "underlying_type_string": "struct{Boxes []main.Box[string]; Stores []models.Store[int]}",
+          "fields": [
+            {
+              "definition_file_path": "67_slice_of_generics/src/main.go",
+              "declaring_pkg_path": "testcase_67_slice_of_generics",
+              "pkg_path": "testcase_67_slice_of_generics",
+              "underlying_type_string": "[]main.Box[string]",
+              "declaring_type_name": "Response",
+              "name": "Boxes",
+              "type_string": "[]main.Box[string]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "main.Box[string]",
+                  "role": "element",
+                  "underlying_type_string": "struct{Content string}",
+                  "pkg_path": "testcase_67_slice_of_generics",
+                  "composite_parts": [
+                    {
+                      "type": "generic_arg",
+                      "type_string": "string",
+                      "role": "generic_arg_0",
+                      "underlying_type_string": "string",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_underlying_primitive": true
+                    }
+                  ],
+                  "composite_type": 7,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 2,
+              "definition_line": 37,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            },
+            {
+              "definition_file_path": "67_slice_of_generics/src/main.go",
+              "declaring_pkg_path": "testcase_67_slice_of_generics",
+              "pkg_path": "testcase_67_slice_of_generics/models",
+              "underlying_type_string": "[]models.Store[int]",
+              "declaring_type_name": "Response",
+              "name": "Stores",
+              "type_string": "[]models.Store[int]",
+              "raw_tag": "",
+              "composite_parts": [
+                {
+                  "type": "element",
+                  "type_string": "models.Store[int]",
+                  "role": "element",
+                  "underlying_type_string": "struct{Value int}",
+                  "pkg_path": "testcase_67_slice_of_generics/models",
+                  "composite_parts": [
+                    {
+                      "type": "generic_arg",
+                      "type_string": "int",
+                      "role": "generic_arg_0",
+                      "underlying_type_string": "int",
+                      "pkg_path": "",
+                      "index": 0,
+                      "is_internal_type": true,
+                      "is_underlying_internal_type": true,
+                      "is_underlying_primitive": true
+                    }
+                  ],
+                  "composite_type": 7,
+                  "index": 0,
+                  "is_internal_type": false,
+                  "is_underlying_internal_type": false
+                }
+              ],
+              "composite_type": 2,
+              "definition_line": 40,
+              "definition_column": 2,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 35,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_67_slice_of_generics",
+      "name": "main"
+    },
+    "testcase_67_slice_of_generics/models": {
+      "file_imports": {
+        "67_slice_of_generics/src/models/store.go": {}
+      },
+      "named_types": {
+        "Store": {
+          "name": "Store",
+          "package_path": "testcase_67_slice_of_generics/models",
+          "defined_in_file_path": "67_slice_of_generics/src/models/store.go",
+          "type_string": "models.Store[T]",
+          "underlying_type_string": "struct{Value T}",
+          "fields": [
+            {
+              "declaring_pkg_path": "testcase_67_slice_of_generics/models",
+              "pkg_path": "",
+              "underlying_type_string": "T",
+              "declaring_type_name": "Store",
+              "name": "Value",
+              "type_string": "T",
+              "raw_tag": "",
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_generic_placeholder": true,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [],
+          "type_params": [
+            "T"
+          ],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_67_slice_of_generics/models",
+      "name": "models"
+    }
+  },
+  "file_to_package": {
+    "67_slice_of_generics/src/main.go": "testcase_67_slice_of_generics",
+    "67_slice_of_generics/src/models/store.go": "testcase_67_slice_of_generics/models"
+  }
+}

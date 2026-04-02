@@ -1,0 +1,29 @@
+{
+    "description": "Input with pk-no-refresh preserves value during morph while sibling content updates",
+    "options": {
+        "childrenOnly": true
+    },
+    "assertions": [
+        {
+            "selector": "input[name='search']",
+            "attributes": { "pk-no-refresh": "" },
+            "description": "Input still has pk-no-refresh attribute"
+        },
+        {
+            "selector": "input[name='search']",
+            "attributes": { "value": "user-typed" },
+            "description": "Input value attribute preserved by pk-no-refresh"
+        },
+        {
+            "selector": ".results",
+            "textContent": "Updated results content",
+            "description": "Results div content updated"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "input[name='search']",
+            "description": "Input element preserved during morph"
+        }
+    ]
+}

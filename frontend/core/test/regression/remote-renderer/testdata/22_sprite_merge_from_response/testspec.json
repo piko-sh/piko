@@ -1,0 +1,33 @@
+{
+    "description": "Response with SVG sprite sheet should merge symbols into document sprite",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/icons",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#content"
+    },
+    "assertions": [
+        {
+            "selector": "#content .icon-container",
+            "exists": true,
+            "description": "Icon container should exist after render"
+        },
+        {
+            "selector": "#content .icon-container svg use",
+            "exists": true,
+            "description": "SVG use element referencing sprite should exist"
+        }
+    ],
+    "sideEffects": {
+        "spritesMerged": [
+            { "symbolId": "icon-star" }
+        ]
+    }
+}

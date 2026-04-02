@@ -1,0 +1,64 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-brand" p-text="props.BrandName"></div>
+    <nav class="sidebar-nav">
+      <nav_section is="nav_section"
+        :title="state.SectionTitle"
+        :item_label="props.NavLabel"
+        :item_href="props.NavHref"
+        :item_icon="state.NavIcon">
+      </nav_section>
+    </nav>
+    <div class="sidebar-footer">
+      <span p-text="props.FooterText"></span>
+    </div>
+  </aside>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import (
+    "piko.sh/piko"
+    nav_section "testcase_large_complex_dashboard/partials/nav_section.pk"
+  )
+
+  type Props struct {
+    BrandName  string `prop:"brand_name"`
+    NavLabel   string `prop:"nav_label"`
+    NavHref    string `prop:"nav_href"`
+    FooterText string `prop:"footer_text"`
+  }
+
+  type Response struct {
+    SectionTitle string
+    NavIcon      string
+  }
+
+  func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    return Response{
+      SectionTitle: "Navigation",
+      NavIcon:      "dashboard",
+    }, piko.Metadata{}, nil
+  }
+</script>

@@ -1,0 +1,11 @@
+{
+  "description": "Tests that a coercion failure on a non-numeric string cascades directly to a type-mismatch error.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Type mismatch for prop 'item-count'. Component <card> expects type 'int', but received type 'string'"
+    }
+  ],
+  "expectedUniqueInvocations": 1
+}

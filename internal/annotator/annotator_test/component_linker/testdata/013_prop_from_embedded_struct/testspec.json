@@ -1,0 +1,26 @@
+{
+  "description": "Validates props defined on an embedded struct are correctly discovered and enforced.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Missing required prop 'per-page' for component <list>"
+    }
+  ],
+  "expectedUniqueInvocations": 2,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "list",
+      "selectByPropValue": {
+        "per-page": "25"
+      },
+      "assert": {
+        "passedPropsCount": 2,
+        "hasProp": "page",
+        "propValueIs": {
+          "page": "1"
+        }
+      }
+    }
+  ]
+}

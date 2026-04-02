@@ -1,0 +1,85 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="item-list">
+    <div class="list-container">
+        <div class="controls">
+            <button id="add-btn" p-on:click="addItem">Add Item</button>
+            <button id="remove-btn" p-on:click="removeFirst">Remove First</button>
+        </div>
+        <p id="count">Item count: {{ state.items.length }}</p>
+        <ul id="item-list">
+            <li p-for="(index, item) in state.items" p-key="item.id" class="list-item">
+                <span class="index">{{ index }}</span>:
+                <span class="text">{{ item.text }}</span>
+            </li>
+        </ul>
+    </div>
+</template>
+
+<style>
+    .list-container {
+        padding: 1rem;
+    }
+    .controls {
+        margin-bottom: 1rem;
+    }
+    button {
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        background: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    #remove-btn {
+        background: #f44336;
+    }
+    .list-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    .index {
+        color: #888;
+        font-weight: bold;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        items: [
+            { id: 1, text: "First Item" },
+            { id: 2, text: "Second Item" },
+            { id: 3, text: "Third Item" }
+        ],
+        nextId: 4 as number
+    };
+
+    function addItem() {
+        state.items.push({ id: state.nextId, text: `Item ${state.nextId}` });
+        state.nextId++;
+    }
+
+    function removeFirst() {
+        if (state.items.length > 0) {
+            state.items.shift();
+        }
+    }
+</script>

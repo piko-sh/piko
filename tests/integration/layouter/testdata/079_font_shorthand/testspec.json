@@ -1,0 +1,7 @@
+{
+    "description": "Verifies CSS font shorthand parsing with style, weight, size, line-height, and family.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

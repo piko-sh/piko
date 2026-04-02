@@ -1,0 +1,19 @@
+--- PACKAGE: testcase_24_type_def_on_slice ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 24_type_def_on_slice/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type IntSlice
+    - Defined In:      24_type_def_on_slice/src/main.go
+    - TypeString:      main.IntSlice
+    - Underlying:      []int
+    - Stringability:   0
+    - Methods:
+      - func (T) Sum             func() int
+
+[Package-Level Functions]
+  (none)

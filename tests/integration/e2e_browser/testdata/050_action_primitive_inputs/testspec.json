@@ -1,0 +1,39 @@
+{
+  "description": "Verifies actions accepting multiple primitive type parameters",
+  "requestURL": "/calc-test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Call action with primitive parameters via the action builder"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_calc.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-value",
+      "expected": "35"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-label",
+      "expected": "sum"
+    }
+  ]
+}

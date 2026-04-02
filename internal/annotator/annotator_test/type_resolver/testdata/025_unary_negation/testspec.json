@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that a unary negation on a number resolves to the same numeric type.",
+  "expression": "-state.Value",
+  "expectedType": "int",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

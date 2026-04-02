@@ -1,0 +1,8 @@
+{
+  "description": "Tests that an incorrect title assertion correctly fails the test",
+  "entryPoints": [
+    { "path": "pages/home.pk", "isPage": true }
+  ],
+  "shouldFail": true,
+  "expectedFailureContains": "Page title mismatch"
+}

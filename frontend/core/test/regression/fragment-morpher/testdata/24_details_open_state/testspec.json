@@ -1,0 +1,34 @@
+{
+    "description": "Details element open/closed state syncs during morph - open attribute removed and content updated",
+    "options": {
+        "childrenOnly": true
+    },
+    "assertions": [
+        {
+            "selector": "details",
+            "exists": true,
+            "description": "Details element should exist after morph"
+        },
+        {
+            "selector": "details",
+            "attributes": { "open": null },
+            "description": "Details element should not have the open attribute after morph"
+        },
+        {
+            "selector": "summary",
+            "textContent": "Title",
+            "description": "Summary text should remain correct"
+        },
+        {
+            "selector": "details p",
+            "textContent": "Updated content",
+            "description": "Details paragraph content should be updated from target"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "details",
+            "description": "Details element should be preserved (same reference)"
+        }
+    ]
+}

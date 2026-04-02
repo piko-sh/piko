@@ -1,0 +1,14 @@
+{
+  "after_remove": {
+    "Data": "{\"name\":\"Bob\",\"category\":\"sales\",\"amount\":99.99,\"user\":{}}",
+    "ID": 2
+  },
+  "after_set": {
+    "Data": "{\"name\":\"Alice\",\"category\":\"auth\",\"user\":{\"email\":\"alice@test.com\"},\"processed\":\"true\"}",
+    "ID": 1
+  },
+  "json_type": {
+    "ID": 2,
+    "ValueType": "real"
+  }
+}

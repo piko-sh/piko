@@ -1,0 +1,7 @@
+<template>
+    <pml-row background-color="#1a1a2e" background-url="https://example.com/pattern.png" background-size="cover" background-position="center center" padding="40px 0">
+        <pml-col>
+            <pml-p color="#ffffff" font-size="20px" align="center" padding="20px 25px">Content over background</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

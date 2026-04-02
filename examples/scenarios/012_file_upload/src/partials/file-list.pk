@@ -1,0 +1,135 @@
+<!-- Uploaded Files Partial
+
+  Renders the list of uploaded files from the in-memory registry. Marked as
+  public so both pages can reload it independently after an upload completes
+  with piko.partials.reload("file-list"). -->
+
+<template public>
+  <div class="file-list-section">
+    <h2>Uploaded Files</h2>
+    <table class="file-table" p-if="len(state.Files) > 0">
+      <thead>
+        <tr>
+          <th>File Name</th>
+          <th>Size</th>
+          <th>Type</th>
+          <th>Method</th>
+          <th>S3 Key</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr p-for="(i, f) in state.Files" p-key="f.Key">
+          <td>{{ f.FileName }}</td>
+          <td>{{ f.Size }}</td>
+          <td>{{ f.ContentType }}</td>
+          <td p-class="'method-' + f.Method">{{ f.Method }}</td>
+          <td class="key">{{ f.Key }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p p-if="len(state.Files) == 0" class="empty">No files uploaded yet.</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "fmt"
+
+    "piko.sh/piko"
+
+    "testmodule/actions/files"
+)
+
+// FileView holds the display data for a single uploaded file.
+type FileView struct {
+    Key         string
+    FileName    string
+    Size        string
+    ContentType string
+    Method      string
+}
+
+// Response is the data available as state.* in the template.
+type Response struct {
+    Files []FileView
+}
+
+func formatBytes(bytes int64) string {
+    if bytes == 0 {
+        return "0 B"
+    }
+    const k = 1024
+    sizes := []string{"B", "KB", "MB", "GB"}
+    i := 0
+    fb := float64(bytes)
+    for fb >= k && i < len(sizes)-1 {
+        fb /= k
+        i++
+    }
+    if fb == float64(int64(fb)) {
+        return fmt.Sprintf("%d %s", int64(fb), sizes[i])
+    }
+    return fmt.Sprintf("%.1f %s", fb, sizes[i])
+}
+
+// Render fetches all uploaded files from the in-memory registry.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    records := files.AllFiles()
+    views := make([]FileView, len(records))
+    for i, rec := range records {
+        views[i] = FileView{
+            Key:         rec.Key,
+            FileName:    rec.FileName,
+            Size:        formatBytes(rec.Size),
+            ContentType: rec.ContentType,
+            Method:      rec.Method,
+        }
+    }
+    return Response{Files: views}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .file-list-section {
+    h2 {
+      color: #1f2937;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .empty { color: #9ca3af; font-style: italic; }
+  }
+
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+
+    th {
+      text-align: left;
+      padding: 0.5rem;
+      border-bottom: 2px solid #e5e7eb;
+      color: #374151;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 0.5rem;
+      border-bottom: 1px solid #f3f4f6;
+      color: #4b5563;
+    }
+
+    .key {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #6b7280;
+      word-break: break-all;
+    }
+  }
+
+  .method-direct { color: #2563eb; font-weight: 600; }
+  .method-presigned { color: #7c3aed; font-weight: 600; }
+</style>

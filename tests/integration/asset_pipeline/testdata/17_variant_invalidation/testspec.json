@@ -1,0 +1,60 @@
+{
+  "description": "Source update: verify artefact source can be replaced and retrieved correctly",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/hero.jpg"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "thumbnail-before",
+      "capabilityName": "image-transform",
+      "description": "Create thumbnail from original source (jersey)",
+      "params": {
+        "width": "200",
+        "height": "157",
+        "format": "jpeg",
+        "quality": "80",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 200,
+        "exactHeight": 157
+      },
+      "goldenFile": "thumbnail-before.jpg"
+    },
+    {
+      "profileName": "webp-preview-before",
+      "capabilityName": "image-transform",
+      "description": "Create WebP preview from original source (jersey)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "webp",
+        "quality": "85",
+        "fit": "fill"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/webp",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "webp-preview-before.webp"
+    }
+  ],
+  "invalidationChecks": [
+    {
+      "description": "Replace source image and verify source variant is updated",
+      "artefactID": "testmodule/lib/images/hero.jpg",
+      "modifySourcePath": "src/lib/images/jupiter.jpg",
+      "expectReadyVariants": ["source"]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when trying to index a non-indexable type (like a struct).",
+  "expression": "state.User[0]",
+  "expectedType": "any",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Type 'main_aaf9a2e0.User' is not indexable"
+    }
+  ]
+}]

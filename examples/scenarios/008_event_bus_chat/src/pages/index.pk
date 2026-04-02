@@ -1,0 +1,65 @@
+<!-- Composes a PKC component (pp-chat-input) and a partial (message_log)
+     that communicate via piko.bus: the component emits events, the partial listens.
+     See https://piko.sh/docs/guide/client-components -->
+<template>
+  <div id="app">
+    <h1 p-text="state.Title"></h1>
+    <p class="description">
+      A chat interface demonstrating cross-component communication via the
+      Piko event bus. Type a message below and press Send - the message log
+      above updates in real time without any server round-trips.
+    </p>
+
+    <piko:partial is="message_log"></piko:partial>
+
+    <div class="input-area">
+      <pp-chat-input></pp-chat-input>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    message_log "testmodule/partials/message-log.pk"
+)
+
+type Response struct {
+    Title string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Title: "Event Bus Chat",
+    }, piko.Metadata{
+        Title:       "Event Bus Chat - Piko Example",
+        Description: "Cross-component communication via the Piko event bus.",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  .description {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+
+  .input-area {
+    margin-top: 1rem;
+  }
+</style>

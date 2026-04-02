@@ -1,0 +1,115 @@
+<template>
+    <pml-row background-color="#1a1a2e" padding="30px 0">
+        <pml-col>
+            <pml-p font-size="28px" color="#ffffff" align="center" padding="10px 25px"><b>Streamline</b></pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#ff6b35" padding="0">
+        <pml-col>
+            <pml-p font-size="3px" line-height="3px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="24px" color="#2c3e50" align="center" padding="10px 25px">Your Subscription Renews Soon</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-p font-size="15px" color="#555555" line-height="1.6" padding="10px 25px">
+                Your Pro plan subscription will automatically renew on 8 April 2026.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-no-stack>
+            <pml-col width="4%" background-color="#ff6b35">
+                <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+            </pml-col>
+            <pml-col width="96%" background-color="#ffffff">
+                <pml-p font-size="16px" color="#2c3e50" padding="15px 20px 5px 20px"><b>Pro Plan</b></pml-p>
+                <pml-p font-size="14px" color="#666666" padding="3px 20px">Billing period: Annual (1 year)</pml-p>
+                <pml-p font-size="14px" color="#666666" padding="3px 20px">Next billing date: 8 April 2026</pml-p>
+                <pml-p font-size="14px" color="#666666" padding="3px 20px 15px 20px">Payment method: Visa ending in 4242</pml-p>
+            </pml-col>
+        </pml-no-stack>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col>
+            <pml-p font-size="18px" color="#2c3e50" padding="10px 25px">Billing Breakdown</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#555555" padding="5px 25px">Pro Plan (Annual)</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#555555" align="right" padding="5px 25px">&pound;199.00</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#555555" padding="5px 25px">VAT (20%)</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#555555" align="right" padding="5px 25px">&pound;39.80</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#cccccc" border-width="2px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col width="50%">
+            <pml-p font-size="18px" color="#2c3e50" padding="5px 25px"><b>Total</b></pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="18px" color="#2c3e50" align="right" padding="5px 25px"><b>&pound;238.80</b></pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col width="50%">
+            <pml-button href="https://streamline.example.com/subscription" background-color="#ff6b35" color="#ffffff" font-size="14px" border-radius="4px" padding="10px 15px" inner-padding="12px 24px">Manage Subscription</pml-button>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-button href="https://streamline.example.com/payment" background-color="#ffffff" color="#333333" font-size="14px" border-radius="4px" border="2px solid #333333" padding="10px 15px" inner-padding="12px 24px">Update Payment</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="1px" line-height="1px" padding="0">&nbsp;</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p font-size="13px" color="#888888" line-height="1.5" padding="5px 25px">
+                If you wish to cancel, you can do so before the renewal date from your account settings.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#1a1a2e" padding="20px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#aaaaaa" align="center" padding="5px 25px">
+                Streamline Project Management Ltd.
+            </pml-p>
+            <pml-p font-size="11px" color="#888888" align="center" padding="0 25px">
+                You are receiving this email because you have an active subscription.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>
+
+<style>
+.billing-total { font-weight: bold; }
+</style>

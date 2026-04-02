@@ -1,0 +1,5 @@
+{
+    "description": "Tests that referencing a non-existent action in a template produces a warning (no actions directory exists)",
+    "packageName": "action_unknown_reference_error_test",
+    "isPage": true
+}

@@ -1,0 +1,70 @@
+{
+  "description": "Tests onConnected, onDisconnected, onUpdated lifecycle methods",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Lifecycle Hooks Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "lifecycle-component"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "lifecycle-component >>> #connect-count",
+      "expected": "Connected count: 1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_connect.html"
+    },
+    {
+      "action": "click",
+      "selector": "lifecycle-component >>> #trigger-update"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "lifecycle-component >>> #update-count",
+      "expected": "Update count: 1"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_first_update.html"
+    },
+    {
+      "action": "click",
+      "selector": "lifecycle-component >>> #trigger-update"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "lifecycle-component >>> #update-count",
+      "expected": "Update count: 2"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_second_update.html"
+    }
+  ]
+}

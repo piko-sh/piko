@@ -1,0 +1,12 @@
+<template>
+    <pml-row>
+        <pml-no-stack>
+            <pml-col width="50%">
+                <pml-p>Left column</pml-p>
+            </pml-col>
+            <pml-col width="50%">
+                <pml-p>Right column</pml-p>
+            </pml-col>
+        </pml-no-stack>
+    </pml-row>
+</template>

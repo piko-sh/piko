@@ -1,0 +1,5 @@
+{
+    "description": "Repeating linear gradients with stripe patterns, verifying gradient stop expansion in PDF shading.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

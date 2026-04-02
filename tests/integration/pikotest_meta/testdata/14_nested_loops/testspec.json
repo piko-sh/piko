@@ -1,0 +1,6 @@
+{
+  "description": "Tests nested p-for loops with inner and outer iteration",
+  "entryPoints": [
+    { "path": "pages/categories.pk", "isPage": true }
+  ]
+}

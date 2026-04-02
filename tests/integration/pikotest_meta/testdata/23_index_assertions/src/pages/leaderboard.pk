@@ -1,0 +1,80 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package leaderboard
+
+import "piko.sh/piko"
+
+type Player struct {
+	Rank   int
+	Name   string
+	Score  int
+	Badge  string
+}
+
+type Response struct {
+	Players []Player
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	players := []Player{
+		{Rank: 1, Name: "Alice", Score: 1500, Badge: "gold"},
+		{Rank: 2, Name: "Bob", Score: 1350, Badge: "silver"},
+		{Rank: 3, Name: "Charlie", Score: 1200, Badge: "bronze"},
+		{Rank: 4, Name: "Diana", Score: 1100, Badge: ""},
+		{Rank: 5, Name: "Eve", Score: 1000, Badge: ""},
+	}
+
+	return Response{
+		Players: players,
+	}, piko.Metadata{
+		Title: "Leaderboard",
+	}, nil
+}
+</script>
+<template>
+	<div class="leaderboard">
+		<h1>Game Leaderboard</h1>
+		<table class="rankings">
+			<thead>
+				<tr class="header-row">
+					<th class="col-rank">Rank</th>
+					<th class="col-name">Player</th>
+					<th class="col-score">Score</th>
+					<th class="col-badge">Badge</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr p-for="player in state.Players" class="player-row" data-rank="{{ player.Rank }}">
+					<td class="rank">{{ player.Rank }}</td>
+					<td class="name">{{ player.Name }}</td>
+					<td class="score">{{ player.Score }}</td>
+					<td class="badge">
+						<span p-if="player.Badge == 'gold'" class="medal gold">🥇</span>
+						<span p-else-if="player.Badge == 'silver'" class="medal silver">🥈</span>
+						<span p-else-if="player.Badge == 'bronze'" class="medal bronze">🥉</span>
+						<span p-else class="no-medal">-</span>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</template>

@@ -1,0 +1,46 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <div id="test-1" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Static Invocations"
+    </h2>
+    <div class="card" :title="state.FirstCardTitle" {P: state.FirstCardTitle, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_title_state_firstcardtitle_c70ea489 Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+      <p [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+        <RichText>
+          {{ state.Title }}
+        </RichText>
+      </p>
+      <h3 [p-text: state.Title] [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk] />
+    </div>
+    <div class="card" :title="state.SecondCardTitle" {P: state.SecondCardTitle, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_title_state_secondcardtitle_13d929b8 Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+      <p [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+        <RichText>
+          {{ state.Title }}
+        </RichText>
+      </p>
+      <h3 [p-text: state.Title] [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk] />
+    </div>
+  </div>
+  <div id="test-2" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <h2 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Looped Invocations"
+    </h2>
+    <ul [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <li [p-for: (__pikoLoopIdx, user) in state.Users] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+        <div class="card" :title="user.Name" {P: user.Name, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk PARTIAL InvKey: card_title_user_name_1544ecfa Package: partials_card_bfc4a3cf InvPackage: main_aaf9a2e0]>
+          <p [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk]>
+            <RichText>
+              {{ state.Title }}
+            </RichText>
+          </p>
+          <h3 [p-text: state.Title] [ANNOTATIONS: OriginPackage: partials_card_bfc4a3cf OriginPath: partials/card.pk] />
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

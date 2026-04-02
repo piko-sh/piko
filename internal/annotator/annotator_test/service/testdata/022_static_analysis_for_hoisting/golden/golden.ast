@@ -1,0 +1,30 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div class="page-container" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <header id="static-header" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "Welcome"
+    </h1>
+    <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "This is a static introductory paragraph."
+    </p>
+  </header>
+  <main id="dynamic-parent" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <p id="dynamic-content" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      <RichText>
+        "\n                Message of the day: "
+        {{ state.Message }}
+        "\n            "
+      </RichText>
+    </p>
+  </main>
+  <footer id="static-footer" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <p [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+      "© 2025 Piko Inc."
+    </p>
+  </footer>
+</div>
+
+--- END AST DUMP ---
+*/

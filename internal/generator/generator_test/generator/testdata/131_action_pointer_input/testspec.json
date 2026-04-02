@@ -1,0 +1,5 @@
+{
+    "description": "Tests that an action with a pointer input type is handled correctly",
+    "packageName": "action_pointer_input_test",
+    "isPage": true
+}

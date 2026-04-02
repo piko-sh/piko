@@ -1,0 +1,7 @@
+{
+  "description": "Ambiguous column reference across multiple tables. Tests that an unqualified column name present in two tables produces a Q002 diagnostic.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    { "severity": "warning", "code": "Q002", "messageContains": "ambiguous column reference" }
+  ]
+}

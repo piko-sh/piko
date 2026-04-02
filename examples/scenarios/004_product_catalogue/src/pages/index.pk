@@ -1,0 +1,128 @@
+<!-- Loops, conditionals, and partials. p-for iterates the Products slice,
+     and each item is rendered by the product_card partial via <piko:partial>.
+     The :server. prefix passes props server-side only (not as HTML attributes).
+     See https://piko.sh/docs/guide/template-syntax and https://piko.sh/docs/guide/partials -->
+<template>
+  <div id="app">
+    <h1>Product Catalogue</h1>
+    <p id="product-count">Showing {{ len(state.Products) }} products</p>
+
+    <div class="product-grid">
+      <div p-for="(i, product) in state.Products" p-key="product.Name" class="product-item">
+        <piko:partial is="product_card"
+          :server.name="product.Name"
+          :server.description="product.Description"
+          :server.price="product.Price"
+          :server.category="product.Category"
+          :server.in-stock="product.InStock"
+          :server.image-url="product.ImageURL"
+        ></piko:partial>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    product_card "testmodule/partials/product-card.pk"
+)
+
+type Product struct {
+    Name        string
+    Description string
+    Price       string
+    Category    string
+    InStock     bool
+    ImageURL    string
+}
+
+type Response struct {
+    Products []Product
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Products: []Product{
+            {
+                Name:        "Wireless Headphones",
+                Description: "Premium noise-cancelling headphones with 30-hour battery life.",
+                Price:       "$129.99",
+                Category:    "Electronics",
+                InStock:     true,
+                ImageURL:    "https://placehold.co/300x200?text=Headphones",
+            },
+            {
+                Name:        "Go Programming Language",
+                Description: "The definitive guide to Go by Alan Donovan and Brian Kernighan.",
+                Price:       "$34.99",
+                Category:    "Books",
+                InStock:     true,
+                ImageURL:    "https://placehold.co/300x200?text=Go+Book",
+            },
+            {
+                Name:        "Cotton T-Shirt",
+                Description: "Comfortable 100% organic cotton t-shirt in navy blue.",
+                Price:       "$24.99",
+                Category:    "Clothing",
+                InStock:     false,
+                ImageURL:    "https://placehold.co/300x200?text=T-Shirt",
+            },
+            {
+                Name:        "Mechanical Keyboard",
+                Description: "Compact 75% layout with hot-swappable switches and RGB.",
+                Price:       "$89.99",
+                Category:    "Electronics",
+                InStock:     true,
+                ImageURL:    "https://placehold.co/300x200?text=Keyboard",
+            },
+            {
+                Name:        "Wool Jumper",
+                Description: "Merino wool jumper, perfect for autumn and winter layering.",
+                Price:       "$59.99",
+                Category:    "Clothing",
+                InStock:     true,
+                ImageURL:    "https://placehold.co/300x200?text=Jumper",
+            },
+            {
+                Name:        "Design Patterns",
+                Description: "Elements of Reusable Object-Oriented Software by the Gang of Four.",
+                Price:       "$44.99",
+                Category:    "Books",
+                InStock:     false,
+                ImageURL:    "https://placehold.co/300x200?text=Design+Patterns",
+            },
+        },
+    }, piko.Metadata{
+        Title:       "Product Catalogue - Piko Example",
+        Description: "A product catalogue demonstrating p-for, p-if, partials, and dynamic attributes.",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1 {
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+
+  #product-count {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+</style>

@@ -1,0 +1,650 @@
+{
+  "description": "Verifies maths (Decimal, BigInt, Money) and temporal types render correctly in PK pages, partials with props, and PKC components. Also documents known rendering bugs with raw maths types via ValueToString.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Maths and Temporal Types Test"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 1: Raw Decimal rendering (MustString path) ---"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#dec-raw"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 2: Pre-computed Decimal string (MustString control group - this path works) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#dec-str",
+      "expected": "19.99"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 3: Float precision proof (0.1 + 0.2 = 0.3 via Decimal, not 0.30000000000000004) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#float-str",
+      "expected": "0.3"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 4: Decimal arithmetic (pre-computed strings) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#dec-sum-str",
+      "expected": "30.8"
+    },
+    {
+      "action": "checkText",
+      "selector": "#dec-diff-str",
+      "expected": "66.67"
+    },
+    {
+      "action": "checkText",
+      "selector": "#dec-prod-str",
+      "expected": "22.5"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#dec-div-str",
+      "expected": "33.3"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 5: BigInt rendering ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#big-str",
+      "expected": "42"
+    },
+    {
+      "action": "checkText",
+      "selector": "#big-overflow",
+      "expected": "9223372036854775808"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 6: BigInt arithmetic ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#big-sum-str",
+      "expected": "1000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#big-prod-str",
+      "expected": "56088"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 7: Money rendering ---"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#money-str",
+      "expected": "1500"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#money-str",
+      "expected": "USD"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#money-gb",
+      "expected": "1,500"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#money-us",
+      "expected": "1,500"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 8: Temporal types (pre-formatted strings) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#temporal-date",
+      "expected": "2026-01-15"
+    },
+    {
+      "action": "checkText",
+      "selector": "#temporal-datetime",
+      "expected": "2026-01-15T10:30:00Z"
+    },
+    {
+      "action": "checkText",
+      "selector": "#temporal-time",
+      "expected": "14:30:45"
+    },
+    {
+      "action": "checkText",
+      "selector": "#temporal-duration",
+      "expected": "1h30m0s"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 9: Comparison results ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#cmp-dec-gt",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#cmp-dec-eq",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#cmp-big-lt",
+      "expected": "true"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 10: Ternary with maths types ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#ternary-result",
+      "expected": "19.99"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 11: Template literal interpolation ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#tpl-price",
+      "expected": "Price: 19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#tpl-bigint",
+      "expected": "Items: 42"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 12: Attribute bindings ---"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#attr-dec",
+      "name": "data-value",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#attr-big",
+      "name": "data-value",
+      "expected": "42"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 13: Inline literal expressions (EvaluateBinary) ---"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#inline-dec-add"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-dec-add",
+      "expected": "0.3"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-dec-sub",
+      "expected": "66.67"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-dec-mul",
+      "expected": "22.5"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-dec-div",
+      "expected": "2.5"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-big-add",
+      "expected": "1000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-big-mul",
+      "expected": "56088"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-dec-gt",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-dec-lt",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-dec-eq-cmp",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-ternary-dec",
+      "expected": "comparable"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-ternary-price",
+      "expected": "expensive"
+    },
+    {
+      "action": "checkText",
+      "selector": "#inline-tpl-sum",
+      "expected": "Sum: 30.8"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 14: Partial with props ---"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#partial-display"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-price",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-quantity",
+      "expected": "42"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#partial-total",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#partial-total",
+      "expected": "GBP"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-date",
+      "expected": "2026-01-15"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 14b: Partial raw maths types (MustString path) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-dec-raw",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-big-raw",
+      "expected": "42"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 14c: Partial inline literal expressions ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-inline-add",
+      "expected": "0.3"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-inline-mul",
+      "expected": "22.5"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-inline-cmp",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-inline-bigadd",
+      "expected": "1000"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 14d: Partial mixed state + literal expressions ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-mixed-gt",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-mixed-tpl",
+      "expected": "Price: 19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-mixed-ternary",
+      "expected": "expensive"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 14e: Direct maths-typed props (passed through from parent) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-direct-dec",
+      "expected": "0.3"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-direct-big",
+      "expected": "1000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-direct-dec-ptext",
+      "expected": "0.3"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-direct-dec-gt",
+      "expected": "true"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-direct-dec-tpl",
+      "expected": "Direct: 0.3"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-direct-dec-ternary",
+      "expected": "above"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 15: PKC component (Go->JS boundary) ---"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "maths-viewer"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkText",
+      "selector": "maths-viewer >>> #pkc-decimal",
+      "expected": "Decimal: 19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "maths-viewer >>> #pkc-bigint",
+      "expected": "BigInt: 9223372036854775808"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "maths-viewer >>> #pkc-precision",
+      "expected": "0.30000000000000004"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 16: F() format builder ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#f-dec",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#f-big",
+      "expected": "42"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#f-money",
+      "expected": "1500"
+    },
+    {
+      "action": "checkText",
+      "selector": "#f-string",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#f-int",
+      "expected": "42"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#f-float",
+      "expected": "3.14159"
+    },
+    {
+      "action": "checkText",
+      "selector": "#f-float-prec",
+      "expected": "3.14"
+    },
+    {
+      "action": "checkText",
+      "selector": "#f-dec-prec0",
+      "expected": "20"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 17: F() contexts ---"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#f-attr",
+      "attribute": "data-price",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#f-tpl",
+      "expected": "Price: 19.99"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 18: Locale detection (en) ---"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#locale-current"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#locale-current",
+      "expected": "en"
+    },
+    {
+      "action": "checkText",
+      "selector": "#locale-label",
+      "expected": "Currency"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 19: LF() locale-aware formatting (en) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-dec",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-big",
+      "expected": "42"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-large",
+      "expected": "1,234,567.89"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-dec-prec",
+      "expected": "3.14"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-tpl",
+      "expected": "Formatted: 1,234,567.89"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 14f: LF() in partial (en) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-lf-dec",
+      "expected": "19.99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#partial-lf-direct",
+      "expected": "0.3"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Golden file capture (en) ---"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Navigate to French locale ---"
+    },
+    {
+      "action": "navigate",
+      "value": "/fr/main"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 18: Locale detection (fr) ---"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#locale-current",
+      "expected": "fr"
+    },
+    {
+      "action": "checkText",
+      "selector": "#locale-label",
+      "expected": "Devise"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Section 19: LF() locale-aware formatting (fr) ---"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-dec",
+      "expected": "19,99"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-big",
+      "expected": "42"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#lf-large",
+      "expected": "1"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#lf-large",
+      "expected": "234"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#lf-large",
+      "expected": "567"
+    },
+    {
+      "action": "checkText",
+      "selector": "#lf-dec-prec",
+      "expected": "3,14"
+    },
+
+    {
+      "action": "comment",
+      "value": "--- Golden file capture (fr) ---"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial_fr.html"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+<template>
+    <pml-row background-color="#27ae60" padding="20px 0">
+        <pml-col>
+            <pml-p color="#ffffff" font-size="20px" align="center" padding="10px 25px">Order Confirmed</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="16px" color="#333333" padding="10px 25px">Hi there,</pml-p>
+            <pml-p font-size="14px" color="#666666" line-height="1.5" padding="5px 25px">
+                Your order #12345 has been confirmed and is being processed.
+                You will receive a shipping notification once your items are on their way.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr border-color="#eeeeee" border-width="1px" padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="15px 0">
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#333333" padding="5px 25px">Order Total:</pml-p>
+        </pml-col>
+        <pml-col width="50%">
+            <pml-p font-size="14px" color="#333333" align="right" padding="5px 25px">£129.99</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-button href="https://example.com/orders/12345" background-color="#3498db" color="#ffffff" padding="10px 25px" inner-padding="10px 25px">View Order</pml-button>
+        </pml-col>
+    </pml-row>
+    <pml-row background-color="#f8f9fa" padding="15px 0">
+        <pml-col>
+            <pml-p font-size="11px" color="#999999" align="center" padding="5px 25px">
+                If you have questions, reply to this email or contact support.
+            </pml-p>
+        </pml-col>
+    </pml-row>
+</template>

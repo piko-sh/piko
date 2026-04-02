@@ -1,0 +1,28 @@
+{
+  "specs": [
+    {
+      "description": "The header slot should contain the h1 from main.pk",
+      "select": "header h1",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Main Page Header"
+      }
+    },
+    {
+      "description": "The default slot should contain the p from main.pk",
+      "select": "main p",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "This is default slot content."
+      }
+    },
+    {
+      "description": "The footer slot should contain the p from main.pk",
+      "select": "footer p",
+      "assert": {
+        "originalPackageAlias": "main.pk",
+        "textContentContains": "Copyright 2025"
+      }
+    }
+  ]
+}

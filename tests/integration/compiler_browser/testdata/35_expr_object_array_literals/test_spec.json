@@ -1,0 +1,34 @@
+[
+  {
+    "action": "checkAttribute",
+    "selector": "literals-in-expr \u003e\u003e\u003e div \u003e div:nth-of-type(1)",
+    "expected": "is-active is-dark",
+    "name": "class"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "literals-in-expr \u003e\u003e\u003e div \u003e div:nth-of-type(2)",
+    "expected": "base dark font-bold",
+    "name": "class"
+  },
+  {
+    "action": "click",
+    "selector": "literals-in-expr \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "literals-in-expr \u003e\u003e\u003e div \u003e div:nth-of-type(1)",
+    "expected": "is-active",
+    "name": "class"
+  },
+  {
+    "action": "checkAttribute",
+    "selector": "literals-in-expr \u003e\u003e\u003e div \u003e div:nth-of-type(2)",
+    "expected": "base light font-bold",
+    "name": "class"
+  },
+  {
+    "action": "click",
+    "selector": "literals-in-expr \u003e\u003e\u003e p"
+  }
+]

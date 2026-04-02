@@ -1,0 +1,7 @@
+<template>
+  <div style="display: flex; justify-content: space-between; align-items: center; width: 400px; height: 200px;">
+    <div style="width: 50px; height: 30px;">Small</div>
+    <div style="width: 50px; height: 150px;">Tall</div>
+    <div style="width: 50px; height: 80px; align-self: flex-end;">Medium</div>
+  </div>
+</template>

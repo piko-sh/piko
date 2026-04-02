@@ -1,0 +1,7 @@
+[{
+  "description": "GetCollection with type parameter extracts type and collection name correctly",
+  "expression": "r.GetCollection[Post](\"blog\")",
+  "expectedType": "[]Post",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

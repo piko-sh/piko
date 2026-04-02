@@ -1,0 +1,6 @@
+{
+  "title": "Shorthand Expansion",
+  "description": "CSS shorthand properties expanded to longhand",
+  "metadata": {"title": "Shorthand Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

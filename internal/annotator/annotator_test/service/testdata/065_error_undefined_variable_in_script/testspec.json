@@ -1,0 +1,12 @@
+{
+  "description": "Validates that Go compiler errors for undefined variables are converted to diagnostics pointing to the PK source.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "undefined",
+      "onLine": 33
+    }
+  ]
+}

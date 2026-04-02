@@ -1,0 +1,3 @@
+{
+  "description": "View output column type inference from the underlying SELECT. Validates that querying a view returns correctly typed columns."
+}

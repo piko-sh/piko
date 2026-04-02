@@ -1,0 +1,6 @@
+{
+  "description": "Tests pages with partials - verifies AST is flattened and all elements queryable",
+  "entryPoints": [
+    { "path": "pages/dashboard.pk", "isPage": true }
+  ]
+}

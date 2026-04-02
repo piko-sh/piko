@@ -1,0 +1,3 @@
+{
+  "description": "INSERT ON DUPLICATE KEY UPDATE: MySQL-specific upsert with version counter on MariaDB"
+}

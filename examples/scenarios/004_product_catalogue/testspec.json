@@ -1,0 +1,11 @@
+{
+  "description": "Product catalogue with p-for loops, p-if conditionals, and partial product cards",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    { "action": "waitForSelector", "selector": "#app" },
+    { "action": "checkText", "selector": "h1", "expected": "Product Catalogue" },
+    { "action": "checkText", "selector": "#product-count", "expected": "Showing 6 products" },
+    { "action": "waitForSelector", "selector": ".product-card" }
+  ]
+}

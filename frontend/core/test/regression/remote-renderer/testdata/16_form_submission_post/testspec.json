@@ -1,0 +1,37 @@
+{
+    "description": "POST with formData patches response into DOM",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/api/submit",
+        "formData": {
+            "name": "Jane",
+            "email": "jane@example.com"
+        },
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#result"
+    },
+    "assertions": [
+        {
+            "selector": ".success",
+            "exists": true,
+            "description": "Success message element should exist"
+        },
+        {
+            "selector": ".success",
+            "textContains": "Jane",
+            "description": "Success message should contain submitted name"
+        },
+        {
+            "selector": ".success",
+            "textContains": "jane@example.com",
+            "description": "Success message should contain submitted email"
+        }
+    ]
+}

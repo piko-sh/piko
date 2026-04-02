@@ -1,0 +1,17 @@
+# piko-symbols-runtime.yaml - Symbol extraction manifest for piko runtime packages.
+#
+# Lists the piko framework packages whose symbols are vendored into the
+# bytecode interpreter for native-speed access via reflect.Value.Call().
+#
+# Regenerate with: make generate-interp-piko-symbols
+
+package: driven_piko_symbols
+output: internal/interp/interp_adapters/driven_piko_symbols
+
+packages:
+  - piko.sh/piko:
+      build_tag: "!js"
+  - piko.sh/piko/wdk/binder
+  - piko.sh/piko/wdk/logger
+  - piko.sh/piko/wdk/runtime
+  - piko.sh/piko/wdk/safeconv

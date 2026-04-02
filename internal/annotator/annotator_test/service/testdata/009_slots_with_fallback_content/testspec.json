@@ -1,0 +1,28 @@
+{
+  "description": "Validates that slot fallback content is rendered when no content is provided for a specific slot.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "div.card > header > h1",
+      "description": "The overridden header content should be present and sourced from main.pk.",
+      "assert": {
+        "originalPackageAlias": "main.pk"
+      }
+    },
+    {
+      "select": "div.card > main > p",
+      "description": "The overridden default slot content should be present and sourced from main.pk.",
+      "assert": {
+        "originalPackageAlias": "main.pk"
+      }
+    },
+    {
+      "select": "div.card > footer > p",
+      "description": "The footer content should be the fallback from the partial itself.",
+      "assert": {
+        "originalPackageAlias": "partials/card_layout.pk"
+      }
+    }
+  ]
+}

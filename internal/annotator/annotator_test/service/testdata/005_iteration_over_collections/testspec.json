@@ -1,0 +1,40 @@
+{
+  "description": "Validates p-for loops, checking type inference and ensuring a warning is generated for loops missing a p-key.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates",
+      "onLine": 58
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "ul:nth-of-type(1) > li",
+      "description": "The first list item with a p-key should resolve its internal variable types correctly.",
+      "assertOnDirective": [
+        {
+          "name": "p-key",
+          "rawExpression": "user.ID",
+          "resolvedTypeIs": "int"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "user.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "ul:nth-of-type(2) > li",
+      "description": "The second list item WITHOUT a p-key should still resolve its variables, despite triggering a warning.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "user.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

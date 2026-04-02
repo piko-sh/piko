@@ -1,0 +1,227 @@
+<div id="app">
+  <div partial="pages_main_594861c5" p-key="r.0" id="app">
+    <h1 partial="pages_main_594861c5" p-key="r.0:0">Maths and Temporal Types Test</h1>
+    <!-- Section 1: Raw Decimal rendering (tests MustString path) -->
+    <section partial="pages_main_594861c5" p-key="r.0:2" id="sec-decimal-raw">
+      <h2 partial="pages_main_594861c5" p-key="r.0:2:0">Decimal Raw</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:2:1">
+        <li partial="pages_main_594861c5" p-key="r.0:2:1:0" id="dec-raw">19.99</li>
+        <li partial="pages_main_594861c5" p-key="r.0:2:1:1" id="dec-ptext">19.99</li>
+      </ul>
+    </section>
+    <!-- Section 2: Pre-computed Decimal string (control group) -->
+    <section partial="pages_main_594861c5" p-key="r.0:4" id="sec-decimal-str">
+      <h2 partial="pages_main_594861c5" p-key="r.0:4:0">Decimal String Control</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:4:1">
+        <li partial="pages_main_594861c5" p-key="r.0:4:1:0" id="dec-str">19.99</li>
+      </ul>
+    </section>
+    <!-- Section 3: Float precision proof - 0.1 + 0.2 must equal 0.3, not 0.30000000000000004 -->
+    <section partial="pages_main_594861c5" p-key="r.0:6" id="sec-float-proof">
+      <h2 partial="pages_main_594861c5" p-key="r.0:6:0">Float Precision Proof</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:6:1">
+        <li partial="pages_main_594861c5" p-key="r.0:6:1:0" id="float-raw">0.3</li>
+        <li partial="pages_main_594861c5" p-key="r.0:6:1:1" id="float-str">0.3</li>
+      </ul>
+    </section>
+    <!-- Section 4: Decimal arithmetic (computed in Go) -->
+    <section partial="pages_main_594861c5" p-key="r.0:8" id="sec-decimal-arith">
+      <h2 partial="pages_main_594861c5" p-key="r.0:8:0">Decimal Arithmetic</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:8:1">
+        <li partial="pages_main_594861c5" p-key="r.0:8:1:0" id="dec-sum-str">30.8</li>
+        <li partial="pages_main_594861c5" p-key="r.0:8:1:1" id="dec-diff-str">66.67</li>
+        <li partial="pages_main_594861c5" p-key="r.0:8:1:2" id="dec-prod-str">22.5</li>
+        <li partial="pages_main_594861c5" p-key="r.0:8:1:3" id="dec-div-str">33.33333333333333333333333333333333</li>
+      </ul>
+    </section>
+    <!-- Section 5: Raw BigInt rendering -->
+    <section partial="pages_main_594861c5" p-key="r.0:10" id="sec-bigint-raw">
+      <h2 partial="pages_main_594861c5" p-key="r.0:10:0">BigInt Raw</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:10:1">
+        <li partial="pages_main_594861c5" p-key="r.0:10:1:0" id="big-raw">42</li>
+        <li partial="pages_main_594861c5" p-key="r.0:10:1:1" id="big-str">42</li>
+        <li partial="pages_main_594861c5" p-key="r.0:10:1:2" id="big-overflow">9223372036854775808</li>
+      </ul>
+    </section>
+    <!-- Section 6: BigInt arithmetic -->
+    <section partial="pages_main_594861c5" p-key="r.0:12" id="sec-bigint-arith">
+      <h2 partial="pages_main_594861c5" p-key="r.0:12:0">BigInt Arithmetic</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:12:1">
+        <li partial="pages_main_594861c5" p-key="r.0:12:1:0" id="big-sum-str">1000</li>
+        <li partial="pages_main_594861c5" p-key="r.0:12:1:1" id="big-prod-str">56088</li>
+      </ul>
+    </section>
+    <!-- Section 7: Money rendering -->
+    <section partial="pages_main_594861c5" p-key="r.0:14" id="sec-money">
+      <h2 partial="pages_main_594861c5" p-key="r.0:14:0">Money</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:14:1">
+        <li partial="pages_main_594861c5" p-key="r.0:14:1:0" id="money-raw">1500 USD</li>
+        <li partial="pages_main_594861c5" p-key="r.0:14:1:1" id="money-str">1500 USD</li>
+        <li partial="pages_main_594861c5" p-key="r.0:14:1:2" id="money-gb">US$1,500.00</li>
+        <li partial="pages_main_594861c5" p-key="r.0:14:1:3" id="money-us">$1,500.00</li>
+      </ul>
+    </section>
+    <!-- Section 8: Temporal types (pre-formatted strings) -->
+    <section partial="pages_main_594861c5" p-key="r.0:16" id="sec-temporal">
+      <h2 partial="pages_main_594861c5" p-key="r.0:16:0">Temporal</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:16:1">
+        <li partial="pages_main_594861c5" p-key="r.0:16:1:0" id="temporal-date">2026-01-15</li>
+        <li partial="pages_main_594861c5" p-key="r.0:16:1:1" id="temporal-datetime">2026-01-15T10:30:00Z</li>
+        <li partial="pages_main_594861c5" p-key="r.0:16:1:2" id="temporal-time">14:30:45</li>
+        <li partial="pages_main_594861c5" p-key="r.0:16:1:3" id="temporal-duration">1h30m0s</li>
+      </ul>
+    </section>
+    <!-- Section 9: Comparison results -->
+    <section partial="pages_main_594861c5" p-key="r.0:18" id="sec-comparisons">
+      <h2 partial="pages_main_594861c5" p-key="r.0:18:0">Comparisons</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:18:1">
+        <li partial="pages_main_594861c5" p-key="r.0:18:1:0" id="cmp-dec-gt">true</li>
+        <li partial="pages_main_594861c5" p-key="r.0:18:1:1" id="cmp-dec-eq">true</li>
+        <li partial="pages_main_594861c5" p-key="r.0:18:1:2" id="cmp-big-lt">true</li>
+      </ul>
+    </section>
+    <!-- Section 10: Ternary with maths types -->
+    <section partial="pages_main_594861c5" p-key="r.0:20" id="sec-ternary">
+      <h2 partial="pages_main_594861c5" p-key="r.0:20:0">Ternary</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:20:1">
+        <li partial="pages_main_594861c5" p-key="r.0:20:1:0" id="ternary-result">19.99</li>
+      </ul>
+    </section>
+    <!-- Section 11: Template literal interpolation -->
+    <section partial="pages_main_594861c5" p-key="r.0:22" id="sec-template-literal">
+      <h2 partial="pages_main_594861c5" p-key="r.0:22:0">Template Literals</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:22:1">
+        <li partial="pages_main_594861c5" p-key="r.0:22:1:0" id="tpl-price">Price: 19.99</li>
+        <li partial="pages_main_594861c5" p-key="r.0:22:1:1" id="tpl-bigint">Items: 42</li>
+      </ul>
+    </section>
+    <!-- Section 12: Attribute bindings -->
+    <section partial="pages_main_594861c5" p-key="r.0:24" id="sec-attr-binding">
+      <h2 partial="pages_main_594861c5" p-key="r.0:24:0">Attribute Binding</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:24:1">
+        <li partial="pages_main_594861c5" p-key="r.0:24:1:0" id="attr-dec" data-value="19.99">Decimal attr</li>
+        <li partial="pages_main_594861c5" p-key="r.0:24:1:1" id="attr-big" data-value="42">BigInt attr</li>
+      </ul>
+    </section>
+    <!-- Section 13: Inline literal expressions (using EvaluateBinary runtime helper) -->
+    <section partial="pages_main_594861c5" p-key="r.0:26" id="sec-inline-literals">
+      <h2 partial="pages_main_594861c5" p-key="r.0:26:0">Inline Literal Expressions</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:26:1">
+        <!-- Decimal arithmetic -->
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:1" id="inline-dec-add">0.3</li>
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:2" id="inline-dec-sub">66.67</li>
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:3" id="inline-dec-mul">22.5</li>
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:4" id="inline-dec-div">2.5</li>
+        <!-- BigInt arithmetic -->
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:6" id="inline-big-add">1000</li>
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:7" id="inline-big-mul">56088</li>
+        <!-- Decimal comparisons -->
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:9" id="inline-dec-gt">true</li>
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:10" id="inline-dec-lt">true</li>
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:11" id="inline-dec-eq-cmp">true</li>
+        <!-- Ternary with inline literals -->
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:13" id="inline-ternary-dec">comparable</li>
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:14" id="inline-ternary-price">expensive</li>
+        <!-- Template literal with inline expression -->
+        <li partial="pages_main_594861c5" p-key="r.0:26:1:16" id="inline-tpl-sum">Sum: 30.8</li>
+      </ul>
+    </section>
+    <!-- Section 14: Partial with props -->
+    <div
+      partial="partials_type_card_f894efd6"
+      partial_name="type_card"
+      p-key="r.0:28"
+      class="type-card"
+      currency-code="GBP"
+      date-val="2026-01-15"
+      id="partial-display"
+      price-val="19.99"
+      quantity-val="42"
+      big-direct="1000"
+      dec-direct="0.3"
+    >
+      <h3 partial="partials_type_card_f894efd6" p-key="r.0:28:0">Partial Props</h3>
+      <ul partial="partials_type_card_f894efd6" p-key="r.0:28:1">
+        <!-- String props reconstructed to maths types -->
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:1" id="partial-price">19.99</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:2" id="partial-quantity">42</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:3" id="partial-total">19.99 GBP</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:4" id="partial-date">2026-01-15</li>
+        <!-- Raw maths types in partial (MustString path) -->
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:6" id="partial-dec-raw">19.99</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:7" id="partial-big-raw">42</li>
+        <!-- Inline literal expressions inside partial -->
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:9" id="partial-inline-add">0.3</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:10" id="partial-inline-mul">22.5</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:11" id="partial-inline-cmp">true</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:12" id="partial-inline-bigadd">1000</li>
+        <!-- Mixed state + literal expressions -->
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:14" id="partial-mixed-gt">true</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:15" id="partial-mixed-tpl">Price: 19.99</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:16" id="partial-mixed-ternary">expensive</li>
+        <!-- Direct maths-typed props (passed through from parent) -->
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:18" id="partial-direct-dec">0.3</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:19" id="partial-direct-big">1000</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:20" id="partial-direct-dec-ptext">0.3</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:21" id="partial-direct-dec-gt">true</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:22" id="partial-direct-dec-tpl">Direct: 0.3</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:23" id="partial-direct-dec-ternary">above</li>
+        <!-- LF() in partial -->
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:25" id="partial-lf-dec">19,99</li>
+        <li partial="partials_type_card_f894efd6" p-key="r.0:28:1:26" id="partial-lf-direct">0,3</li>
+      </ul>
+    </div>
+    <!-- Section 15: PKC component -->
+    <maths-viewer partial="pages_main_594861c5" p-key="r.0:30" decimal-val="19.99" bigint-val="9223372036854775808">
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <ul class="maths-viewer">
+          <li id="pkc-decimal">Decimal: 19.99</li>
+          <li id="pkc-bigint">BigInt: 9223372036854775808</li>
+          <li id="pkc-precision">JS 0.1+0.2: 0.30000000000000004</li>
+        </ul>
+      </template>
+    </maths-viewer>
+    <!-- Section 16: F() format builder -->
+    <section partial="pages_main_594861c5" p-key="r.0:32" id="sec-format-builder">
+      <h2 partial="pages_main_594861c5" p-key="r.0:32:0">F() Format Builder</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:32:1">
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:0" id="f-dec">19.99</li>
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:1" id="f-big">42</li>
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:2" id="f-money">1500.00</li>
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:3" id="f-string">19.99</li>
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:4" id="f-int">42</li>
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:5" id="f-float">3.14159</li>
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:6" id="f-float-prec">3.14</li>
+        <li partial="pages_main_594861c5" p-key="r.0:32:1:7" id="f-dec-prec0">20</li>
+      </ul>
+    </section>
+    <!-- Section 17: F() in attribute binding and template literal -->
+    <section partial="pages_main_594861c5" p-key="r.0:34" id="sec-format-contexts">
+      <h2 partial="pages_main_594861c5" p-key="r.0:34:0">F() Contexts</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:34:1">
+        <li partial="pages_main_594861c5" p-key="r.0:34:1:0" id="f-attr" data-price="19.99">attr binding</li>
+        <li partial="pages_main_594861c5" p-key="r.0:34:1:1" id="f-tpl">Price: 19.99</li>
+      </ul>
+    </section>
+    <!-- Section 18: Locale detection -->
+    <section partial="pages_main_594861c5" p-key="r.0:36" id="sec-locale">
+      <h2 partial="pages_main_594861c5" p-key="r.0:36:0">Locale</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:36:1">
+        <li partial="pages_main_594861c5" p-key="r.0:36:1:0" id="locale-current">fr</li>
+        <li partial="pages_main_594861c5" p-key="r.0:36:1:1" id="locale-label">Devise</li>
+      </ul>
+    </section>
+    <!-- Section 19: LF() locale-aware formatting -->
+    <section partial="pages_main_594861c5" p-key="r.0:38" id="sec-lf-format">
+      <h2 partial="pages_main_594861c5" p-key="r.0:38:0">LF() Locale Format</h2>
+      <ul partial="pages_main_594861c5" p-key="r.0:38:1">
+        <li partial="pages_main_594861c5" p-key="r.0:38:1:0" id="lf-dec">19,99</li>
+        <li partial="pages_main_594861c5" p-key="r.0:38:1:1" id="lf-big">42</li>
+        <li partial="pages_main_594861c5" p-key="r.0:38:1:2" id="lf-large">1 234 567,89</li>
+        <li partial="pages_main_594861c5" p-key="r.0:38:1:3" id="lf-dec-prec">3,14</li>
+        <li partial="pages_main_594861c5" p-key="r.0:38:1:4" id="lf-tpl">Formatted: 1 234 567,89</li>
+      </ul>
+    </section>
+  </div>
+</div>

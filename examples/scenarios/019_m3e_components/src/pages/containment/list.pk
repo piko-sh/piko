@@ -1,0 +1,211 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="List"
+            server.current-page="containment/list">
+
+            <p class="demo-description">Lists are continuous vertical groups of text or images. List items support up to three lines of text with optional leading and trailing content.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- One-line Items -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">One-line Items</h3>
+                    <div class="demo-preview">
+                        <m3e-list>
+                            <m3e-list-item headline="Inbox"></m3e-list-item>
+                            <m3e-list-item headline="Sent"></m3e-list-item>
+                            <m3e-list-item headline="Drafts"></m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list&gt;
+  &lt;m3e-list-item headline="Inbox"&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Sent"&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Drafts"&gt;&lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+
+                <!-- Two-line Items -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Two-line Items</h3>
+                    <div class="demo-preview">
+                        <m3e-list>
+                            <m3e-list-item headline="Inbox" supporting-text="5 new messages" lines="2"></m3e-list-item>
+                            <m3e-list-item headline="Sent" supporting-text="Last sent 2 hours ago" lines="2"></m3e-list-item>
+                            <m3e-list-item headline="Drafts" supporting-text="3 unsaved drafts" lines="2"></m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list&gt;
+  &lt;m3e-list-item headline="Inbox" supporting-text="5 new messages" lines="2"&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Sent" supporting-text="Last sent 2 hours ago" lines="2"&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Drafts" supporting-text="3 unsaved drafts" lines="2"&gt;&lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+
+                <!-- Three-line Items -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Three-line Items</h3>
+                    <div class="demo-preview">
+                        <m3e-list>
+                            <m3e-list-item headline="Inbox" supporting-text="You have 5 new messages waiting to be read. Tap to view your latest correspondence." lines="3"></m3e-list-item>
+                            <m3e-list-item headline="Sent" supporting-text="Your last message was sent 2 hours ago to the project team regarding the deadline update." lines="3"></m3e-list-item>
+                            <m3e-list-item headline="Drafts" supporting-text="You have 3 unsaved drafts. Remember to finish and send them before end of day." lines="3"></m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list&gt;
+  &lt;m3e-list-item headline="Inbox"
+    supporting-text="You have 5 new messages waiting..."
+    lines="3"&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Sent"
+    supporting-text="Your last message was sent 2 hours ago..."
+    lines="3"&gt;&lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+
+                <!-- Interactive -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Interactive</h3>
+                    <div class="demo-preview">
+                        <m3e-list>
+                            <m3e-list-item headline="Inbox" interactive></m3e-list-item>
+                            <m3e-list-item headline="Sent" interactive></m3e-list-item>
+                            <m3e-list-item headline="Drafts" interactive></m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list&gt;
+  &lt;m3e-list-item headline="Inbox" interactive&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Sent" interactive&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Drafts" interactive&gt;&lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+
+                <!-- Leading Icon -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Leading Icon</h3>
+                    <div class="demo-preview">
+                        <m3e-list>
+                            <m3e-list-item headline="Home">
+                                <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                            </m3e-list-item>
+                            <m3e-list-item headline="Favourites">
+                                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                            </m3e-list-item>
+                            <m3e-list-item headline="Settings">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                            </m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list&gt;
+  &lt;m3e-list-item headline="Settings"&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg" fill="currentColor"
+      width="24" height="24" slot="leading"&gt;&lt;/piko:svg&gt;
+  &lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+
+                <!-- Trailing Content -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Trailing Content</h3>
+                    <div class="demo-preview">
+                        <m3e-list>
+                            <m3e-list-item headline="Messages">
+                                <span slot="trailing">24</span>
+                            </m3e-list-item>
+                            <m3e-list-item headline="Notifications">
+                                <span slot="trailing">8</span>
+                            </m3e-list-item>
+                            <m3e-list-item headline="Updates">
+                                <span slot="trailing">3</span>
+                            </m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list&gt;
+  &lt;m3e-list-item headline="Messages"&gt;
+    &lt;span slot="trailing"&gt;24&lt;/span&gt;
+  &lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+
+                <!-- Leading + Trailing -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Leading + Trailing</h3>
+                    <div class="demo-preview">
+                        <m3e-list>
+                            <m3e-list-item headline="Inbox" supporting-text="5 new messages" lines="2">
+                                <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                                <span slot="trailing">5</span>
+                            </m3e-list-item>
+                            <m3e-list-item headline="Starred" supporting-text="12 items" lines="2">
+                                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                                <span slot="trailing">12</span>
+                            </m3e-list-item>
+                            <m3e-list-item headline="Settings" supporting-text="Account, notifications, privacy" lines="2">
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24" slot="leading"></piko:svg>
+                                <piko:svg src="@/lib/icons/arrow-right.svg" fill="currentColor" width="24" height="24" slot="trailing"></piko:svg>
+                            </m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list&gt;
+  &lt;m3e-list-item headline="Inbox" supporting-text="5 new messages" lines="2"&gt;
+    &lt;piko:svg src="@/lib/icons/home.svg" fill="currentColor"
+      width="24" height="24" slot="leading"&gt;&lt;/piko:svg&gt;
+    &lt;span slot="trailing"&gt;5&lt;/span&gt;
+  &lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+
+                <!-- Auto-Dividers -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Auto-Dividers</h3>
+                    <div class="demo-preview">
+                        <m3e-list dividers>
+                            <m3e-list-item headline="First item"></m3e-list-item>
+                            <m3e-list-item headline="Second item"></m3e-list-item>
+                            <m3e-list-item headline="Third item"></m3e-list-item>
+                        </m3e-list>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-list dividers&gt;
+  &lt;m3e-list-item headline="First item"&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Second item"&gt;&lt;/m3e-list-item&gt;
+  &lt;m3e-list-item headline="Third item"&gt;&lt;/m3e-list-item&gt;
+&lt;/m3e-list&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "List - M3E Components",
+    }, nil
+}
+</script>

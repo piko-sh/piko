@@ -1,0 +1,45 @@
+<template>
+  <div>
+    <nav>
+      <ul>
+        <li p-for="item in state.NavItems" p-key="item.ID"><a :href="item.URL">{{ item.Label }}</a></li>
+      </ul>
+    </nav>
+    <article>
+      <header>
+        <h1>{{ state.Title }}</h1>
+        <p>Published: <time :datetime="state.PublishDate">{{ state.FormattedDate }}</time></p>
+      </header>
+      <div p-html="state.Content"></div>
+      <footer>
+        <p p-if="state.ShowAuthor">By: <strong>{{ state.Author }}</strong></p>
+      </footer>
+    </article>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type NavItem struct {
+	ID    string
+	URL   string
+	Label string
+}
+
+type State struct {
+	Title         string
+	PublishDate   string
+	FormattedDate string
+	Content       string
+	ShowAuthor    bool
+	Author        string
+	NavItems      []NavItem
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (State, piko.Metadata, error) {
+	return State{}, piko.Metadata{}, nil
+}
+</script>

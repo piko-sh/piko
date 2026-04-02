@@ -1,0 +1,6 @@
+{
+  "description": "Tests that components from external Go modules are correctly discovered, resolved, annotated, and code-generated using the ChainedResolver and GoModuleCacheResolver",
+  "packageName": "testcase_061_external_module_components",
+  "isPage": true,
+  "shouldError": false
+}

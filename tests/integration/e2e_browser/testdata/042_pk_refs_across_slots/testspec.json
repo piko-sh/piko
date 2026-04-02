@@ -1,0 +1,112 @@
+{
+  "description": "Tests that p-ref elements can be accessed across slot boundaries when a PK partial is loaded into a multi-slot PPC component via RemoteRender. The partial provides content for both the default and actions slots, and event handlers in one slot need to access refs in the other slot.",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "PK Refs Across Slots Test"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "multi-slot-card"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "#load-btn"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".content-area"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_load.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#counter-display",
+      "expected": "0"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-display",
+      "expected": "idle"
+    },
+    {
+      "action": "click",
+      "selector": "#increment-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#counter-display",
+      "expected": "1",
+      "comment": "Counter should update - tests cross-slot ref access"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-display",
+      "expected": "incremented"
+    },
+    {
+      "action": "click",
+      "selector": "#increment-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#counter-display",
+      "expected": "2"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_increments.html"
+    },
+    {
+      "action": "click",
+      "selector": "#reset-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#counter-display",
+      "expected": "0"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-display",
+      "expected": "reset"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_reset.html"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+{
+  "description": "Generated columns using GENERATED ALWAYS AS with STORED and VIRTUAL storage types. Tests that generated column expressions are parsed and the column is reflected in the catalogue."
+}

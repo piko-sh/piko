@@ -1,0 +1,12 @@
+[{
+  "description": "Ensures an error is generated when attempting to call a non-function type (e.g., a string).",
+  "expression": "state.Name()",
+  "expectedType": "any",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "Expression is not callable"
+    }
+  ]
+}]

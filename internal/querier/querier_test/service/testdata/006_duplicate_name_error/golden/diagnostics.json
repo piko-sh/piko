@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "get_user_by_id.sql",
+    "Message": "duplicate query name \"GetUser\" (first defined in get_user_by_email.sql:1)",
+    "Code": "Q006",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  }
+]

@@ -1,0 +1,84 @@
+{
+  "description": "Tests that p-on: handlers work on PK partials loaded via RemoteRender. This catches race conditions where the module script hasn't finished loading when DOM binding occurs.",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "p-event RemoteRender Test"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "#load-partial-btn"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": ".event-receiver-partial"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_partial_load.html"
+    },
+    {
+      "action": "checkText",
+      "selector": "#event-count",
+      "expected": "0"
+    },
+    {
+      "action": "checkText",
+      "selector": "#last-value",
+      "expected": "none"
+    },
+    {
+      "action": "click",
+      "selector": "#emit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#event-count",
+      "expected": "1"
+    },
+    {
+      "action": "checkText",
+      "selector": "#last-value",
+      "expected": "test-value-1"
+    },
+    {
+      "action": "click",
+      "selector": "#emit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "#event-count",
+      "expected": "2"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_events.html"
+    }
+  ]
+}

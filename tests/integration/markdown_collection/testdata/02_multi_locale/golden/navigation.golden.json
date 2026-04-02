@@ -1,0 +1,34 @@
+{
+  "groups": {
+    "sidebar": {
+      "sections": [
+        {
+          "children": [
+            {
+              "id": "about",
+              "title": "About Us",
+              "section": "",
+              "url": "/blog/about",
+              "level": 1,
+              "order": 999
+            },
+            {
+              "id": "welcome",
+              "title": "Welcome",
+              "section": "",
+              "url": "/blog/welcome",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "",
+          "title": "",
+          "section": "",
+          "level": 0,
+          "order": 999
+        }
+      ],
+      "locale": "en"
+    }
+  }
+}

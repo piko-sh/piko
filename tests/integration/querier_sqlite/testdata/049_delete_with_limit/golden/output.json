@@ -1,0 +1,12 @@
+{
+  "dequeued": {
+    "ID": 4,
+    "Payload": "critical task"
+  },
+  "exists_false": {
+    "Found": false
+  },
+  "exists_true": {
+    "Found": true
+  }
+}

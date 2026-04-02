@@ -1,0 +1,84 @@
+<template>
+  <div class="feature-card">
+    <div class="feature-icon">
+      <piko:svg :src="state.Icon" class="icon" aria-hidden="true"></piko:svg>
+    </div>
+    <h3 class="feature-title">{{ "{{ state.Title }}" }}</h3>
+    <p class="feature-description">{{ "{{ state.Description }}" }}</p>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+// Props defines the data this partial receives from its parent.
+// Each field maps to a server.* attribute on the <piko:partial> tag.
+type Props struct {
+    Icon        string `prop:"icon" validate:"required"`
+    Title       string `prop:"title" validate:"required"`
+    Description string `prop:"description" validate:"required"`
+}
+
+// Response is the data available in the template as "state".
+type Response struct {
+    Icon        string
+    Title       string
+    Description string
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    return Response{
+        Icon:        props.Icon,
+        Title:       props.Title,
+        Description: props.Description,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .feature-card {
+    background: #ffffff;
+    border: 1px solid var(--g-colour-grey-100);
+    border-radius: 12px;
+    padding: 1.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .feature-card:hover {
+    border-color: var(--g-colour-primary);
+    box-shadow: 0 0 0 3px rgba(111, 71, 235, 0.06);
+  }
+
+  .feature-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(111, 71, 235, 0.07);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    color: var(--g-colour-primary);
+  }
+
+  .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .feature-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--g-colour-grey-900);
+    margin: 0 0 0.375rem;
+  }
+
+  .feature-description {
+    font-size: 0.875rem;
+    color: var(--g-colour-grey-500);
+    line-height: 1.6;
+    margin: 0;
+  }
+</style>

@@ -1,0 +1,32 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+<table><thead><tr><th>Header 1</th><th>Header 2</th><th>Header 3</th></tr></thead>
+<tbody><tr><td>Cell 1</td><td>Cell 2</td><td>Cell 3</td></tr>
+<tr><td>Cell 4</td><td>Cell 5</td><td>Cell 6</td></tr></tbody>
+<tfoot><tr><td colspan="3">Footer</td></tr></tfoot></table>
+<form><fieldset><legend>Personal Info</legend>
+<label for="fname">First name:</label><input type="text" id="fname">
+<label for="lname">Last name:</label><input type="text" id="lname">
+<select id="country"><option value="uk">United Kingdom</option><option value="us">United States</option></select>
+<textarea id="bio" rows="4" cols="50">Biography</textarea>
+<button type="submit">Submit</button></fieldset></form>
+</template>

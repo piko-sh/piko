@@ -1,0 +1,6 @@
+{
+  "description": "Tests the @ module alias for importing partials with @/path syntax instead of full module path",
+  "packageName": "testcase_067_module_alias",
+  "isPage": true,
+  "shouldError": false
+}

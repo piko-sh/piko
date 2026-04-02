@@ -1,0 +1,25 @@
+{
+  "description": "Validates deep prop forwarding (A -> B -> C) and ensures the final PropDataSource annotation traces back to the original source in component A.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#final-output",
+      "description": "The final rendered content in component C should have a PropDataSource pointing back to the state of component A.",
+      "assert": {
+        "originalPackageAlias": "partials/component_c.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.DataFromB",
+          "resolvedTypeIs": "string",
+          "hasPropDataSource": true,
+          "propDataSource": {
+            "resolvedTypeIs": "string",
+            "baseCodeGenVarName": "pageData"
+          }
+        }
+      ]
+    }
+  ]
+}

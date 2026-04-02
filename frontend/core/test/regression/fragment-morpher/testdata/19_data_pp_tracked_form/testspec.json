@@ -1,0 +1,35 @@
+{
+    "description": "data-pk-tracked attribute on form survives morph with scope preservation",
+    "options": {
+        "childrenOnly": false,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "form.tracked-form",
+            "attributes": { "data-pk-tracked": "true" },
+            "description": "data-pk-tracked preserved on form after morph"
+        },
+        {
+            "selector": "form.tracked-form",
+            "attributes": { "partial": "form_scope pages_index_032f49b1" },
+            "description": "Form scope chain preserved with parent scope"
+        },
+        {
+            "selector": "input[name='username']",
+            "attributes": { "partial": "input_scope form_scope pages_index_032f49b1" },
+            "description": "Input scope chain preserved with parent scopes from existing element"
+        },
+        {
+            "selector": ".form-status",
+            "textContent": "Form submitted successfully",
+            "description": "Form status content updated"
+        }
+    ],
+    "preservedNodes": [
+        {
+            "sourceSelector": "form.tracked-form",
+            "description": "Form element preserved (same reference after morph)"
+        }
+    ]
+}

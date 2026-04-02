@@ -1,0 +1,3 @@
+{
+  "description": "JSONB column with ->, ->>, @> containment, and jsonb_build_object() operators"
+}

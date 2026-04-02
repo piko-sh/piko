@@ -1,0 +1,90 @@
+{
+  "expectedPotentialInvocations": 12,
+  "specs": [
+    {
+      "description": "Canonical invocation #1 should have PartialInfo",
+      "select": "#c1",
+      "assert": {
+        "hasPartialInfo": true,
+        "originalPackageAlias": "partials/badge.pk"
+      }
+    },
+    {
+      "description": "Canonical invocation #2 should have a DIFFERENT InvocationKey from #1",
+      "select": "#c2",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#c1"
+      }
+    },
+    {
+      "description": "Canonical invocation with a non-prop class attribute should be DIFFERENT from pure canonical",
+      "select": "#x1",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#c1"
+      }
+    },
+    {
+      "description": "Canonical invocation inside a structural directive should be DIFFERENT from pure canonical",
+      "select": "#x2",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#c1"
+      }
+    },
+    {
+      "description": "Static prop invocation #1 (blue) should be different from canonical",
+      "select": "#s1",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#c1"
+      }
+    },
+    {
+      "description": "Static prop invocation #3 (blue) should be DIFFERENT from #1 (blue)",
+      "select": "#s3",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#s1"
+      }
+    },
+    {
+      "description": "Static prop invocation #2 (red) should be different from #1 (blue)",
+      "select": "#s2",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#s1"
+      }
+    },
+    {
+      "description": "Dynamic prop invocation #1 (PrimaryCount) should be different from canonical",
+      "select": "#d1",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#c1"
+      }
+    },
+    {
+      "description": "Dynamic prop invocation #3 (PrimaryCount) should be DIFFERENT from #1 (PrimaryCount)",
+      "select": "#d3",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#d1"
+      }
+    },
+    {
+      "description": "Dynamic prop invocation #2 (SecondaryCount) should be different from #1 (PrimaryCount)",
+      "select": "#d2",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#d1"
+      }
+    },
+    {
+      "description": "Prop with a different name (label vs count) should create a new unique invocation",
+      "select": "#n1",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#d1"
+      }
+    },
+    {
+      "description": "Request override invocation should be different from canonical",
+      "select": "#r1",
+      "assert": {
+        "invocationKeyShouldNotMatch": "#c1"
+      }
+    }
+  ]
+}

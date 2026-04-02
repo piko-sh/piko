@@ -1,0 +1,30 @@
+{
+    "description": "Removing children should work correctly",
+    "assertions": [
+        {
+            "selector": "#list li",
+            "count": 2,
+            "description": "Should have 2 list items after morph"
+        },
+        {
+            "selector": "#list li:first-child",
+            "textContent": "Item A",
+            "description": "First item should still be Item A"
+        },
+        {
+            "selector": "#list li:last-child",
+            "textContent": "Item D",
+            "description": "Last item should be Item D"
+        }
+    ],
+    "removedNodes": [
+        {
+            "selector": "#list li:contains('Item B')",
+            "description": "Item B should be removed"
+        },
+        {
+            "selector": "#list li:contains('Item C')",
+            "description": "Item C should be removed"
+        }
+    ]
+}

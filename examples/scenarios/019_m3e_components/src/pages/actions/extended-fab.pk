@@ -1,0 +1,119 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Extended FAB"
+            server.current-page="actions/extended-fab">
+
+            <p class="demo-description">Extended FABs combine an icon with a label for the most prominent action on screen. Available in four colour schemes.</p>
+
+            <div class="demo-grid">
+                <!-- Primary -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Primary</h3>
+                    <div class="demo-preview">
+                        <m3e-extended-fab colour="primary">
+                            <piko:svg src="@/lib/icons/edit.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                            Compose
+                        </m3e-extended-fab>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-extended-fab colour="primary"&gt;
+  &lt;piko:svg src="@/lib/icons/edit.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Compose
+&lt;/m3e-extended-fab&gt;</code></pre>
+                </section>
+
+                <!-- Secondary -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Secondary</h3>
+                    <div class="demo-preview">
+                        <m3e-extended-fab colour="secondary">
+                            <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                            New item
+                        </m3e-extended-fab>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-extended-fab colour="secondary"&gt;
+  &lt;piko:svg src="@/lib/icons/add.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  New item
+&lt;/m3e-extended-fab&gt;</code></pre>
+                </section>
+
+                <!-- Tertiary -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Tertiary</h3>
+                    <div class="demo-preview">
+                        <m3e-extended-fab colour="tertiary">
+                            <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                            Favourite
+                        </m3e-extended-fab>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-extended-fab colour="tertiary"&gt;
+  &lt;piko:svg src="@/lib/icons/star.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Favourite
+&lt;/m3e-extended-fab&gt;</code></pre>
+                </section>
+
+                <!-- Surface -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Surface</h3>
+                    <div class="demo-preview">
+                        <m3e-extended-fab colour="surface">
+                            <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                            Create
+                        </m3e-extended-fab>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-extended-fab colour="surface"&gt;
+  &lt;piko:svg src="@/lib/icons/add.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  Create
+&lt;/m3e-extended-fab&gt;</code></pre>
+                </section>
+
+                <!-- Without Icon -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Without Icon</h3>
+                    <div class="demo-preview">
+                        <m3e-extended-fab colour="primary">
+                            Compose
+                        </m3e-extended-fab>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-extended-fab colour="primary"&gt;Compose&lt;/m3e-extended-fab&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Extended FAB - M3E Components",
+    }, nil
+}
+</script>

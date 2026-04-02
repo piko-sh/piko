@@ -1,0 +1,5 @@
+{
+    "description": "Tests CSS transforms: rotate, scale, translate, combined, custom transform-origin.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that indexing a slice correctly resolves to the element's type.",
+  "expression": "state.Users[0]",
+  "expectedType": "models.User",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

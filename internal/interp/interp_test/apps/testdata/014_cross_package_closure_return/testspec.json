@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package closure return and invocation",
+  "modulePath": "testpkg",
+  "expected": "add:8 mul:15"
+}

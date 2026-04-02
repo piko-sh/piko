@@ -1,0 +1,7 @@
+{
+  "description": "Tests rendering a simple, fully static page through the interpreted runner.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

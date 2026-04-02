@@ -1,0 +1,3 @@
+{
+  "description": "SQLite constraint types: UNIQUE, CHECK, FOREIGN KEY on CREATE TABLE. Tests catalogue constraint metadata for SQLite constraint parsing."
+}

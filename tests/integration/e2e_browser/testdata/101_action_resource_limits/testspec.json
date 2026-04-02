@@ -1,0 +1,28 @@
+{
+  "description": "Tests per-action resource limits: timeout (500ms), body size (256 bytes). Fast request succeeds, slow request times out, oversized body fails.",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "click",
+      "selector": "#test-btn"
+    },
+    {
+      "action": "wait",
+      "value": "5000"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result",
+      "expected": "pass"
+    }
+  ]
+}

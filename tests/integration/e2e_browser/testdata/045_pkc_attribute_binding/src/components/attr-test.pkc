@@ -1,0 +1,160 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="attr-test">
+  <div class="attr-test-component">
+    <div class="state-display">
+      <div class="attr-row">
+        <span class="attr-label">multiple:</span>
+        <span class="attr-value" id="val-multiple" p-text="state.multiple ? 'true' : 'false'"></span>
+        <span class="attr-type">(boolean)</span>
+      </div>
+
+      <div class="attr-row">
+        <span class="attr-label">disabled:</span>
+        <span class="attr-value" id="val-disabled" p-text="state.disabled ? 'true' : 'false'"></span>
+        <span class="attr-type">(boolean)</span>
+      </div>
+
+      <div class="attr-row">
+        <span class="attr-label">required:</span>
+        <span class="attr-value" id="val-required" p-text="state.required ? 'true' : 'false'"></span>
+        <span class="attr-type">(boolean)</span>
+      </div>
+
+      <div class="attr-row">
+        <span class="attr-label">name:</span>
+        <span class="attr-value" id="val-name" p-text="state.name || '(empty)'"></span>
+        <span class="attr-type">(string)</span>
+      </div>
+
+      <div class="attr-row">
+        <span class="attr-label">label:</span>
+        <span class="attr-value" id="val-label" p-text="state.label || '(empty)'"></span>
+        <span class="attr-type">(string)</span>
+      </div>
+
+      <div class="attr-row">
+        <span class="attr-label">accept:</span>
+        <span class="attr-value" id="val-accept" p-text="state.accept"></span>
+        <span class="attr-type">(string)</span>
+      </div>
+
+      <div class="attr-row">
+        <span class="attr-label">max-count:</span>
+        <span class="attr-value" id="val-max-count" p-text="String(state.maxCount)"></span>
+        <span class="attr-type">(number)</span>
+      </div>
+
+      <div class="mode-indicator">
+        <span p-if="state.multiple" class="mode multiple-mode">Multiple Mode Active</span>
+        <span p-if="!state.multiple" class="mode single-mode">Single Mode Active</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        multiple: false as boolean,
+        disabled: false as boolean,
+        required: false as boolean,
+
+        name: '' as string,
+        label: '' as string,
+        accept: '*/*' as string,
+
+        maxCount: 10 as number
+    };
+</script>
+
+<style>
+:host {
+    display: block;
+    margin: 16px 0;
+}
+
+.attr-test-component {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f8fafc;
+}
+
+.state-display {
+    font-family: monospace;
+    font-size: 0.875rem;
+}
+
+.attr-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.attr-row:last-of-type {
+    border-bottom: none;
+}
+
+.attr-label {
+    font-weight: 600;
+    color: #334155;
+    min-width: 100px;
+}
+
+.attr-value {
+    color: #0f172a;
+    background: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+.attr-type {
+    color: #94a3b8;
+    font-size: 0.75rem;
+}
+
+.mode-indicator {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.mode {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.multiple-mode {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.single-mode {
+    background: #fef3c7;
+    color: #92400e;
+}
+</style>

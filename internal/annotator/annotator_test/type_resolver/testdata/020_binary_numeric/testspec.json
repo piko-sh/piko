@@ -1,0 +1,7 @@
+[{
+  "description": "Validates that a binary operation between two numeric types resolves to a float64.",
+  "expression": "state.Age + state.Offset",
+  "expectedType": "float64",
+  "expectedDiagnostics": 0,
+  "diagnostics": []
+}]

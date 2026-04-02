@@ -1,0 +1,10 @@
+[{
+  "description": "GetCollection with invalid option produces error",
+  "expression": "r.GetCollection[Post](\"blog\", r.WithInvalidOption())",
+  "expectedType": "",
+  "expectedDiagnostics": 1,
+  "diagnostics": [{
+    "severity": "error",
+    "messageContains": "unsupported option"
+  }]
+}]

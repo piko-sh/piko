@@ -1,0 +1,3 @@
+{
+  "description": "Tests INSERT INTO VALUES with ? parameters in assignment context, column list resolution against catalogue."
+}

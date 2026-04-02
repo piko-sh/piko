@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "malformed_sql.sql",
+    "Message": "query \"BadQuery\" contains no SQL statements",
+    "Code": "Q010",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  }
+]

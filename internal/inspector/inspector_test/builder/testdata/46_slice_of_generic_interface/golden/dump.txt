@@ -1,0 +1,29 @@
+--- PACKAGE: testcase_46_slice_of_generic_interface ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 46_slice_of_generic_interface/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Document
+    - Defined In:      46_slice_of_generic_interface/src/main.go
+    - TypeString:      main.Document
+    - Underlying:      struct{Content []main.Printable[string]}
+    - Stringability:   0
+    - Fields:
+      - Content              []main.Printable[string]
+        (Canonical Package: testcase_46_slice_of_generic_interface)
+
+  > type Printable
+    - Defined In:      46_slice_of_generic_interface/src/main.go
+    - TypeString:      main.Printable[T]
+    - Underlying:      interface{Print() T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Methods:
+      - func (T) Print           func() T
+
+[Package-Level Functions]
+  (none)

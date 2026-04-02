@@ -1,0 +1,11 @@
+(() => {
+    const debug = window.__pikoDebug;
+    if (!debug || !debug.isAvailable()) {
+        return { error: 'Debug API not available' };
+    }
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) {
+        return { error: 'Element not found', selector: {{jsStr .Selector}} };
+    }
+    return debug.getPartialInfo(el);
+})()

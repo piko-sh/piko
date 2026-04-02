@@ -1,0 +1,3 @@
+{
+  "description": "Cast-to-text nullability: casting a nullable column to TEXT with :: should preserve nullability."
+}

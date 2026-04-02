@@ -1,0 +1,11 @@
+{
+  "description": "Sortable data table with query parameter binding and server-side sorting",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    { "action": "waitForSelector", "selector": "#data-table" },
+    { "action": "checkText", "selector": "h1", "expected": "Employee Directory" },
+    { "action": "checkText", "selector": "#employee-count", "expected": "8 employees" },
+    { "action": "waitForSelector", "selector": "tbody tr" }
+  ]
+}

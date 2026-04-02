@@ -1,0 +1,124 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Truthy Operator (~) Test</h1>
+
+    <p id="truthy-nonempty-str" p-if="~state.Message">
+      Non-empty string is truthy
+    </p>
+
+    <p id="truthy-empty-str" p-if="~state.EmptyStr">
+      Empty string is truthy (should not render)
+    </p>
+
+    <p id="truthy-nonzero-int" p-if="~state.Count">
+      Non-zero int is truthy
+    </p>
+
+    <p id="truthy-zero-int" p-if="~state.Zero">
+      Zero int is truthy (should not render)
+    </p>
+
+    <p id="truthy-bool-true" p-if="~state.Enabled">
+      Bool true is truthy
+    </p>
+
+    <p id="truthy-bool-false" p-if="~state.Disabled">
+      Bool false is truthy (should not render)
+    </p>
+
+    <p id="not-truthy-empty" p-if="!~state.EmptyStr">
+      Empty string is falsy (negated truthy)
+    </p>
+
+    <p id="ternary-truthy" :class="~state.Message ? 'has-message' : 'no-message'">
+      Truthy in ternary
+    </p>
+
+    <p id="combined-truthy" p-if="~state.Message && state.Count > 0">
+      Combined: truthy message AND count > 0
+    </p>
+
+    <p id="truthy-slice" p-if="~state.Items">
+      Slice with items is truthy
+    </p>
+
+    <p id="truthy-empty-slice" p-if="~state.EmptyItems">
+      Empty slice is truthy (should not render)
+    </p>
+
+    <p id="truthy-ptr" p-if="~state.Ptr">
+      Non-nil pointer is truthy
+    </p>
+
+    <p id="truthy-nil-ptr" p-if="~state.NilPtr">
+      Nil pointer is truthy (should not render)
+    </p>
+
+    <p id="truthy-map" p-if="~state.Data">
+      Non-empty map is truthy
+    </p>
+
+    <p id="truthy-empty-map" p-if="~state.EmptyData">
+      Empty map is truthy (should not render)
+    </p>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  type Response struct {
+    Message    string
+    EmptyStr   string
+    Count      int
+    Zero       int
+    Enabled    bool
+    Disabled   bool
+    Items      []string
+    EmptyItems []string
+    Ptr        *string
+    NilPtr     *string
+    Data       map[string]int
+    EmptyData  map[string]int
+  }
+
+  func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    hello := "Hello"
+    return Response{
+      Message:    "Hello",
+      EmptyStr:   "",
+      Count:      5,
+      Zero:       0,
+      Enabled:    true,
+      Disabled:   false,
+      Items:      []string{"a", "b", "c"},
+      EmptyItems: []string{},
+      Ptr:        &hello,
+      NilPtr:     nil,
+      Data:       map[string]int{"a": 1},
+      EmptyData:  map[string]int{},
+    }, piko.Metadata{}, nil
+  }
+</script>

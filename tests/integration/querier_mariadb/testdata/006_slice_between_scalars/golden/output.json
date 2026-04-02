@@ -1,0 +1,19 @@
+{
+  "fetch_by_priority_statuses_and_active": [
+    {
+      "ID": "t2",
+      "Priority": 3,
+      "Status": "PENDING"
+    },
+    {
+      "ID": "t3",
+      "Priority": 2,
+      "Status": "PROCESSING"
+    },
+    {
+      "ID": "t6",
+      "Priority": 2,
+      "Status": "RETRYING"
+    }
+  ]
+}

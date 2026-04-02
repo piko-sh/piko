@@ -1,0 +1,7 @@
+{
+    "description": "Verifies percentage padding-top/bottom resolves against parent width (not height), percentage margin resolves against parent width, and nested percentage resolution uses direct parent.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

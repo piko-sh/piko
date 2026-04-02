@@ -1,0 +1,55 @@
+{
+  "description": "Image modifiers: blur, brightness, contrast adjustments",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jersey.jpg"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "blurred-thumbnail",
+      "capabilityName": "image-transform",
+      "params": {
+        "width": "300",
+        "height": "200",
+        "format": "jpeg",
+        "quality": "80",
+        "fit": "cover",
+        "blur": "3.0"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 500,
+        "exactWidth": 300,
+        "exactHeight": 200
+      },
+      "goldenFile": "blurred-300x200.jpg"
+    },
+    {
+      "profileName": "high-contrast",
+      "capabilityName": "image-transform",
+      "params": {
+        "width": "300",
+        "height": "236",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "fill",
+        "contrast": "30",
+        "brightness": "10"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "minSizeBytes": 500,
+        "exactWidth": 300,
+        "exactHeight": 236
+      },
+      "goldenFile": "high-contrast-300x236.jpg"
+    }
+  ]
+}

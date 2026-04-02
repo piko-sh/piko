@@ -1,0 +1,21 @@
+{
+  "description": "Validates that the TypeResolver can correctly see through a type alias to an instantiated generic type and resolve its fields and loop variables.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "li[p-for]",
+      "description": "The loop variables should be correctly typed after resolving the generic type alias.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "user",
+          "resolvedTypeIs": "models.User"
+        },
+        {
+          "rawExpression": "user.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

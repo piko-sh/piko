@@ -1,0 +1,5 @@
+<template>
+  <div style="color: hsl(120, 100%, 50%); background-color: coral;">
+    <p style="color: hsla(240, 50%, 50%, 0.8);">Coloured text</p>
+  </div>
+</template>

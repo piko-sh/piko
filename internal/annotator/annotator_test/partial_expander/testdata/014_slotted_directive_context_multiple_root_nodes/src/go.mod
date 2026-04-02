@@ -1,0 +1,3 @@
+module testcase_14_slotted_directive_context_multiple_root_nodes
+
+go 1.25

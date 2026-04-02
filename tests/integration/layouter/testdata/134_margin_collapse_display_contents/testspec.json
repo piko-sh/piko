@@ -1,0 +1,7 @@
+{
+    "description": "Verifies display: contents children participate in grandparent margin collapsing, and parent-child collapse passes through display: contents wrappers.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

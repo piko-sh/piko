@@ -1,0 +1,6 @@
+<template>
+  <div style="position: relative; width: 400px; height: 300px;">
+    <p>Normal flow content</p>
+    <div style="position: absolute; top: 20px; right: 10px; width: 100px;">Absolutely positioned</div>
+  </div>
+</template>

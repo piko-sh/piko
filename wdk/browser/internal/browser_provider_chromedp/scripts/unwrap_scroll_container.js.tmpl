@@ -1,0 +1,39 @@
+(() => {
+    const docEl = document.documentElement;
+    const body = document.body;
+    docEl.style.setProperty('overflow', 'visible', 'important');
+    docEl.style.setProperty('height', 'auto', 'important');
+    body.style.setProperty('overflow', 'visible', 'important');
+    body.style.setProperty('height', 'auto', 'important');
+
+    const selector = {{jsStr .Selector}};
+    if (selector) {
+        const el = document.querySelector(selector);
+        if (el) {
+            el.style.setProperty('overflow', 'visible', 'important');
+            el.style.setProperty('height', 'auto', 'important');
+            el.style.setProperty('max-height', 'none', 'important');
+            let parent = el.parentElement;
+            while (parent && parent !== body && parent !== docEl) {
+                const style = window.getComputedStyle(parent);
+                if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
+                    parent.style.setProperty('overflow', 'visible', 'important');
+                }
+                if (style.height && style.height !== 'auto') {
+                    parent.style.setProperty('height', 'auto', 'important');
+                }
+                parent = parent.parentElement;
+            }
+        }
+    }
+
+    const fixed = document.querySelectorAll('*');
+    for (const el of fixed) {
+        const style = window.getComputedStyle(el);
+        if (style.position === 'fixed') {
+            el.style.setProperty('position', 'absolute', 'important');
+        }
+    }
+
+    return true;
+})()

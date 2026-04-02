@@ -1,0 +1,16 @@
+[
+  {
+    "action": "checkText",
+    "selector": "p-on-args \u003e\u003e\u003e p",
+    "expected": "Initial"
+  },
+  {
+    "action": "click",
+    "selector": "p-on-args \u003e\u003e\u003e button"
+  },
+  {
+    "action": "checkText",
+    "selector": "p-on-args \u003e\u003e\u003e p",
+    "expected": "Hello, World!"
+  }
+]

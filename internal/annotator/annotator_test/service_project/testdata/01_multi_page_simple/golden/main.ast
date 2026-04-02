@@ -1,0 +1,16 @@
+/*
+--- BEGIN AST DUMP ---
+
+<header is="header" :title="'Home Page'" {P: "Home Page"} [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+<main [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      "Welcome Home, "
+      {{ state.Username }}
+      "!"
+    </RichText>
+  </h1>
+</main>
+
+--- END AST DUMP ---
+*/

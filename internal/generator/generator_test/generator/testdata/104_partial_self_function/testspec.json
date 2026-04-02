@@ -1,0 +1,5 @@
+{
+  "description": "Tests that a partial calling its own exported function generates correct code.",
+  "packageName": "partial_self_function_test",
+  "isPage": true
+}

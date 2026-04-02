@@ -1,0 +1,7 @@
+{
+    "description": "Tests that an action without a Call method produces an error",
+    "packageName": "action_missing_call_error_test",
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "no Call method"
+}

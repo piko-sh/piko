@@ -1,0 +1,12 @@
+<template>
+    <pml-row full-width="full-width" background-color="#2c3e50" padding="30px 0">
+        <pml-col>
+            <pml-p color="#ffffff" font-size="20px" align="center" padding="10px 25px">Full width background</pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="20px 0">
+        <pml-col>
+            <pml-p font-size="14px" padding="10px 25px">Normal width row</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

@@ -1,0 +1,6 @@
+{
+  "title": "Divider Styles",
+  "description": "Various divider/hr styling options",
+  "metadata": {"title": "Divider Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

@@ -1,0 +1,92 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package dashboard
+
+import "piko.sh/piko"
+
+type Widget struct {
+	Title string
+	Items []string
+}
+
+type Response struct {
+	Widgets []Widget
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Widgets: []Widget{
+			{Title: "Sales", Items: []string{"Revenue", "Orders", "Customers"}},
+			{Title: "Analytics", Items: []string{"Views", "Sessions", "Bounce Rate"}},
+		},
+	}, piko.Metadata{
+		Title: "Dashboard",
+	}, nil
+}
+</script>
+<template>
+	<div class="dashboard">
+		<header class="dashboard-header">
+			<h1>Dashboard</h1>
+			<nav class="main-nav">
+				<ul class="nav-list">
+					<li class="nav-item"><a href="/" class="nav-link active">Home</a></li>
+					<li class="nav-item"><a href="/reports" class="nav-link">Reports</a></li>
+					<li class="nav-item"><a href="/settings" class="nav-link">Settings</a></li>
+				</ul>
+			</nav>
+		</header>
+		<main class="dashboard-content">
+			<section class="widget-container">
+				<div p-for="widget in state.Widgets" class="widget">
+					<div class="widget-header">
+						<h2 class="widget-title">{{ widget.Title }}</h2>
+						<button class="widget-menu">Menu</button>
+					</div>
+					<div class="widget-body">
+						<ul class="item-list">
+							<li p-for="item in widget.Items" class="item">
+								<span class="item-icon">*</span>
+								<span class="item-text">{{ item }}</span>
+							</li>
+						</ul>
+					</div>
+					<div class="widget-footer">
+						<a href="#" class="widget-link">View All</a>
+					</div>
+				</div>
+			</section>
+			<aside class="sidebar">
+				<div class="sidebar-section">
+					<h3 class="sidebar-title">Quick Actions</h3>
+					<ul class="action-list">
+						<li class="action-item"><button class="action-btn primary">New Report</button></li>
+						<li class="action-item"><button class="action-btn">Export Data</button></li>
+					</ul>
+				</div>
+			</aside>
+		</main>
+		<footer class="dashboard-footer">
+			<p class="copyright">Dashboard App 2024</p>
+		</footer>
+	</div>
+</template>

@@ -1,0 +1,45 @@
+{
+  "description": "Tests that a promoted method from an embedded generic has its signature correctly substituted.",
+  "moduleName": "testcase_10_generics_promoted_method",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_10_generics_promoted_method"
+  ],
+  "assertions": [
+    {
+      "description": "The promoted 'Get' method should be present on 'StringBox'.",
+      "select": "packages.testcase_10_generics_promoted_method.named_types.StringBox.methods.0.name",
+      "expect": "Get"
+    },
+    {
+      "description": "The return type of 'Get' must be substituted to 'string'.",
+      "select": "packages.testcase_10_generics_promoted_method.named_types.StringBox.methods.0.signature.results.0",
+      "expect": "string"
+    },
+    {
+      "description": "The promoted 'Set' method should be present on 'StringBox'.",
+      "select": "packages.testcase_10_generics_promoted_method.named_types.StringBox.methods.1.name",
+      "expect": "Set"
+    },
+    {
+      "description": "The parameter type of 'Set' must be substituted to 'string'.",
+      "select": "packages.testcase_10_generics_promoted_method.named_types.StringBox.methods.1.signature.params.0",
+      "expect": "string"
+    },
+    {
+      "description": "The embedded Box field should have the models package path.",
+      "select": "packages.testcase_10_generics_promoted_method.named_types.StringBox.fields.0.pkg_path",
+      "expect": "testcase_10_generics_promoted_method/models"
+    },
+    {
+      "description": "The promoted Get method should have the correct declaring_pkg_path.",
+      "select": "packages.testcase_10_generics_promoted_method.named_types.StringBox.methods.0.declaring_pkg_path",
+      "expect": "testcase_10_generics_promoted_method/models"
+    },
+    {
+      "description": "The promoted Set method should have the correct declaring_pkg_path.",
+      "select": "packages.testcase_10_generics_promoted_method.named_types.StringBox.methods.1.declaring_pkg_path",
+      "expect": "testcase_10_generics_promoted_method/models"
+    }
+  ]
+}

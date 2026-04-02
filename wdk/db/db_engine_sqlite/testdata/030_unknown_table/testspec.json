@@ -1,0 +1,11 @@
+{
+  "description": "Query references a table not present in the catalogue. Produces Q003 for the unknown table, cascading Q001 for unresolvable columns, Q004 for parameter type inference failure, and Q009 for command/output mismatch.",
+  "expectedDiagnosticCount": 5,
+  "diagnostics": [
+    { "severity": "warning", "code": "Q003", "messageContains": "nonexistent" },
+    { "severity": "warning", "code": "Q001", "messageContains": "id" },
+    { "severity": "warning", "code": "Q001", "messageContains": "name" },
+    { "severity": "warning", "code": "Q004" },
+    { "severity": "warning", "code": "Q009", "messageContains": "many" }
+  ]
+}

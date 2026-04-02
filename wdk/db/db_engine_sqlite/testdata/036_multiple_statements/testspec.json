@@ -1,0 +1,7 @@
+{
+  "description": "Query file contains two SQL statements separated by a semicolon. Produces a Q012 hint that only the last statement is analysed.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    { "severity": "hint", "code": "Q012", "messageContains": "2 statements" }
+  ]
+}

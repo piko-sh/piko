@@ -1,0 +1,74 @@
+{
+  "packages": {
+    "testcase_31_variadic_functions": {
+      "file_imports": {
+        "31_variadic_functions/src/main.go": {}
+      },
+      "named_types": {
+        "Logger": {
+          "name": "Logger",
+          "package_path": "testcase_31_variadic_functions",
+          "defined_in_file_path": "31_variadic_functions/src/main.go",
+          "type_string": "main.Logger",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "Printf",
+              "type_string": "",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_31_variadic_functions",
+              "declaring_type_name": "Logger",
+              "definition_file_path": "31_variadic_functions/src/main.go",
+              "signature": {
+                "params": [
+                  "string",
+                  "...any"
+                ],
+                "param_names": [
+                  "format",
+                  "arguments"
+                ],
+                "results": null
+              },
+              "definition_line": 33,
+              "definition_column": 17,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 30,
+          "definition_column": 6
+        }
+      },
+      "funcs": {
+        "Sum": {
+          "name": "Sum",
+          "type_string": "func(numbers ...int) int",
+          "underlying_type_string": "func(numbers ...int) int",
+          "definition_file_path": "31_variadic_functions/src/main.go",
+          "signature": {
+            "params": [
+              "...int"
+            ],
+            "param_names": [
+              "numbers"
+            ],
+            "results": [
+              "int"
+            ]
+          },
+          "definition_line": 22,
+          "definition_column": 6
+        }
+      },
+      "path": "testcase_31_variadic_functions",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "31_variadic_functions/src/main.go": "testcase_31_variadic_functions"
+  }
+}

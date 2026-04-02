@@ -1,0 +1,57 @@
+{
+  "description": "Validates that various type-checking errors in expressions are caught and produce the correct diagnostics.",
+  "shouldError": true,
+  "expectedDiagnostics": 10,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Type 'models.User' is not directly renderable as an HTML attribute",
+      "onLine": 48
+    },
+    {
+      "severity": "error",
+      "messageContains": "Invalid operation: cannot compare type 'string' to 'int64' with operator '>'",
+      "onLine": 50
+    },
+    {
+      "severity": "error",
+      "messageContains": "Operator '+' not defined for operand types 'string' and 'int'",
+      "onLine": 51
+    },
+    {
+      "severity": "error",
+      "messageContains": "Operator '*' not defined for operand types 'models.Money' and 'models.Money'",
+      "onLine": 52
+    },
+    {
+      "severity": "error",
+      "messageContains": "Unary operator '!' is not defined for non-boolean type 'int'",
+      "onLine": 54
+    },
+    {
+      "severity": "error",
+      "messageContains": "Cannot use type 'string' as index into type '[]string'",
+      "onLine": 56
+    },
+    {
+      "severity": "error",
+      "messageContains": "Type 'int' is not indexable",
+      "onLine": 57
+    },
+    {
+      "severity": "error",
+      "messageContains": "Cannot use type 'string' as argument 2 of type 'int' in call to 'Add'",
+      "onLine": 59
+    },
+    {
+      "severity": "error",
+      "messageContains": "Expression is not callable. 'state.StringField' is a value of type 'string'",
+      "onLine": 60
+    },
+    {
+      "severity": "error",
+      "messageContains": "Incorrect number of arguments for call to 'Add': expected 2, but got 1",
+      "onLine": 61
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Tests serialisation of various function types, including higher-order functions and composites.",
+  "moduleName": "testcase_64_function_types",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_64_function_types"
+  ],
+  "assertions": [
+    {
+      "description": "The 'SimpleFunc' field should have the correct TypeString.",
+      "select": "packages.testcase_64_function_types.named_types.FunctionHolder.fields.0.type_string",
+      "expect": "func()"
+    },
+    {
+      "description": "The 'HigherOrderFunc' field should correctly serialise its function parameter.",
+      "select": "packages.testcase_64_function_types.named_types.FunctionHolder.fields.1.type_string",
+      "expect": "func(fn func())"
+    },
+    {
+      "description": "The 'ArrayOfFuncs' field should correctly serialise the array of functions.",
+      "select": "packages.testcase_64_function_types.named_types.FunctionHolder.fields.2.type_string",
+      "expect": "[0]func()"
+    },
+    {
+      "description": "The 'MapOfFuncs' field should correctly serialise the map of functions.",
+      "select": "packages.testcase_64_function_types.named_types.FunctionHolder.fields.3.type_string",
+      "expect": "map[string]func()"
+    }
+  ]
+}

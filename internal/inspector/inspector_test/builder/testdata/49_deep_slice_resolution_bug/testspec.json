@@ -1,0 +1,25 @@
+{
+  "description": "Replicates a bug where the TypeString for a slice of a same-package struct was not fully qualified.",
+  "moduleName": "testcase_49_deep_slice_resolution_bug",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_49_deep_slice_resolution_bug/dto"
+  ],
+  "assertions": [
+    {
+      "description": "The 'Ranges' field on 'ItemDto' must have a fully qualified TypeString.",
+      "select": "packages.testcase_49_deep_slice_resolution_bug/dto.named_types.ItemDto.fields.2.type_string",
+      "expect": "[]dto.RangeItem"
+    },
+    {
+      "description": "The PackagePath for the 'Ranges' field must be the canonical 'dto' package path.",
+      "select": "packages.testcase_49_deep_slice_resolution_bug/dto.named_types.ItemDto.fields.2.pkg_path",
+      "expect": "testcase_49_deep_slice_resolution_bug/dto"
+    },
+    {
+      "description": "The 'Charge' field on the slice element 'RangeItem' must have the correct external PackagePath.",
+      "select": "packages.testcase_49_deep_slice_resolution_bug/dto.named_types.RangeItem.fields.2.pkg_path",
+      "expect": "piko.sh/piko/wdk/maths"
+    }
+  ]
+}

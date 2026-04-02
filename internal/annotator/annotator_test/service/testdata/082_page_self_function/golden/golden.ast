@@ -1,0 +1,11 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div id="price" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <RichText>
+    {{ FormatPrice(state.Price) }}
+  </RichText>
+</div>
+
+--- END AST DUMP ---
+*/

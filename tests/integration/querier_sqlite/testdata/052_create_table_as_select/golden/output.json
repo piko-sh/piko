@@ -1,0 +1,29 @@
+{
+  "derived": [
+    {
+      "id": 1,
+      "name": "alpha"
+    },
+    {
+      "id": 3,
+      "name": "gamma"
+    }
+  ],
+  "source": [
+    {
+      "ID": 1,
+      "Name": "alpha",
+      "Value": 10.5
+    },
+    {
+      "ID": 2,
+      "Name": "beta",
+      "Value": null
+    },
+    {
+      "ID": 3,
+      "Name": "gamma",
+      "Value": 30
+    }
+  ]
+}

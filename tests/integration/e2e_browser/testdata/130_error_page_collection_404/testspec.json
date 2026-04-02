@@ -1,0 +1,26 @@
+{
+  "description": "Verifies p-collection page with non-existent slug triggers !404.pk error page",
+  "requestURL": "/blog/nonexistent-slug",
+  "requiresMarkdown": true,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Not Found"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-code",
+      "expected": "404"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "#error-message",
+      "expected": "collection item not found"
+    }
+  ]
+}

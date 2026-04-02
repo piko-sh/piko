@@ -1,0 +1,29 @@
+{
+  "description": "Tests 'Go to Definition' for a prop used in a template, navigating to its struct field definition.",
+  "generate": {
+    "isPage": true,
+    "shouldError": false
+  },
+  "lsp": {
+    "actions": [
+      {
+        "action": "didOpen",
+        "file": "pages/main.pk"
+      },
+      {
+        "action": "didOpen",
+        "file": "partials/card.pk"
+      },
+      {
+        "action": "definition",
+        "file": "partials/card.pk",
+        "line": 22,
+        "character": 20,
+        "expectContains": [
+          "partials/card.pk",
+          "line:32"
+        ]
+      }
+    ]
+  }
+}

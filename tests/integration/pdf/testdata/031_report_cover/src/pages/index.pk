@@ -1,0 +1,87 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div style="width: 555px; height: 802px; position: relative; overflow: hidden;">
+
+    <div style="width: 555px; height: 340px; background: linear-gradient(160deg, #0f2027, #203a43, #2c5364); position: relative; overflow: hidden;">
+
+      <div style="position: absolute; top: -30px; right: -20px; width: 120px; height: 120px; background-color: #ffffff; opacity: 0.06; transform: rotate(35deg);"></div>
+      <div style="position: absolute; top: 60px; right: 50px; width: 80px; height: 80px; background-color: #ffffff; opacity: 0.04; transform: rotate(20deg);"></div>
+      <div style="position: absolute; top: 200px; left: -40px; width: 100px; height: 100px; background-color: #ffffff; opacity: 0.05; transform: rotate(55deg);"></div>
+
+      <div style="position: absolute; bottom: 0; right: 0; width: 200px; height: 200px; background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); clip-path: polygon(100% 0%, 100% 100%, 0% 100%);"></div>
+
+      <div style="position: absolute; bottom: 50px; left: 40px; right: 40px;">
+        <div style="font-size: 9px; color: #81e6d9; text-transform: uppercase; letter-spacing: 4px; font-weight: bold; margin-bottom: 12px;">Annual Performance Report</div>
+        <div style="font-size: 32px; font-weight: bold; color: #ffffff; text-shadow: 2px 2px 8px rgba(0,0,0,0.5); margin-bottom: 8px;">Infrastructure Division</div>
+        <div style="font-size: 14px; color: #a0aec0; word-spacing: 2px;">Operational Review and Strategic Outlook</div>
+      </div>
+    </div>
+
+    <div style="width: 555px; height: 4px; background: linear-gradient(to right, #81e6d9, #2c5364, #0f2027);"></div>
+
+    <div style="padding: 40px;">
+
+      <div style="width: 90px; padding: 8px 0; background-color: #2c5364; border-radius: 4px; text-align: center; margin-bottom: 30px;">
+        <div style="font-size: 22px; font-weight: bold; color: #ffffff; letter-spacing: 3px;">2026</div>
+      </div>
+
+      <div style="width: 60px; height: 3px; background: linear-gradient(to right, #2c5364, #81e6d9); border-radius: 2px; margin-bottom: 24px;"></div>
+
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 10px; color: #a0aec0; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">Prepared by</div>
+        <div style="font-size: 14px; font-weight: bold; color: #2d3748;">Dr. Catherine Hargreaves</div>
+        <div style="font-size: 10px; color: #718096; margin-top: 2px;">Director of Operations, Infrastructure Division</div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 10px; color: #a0aec0; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">Reviewed by</div>
+        <div style="font-size: 14px; font-weight: bold; color: #2d3748;">James Ellsworth-Kent</div>
+        <div style="font-size: 10px; color: #718096; margin-top: 2px;">Chief Executive Officer</div>
+      </div>
+
+      <div>
+        <div style="font-size: 10px; color: #a0aec0; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">Date of Publication</div>
+        <div style="font-size: 14px; font-weight: bold; color: #2d3748;">21 March 2026</div>
+      </div>
+
+      <div style="margin-top: 30px; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 8px; color: #a0aec0;">
+        <div style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">Classification: Internal</div>
+        <div>This document is intended for internal distribution only. Reproduction or distribution to third parties requires written authorisation from the Executive Office.</div>
+      </div>
+    </div>
+
+    <div style="position: absolute; bottom: 0; left: 0; width: 555px; height: 16px; background: repeating-linear-gradient(90deg, #2c5364 0px, #2c5364 30px, #203a43 30px, #203a43 60px);"></div>
+
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Annual Performance Report 2026"}, nil
+}
+</script>

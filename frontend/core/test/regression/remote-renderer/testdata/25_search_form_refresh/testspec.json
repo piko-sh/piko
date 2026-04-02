@@ -1,0 +1,39 @@
+{
+    "description": "Search form refresh preserves pk-no-refresh input and inherits parent scopes",
+    "mockResponse": {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html",
+            "X-PP-Response-Support": "fragment-patch"
+        }
+    },
+    "renderOptions": {
+        "src": "/_piko/partials/results",
+        "patchMethod": "morph",
+        "childrenOnly": true,
+        "querySelector": "#search-form",
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": "#search-form",
+            "attributes": { "partial_mode": "sync", "pk-sync-bound": "true" },
+            "description": "Form should retain partial_mode and pk-sync-bound (childrenOnly preserves container)"
+        },
+        {
+            "selector": "#search-form input[name=\"query\"]",
+            "attributes": { "pk-no-refresh": "", "value": "user-input" },
+            "description": "Input should preserve value due to pk-no-refresh"
+        },
+        {
+            "selector": ".results p",
+            "textContent": "3 results found",
+            "description": "Results paragraph should have updated text from server"
+        },
+        {
+            "selector": "#search-form input[name=\"query\"]",
+            "attributes": { "partial": "partials_results_94d5c799 pages_search_3cd6b932" },
+            "description": "Input partial stays unchanged because pk-no-refresh skips attribute morphing"
+        }
+    ]
+}

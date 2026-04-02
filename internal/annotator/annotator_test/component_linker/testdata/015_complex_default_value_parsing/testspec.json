@@ -1,0 +1,17 @@
+{
+  "description": "Tests that a complex default value from a factory function is correctly injected as a CallExpr.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "avatar",
+      "assert": {
+        "passedPropsCount": 1,
+        "hasProp": "options",
+        "propValueIs": {
+          "options": "partials_avatar_c3a790d9.GetDefaultOptions()"
+        }
+      }
+    }
+  ]
+}

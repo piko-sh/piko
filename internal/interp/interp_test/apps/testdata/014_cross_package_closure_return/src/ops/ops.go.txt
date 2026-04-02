@@ -1,0 +1,13 @@
+package ops
+
+func MakeAdder(n int) func(int) int {
+	return func(x int) int {
+		return x + n
+	}
+}
+
+func MakeMultiplier(n int) func(int) int {
+	return func(x int) int {
+		return x * n
+	}
+}

@@ -1,0 +1,3 @@
+{
+  "description": "ALTER TYPE ADD VALUE: adding a new value to an existing enum type in a subsequent migration should be reflected in the catalogue."
+}

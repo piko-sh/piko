@@ -1,0 +1,47 @@
+{
+  "description": "Validates that the compiler issues warnings when user-defined symbols shadow system symbols.",
+  "expectedDiagnostics": 3,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates",
+      "onLine": 35
+    },
+    {
+      "severity": "warning",
+      "messageContains": "User-defined function 'T' shadows a built-in Piko system symbol",
+      "onLine": 26
+    },
+    {
+      "severity": "warning",
+      "messageContains": "Loop variable 'request' shadows a built-in Piko system symbol",
+      "onLine": 35
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#local-t",
+      "description": "The call to T() should resolve to the LOCAL function, not the built-in.",
+      "assertOnInterpolation": {
+        "rawExpression": "T(\"some_key\")",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "T",
+          "resolvedTypeIs": "function",
+          "isSymbol": "T",
+          "codeGenVarIs": "T"
+        }
+      ]
+    },
+    {
+      "select": "#loop-request",
+      "description": "The 'request' symbol inside the loop should resolve to the loop variable, not the system one.",
+      "assertOnInterpolation": {
+        "rawExpression": "request",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "description": "Tests that time.Time retains its named type identity when used as a struct field in a registered package. The pre-built types.Package must be resolved via scope lookup so that methods like Format() are available.",
+  "requestURL": "/main",
+  "crossPackageTimeField": true
+}

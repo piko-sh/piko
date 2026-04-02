@@ -1,0 +1,205 @@
+{
+  "description": "All image modifiers: sharpen, rotation, flip, saturation, combined effects",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/images/jersey.jpg",
+      "expectedArtefactID": "testmodule/lib/images/jersey.jpg"
+    }
+  ],
+  "transformations": [
+    {
+      "profileName": "modifier-sharpen",
+      "capabilityName": "image-transform",
+      "description": "Sharpen effect",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "sharpen": "2.0"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "sharpen.jpg"
+    },
+    {
+      "profileName": "modifier-rotate-90",
+      "capabilityName": "image-transform",
+      "description": "Rotate 90 degrees clockwise (resize first, then rotate swaps dimensions)",
+      "params": {
+        "width": "314",
+        "height": "400",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "rotate": "90"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "rotate-90.jpg"
+    },
+    {
+      "profileName": "modifier-rotate-180",
+      "capabilityName": "image-transform",
+      "description": "Rotate 180 degrees",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "rotate": "180"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "rotate-180.jpg"
+    },
+    {
+      "profileName": "modifier-flip-horizontal",
+      "capabilityName": "image-transform",
+      "description": "Flip horizontally (mirror)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "flip": "horizontal"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "flip-horizontal.jpg"
+    },
+    {
+      "profileName": "modifier-flip-vertical",
+      "capabilityName": "image-transform",
+      "description": "Flip vertically",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "flip": "vertical"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "flip-vertical.jpg"
+    },
+    {
+      "profileName": "modifier-saturation-high",
+      "capabilityName": "image-transform",
+      "description": "High saturation (+50)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "saturation": "50"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "saturation-high.jpg"
+    },
+    {
+      "profileName": "modifier-saturation-low",
+      "capabilityName": "image-transform",
+      "description": "Low saturation (-50, nearly greyscale)",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "saturation": "-50"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "saturation-low.jpg"
+    },
+    {
+      "profileName": "modifier-combined",
+      "capabilityName": "image-transform",
+      "description": "Combined: blur + greyscale + contrast boost",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "85",
+        "fit": "cover",
+        "blur": "1.5",
+        "greyscale": "true",
+        "contrast": "20"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "combined-blur-grey-contrast.jpg"
+    },
+    {
+      "profileName": "modifier-artistic",
+      "capabilityName": "image-transform",
+      "description": "Artistic effect: sharpen + high saturation + brightness",
+      "params": {
+        "width": "400",
+        "height": "314",
+        "format": "jpeg",
+        "quality": "90",
+        "fit": "cover",
+        "sharpen": "1.5",
+        "saturation": "30",
+        "brightness": "10"
+      },
+      "dependsOn": ["source"],
+      "expected": {
+        "mimeType": "image/jpeg",
+        "outputNotEmpty": true,
+        "exactWidth": 400,
+        "exactHeight": 314
+      },
+      "goldenFile": "artistic.jpg"
+    }
+  ]
+}

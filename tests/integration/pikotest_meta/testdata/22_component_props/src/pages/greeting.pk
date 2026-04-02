@@ -1,0 +1,86 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package greeting
+
+import "piko.sh/piko"
+
+type Props struct {
+	Name       string
+	Age        int
+	IsVIP      bool
+	Tags       []string
+	Greeting   string
+}
+
+type Response struct {
+	DisplayName  string
+	DisplayAge   int
+	IsVIPMember  bool
+	TagList      []string
+	Message      string
+	HasTags      bool
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+	name := props.Name
+	if name == "" {
+		name = "Guest"
+	}
+
+	greeting := props.Greeting
+	if greeting == "" {
+		greeting = "Hello"
+	}
+
+	message := greeting + ", " + name + "!"
+
+	return Response{
+		DisplayName:  name,
+		DisplayAge:   props.Age,
+		IsVIPMember:  props.IsVIP,
+		TagList:      props.Tags,
+		Message:      message,
+		HasTags:      len(props.Tags) > 0,
+	}, piko.Metadata{
+		Title: "Greeting",
+	}, nil
+}
+</script>
+<template>
+	<div class="greeting-card">
+		<h1 class="message">{{ state.Message }}</h1>
+		<div class="user-info">
+			<p class="name">Name: <span class="name-value">{{ state.DisplayName }}</span></p>
+			<p p-if="state.DisplayAge > 0" class="age">Age: <span class="age-value">{{ state.DisplayAge }}</span></p>
+			<p p-if="state.IsVIPMember" class="vip-badge">VIP Member</p>
+		</div>
+		<div p-if="state.HasTags" class="tags-section">
+			<h3>Tags:</h3>
+			<ul class="tag-list">
+				<li p-for="tag in state.TagList" class="tag-item">{{ tag }}</li>
+			</ul>
+		</div>
+		<div p-else class="no-tags">
+			<p>No tags assigned</p>
+		</div>
+	</div>
+</template>

@@ -1,0 +1,24 @@
+{
+  "employees": [
+    {
+      "EmployeeName": "Alice",
+      "ID": 1,
+      "ManagerName": null
+    },
+    {
+      "EmployeeName": "Bob",
+      "ID": 2,
+      "ManagerName": "Alice"
+    },
+    {
+      "EmployeeName": "Charlie",
+      "ID": 3,
+      "ManagerName": "Alice"
+    },
+    {
+      "EmployeeName": "Diana",
+      "ID": 4,
+      "ManagerName": "Bob"
+    }
+  ]
+}

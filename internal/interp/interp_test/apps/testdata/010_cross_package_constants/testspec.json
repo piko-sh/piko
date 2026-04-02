@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package constant usage",
+  "modulePath": "testpkg",
+  "expected": "pi=3 e=2 tau=6"
+}

@@ -1,0 +1,19 @@
+{
+    "description": "Scope preservation with childrenOnly mode - children's scopes preserved while container unchanged",
+    "options": {
+        "childrenOnly": true,
+        "preservePartialScopes": true
+    },
+    "assertions": [
+        {
+            "selector": ".container",
+            "attributes": { "partial": "container_scope page_scope" },
+            "description": "Container scope should be unchanged (childrenOnly)"
+        },
+        {
+            "selector": ".child",
+            "attributes": { "partial": "child_new_scope container_scope page_scope" },
+            "description": "Child should preserve parent scopes"
+        }
+    ]
+}

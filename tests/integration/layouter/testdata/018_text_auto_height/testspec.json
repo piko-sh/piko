@@ -1,0 +1,7 @@
+{
+    "description": "Verifies auto-height block sizing from text content using real font metrics.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

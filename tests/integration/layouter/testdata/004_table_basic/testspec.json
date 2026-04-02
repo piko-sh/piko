@@ -1,0 +1,7 @@
+{
+    "description": "Verifies basic table layout: 2x2 grid with explicit cell widths and heights.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

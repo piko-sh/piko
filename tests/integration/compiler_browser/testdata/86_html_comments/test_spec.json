@@ -1,0 +1,22 @@
+[
+  {
+    "action": "checkText",
+    "selector": "html-comments >>> #before",
+    "expected": "Before comment"
+  },
+  {
+    "action": "checkText",
+    "selector": "html-comments >>> #after",
+    "expected": "After comment"
+  },
+  {
+    "action": "checkText",
+    "selector": "html-comments >>> #final",
+    "expected": "Final text"
+  },
+  {
+    "action": "checkElementCount",
+    "selector": "html-comments >>> p",
+    "expected": "3"
+  }
+]

@@ -1,0 +1,141 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div style="width: 555px; padding: 20px; font-size: 10px; color: #2c3e50;">
+
+    <div style="background: linear-gradient(135deg, #1a365d, #2b6cb0); padding: 20px; border-radius: 6px;">
+      <div style="font-size: 22px; font-weight: bold; color: #ffffff; letter-spacing: 2px; text-transform: uppercase;">Northgate Engineering Ltd</div>
+      <div style="color: #bee3f8; font-size: 9px; margin-top: 4px;">47 Harbour Street, Bristol, BS1 4AH, United Kingdom</div>
+      <div style="color: #bee3f8; font-size: 9px;">Tel: +44 117 496 0023 | accounts@northgate-eng.example.com</div>
+    </div>
+
+    <div style="display: flex; margin-top: 18px;">
+      <div style="flex: 1;">
+        <div style="font-size: 20px; font-weight: bold; color: #1a365d;">INVOICE</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 10px; color: #718096;">Invoice No: NE-2026-00184</div>
+        <div style="font-size: 10px; color: #718096;">Date: 14 March 2026</div>
+        <div style="font-size: 10px; color: #718096;">Due: 13 April 2026</div>
+      </div>
+    </div>
+
+    <div style="display: flex; margin-top: 16px;">
+      <div style="flex: 1; padding: 12px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; margin-right: 8px;">
+        <div style="font-size: 8px; font-weight: bold; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Bill To</div>
+        <div style="font-weight: bold;">Whitfield Construction Group</div>
+        <div>Rebecca Whitfield</div>
+        <div>12 Cabot Square</div>
+        <div>London, E14 4QQ</div>
+        <div>United Kingdom</div>
+      </div>
+      <div style="flex: 1; padding: 12px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px;">
+        <div style="font-size: 8px; font-weight: bold; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Ship To</div>
+        <div style="font-weight: bold;">Whitfield Construction Group</div>
+        <div>Site Office, Plot 7</div>
+        <div>Riverside Development</div>
+        <div>Cardiff, CF10 5AL</div>
+        <div>United Kingdom</div>
+      </div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 9px;">
+      <tr style="background-color: #1a365d; color: #ffffff;">
+        <th style="padding: 8px 10px; text-align: left; font-weight: bold;">Description</th>
+        <th style="padding: 8px 10px; text-align: center; font-weight: bold; width: 40px;">Qty</th>
+        <th style="padding: 8px 10px; text-align: right; font-weight: bold; width: 70px;">Unit Price</th>
+        <th style="padding: 8px 10px; text-align: right; font-weight: bold; width: 70px;">Amount</th>
+      </tr>
+      <tr style="background-color: #ffffff;">
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">Structural steel beams, Grade S355, 254x146x31 UB, 6m lengths</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">24</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">485.00</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">11,640.00</td>
+      </tr>
+      <tr style="background-color: #f7fafc;">
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">High-strength bolts M20x60 Grade 8.8, zinc plated (box of 100)</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">8</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">62.50</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">500.00</td>
+      </tr>
+      <tr style="background-color: #ffffff;">
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">Fabrication and welding labour, certified welder, per hour</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">36</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">78.00</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">2,808.00</td>
+      </tr>
+      <tr style="background-color: #f7fafc;">
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">Protective primer coating, intumescent fire rated, per beam</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">24</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">45.00</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">1,080.00</td>
+      </tr>
+      <tr style="background-color: #ffffff;">
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">Delivery and crane offloading, Cardiff site</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">1</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">750.00</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">750.00</td>
+      </tr>
+    </table>
+
+    <div style="display: flex; margin-top: 12px;">
+      <div style="flex: 1;"></div>
+      <div style="width: 200px;">
+        <div style="display: flex; padding: 4px 0; border-bottom: 1px dashed #cbd5e0;">
+          <div style="flex: 1; color: #718096;">Subtotal</div>
+          <div style="text-align: right; font-weight: bold;">16,778.00</div>
+        </div>
+        <div style="display: flex; padding: 4px 0; border-bottom: 1px dashed #cbd5e0;">
+          <div style="flex: 1; color: #718096;">VAT (20%)</div>
+          <div style="text-align: right; font-weight: bold;">3,355.60</div>
+        </div>
+        <div style="display: flex; padding: 6px 8px; margin-top: 2px; background-color: #1a365d; border-radius: 3px;">
+          <div style="flex: 1; color: #ffffff; font-weight: bold; font-size: 11px;">Total Due</div>
+          <div style="text-align: right; color: #ffffff; font-weight: bold; font-size: 11px;">20,133.60</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 12px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 9px;">
+      <div style="font-weight: bold; margin-bottom: 4px;">Payment Details</div>
+      <div>Bank: Lloyds Bank | Sort Code: 30-92-18 | Account: 48291057</div>
+      <div>Reference: NE-2026-00184</div>
+    </div>
+
+    <div style="margin-top: 14px; font-size: 8px; color: #a0aec0; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+      <div>Payment terms: net 30 days. Late payments are subject to statutory interest under the Late Payment of Commercial Debts Act 1998.</div>
+      <div style="margin-top: 4px;">Questions about this invoice? Contact us at <a href="mailto:accounts@northgate-eng.example.com" style="color: #2b6cb0; text-decoration: underline;">accounts@northgate-eng.example.com</a></div>
+    </div>
+
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Invoice NE-2026-00184"}, nil
+}
+</script>

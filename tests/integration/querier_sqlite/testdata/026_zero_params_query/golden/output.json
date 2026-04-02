@@ -1,0 +1,22 @@
+{
+  "all_counters": [
+    {
+      "ID": 1,
+      "Name": "page_views",
+      "Value": 100
+    },
+    {
+      "ID": 2,
+      "Name": "clicks",
+      "Value": 42
+    },
+    {
+      "ID": 3,
+      "Name": "signups",
+      "Value": 7
+    }
+  ],
+  "count_all": {
+    "Total": 3
+  }
+}

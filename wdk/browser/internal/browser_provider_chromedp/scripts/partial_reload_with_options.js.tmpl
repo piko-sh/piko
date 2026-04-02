@@ -1,0 +1,7 @@
+(async () => {
+    const { partial } = await import('/_piko/dist/ppframework.core.es.js');
+    await partial({{jsStr .PartialName}}).reloadWithOptions({
+        data: {{jsRaw .DataJSON}},
+        level: {{.Level}}
+    });
+})()

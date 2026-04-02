@@ -1,0 +1,302 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-fab-menu">
+    <div class="fab-menu" p-class="{ 'open': state.open }">
+        <div class="scrim" p-if="state.open" p-on:click="close"></div>
+        <div class="actions" p-show="state.open">
+            <slot></slot>
+        </div>
+        <div class="trigger" p-on:click="toggle">
+            <slot name="fab">
+                <button class="default-fab"
+                        p-class="{
+                            'surface': state.variant == 'surface',
+                            'primary': state.variant == 'primary',
+                            'secondary': state.variant == 'secondary',
+                            'tertiary': state.variant == 'tertiary'
+                        }"
+                        type="button"
+                        aria-haspopup="true"
+                        aria-expanded="false">
+                    <span class="state-layer"></span>
+                    <span class="icon">
+                        <piko:svg src="piko.sh/piko/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                    </span>
+                </button>
+            </slot>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        open: false as boolean,
+        variant: 'primary' as string,
+    };
+
+    let outsideClickHandler = null;
+    let escHandler = null;
+
+    function toggle() {
+        if (state.open) {
+            close();
+        } else {
+            state.open = true;
+            outsideClickHandler = (e) => {
+                if (!pkc.contains(e.target)) {
+                    close();
+                }
+            };
+            escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    close();
+                }
+            };
+            setTimeout(() => {
+                document.addEventListener('click', outsideClickHandler);
+                document.addEventListener('keydown', escHandler);
+            }, 0);
+        }
+    }
+
+    function close() {
+        state.open = false;
+        if (outsideClickHandler) {
+            document.removeEventListener('click', outsideClickHandler);
+            outsideClickHandler = null;
+        }
+        if (escHandler) {
+            document.removeEventListener('keydown', escHandler);
+            escHandler = null;
+        }
+        pkc.dispatchEvent(new CustomEvent('close', {
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    pkc.onDisconnected(() => {
+        if (outsideClickHandler) {
+            document.removeEventListener('click', outsideClickHandler);
+            outsideClickHandler = null;
+        }
+        if (escHandler) {
+            document.removeEventListener('keydown', escHandler);
+            escHandler = null;
+        }
+    });
+
+    pkc.show = () => { state.open = true; };
+    pkc.close = () => { close(); };
+    pkc.toggle = () => { toggle(); };
+</script>
+
+<style>
+    :host {
+        display: inline-flex;
+        flex-shrink: 0;
+        position: relative;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_primary-container: var(--m3e-primary-container, #eaddff);
+        --_on-primary-container: var(--m3e-on-primary-container, #21005d);
+        --_secondary-container: var(--m3e-secondary-container, #e8def8);
+        --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_tertiary-container: var(--m3e-tertiary-container, #ffd8e4);
+        --_on-tertiary-container: var(--m3e-on-tertiary-container, #31111d);
+        --_surface-container-high: var(--m3e-surface-container-high, #ece6f0);
+        --_surface-container: var(--m3e-surface-container, #f3edf7);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_duration-medium: var(--m3e-duration-medium, 400ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
+        --_shape-lg: var(--m3e-shape-lg, 16px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .fab-menu {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: transparent;
+    }
+
+    .actions {
+        position: absolute;
+        bottom: calc(100% + 16px);
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 16px;
+        z-index: 2;
+        align-items: flex-end;
+
+        & ::slotted(*) {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--_surface-container);
+            color: var(--_on-surface);
+            padding: 12px 16px;
+            border-radius: var(--_shape-lg);
+            box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 1px 3px 1px rgba(0,0,0,0.15);
+            cursor: pointer;
+            white-space: nowrap;
+            border: none;
+            appearance: none;
+            -webkit-appearance: none;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.1px;
+            line-height: 1.25rem;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity var(--_duration-short) var(--_easing-emphasized),
+                        transform var(--_duration-short) var(--_easing-emphasized),
+                        box-shadow var(--_duration-short) var(--_easing-standard);
+            pointer-events: none;
+        }
+
+        & ::slotted(*:hover) {
+            box-shadow: 0px 2px 4px 1px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.20);
+        }
+    }
+
+    .open .actions {
+        & ::slotted(*) {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        & ::slotted(:nth-child(1)) {
+            transition-delay: 0ms;
+        }
+
+        & ::slotted(:nth-child(2)) {
+            transition-delay: 50ms;
+        }
+
+        & ::slotted(:nth-child(3)) {
+            transition-delay: 100ms;
+        }
+
+        & ::slotted(:nth-child(4)) {
+            transition-delay: 150ms;
+        }
+
+        & ::slotted(:nth-child(5)) {
+            transition-delay: 200ms;
+        }
+
+        & ::slotted(:nth-child(6)) {
+            transition-delay: 250ms;
+        }
+    }
+
+    .trigger {
+        position: relative;
+        z-index: 2;
+    }
+
+    .default-fab {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border: none;
+        border-radius: var(--_shape-lg);
+        cursor: pointer;
+        outline: none;
+        overflow: hidden;
+        appearance: none;
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.30);
+        transition: box-shadow var(--_duration-short) var(--_easing-standard);
+
+        &:hover {
+            box-shadow: 0px 6px 10px 4px rgba(0,0,0,0.15), 0px 2px 3px 0px rgba(0,0,0,0.30);
+        }
+
+        &:focus-visible .state-layer {
+            opacity: 0.12;
+        }
+
+        &.surface {
+            background: var(--_surface-container-high);
+            color: var(--_primary);
+        }
+
+        &.primary {
+            background: var(--_primary-container);
+            color: var(--_on-primary-container);
+        }
+
+        &.secondary {
+            background: var(--_secondary-container);
+            color: var(--_on-secondary-container);
+        }
+
+        &.tertiary {
+            background: var(--_tertiary-container);
+            color: var(--_on-tertiary-container);
+        }
+
+        &:hover .state-layer {
+            opacity: 0.08;
+        }
+
+        &:active .state-layer {
+            opacity: 0.12;
+        }
+    }
+
+    .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        z-index: 1;
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: currentColor;
+        opacity: 0;
+        transition: opacity var(--_duration-short);
+        pointer-events: none;
+    }
+</style>

@@ -1,0 +1,1 @@
+{"description": "INSERT ... ON CONFLICT DO UPDATE/DO NOTHING with EXCLUDED pseudo-table and RETURNING"}

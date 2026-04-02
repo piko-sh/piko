@@ -1,0 +1,7 @@
+[
+  {
+    "action": "checkTextNot",
+    "selector": "dom-api \u003e\u003e\u003e p",
+    "expected": "Body Width: 0"
+  }
+]

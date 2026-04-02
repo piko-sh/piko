@@ -1,0 +1,68 @@
+{
+  "description": "Validates that the type inspector can correctly resolve fields on a struct that is the value type of a map. It tests p-for iteration, safe direct key access, and unsafe direct key access, ensuring types are resolved correctly at each stage.",
+  "shouldError": false,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "onLine": 25,
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding"
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "li",
+      "description": "Assert types within the p-for loop body.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "key",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "address",
+          "resolvedTypeIs": "dto.Address"
+        },
+        {
+          "rawExpression": "address.Name",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "#safe",
+      "description": "Assert types for safe, direct map key access.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.User.Addresses[\"home\"].Name",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.User.Addresses",
+          "resolvedTypeIs": "map[string]dto.Address"
+        },
+        {
+          "rawExpression": "state.User.Addresses[\"home\"]",
+          "resolvedTypeIs": "dto.Address"
+        }
+      ]
+    },
+    {
+      "select": "#unsafe",
+      "description": "Assert types for unsafe (non-existent key) map access.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.User.Addresses[\"nonexistent\"].Name",
+        "resolvedTypeIs": "string"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.User.Addresses",
+          "resolvedTypeIs": "map[string]dto.Address"
+        },
+        {
+          "rawExpression": "state.User.Addresses[\"nonexistent\"]",
+          "resolvedTypeIs": "dto.Address"
+        }
+      ]
+    }
+  ]
+}

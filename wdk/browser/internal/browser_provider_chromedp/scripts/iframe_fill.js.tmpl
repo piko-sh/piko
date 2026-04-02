@@ -1,0 +1,16 @@
+(() => {
+    const frame = document.querySelector({{jsStr .FrameSelector}});
+    if (!frame || frame.tagName.toLowerCase() !== 'iframe') {
+        throw new Error('iframe not found');
+    }
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    const el = doc.querySelector({{jsStr .ElementSelector}});
+    if (!el) {
+        throw new Error('element not found in iframe');
+    }
+    el.focus();
+    el.value = {{jsStr .Value}};
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+})()

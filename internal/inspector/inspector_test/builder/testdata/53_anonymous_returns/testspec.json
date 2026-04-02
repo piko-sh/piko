@@ -1,0 +1,20 @@
+{
+  "description": "Tests serialisation of functions returning anonymous struct and interface types.",
+  "moduleName": "testcase_53_anonymous_returns",
+  "shouldError": false,
+  "goldenFileIncludes": [
+    "testcase_53_anonymous_returns"
+  ],
+  "assertions": [
+    {
+      "description": "The return type of GetConfig should be the full anonymous struct definition.",
+      "select": "packages.testcase_53_anonymous_returns.funcs.GetConfig.signature.results.0",
+      "expect": "struct{Port int; Host string}"
+    },
+    {
+      "description": "The return type of GetRunner should be the full anonymous interface definition.",
+      "select": "packages.testcase_53_anonymous_returns.funcs.GetRunner.signature.results.0",
+      "expect": "interface{Run() error}"
+    }
+  ]
+}

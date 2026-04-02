@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "styleBlock": ".page-title[partial~=pages_main_594861c5]{font-size:24px}\n[partial~=partials_container_cba4efcb]  .nested-item{color:red}.container[partial~=partials_container_cba4efcb]  .nested-item{color:#00f}.wrapper[partial~=partials_container_cba4efcb] .container[partial~=partials_container_cba4efcb]  .nested-item{color:green}.container[partial~=partials_container_cba4efcb]\u003e .nested-item{color:purple}.container[partial~=partials_container_cba4efcb]  .nested-item\u003e.sub-item{color:orange}.container[partial~=partials_container_cba4efcb]:hover  .nested-item{color:pink}.container[partial~=partials_container_cba4efcb]  .a .b .c{color:#ff0}body  .nested-item{margin:0}@media(min-width:768px){.container[partial~=partials_container_cba4efcb]  .nested-item{font-size:18px}}.local-item[partial~=partials_container_cba4efcb]+ .nested-item{margin-left:10px}.local-item[partial~=partials_container_cba4efcb]~ .nested-item{padding:5px}#main-container[partial~=partials_container_cba4efcb]  .nested-item{z-index:10}.container[partial~=partials_container_cba4efcb] .local-item[partial~=partials_container_cba4efcb]{font-weight:700}.container[partial~=partials_container_cba4efcb]  .nested-item:hover{text-decoration:underline}.container[partial~=partials_container_cba4efcb]  .nested-item:before{content:\"\u003e\u003e \"}.container[partial~=partials_container_cba4efcb]  input[type=text]{border:1px solid gray}.container[partial~=partials_container_cba4efcb]  #specific-id{position:absolute}.container[partial~=partials_container_cba4efcb]  .class1.class2{opacity:.5}.container[partial~=partials_container_cba4efcb]  .level1\u003e.level2+.level3~.level4{visibility:hidden}.container[partial~=partials_container_cba4efcb]  .item:not(.hidden){display:block}.container[partial~=partials_container_cba4efcb]  .list-item:first-child{margin-top:0}.container[partial~=partials_container_cba4efcb]  .btn:hover:not(:disabled){background:#00008b}.container[partial~=partials_container_cba4efcb]  .row:nth-child(odd){background:#f0f0f0}.wrapper[partial~=partials_container_cba4efcb]\u003e.container[partial~=partials_container_cba4efcb]  .nested-item\u003e.sub-item:first-child{font-style:italic}\n.nested-item[partial~=partials_nested_content_edda9701]{background:#d3d3d3}.nested-wrapper[partial~=partials_nested_content_edda9701]{border:1px solid #ccc}",
+      "packagePath": "testcase_093_css_deep_vue_style/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

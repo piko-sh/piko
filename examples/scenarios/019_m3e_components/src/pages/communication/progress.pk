@@ -1,0 +1,129 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Progress"
+            server.current-page="communication/progress">
+
+            <p class="demo-description">Progress indicators show the status of a process. They come in linear and circular variants, with determinate and indeterminate modes.</p>
+
+            <div class="demo-grid">
+                <!-- Linear - 0% -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Linear - 0%</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="linear" value="0"></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="linear" value="0"&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Linear - 25% -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Linear - 25%</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="linear" value="25"></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="linear" value="25"&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Linear - 65% -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Linear - 65%</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="linear" value="65"></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="linear" value="65"&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Linear - 100% -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Linear - 100%</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="linear" value="100"></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="linear" value="100"&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Linear - Indeterminate -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Linear - Indeterminate</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="linear" indeterminate></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="linear" indeterminate&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Circular - 25% -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Circular - 25%</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="circular" value="25"></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="circular" value="25"&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Circular - 75% -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Circular - 75%</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="circular" value="75"></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="circular" value="75"&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Circular - Indeterminate -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Circular - Indeterminate</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="circular" indeterminate></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="circular" indeterminate&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+
+                <!-- Linear with Buffer -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Linear with Buffer</h3>
+                    <div class="demo-preview">
+                        <m3e-progress variant="linear" value="30" buffer="60"></m3e-progress>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-progress variant="linear" value="30" buffer="60"&gt;&lt;/m3e-progress&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Progress - M3E Components",
+    }, nil
+}
+</script>

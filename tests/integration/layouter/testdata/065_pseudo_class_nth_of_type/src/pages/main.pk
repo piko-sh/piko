@@ -1,0 +1,47 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <style>
+    .mixed-parent > div:first-of-type { padding-top: 10px; }
+    .mixed-parent > div:last-of-type { padding-bottom: 10px; }
+    .mixed-parent > span:nth-of-type(2) { padding-left: 15px; }
+  </style>
+
+  <div class="mixed-parent" data-layout-id="mixed-parent" style="box-sizing: content-box; width: 400px; margin: 0; padding: 0;">
+    <div data-layout-id="div-1" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+    <span data-layout-id="span-1" style="box-sizing: content-box; display: block; height: 20px; margin: 0; padding: 0;"></span>
+    <div data-layout-id="div-2" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+    <span data-layout-id="span-2" style="box-sizing: content-box; display: block; height: 20px; margin: 0; padding: 0;"></span>
+    <div data-layout-id="div-3" style="box-sizing: content-box; height: 20px; margin: 0; padding: 0;"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{Title: "Pseudo Class nth-of-type Test"}, nil
+}
+</script>

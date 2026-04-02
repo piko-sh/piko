@@ -1,0 +1,11 @@
+(() => {
+    const frame = document.querySelector({{jsStr .Selector}});
+    if (!frame || frame.tagName.toLowerCase() !== 'iframe') {
+        return null;
+    }
+    return {
+        name: frame.name || '',
+        src: frame.src || '',
+        id: frame.id || ''
+    };
+})()

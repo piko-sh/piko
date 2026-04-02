@@ -1,0 +1,13 @@
+<template>
+    <pml-row>
+        <pml-col>
+            <pml-p>Column A</pml-p>
+        </pml-col>
+        <pml-col>
+            <pml-p>Column B</pml-p>
+        </pml-col>
+        <pml-col>
+            <pml-p>Column C</pml-p>
+        </pml-col>
+    </pml-row>
+</template>

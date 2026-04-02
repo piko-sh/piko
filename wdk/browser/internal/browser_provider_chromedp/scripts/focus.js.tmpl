@@ -1,0 +1,13 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return false;
+    let fired = false;
+    const handler = () => { fired = true; };
+    el.addEventListener('focus', handler, {once: true});
+    el.focus();
+    el.removeEventListener('focus', handler);
+    if (!fired) {
+        el.dispatchEvent(new FocusEvent('focus', {bubbles: true}));
+    }
+    return true;
+})()

@@ -1,0 +1,14 @@
+{
+  "description": "Checks that passing props to a component with no Props struct generates warnings.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "expectedUniqueInvocations": 1,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "icon",
+      "assert": {
+        "passedPropsCount": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "description": "Tests ActionBuilder options - timeout causes action to complete before timeout",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Call slow action via action builder - should succeed"
+    },
+    {
+      "action": "click",
+      "selector": "#run-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "#result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-status",
+      "expected": "completed"
+    },
+    {
+      "action": "checkText",
+      "selector": "#result-message",
+      "expected": "Process completed after delay"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_action.html"
+    }
+  ]
+}

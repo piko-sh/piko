@@ -1,0 +1,68 @@
+<!-- Navigation partial. Receives current-page as a prop and uses p-class
+     to highlight the active link. piko:a provides SPA-style navigation.
+     See https://piko.sh/docs/guide/pk-templates -->
+<template>
+  <nav class="site-nav">
+    <span class="site-name">Piko Blog</span>
+    <div class="nav-links">
+      <piko:a href="/" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'home' }">Home</piko:a>
+      <piko:a href="/blog" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'blog' }">Blog</piko:a>
+      <piko:a href="/about" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'about' }">About</piko:a>
+      <piko:a href="/contact" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'contact' }">Contact</piko:a>
+    </div>
+  </nav>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+  CurrentPage string `prop:"current-page"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+  return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .site-nav {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1rem 2rem;
+    background-color: var(--nav-bg, #1f2937);
+  }
+
+  .site-name {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .nav-link {
+    color: var(--nav-link-color, #d1d5db);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: color 0.15s ease;
+  }
+
+  .nav-link:hover {
+    color: var(--nav-link-hover-color, #ffffff);
+  }
+
+  .nav-link--active {
+    color: var(--nav-link-active-color, #60a5fa);
+    border-bottom: 2px solid var(--nav-link-active-color, #60a5fa);
+    padding-bottom: 0.25rem;
+  }
+</style>

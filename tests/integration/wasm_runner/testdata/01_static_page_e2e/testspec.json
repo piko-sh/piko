@@ -1,0 +1,6 @@
+{
+  "description": "End-to-end: generate static page via WASM then render via interpreter",
+  "moduleName": "testmodule",
+  "requestURL": "/home",
+  "expectedStatus": 200
+}

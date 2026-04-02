@@ -1,0 +1,110 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template public>
+    <div class="level-three">
+        <h4>Level 3 Partial</h4>
+        <p>L3 Counter: <span id="l3-counter" p-ref="l3Counter">0</span></p>
+        <button id="l3-increment" p-ref="l3IncrementBtn" p-on:click="incrementL3()">L3++</button>
+    </div>
+
+    <div slot="header" class="l3-header">
+        <span id="l3-header-status" p-ref="l3HeaderStatus">L3 Header Active</span>
+        <button id="l3-header-toggle" p-ref="l3HeaderToggle" p-on:click="toggleL3Header()">Toggle</button>
+    </div>
+
+    <div slot="footer" class="l3-footer">
+        <span id="l3-footer-msg" p-ref="l3FooterMessage">Footer from L3</span>
+        <button id="l3-update-all" p-ref="l3UpdateAll" p-on:click="updateAllL3Refs()">Update All L3</button>
+    </div>
+</template>
+
+<style>
+.level-three {
+    background: #fef3c7;
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    padding: 1rem;
+}
+.level-three h4 {
+    margin: 0 0 0.5rem;
+    color: #b45309;
+}
+.l3-header, .l3-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+button {
+    padding: 0.25rem 0.75rem;
+    background: #f59e0b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+/**
+ * Level 3 - Deepest partial with refs in default slot + two named slots.
+ * Tests cross-slot ref access within a single partial.
+ */
+let l3Count = 0;
+let l3HeaderToggled = false;
+
+export function incrementL3() {
+    l3Count++;
+    if (pk.refs.l3Counter) {
+        pk.refs.l3Counter.textContent = String(l3Count);
+    }
+    if (pk.refs.l3HeaderStatus) {
+        pk.refs.l3HeaderStatus.textContent = `L3 Count: ${l3Count}`;
+    }
+}
+
+export function toggleL3Header() {
+    l3HeaderToggled = !l3HeaderToggled;
+    if (pk.refs.l3HeaderStatus) {
+        pk.refs.l3HeaderStatus.textContent = l3HeaderToggled ? 'TOGGLED!' : 'L3 Header Active';
+    }
+    if (pk.refs.l3Counter) {
+        pk.refs.l3Counter.style.fontWeight = l3HeaderToggled ? 'bold' : 'normal';
+    }
+}
+
+export function updateAllL3Refs() {
+    if (pk.refs.l3Counter) pk.refs.l3Counter.textContent = '999';
+    if (pk.refs.l3HeaderStatus) pk.refs.l3HeaderStatus.textContent = 'ALL UPDATED';
+    if (pk.refs.l3FooterMessage) pk.refs.l3FooterMessage.textContent = 'Footer Updated!';
+    if (pk.refs.l3IncrementBtn) pk.refs.l3IncrementBtn.textContent = 'Done!';
+}
+</script>

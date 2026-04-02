@@ -1,0 +1,96 @@
+{
+  "description": "Tests template tag with p-for rendering multiple sibling children without a wrapper element, for both PK (server-side) and PKC (client-side)",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Template For Test"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "#server-dl > dt",
+      "expected": 2
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "#server-dl > dd",
+      "expected": 2
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "definition-list"
+    },
+    {
+      "action": "checkText",
+      "selector": "definition-list >>> #count",
+      "expected": "Count: 2"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "definition-list >>> #client-dl > dt",
+      "expected": 2
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "definition-list >>> #client-dl > dd",
+      "expected": 2
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+    {
+      "action": "click",
+      "selector": "definition-list >>> #add-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "definition-list >>> #count",
+      "expected": "Count: 3"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "definition-list >>> #client-dl > dt",
+      "expected": 3
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_add.html"
+    },
+    {
+      "action": "click",
+      "selector": "definition-list >>> #remove-btn"
+    },
+    {
+      "action": "wait",
+      "value": "100"
+    },
+    {
+      "action": "checkText",
+      "selector": "definition-list >>> #count",
+      "expected": "Count: 2"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "definition-list >>> #client-dl > dt",
+      "expected": 2
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_remove.html"
+    }
+  ]
+}

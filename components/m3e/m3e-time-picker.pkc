@@ -1,0 +1,262 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-time-picker">
+    <div class="time-picker">
+        <div class="inputs">
+            <div class="time-field"
+                 p-class="{ 'active': state.editingHours }">
+                <input class="time-input"
+                       p-ref="hoursInput"
+                       type="text"
+                       :value="state.hoursDisplay"
+                       maxlength="2"
+                       aria-label="Hours"
+                       p-on:focus="startEditHours"
+                       p-on:blur="finishEditHours"
+                       p-on:input="handleHoursInput" />
+            </div>
+            <span class="separator">:</span>
+            <div class="time-field"
+                 p-class="{ 'active': state.editingMinutes }">
+                <input class="time-input"
+                       p-ref="minutesInput"
+                       type="text"
+                       :value="state.minutesDisplay"
+                       maxlength="2"
+                       aria-label="Minutes"
+                       p-on:focus="startEditMinutes"
+                       p-on:blur="finishEditMinutes"
+                       p-on:input="handleMinutesInput" />
+            </div>
+            <div class="period-toggle" p-if="state.format == '12h'">
+                <button class="period-btn"
+                        p-class="{ 'active': state.period == 'AM' }"
+                        p-on:click="setPeriod('AM')">AM</button>
+                <button class="period-btn"
+                        p-class="{ 'active': state.period == 'PM' }"
+                        p-on:click="setPeriod('PM')">PM</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        value: '' as string,
+        format: '24h' as string,
+        hoursDisplay: '00' as string,
+        minutesDisplay: '00' as string,
+        period: 'AM' as string,
+        editingHours: false as boolean,
+        editingMinutes: false as boolean,
+    };
+
+    let hours24 = 0;
+    let minutes = 0;
+
+    pkc.onConnected(() => {
+        parseValue();
+        updateDisplay();
+    });
+
+    pkc.onUpdated((changedProps) => {
+        if (changedProps.has('value')) {
+            parseValue();
+            updateDisplay();
+        }
+    });
+
+    function parseValue() {
+        if (!state.value) return;
+        const parts = state.value.split(':');
+        if (parts.length >= 2) {
+            hours24 = Math.max(0, Math.min(23, parseInt(parts[0], 10) || 0));
+            minutes = Math.max(0, Math.min(59, parseInt(parts[1], 10) || 0));
+        }
+    }
+
+    function updateDisplay() {
+        if (state.format === '12h') {
+            let h12 = hours24 % 12;
+            if (h12 === 0) h12 = 12;
+            state.hoursDisplay = String(h12).padStart(2, '0');
+            state.period = hours24 >= 12 ? 'PM' : 'AM';
+        } else {
+            state.hoursDisplay = String(hours24).padStart(2, '0');
+        }
+        state.minutesDisplay = String(minutes).padStart(2, '0');
+    }
+
+    function emitChange() {
+        state.value = String(hours24).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+        pkc.dispatchEvent(new CustomEvent('change', {
+            detail: { value: state.value },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    function startEditHours() { state.editingHours = true; }
+    function startEditMinutes() { state.editingMinutes = true; }
+
+    function finishEditHours() {
+        state.editingHours = false;
+        let val = parseInt(pkc.refs.hoursInput.value, 10) || 0;
+        if (state.format === '12h') {
+            val = Math.max(1, Math.min(12, val));
+            hours24 = val === 12 ? (state.period === 'AM' ? 0 : 12) : (state.period === 'PM' ? val + 12 : val);
+        } else {
+            hours24 = Math.max(0, Math.min(23, val));
+        }
+        updateDisplay();
+        emitChange();
+    }
+
+    function finishEditMinutes() {
+        state.editingMinutes = false;
+        minutes = Math.max(0, Math.min(59, parseInt(pkc.refs.minutesInput.value, 10) || 0));
+        updateDisplay();
+        emitChange();
+    }
+
+    function handleHoursInput(event) {
+        event.target.value = event.target.value.replace(/\D/g, '');
+    }
+
+    function handleMinutesInput(event) {
+        event.target.value = event.target.value.replace(/\D/g, '');
+    }
+
+    function setPeriod(p) {
+        if (state.period === p) return;
+        state.period = p;
+        if (p === 'AM' && hours24 >= 12) hours24 -= 12;
+        if (p === 'PM' && hours24 < 12) hours24 += 12;
+        updateDisplay();
+        emitChange();
+    }
+</script>
+
+<style>
+    :host {
+        display: inline-block;
+        --_primary: var(--m3e-primary, #6750a4);
+        --_on-primary: var(--m3e-on-primary, #ffffff);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
+        --_surface-container-high: var(--m3e-surface-container-high, #ece6f0);
+        --_surface-container-highest: var(--m3e-surface-container-highest, #e6e0e9);
+        --_primary-container: var(--m3e-primary-container, #eaddff);
+        --_on-primary-container: var(--m3e-on-primary-container, #21005d);
+        --_tertiary-container: var(--m3e-tertiary-container, #ffd8e4);
+        --_on-tertiary-container: var(--m3e-on-tertiary-container, #31111d);
+        --_outline: var(--m3e-outline, #79747e);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_shape-sm: var(--m3e-shape-sm, 8px);
+        --_shape-xl: var(--m3e-shape-xl, 28px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .time-picker {
+        background: var(--_surface-container-high);
+        border-radius: var(--_shape-xl);
+        padding: 24px;
+        box-shadow: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.30);
+    }
+
+    .inputs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .time-field {
+        background: var(--_surface-container-highest);
+        border-radius: var(--_shape-sm);
+        border: 2px solid transparent;
+        transition: border-color var(--_duration-short);
+    }
+
+    .time-field.active {
+        background: var(--_primary-container);
+        border-color: var(--_primary);
+    }
+
+    .time-field.active .time-input {
+        color: var(--_on-primary-container);
+    }
+
+    .time-input {
+        width: 64px;
+        height: 72px;
+        border: none;
+        border-radius: inherit;
+        background: transparent;
+        text-align: center;
+        font-size: 2.8125rem;
+        font-weight: 400;
+        color: var(--_on-surface);
+        outline: none;
+        font-family: inherit;
+    }
+
+    .separator {
+        font-size: 2.8125rem;
+        color: var(--_on-surface);
+        padding: 0 4px;
+    }
+
+    .period-toggle {
+        display: flex;
+        flex-direction: column;
+        margin-left: 12px;
+        border: 1px solid var(--_outline);
+        border-radius: var(--_shape-sm);
+        overflow: hidden;
+    }
+
+    .period-btn {
+        width: 52px;
+        height: 36px;
+        border: none;
+        background: transparent;
+        color: var(--_on-surface-variant);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        outline: none;
+        font-family: inherit;
+        transition: background var(--_duration-short), color var(--_duration-short);
+    }
+
+    .period-btn + .period-btn {
+        border-top: 1px solid var(--_outline);
+    }
+
+    .period-btn.active {
+        background: var(--_tertiary-container);
+        color: var(--_on-tertiary-container);
+    }
+
+    .period-btn:hover:not(.active) {
+        background: rgba(73, 69, 79, 0.08);
+    }
+</style>

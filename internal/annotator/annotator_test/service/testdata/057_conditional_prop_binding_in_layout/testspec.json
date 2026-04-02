@@ -1,0 +1,37 @@
+{
+  "description": "Validates that conditional rendering (p-if/p-else) combined with prop bindings inside a layout's slot correctly resolves all expressions against the page's state.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#child",
+      "description": "The conditional child should correctly resolve the p-if directive and prop binding.",
+      "assert": {
+        "originalPackageAlias": "partials/child.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.ShowChild",
+          "resolvedTypeIs": "bool"
+        },
+        {
+          "rawExpression": "state.ChildData",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "#fallback",
+      "description": "The fallback component should correctly resolve its prop binding.",
+      "assert": {
+        "originalPackageAlias": "partials/fallback.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.FallbackMessage",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+CREATE TABLE config (
+    key_name VARCHAR(100) PRIMARY KEY,
+    value TEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

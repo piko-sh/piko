@@ -1,0 +1,12 @@
+[
+  {
+    "action": "checkText",
+    "selector": "text-interp-simple \u003e\u003e\u003e p:nth-of-type(1)",
+    "expected": "Name: Alice"
+  },
+  {
+    "action": "checkText",
+    "selector": "text-interp-simple \u003e\u003e\u003e p:nth-of-type(2)",
+    "expected": "Email: alice@example.com"
+  }
+]

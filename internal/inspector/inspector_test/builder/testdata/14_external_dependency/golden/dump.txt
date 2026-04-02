@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_14_external_dependency ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 14_external_dependency/src/main.go
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Request
+    - Defined In:      14_external_dependency/src/main.go
+    - TypeString:      main.Request
+    - Underlying:      struct{ID uuid.UUID}
+    - Stringability:   0
+    - Fields:
+      - ID                   uuid.UUID
+        (Canonical Package: github.com/google/uuid)
+
+[Package-Level Functions]
+  (none)

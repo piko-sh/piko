@@ -1,0 +1,18 @@
+{
+  "active_accounts": [
+    {
+      "Balance": 100,
+      "ID": 1,
+      "Name": "Alice"
+    }
+  ],
+  "insert_count": 2,
+  "invalid_status_error": true,
+  "negative_balance_error": true,
+  "valid_account": {
+    "Balance": 100,
+    "ID": 1,
+    "Name": "Alice",
+    "Status": "active"
+  }
+}

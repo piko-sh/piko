@@ -1,0 +1,7 @@
+CREATE TABLE sales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  region TEXT NOT NULL,
+  product TEXT NOT NULL,
+  amount REAL NOT NULL,
+  sale_date TEXT NOT NULL
+);

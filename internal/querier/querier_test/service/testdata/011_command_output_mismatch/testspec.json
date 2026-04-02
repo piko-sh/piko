@@ -1,0 +1,8 @@
+{
+  "description": "Command and output column consistency validation. Tests that :exec with output columns and :one with no output columns both produce Q009 diagnostics.",
+  "expectedDiagnosticCount": 2,
+  "diagnostics": [
+    { "severity": "warning", "code": "Q009", "messageContains": "exec", "filename": "exec_with_select.sql" },
+    { "severity": "warning", "code": "Q009", "messageContains": "one", "filename": "one_with_insert.sql" }
+  ]
+}

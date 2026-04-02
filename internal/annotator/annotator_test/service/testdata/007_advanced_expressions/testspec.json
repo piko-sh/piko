@@ -1,0 +1,50 @@
+{
+  "description": "Validates complex expressions including nested ternaries, logical operators with function calls, and optional chaining.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "#grade-check",
+      "description": "The nested ternary for grade calculation should be correctly typed.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Score > 50 ? (state.Score > 90 ? 'A' : 'B') : 'C'",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "#admin-check",
+      "description": "The p-if expression with a logical AND and function call should resolve to a boolean.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "state.IsAdmin && IsAdmin(state.CurrentUser)",
+          "resolvedTypeIs": "bool"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "IsAdmin(state.CurrentUser)",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    },
+    {
+      "select": "#address-check",
+      "description": "Optional chaining should correctly resolve the final type through pointer fields.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.CurrentUser",
+          "resolvedTypeIs": "*models.User"
+        },
+        {
+          "rawExpression": "state.CurrentUser?.Address",
+          "resolvedTypeIs": "*models.Address"
+        },
+        {
+          "rawExpression": "state.CurrentUser?.Address?.Street",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

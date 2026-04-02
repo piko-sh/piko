@@ -1,0 +1,224 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Tabs"
+            server.current-page="navigation/tabs">
+
+            <p class="demo-description">Tabs organise content across different screens or data sets. They come in primary and secondary variants.</p>
+
+            <div class="demo-grid cols-2">
+                <!-- Primary with Icons -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Primary with Icons</h3>
+                    <div class="demo-preview">
+                        <m3e-tabs variant="primary">
+                            <m3e-tab active>
+                                <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                                Home
+                            </m3e-tab>
+                            <m3e-tab>
+                                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                                Favourites
+                            </m3e-tab>
+                            <m3e-tab>
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                                Settings
+                            </m3e-tab>
+                        </m3e-tabs>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tabs variant="primary"&gt;
+  &lt;m3e-tab active&gt;
+    &lt;piko:svg src="@/lib/icons/home.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+    Home
+  &lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;
+    &lt;piko:svg src="@/lib/icons/star.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+    Favourites
+  &lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+    Settings
+  &lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;</code></pre>
+                </section>
+
+                <!-- Primary - Text Only -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Primary - Text Only</h3>
+                    <div class="demo-preview demo-stack">
+                        <m3e-tabs variant="primary">
+                            <m3e-tab active>Home</m3e-tab>
+                            <m3e-tab>Favourites</m3e-tab>
+                            <m3e-tab>Settings</m3e-tab>
+                        </m3e-tabs>
+                        <m3e-tabs variant="primary">
+                            <m3e-tab active>Home</m3e-tab>
+                            <m3e-tab disabled>Favourites</m3e-tab>
+                            <m3e-tab>Settings</m3e-tab>
+                        </m3e-tabs>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tabs variant="primary"&gt;
+  &lt;m3e-tab active&gt;Home&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Favourites&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Settings&lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;
+
+&lt;m3e-tabs variant="primary"&gt;
+  &lt;m3e-tab active&gt;Home&lt;/m3e-tab&gt;
+  &lt;m3e-tab disabled&gt;Favourites&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Settings&lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;</code></pre>
+                </section>
+
+                <!-- Secondary with Icons -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Secondary with Icons</h3>
+                    <div class="demo-preview">
+                        <m3e-tabs variant="secondary">
+                            <m3e-tab active>
+                                <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                                Home
+                            </m3e-tab>
+                            <m3e-tab>
+                                <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                                Favourites
+                            </m3e-tab>
+                            <m3e-tab>
+                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                                Settings
+                            </m3e-tab>
+                        </m3e-tabs>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tabs variant="secondary"&gt;
+  &lt;m3e-tab active&gt;
+    &lt;piko:svg src="@/lib/icons/home.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+    Home
+  &lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;
+    &lt;piko:svg src="@/lib/icons/star.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+    Favourites
+  &lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;
+    &lt;piko:svg src="@/lib/icons/settings.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+    Settings
+  &lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;</code></pre>
+                </section>
+
+                <!-- Secondary - Text Only -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Secondary - Text Only</h3>
+                    <div class="demo-preview">
+                        <m3e-tabs variant="secondary">
+                            <m3e-tab active>Home</m3e-tab>
+                            <m3e-tab>Favourites</m3e-tab>
+                            <m3e-tab>Settings</m3e-tab>
+                        </m3e-tabs>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tabs variant="secondary"&gt;
+  &lt;m3e-tab active&gt;Home&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Favourites&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Settings&lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;</code></pre>
+                </section>
+
+                <!-- Soft Disabled -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Soft Disabled</h3>
+                    <div class="demo-preview">
+                        <m3e-tabs variant="primary">
+                            <m3e-tab active>Home</m3e-tab>
+                            <m3e-tab soft_disabled>Favourites</m3e-tab>
+                            <m3e-tab>Settings</m3e-tab>
+                        </m3e-tabs>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tabs variant="primary"&gt;
+  &lt;m3e-tab active&gt;Home&lt;/m3e-tab&gt;
+  &lt;m3e-tab soft_disabled&gt;Favourites&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Settings&lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;</code></pre>
+                </section>
+
+                <!-- Different Selected Index -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Different Selected Index</h3>
+                    <div class="demo-preview">
+                        <m3e-tabs selectedIndex="2">
+                            <m3e-tab>Home</m3e-tab>
+                            <m3e-tab>Favourites</m3e-tab>
+                            <m3e-tab active>Settings</m3e-tab>
+                        </m3e-tabs>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tabs selectedIndex="2"&gt;
+  &lt;m3e-tab&gt;Home&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Favourites&lt;/m3e-tab&gt;
+  &lt;m3e-tab active&gt;Settings&lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;</code></pre>
+                </section>
+
+                <!-- Scrollable (Many Tabs) -->
+                <section class="demo-section">
+                    <h3 class="demo-subtitle">Scrollable (Many Tabs)</h3>
+                    <div class="demo-preview">
+                        <m3e-tabs variant="primary" style="max-width: 400px;">
+                            <m3e-tab active>Home</m3e-tab>
+                            <m3e-tab>Favourites</m3e-tab>
+                            <m3e-tab>Recent</m3e-tab>
+                            <m3e-tab>Shared</m3e-tab>
+                            <m3e-tab>Archive</m3e-tab>
+                            <m3e-tab>Deleted</m3e-tab>
+                            <m3e-tab>Settings</m3e-tab>
+                            <m3e-tab>Help</m3e-tab>
+                        </m3e-tabs>
+                    </div>
+                    <pre class="demo-code"><code>&lt;m3e-tabs variant="primary" style="max-width: 400px;"&gt;
+  &lt;m3e-tab active&gt;Home&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Favourites&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Recent&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Shared&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Archive&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Deleted&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Settings&lt;/m3e-tab&gt;
+  &lt;m3e-tab&gt;Help&lt;/m3e-tab&gt;
+&lt;/m3e-tabs&gt;</code></pre>
+                </section>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Tabs - M3E Components",
+    }, nil
+}
+</script>

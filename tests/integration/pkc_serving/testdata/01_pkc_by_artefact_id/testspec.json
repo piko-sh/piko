@@ -1,0 +1,23 @@
+{
+  "description": "PPC serving via artefact ID: Components stored with module-absolute artefact IDs can be retrieved via HTTP",
+  "moduleName": "testmodule",
+  "assets": [
+    {
+      "sourcePath": "src/lib/icons/arrow.svg",
+      "expectedArtefactID": "testmodule/lib/icons/arrow.svg"
+    }
+  ],
+  "httpChecks": [
+    {
+      "description": "Should serve SVG asset by artefact ID",
+      "requestPath": "/_piko/assets/testmodule/lib/icons/arrow.svg",
+      "expectedStatus": 200,
+      "expectedContentType": "image/svg+xml"
+    },
+    {
+      "description": "Should return 404 for non-existent artefact",
+      "requestPath": "/_piko/assets/testmodule/lib/icons/nonexistent.svg",
+      "expectedStatus": 404
+    }
+  ]
+}

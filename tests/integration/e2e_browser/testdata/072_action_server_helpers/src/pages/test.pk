@@ -1,0 +1,76 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div id="app">
+    <h1>Server Helpers Test</h1>
+
+    <button id="notify-btn" p-on:click="sendNotification()">Notify</button>
+
+    <div id="toast" style="display:none"></div>
+    <span id="badge"></span>
+    <span id="result-success" style="display:none"></span>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Server Helpers Test",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+piko.registerHelper('showToast', (el, ev, message, variant) => {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.style.display = 'block';
+        toast.dataset.variant = variant;
+    }
+});
+
+piko.registerHelper('updateBadge', (el, ev, count) => {
+    const badge = document.getElementById('badge');
+    if (badge) {
+        badge.textContent = count;
+    }
+});
+
+export async function sendNotification(): Promise<void> {
+    try {
+        const result = await action.notify.Send({ title: 'Test' }).call();
+        const successEl = document.getElementById('result-success');
+        if (successEl) {
+            successEl.textContent = String(result.success);
+            successEl.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Action failed:', e);
+    }
+}
+</script>

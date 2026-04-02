@@ -1,0 +1,65 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "uuid": { "category": "uuid", "engineName": "uuid" },
+    "text": { "category": "text", "engineName": "text" },
+    "numeric": { "category": "decimal", "engineName": "numeric" },
+    "timestamptz": { "category": "temporal", "engineName": "timestamptz" },
+    "int4": { "category": "integer", "engineName": "int4" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE users ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL );",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "users",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE orders ( id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, total numeric(10,2) NOT NULL, status text NOT NULL, created_at timestamptz NOT NULL DEFAULT now() );",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "orders",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false, "hasDefault": true },
+          { "name": "user_id", "sqlType": { "category": "uuid", "engineName": "uuid" }, "nullable": false },
+          { "name": "total", "sqlType": { "category": "decimal", "engineName": "numeric", "precision": 10, "scale": 2 }, "nullable": false },
+          { "name": "status", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "created_at", "sqlType": { "category": "temporal", "engineName": "timestamptz" }, "nullable": false, "hasDefault": true }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT u.name, o.total, o.status FROM users u JOIN orders o ON o.user_id = u.id WHERE u.id = $1 AND ($2 IS NULL OR o.status = $2) LIMIT $3 OFFSET $4",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "name", "tableAlias": "u", "columnName": "name" },
+          { "name": "total", "tableAlias": "o", "columnName": "total" },
+          { "name": "status", "tableAlias": "o", "columnName": "status" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "u", "columnName": "id" } },
+          { "number": 2, "context": "comparison", "columnReference": { "tableAlias": "o", "columnName": "status" } },
+          { "number": 3, "context": "limit" },
+          { "number": 4, "context": "offset" }
+        ],
+        "fromTables": [
+          { "name": "users", "alias": "u" }
+        ],
+        "joinClauses": [
+          {
+            "kind": "inner",
+            "table": { "name": "orders", "alias": "o" }
+          }
+        ],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

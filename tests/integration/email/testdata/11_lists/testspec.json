@@ -1,0 +1,6 @@
+{
+  "title": "Lists",
+  "description": "Ordered and unordered lists through full pipeline",
+  "metadata": {"title": "Lists Test"},
+  "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
+}

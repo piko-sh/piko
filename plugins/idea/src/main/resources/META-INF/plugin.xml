@@ -1,0 +1,141 @@
+<idea-plugin>
+    <id>io.politepixels.piko</id>
+    <name>Piko</name>
+    <vendor url="https://politepixels.io">PolitePixels</vendor>
+    <description><![CDATA[
+        <p>Piko template language support for IntelliJ-based IDEs.</p>
+        <p>Features:</p>
+        <ul>
+            <li><b>Go code intelligence</b> in &lt;script&gt; blocks - full IntelliJ Go support</li>
+            <li><b>TypeScript/JavaScript</b> in &lt;script lang="js"&gt; blocks</li>
+            <li><b>CSS intelligence</b> in &lt;style&gt; blocks</li>
+            <li><b>JSON intelligence</b> in &lt;i18n&gt; blocks for internationalisation</li>
+            <li><b>Template LSP support</b> for &lt;template&gt; blocks via Piko LSP</li>
+            <li>Syntax highlighting for .pk files</li>
+        </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+
+    <depends optional="true" config-file="piko-go.xml">org.jetbrains.plugins.go</depends>
+    <depends optional="true" config-file="piko-css.xml">com.intellij.css</depends>
+    <depends optional="true" config-file="piko-javascript.xml">JavaScript</depends>
+    <depends optional="true" config-file="piko-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType
+            name="PK File"
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.PKFileType"
+            fieldName="INSTANCE"
+            extensions="pk;pkc"/>
+
+        <lang.parserDefinition
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.PKParserDefinition"/>
+
+        <lang.syntaxHighlighterFactory
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.PKSyntaxHighlighterFactory"/>
+
+        <colorSettingsPage
+            implementation="io.politepixels.piko.pk.PKColorSettingsPage"/>
+
+        <lang.commenter
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.PKContextAwareCommenter"/>
+
+        <lang.braceMatcher
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.PKBraceMatcher"/>
+
+        <lang.quoteHandler
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.PKQuoteHandler"/>
+
+        <lang.foldingBuilder
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.PKFoldingBuilder"/>
+
+        <lang.psiStructureViewFactory
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.structure.PKStructureViewFactory"/>
+
+        <breadcrumbsInfoProvider
+            implementation="io.politepixels.piko.pk.PKBreadcrumbsProvider"/>
+
+        <extendWordSelectionHandler
+            implementation="io.politepixels.piko.pk.PKExtendWordSelectionHandler"/>
+
+        <multiHostInjector
+            implementation="io.politepixels.piko.pk.injection.PKJsonLanguageInjector"/>
+
+        <applicationService
+            serviceImplementation="io.politepixels.piko.settings.PikoSettings"/>
+
+        <projectService
+            serviceImplementation="io.politepixels.piko.pk.service.PikoTypeDefinitionService"/>
+
+        <applicationConfigurable
+            parentId="language"
+            instance="io.politepixels.piko.settings.PikoSettingsConfigurable"
+            id="io.politepixels.piko.settings"
+            displayName="Piko"/>
+
+        <notificationGroup
+            id="Piko"
+            displayType="BALLOON"
+            toolWindowId="Problems"/>
+
+        <postStartupActivity
+            implementation="io.politepixels.piko.pk.Lsp4ijCheckActivity"/>
+
+        <internalFileTemplate name="Piko Page"/>
+        <internalFileTemplate name="Piko Partial"/>
+
+        <liveTemplateContext
+            contextId="PIKO"
+            implementation="io.politepixels.piko.pk.PKTemplateContextType"/>
+
+        <defaultLiveTemplates file="/liveTemplates/Piko.xml"/>
+
+        <typedHandler
+            implementation="io.politepixels.piko.pk.PKTypedHandler"/>
+
+        <xml.zenCodingGenerator
+            implementation="io.politepixels.piko.pk.PKEmmetSupport"
+            order="first"/>
+
+        <xdebugger.breakpointType
+            implementation="io.politepixels.piko.pk.debug.PKLineBreakpointType"/>
+    </extensions>
+
+    <actions>
+        <action id="Piko.NewFile"
+                class="io.politepixels.piko.pk.actions.CreatePikoFileAction"
+                text="Piko File"
+                description="Create a new Piko template file">
+            <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewFile"/>
+        </action>
+
+        <group id="Piko.ToolsMenu" text="Piko" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+
+            <action id="Piko.RestartLsp"
+                    class="io.politepixels.piko.pk.actions.RestartLspAction"
+                    text="Restart LSP Server"
+                    description="Restart the Piko language server"/>
+
+            <action id="Piko.ShowLspOutput"
+                    class="io.politepixels.piko.pk.actions.ShowLspOutputAction"
+                    text="Show LSP Output"
+                    description="Show the Piko LSP output panel"/>
+
+            <action id="Piko.OpenLspLogs"
+                    class="io.politepixels.piko.pk.actions.OpenLspLogsAction"
+                    text="Open LSP Logs"
+                    description="Open the Piko LSP log file"/>
+        </group>
+    </actions>
+</idea-plugin>

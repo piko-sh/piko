@@ -1,0 +1,3 @@
+{
+  "description": "string_agg with ORDER BY inside aggregate. Validates text return type (not bytea) and nullable output."
+}

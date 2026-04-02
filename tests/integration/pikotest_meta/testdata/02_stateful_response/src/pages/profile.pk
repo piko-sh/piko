@@ -1,0 +1,62 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package profile
+
+import "piko.sh/piko"
+
+type Response struct {
+	Username    string
+	Email       string
+	MemberSince int
+	PostCount   int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Username:    "johndoe",
+		Email:       "john@example.com",
+		MemberSince: 2020,
+		PostCount:   42,
+	}, piko.Metadata{
+		Title:       "User Profile",
+		Description: "View user profile details",
+	}, nil
+}
+</script>
+<template>
+	<article class="profile-card">
+		<header>
+			<h1 class="username">{{ state.Username }}</h1>
+			<span class="email">{{ state.Email }}</span>
+		</header>
+		<div class="stats">
+			<div class="stat">
+				<span class="stat-value">{{ state.MemberSince }}</span>
+				<span class="stat-label">Member Since</span>
+			</div>
+			<div class="stat">
+				<span class="stat-value">{{ state.PostCount }}</span>
+				<span class="stat-label">Posts</span>
+			</div>
+		</div>
+	</article>
+</template>

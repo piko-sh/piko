@@ -1,0 +1,5 @@
+{
+  "description": "Stdlib usage in helper files (strings.Builder + strings.Join)",
+  "shouldError": false,
+  "expected": "<ul><li>alpha</li><li>beta</li><li>gamma</li></ul>"
+}

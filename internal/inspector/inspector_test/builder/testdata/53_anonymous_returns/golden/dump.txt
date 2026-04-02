@@ -1,0 +1,14 @@
+--- PACKAGE: testcase_53_anonymous_returns ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 53_anonymous_returns/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  (none)
+
+[Package-Level Functions]
+  - func GetConfig            func() struct{Port int; Host string}
+  - func GetRunner            func() interface{Run() error}

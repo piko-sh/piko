@@ -1,0 +1,3 @@
+{
+  "description": "INSERT ... RETURNING clause: PostgreSQL-specific feature that returns columns from newly inserted rows. Tests BIGSERIAL, BOOLEAN defaults, and RETURNING column resolution."
+}

@@ -1,0 +1,1 @@
+{"description": "Fixed positioning relative to the viewport. Verifies position:fixed with top/left offsets and percentage width."}

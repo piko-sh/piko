@@ -1,0 +1,107 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="m3e-card">
+    <div class="card"
+         p-class="{
+             'elevated': state.variant == 'elevated',
+             'filled': state.variant == 'filled',
+             'outlined': state.variant == 'outlined',
+             'clickable': state.clickable
+         }"
+         :tabindex="state.clickable ? '0' : null"
+         :role="state.clickable ? 'button' : null">
+        <div class="state-layer" p-if="state.clickable"></div>
+        <slot></slot>
+    </div>
+</template>
+
+<script lang="ts">
+    const state = {
+        variant: 'elevated' as string,
+        clickable: false as boolean,
+    };
+</script>
+
+<style>
+    :host {
+        display: block;
+        --_surface: var(--m3e-surface, #fffbfe);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
+        --_surface-container-low: var(--m3e-surface-container-low, #f7f2fa);
+        --_surface-container-highest: var(--m3e-surface-container-highest, #e6e0e9);
+        --_outline-variant: var(--m3e-outline-variant, #cac4d0);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_shape-md: var(--m3e-shape-md, 12px);
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .card {
+        position: relative;
+        border-radius: var(--_shape-md);
+        color: var(--_on-surface);
+        overflow: hidden;
+        transition: box-shadow var(--_duration-short) var(--_easing-standard);
+
+        &.elevated {
+            background: var(--_surface-container-low);
+            box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 1px 3px 1px rgba(0,0,0,0.15);
+        }
+
+        &.filled {
+            background: var(--_surface-container-highest);
+        }
+
+        &.outlined {
+            background: var(--_surface);
+            border: 1px solid var(--_outline-variant);
+        }
+
+        &.clickable {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+
+            &:hover {
+                box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 2px 6px 2px rgba(0,0,0,0.15);
+            }
+
+            &:focus-visible .state-layer {
+                opacity: 0.12;
+            }
+
+            &:hover .state-layer {
+                opacity: 0.08;
+            }
+        }
+    }
+
+    .state-layer {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--_on-surface);
+        opacity: 0;
+        transition: opacity var(--_duration-short);
+        pointer-events: none;
+        z-index: 1;
+    }
+</style>

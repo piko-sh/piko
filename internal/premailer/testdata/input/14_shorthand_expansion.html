@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2026 PolitePixels Limited
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html>
+<head>
+    <style>
+        .margin-test-1 {
+            margin: 10px;
+        }
+        .margin-test-2 {
+            margin: 10px 20px;
+        }
+        .margin-test-4 {
+            margin: 10px 20px 30px 40px;
+        }
+
+        .padding-test {
+            padding: 15px 25px;
+        }
+
+        .border-test {
+            border: 2px solid #333333;
+        }
+
+        .border-top-test {
+            border-top: 1px dashed red;
+        }
+
+        .border-parts {
+            border-width: 1px 2px;
+            border-style: solid;
+            border-color: #000000;
+        }
+
+        .bg-color {
+            background: #F5F5F5;
+        }
+        .bg-image {
+            background: url(bg.png) no-repeat center;
+        }
+        .bg-full {
+            background: #FFFFFF url(pattern.png) repeat-x top;
+        }
+
+        .radius-test {
+            border-radius: 5px 10px;
+        }
+
+        .important-test {
+            margin: 20px !important;
+            padding: 10px !important;
+        }
+
+        .mixed {
+            margin: 10px;
+            padding-top: 5px;
+            border: 1px solid black;
+            background-color: white;
+        }
+
+        .regular {
+            color: blue;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="margin-test-1">Margin 1 value</div>
+    <div class="margin-test-2">Margin 2 values</div>
+    <div class="margin-test-4">Margin 4 values</div>
+    <div class="padding-test">Padding 2 values</div>
+    <div class="border-test">Border shorthand</div>
+    <div class="border-top-test">Border-top</div>
+    <div class="border-parts">Border parts</div>
+    <div class="bg-color">Background color</div>
+    <div class="bg-image">Background image</div>
+    <div class="bg-full">Background full</div>
+    <div class="radius-test">Border radius</div>
+    <div class="important-test">Important flags</div>
+    <div class="mixed">Mixed properties</div>
+    <div class="regular">Regular properties</div>
+</body>
+</html>

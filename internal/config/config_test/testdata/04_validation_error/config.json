@@ -1,0 +1,9 @@
+{
+  "build": {
+    "defaultServeMode": "invalid-mode"
+  },
+  "network": {
+    "port": "8080",
+    "actionMaxBodyBytes": -1
+  }
+}

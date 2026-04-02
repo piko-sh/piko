@@ -1,0 +1,79 @@
+{
+  "description": "Validates that chained generic methods returning the same generic type preserve type arguments. Ref[T].Clone() returns Ref[T], and calling Get() on the result should return T, not any.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "p.direct",
+      "description": "Direct method call: Ref[TeamMember].Get().FullName() returns string.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.cloned",
+      "description": "CRITICAL: Clone() returns Ref[T], Get() on result must return TeamMember.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Clone()",
+          "resolvedTypeIs": "fields.Ref[dto.TeamMember]"
+        },
+        {
+          "rawExpression": "props.Data.Member.Clone().Get()",
+          "resolvedTypeIs": "dto.TeamMember"
+        },
+        {
+          "rawExpression": "props.Data.Member.Clone().Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.double-cloned",
+      "description": "CRITICAL: Clone().Clone() should still preserve type arguments through multiple levels.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Clone().Clone()",
+          "resolvedTypeIs": "fields.Ref[dto.TeamMember]"
+        },
+        {
+          "rawExpression": "props.Data.Member.Clone().Clone().Get().FirstName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.with-id",
+      "description": "WithID() returns Ref[T], Get() on result must return TeamMember.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.WithID(\"new-id\").Get().LastName.String()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.multi-chain",
+      "description": "Multiple chained methods: Clone().WithID().Get() preserves type through entire chain.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Data.Member.Clone().WithID(\"chained-id\").Get().FullName()",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    },
+    {
+      "select": "p.has-item",
+      "description": "HasItem() on cloned ref returns bool.",
+      "assertOnDirective": [
+        {
+          "name": "p-if",
+          "rawExpression": "props.Data.Member.Clone().HasItem()",
+          "resolvedTypeIs": "bool"
+        }
+      ]
+    }
+  ]
+}

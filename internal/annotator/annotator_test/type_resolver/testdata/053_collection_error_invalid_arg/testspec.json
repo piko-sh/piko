@@ -1,0 +1,10 @@
+[{
+  "description": "GetCollection with non-string collection name produces error",
+  "expression": "r.GetCollection[Post](123)",
+  "expectedType": "",
+  "expectedDiagnostics": 1,
+  "diagnostics": [{
+    "severity": "error",
+    "messageContains": "must be a string literal"
+  }]
+}]

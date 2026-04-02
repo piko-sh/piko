@@ -1,0 +1,80 @@
+{
+  "groups": {
+    "sidebar": {
+      "sections": [
+        {
+          "children": [
+            {
+              "id": "index",
+              "title": "Documentation Home",
+              "section": "",
+              "url": "/docs/",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "",
+          "title": "",
+          "section": "",
+          "level": 0,
+          "order": 999
+        },
+        {
+          "children": [
+            {
+              "id": "reference",
+              "title": "API Reference",
+              "section": "api",
+              "url": "/docs/api/reference",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "api",
+          "title": "Api",
+          "section": "api",
+          "level": 0,
+          "order": 999
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "id": "first-steps",
+                  "title": "First Steps",
+                  "section": "getting-started",
+                  "subsection": "basics",
+                  "url": "/docs/getting-started/basics/first-steps",
+                  "level": 2,
+                  "order": 999
+                },
+                {
+                  "id": "install",
+                  "title": "Installation Guide",
+                  "section": "getting-started",
+                  "subsection": "basics",
+                  "url": "/docs/getting-started/basics/install",
+                  "level": 2,
+                  "order": 999
+                }
+              ],
+              "id": "basics",
+              "title": "Basics",
+              "section": "getting-started",
+              "subsection": "basics",
+              "level": 1,
+              "order": 999
+            }
+          ],
+          "id": "getting-started",
+          "title": "Getting Started",
+          "section": "getting-started",
+          "level": 0,
+          "order": 999
+        }
+      ],
+      "locale": "en"
+    }
+  }
+}

@@ -1,0 +1,337 @@
+<!--
+  025: DuckDB Sales Dashboard - Analytical Queries with the Querier System
+
+  This page demonstrates DuckDB's analytical strengths: aggregate functions,
+  GROUP BY, window expressions, and date formatting. All data is seeded in
+  the migration and queried server-side with Piko's querier system.
+-->
+
+<template>
+  <div id="app">
+    <h1>Sales Dashboard</h1>
+    <p class="subtitle">Powered by DuckDB analytical queries</p>
+
+    <!-- Summary cards -->
+    <div class="cards">
+      <div class="card">
+        <span class="card-label">Total orders</span>
+        <span class="card-value" id="total-orders" p-text="state.Summary.TotalOrders"></span>
+      </div>
+      <div class="card">
+        <span class="card-label">Total revenue</span>
+        <span class="card-value" id="total-revenue" p-text="'$' + state.Summary.TotalRevenue"></span>
+      </div>
+      <div class="card">
+        <span class="card-label">Avg order value</span>
+        <span class="card-value" id="avg-order" p-text="'$' + state.Summary.AvgOrderValue"></span>
+      </div>
+      <div class="card">
+        <span class="card-label">Unique products</span>
+        <span class="card-value" id="unique-products" p-text="state.Summary.UniqueProducts"></span>
+      </div>
+    </div>
+
+    <!-- Top products table -->
+    <section class="section">
+      <h2>Top Products by Revenue</h2>
+      <table>
+        <thead>
+          <tr><th>Product</th><th>Category</th><th>Units</th><th>Revenue</th></tr>
+        </thead>
+        <tbody>
+          <tr p-for="(i, prod) in state.TopProducts" p-key="prod.Product">
+            <td p-text="prod.Product"></td>
+            <td><span class="badge" p-text="prod.Category"></span></td>
+            <td class="num" p-text="prod.TotalUnits"></td>
+            <td class="num" p-text="'$' + prod.TotalRevenue"></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Revenue by category and region side by side -->
+    <div class="grid-2">
+      <section class="section">
+        <h2>Revenue by Category</h2>
+        <table>
+          <thead><tr><th>Category</th><th>Revenue</th><th>Units</th></tr></thead>
+          <tbody>
+            <tr p-for="(i, c) in state.ByCategory" p-key="c.Category">
+              <td p-text="c.Category"></td>
+              <td class="num" p-text="'$' + c.Revenue"></td>
+              <td class="num" p-text="c.UnitsSold"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2>Revenue by Region</h2>
+        <table>
+          <thead><tr><th>Region</th><th>Revenue</th><th>Orders</th></tr></thead>
+          <tbody>
+            <tr p-for="(i, reg) in state.ByRegion" p-key="reg.Region">
+              <td p-text="reg.Region"></td>
+              <td class="num" p-text="'$' + reg.Revenue"></td>
+              <td class="num" p-text="reg.OrderCount"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- Monthly trend -->
+    <section class="section">
+      <h2>Monthly Trend</h2>
+      <table>
+        <thead><tr><th>Month</th><th>Revenue</th><th>Units</th></tr></thead>
+        <tbody>
+          <tr p-for="(i, m) in state.Monthly" p-key="m.Month">
+            <td p-text="m.Month"></td>
+            <td class="num" p-text="'$' + m.Revenue"></td>
+            <td class="num" p-text="m.Units"></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    pikoDb "piko.sh/piko/wdk/db"
+
+    "testmodule/db/generated"
+)
+
+type Summary struct {
+    TotalOrders    int32  `json:"totalOrders"`
+    TotalRevenue   string `json:"totalRevenue"`
+    AvgOrderValue  string `json:"avgOrderValue"`
+    UniqueProducts int32  `json:"uniqueProducts"`
+}
+
+type TopProduct struct {
+    Product      string `json:"product"`
+    Category     string `json:"category"`
+    TotalUnits   int32  `json:"totalUnits"`
+    TotalRevenue string `json:"totalRevenue"`
+}
+
+type CategoryRow struct {
+    Category  string `json:"category"`
+    Revenue   string `json:"revenue"`
+    UnitsSold int32  `json:"unitsSold"`
+}
+
+type RegionRow struct {
+    Region     string `json:"region"`
+    Revenue    string `json:"revenue"`
+    OrderCount int32  `json:"orderCount"`
+}
+
+type MonthRow struct {
+    Month   string `json:"month"`
+    Revenue string `json:"revenue"`
+    Units   int32  `json:"units"`
+}
+
+type Response struct {
+    Summary     Summary      `json:"summary"`
+    TopProducts []TopProduct `json:"topProducts"`
+    ByCategory  []CategoryRow `json:"byCategory"`
+    ByRegion    []RegionRow  `json:"byRegion"`
+    Monthly     []MonthRow   `json:"monthly"`
+}
+
+func decimalStr(d interface{ String() (string, error) }) string {
+    if d == nil {
+        return "0.00"
+    }
+    s, _ := d.String()
+    return s
+}
+
+func derefInt32(p *int32) int32 {
+    if p == nil {
+        return 0
+    }
+    return *p
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    conn, err := pikoDb.GetDatabaseConnection("sales")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+    ctx := r.Context()
+    q := generated.New(conn)
+
+    stats, err := q.SummaryStats(ctx)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    topRows, err := q.TopProducts(ctx)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    catRows, err := q.RevenueByCategory(ctx)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    regRows, err := q.RevenueByRegion(ctx)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    monthRows, err := q.MonthlySales(ctx)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    summary := Summary{
+        TotalOrders:    stats.TotalOrders,
+        TotalRevenue:   decimalStr(stats.TotalRevenue),
+        AvgOrderValue:  decimalStr(stats.AvgOrderValue),
+        UniqueProducts: stats.UniqueProducts,
+    }
+
+    top_products := make([]TopProduct, len(topRows))
+    for i, row := range topRows {
+        top_products[i] = TopProduct{
+            Product:      row.Product,
+            Category:     row.Category,
+            TotalUnits:   derefInt32(row.TotalUnits),
+            TotalRevenue: decimalStr(row.TotalRevenue),
+        }
+    }
+
+    by_category := make([]CategoryRow, len(catRows))
+    for i, row := range catRows {
+        by_category[i] = CategoryRow{
+            Category:  row.Category,
+            Revenue:   decimalStr(row.Revenue),
+            UnitsSold: derefInt32(row.UnitsSold),
+        }
+    }
+
+    by_region := make([]RegionRow, len(regRows))
+    for i, row := range regRows {
+        by_region[i] = RegionRow{
+            Region:     row.Region,
+            Revenue:    decimalStr(row.Revenue),
+            OrderCount: row.OrderCount,
+        }
+    }
+
+    monthly := make([]MonthRow, len(monthRows))
+    for i, row := range monthRows {
+        monthly[i] = MonthRow{
+            Month:   row.Month,
+            Revenue: decimalStr(row.Revenue),
+            Units:   derefInt32(row.Units),
+        }
+    }
+
+    return Response{
+        Summary:     summary,
+        TopProducts: top_products,
+        ByCategory:  by_category,
+        ByRegion:    by_region,
+        Monthly:     monthly,
+    }, piko.Metadata{Title: "Sales Dashboard"}, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #1f2937;
+  }
+
+  h1 { color: #1e40af; margin-bottom: 0.25rem; }
+  h2 { color: #374151; font-size: 1.1rem; margin-bottom: 0.75rem; }
+
+  .subtitle { color: #6b7280; margin-bottom: 1.5rem; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .card {
+    background: #f0f4ff;
+    border: 1px solid #dbeafe;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .card-label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+  }
+
+  .card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e40af;
+  }
+
+  .section {
+    margin-bottom: 2rem;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  tbody td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  tbody tr:hover { background-color: #f9fafb; }
+
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .badge {
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+</style>

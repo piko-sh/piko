@@ -1,0 +1,10 @@
+.piko
+.out
+bin
+tmp
+.gitignore
+*.air.toml
+dist
+*.txt
+Dockerfile
+README.md

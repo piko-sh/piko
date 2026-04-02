@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "pages/api.pk": {
+      "routePatterns": {
+        "en": "/api"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_16_http_methods/dist/pages/pages_api_1854be6d",
+      "originalSourcePath": "pages/api.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

@@ -1,0 +1,3 @@
+{
+  "description": "JSON arrow operators: ->> should return nullable text, -> should return json/jsonb."
+}

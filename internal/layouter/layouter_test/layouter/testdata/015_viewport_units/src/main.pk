@@ -1,0 +1,5 @@
+<template>
+  <div style="width: 50vw; height: 30vh; font-size: 3vmin;">
+    Viewport-relative sizing
+  </div>
+</template>

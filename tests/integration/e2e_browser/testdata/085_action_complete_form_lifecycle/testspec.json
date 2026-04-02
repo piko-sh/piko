@@ -1,0 +1,82 @@
+{
+  "description": "Tests complete form lifecycle: fill \u2192 submit \u2192 server action \u2192 toast helper \u2192 DOM update",
+  "requestURL": "/test",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for DOMBinder to bind form submit handler"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#feedback-form[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "comment",
+      "value": "Try submitting empty form \u2014 HTML5 validation should block"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "checkHidden",
+      "selector": "#toast"
+    },
+    {
+      "action": "comment",
+      "value": "Fill in valid data"
+    },
+    {
+      "action": "fill",
+      "selector": "#name",
+      "value": "Bob"
+    },
+    {
+      "action": "fill",
+      "selector": "#comment",
+      "value": "Great product!"
+    },
+    {
+      "action": "comment",
+      "value": "Submit form \u2014 should dispatch action"
+    },
+    {
+      "action": "click",
+      "selector": "#submit-btn"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "comment",
+      "value": "Verify toast helper was triggered"
+    },
+    {
+      "action": "checkText",
+      "selector": "#toast",
+      "expected": "Thank you for your feedback!"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#toast",
+      "attribute": "data-variant",
+      "expected": "success"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_lifecycle.html"
+    }
+  ]
+}

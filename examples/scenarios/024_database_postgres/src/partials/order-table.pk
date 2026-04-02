@@ -1,0 +1,135 @@
+<!--
+  Order Table Partial
+
+  This partial renders the recent orders table from the database. It has
+  a public template so it can be reloaded independently after placing an
+  order without refreshing the entire page.
+
+  The parent page mounts this with <piko:partial is="order_table" />.
+  After creating an order, the page calls
+  piko.partials.reload("order-table") to re-render just this section.
+-->
+
+<template public>
+  <div class="order-table-container">
+    <section p-if="len(state.RecentOrders) > 0" class="panel">
+      <h2>Recent Orders</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr p-for="(i, order) in state.RecentOrders" p-key="order.ID">
+            <td>{{ order.ID }}</td>
+            <td p-text="order.ProductName"></td>
+            <td p-text="order.ProductCategory"></td>
+            <td>{{ order.Quantity }}</td>
+            <td>{{ order.Total }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/db"
+
+    "testmodule/db/generated"
+)
+
+// RecentOrder holds the display data for a recent order row.
+type RecentOrder struct {
+    ID              int32   `json:"id"`
+    ProductName     string  `json:"product_name"`
+    ProductCategory string  `json:"product_category"`
+    Quantity        int32   `json:"quantity"`
+    Total           float64 `json:"total"`
+}
+
+// Response is the data available as state.* in the template.
+type Response struct {
+    RecentOrders []RecentOrder `json:"recent_orders"`
+}
+
+// Render fetches recent orders from the database using a read replica and
+// returns them for display.
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    reader, err := db.GetDatabaseReader("analytics")
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    queries := generated.New(reader)
+
+    order_rows, err := queries.ListRecentOrders(r.Context(), 20)
+    if err != nil {
+        return Response{}, piko.Metadata{}, err
+    }
+
+    recent_orders := make([]RecentOrder, len(order_rows))
+    for i, row := range order_rows {
+        recent_orders[i] = RecentOrder{
+            ID:              row.ID,
+            ProductName:     row.ProductName,
+            ProductCategory: row.ProductCategory,
+            Quantity:        row.Quantity,
+            Total:           row.Total,
+        }
+    }
+
+    return Response{
+        RecentOrders: recent_orders,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .order-table-container {
+    margin-top: 1rem;
+  }
+
+  h2 {
+    color: #374151;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+  }
+
+  .panel {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #fafafa;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  th {
+    background: #f3f4f6;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+</style>

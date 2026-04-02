@@ -1,0 +1,19 @@
+{
+  "description": "Validates that props bound to p-for loop variables are correctly type-checked.",
+  "expectedDiagnostics": 0,
+  "expectedUniqueInvocations": 1,
+  "assertInvocations": [
+    {
+      "selectByPartialAlias": "user-row",
+      "assert": {
+        "passedPropsCount": 2,
+        "hasProp": "user",
+        "hasProp": "index",
+        "propValueIs": {
+          "user": "user",
+          "index": "i"
+        }
+      }
+    }
+  ]
+}

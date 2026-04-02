@@ -1,0 +1,40 @@
+--- PACKAGE: github.com/google/uuid ---
+[Package Info]
+  - Name:    uuid
+  - Version: v1.6.0
+
+[File-Scoped Imports]
+  (none)
+
+[Named Types]
+  > type UUID
+    - Defined In:      22_gomod_replace/src/local/uuid/uuid.go
+    - TypeString:      uuid.UUID
+    - Underlying:      struct{CustomField string}
+    - Stringability:   0
+    - Fields:
+      - CustomField          string
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_22_gomod_replace ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 22_gomod_replace/src/main.go
+    - import "uuid"               -> github.com/google/uuid
+
+[Named Types]
+  > type Request
+    - Defined In:      22_gomod_replace/src/main.go
+    - TypeString:      main.Request
+    - Underlying:      struct{ID uuid.UUID}
+    - Stringability:   0
+    - Fields:
+      - ID                   uuid.UUID
+        (Canonical Package: github.com/google/uuid)
+
+[Package-Level Functions]
+  (none)

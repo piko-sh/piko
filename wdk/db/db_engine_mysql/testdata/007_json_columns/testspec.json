@@ -1,0 +1,3 @@
+{
+  "description": "JSON column type with JSON_EXTRACT and ->> (inline unquote) operator. Tests JSON function resolution and operator parsing."
+}

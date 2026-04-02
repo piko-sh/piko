@@ -1,0 +1,5 @@
+{
+  "description": "Cross-file function calls within the same package",
+  "shouldError": false,
+  "expected": "<h1>Hello</h1>"
+}

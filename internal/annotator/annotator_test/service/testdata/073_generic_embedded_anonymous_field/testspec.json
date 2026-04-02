@@ -1,0 +1,11 @@
+{
+  "description": "Validates that Go correctly reports an error when attempting to embed a type parameter directly in a generic struct. This is invalid Go syntax: 'type Embedded[T any] struct { T }' is not allowed.",
+  "shouldError": true,
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "messageContains": "embedded field type cannot be a (pointer to a) type parameter"
+    }
+  ]
+}

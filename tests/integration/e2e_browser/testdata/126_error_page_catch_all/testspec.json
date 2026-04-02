@@ -1,0 +1,56 @@
+{
+  "description": "Verifies catch-all !error.pk handles any error code: 404, 403, and 400",
+  "requestURL": "/nonexistent-page",
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Catch All Error"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-code",
+      "expected": "404"
+    },
+    {
+      "action": "navigate",
+      "value": "/trigger-forbidden"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-code",
+      "expected": "403"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-message",
+      "expected": "no access"
+    },
+    {
+      "action": "navigate",
+      "value": "/trigger-bad-request"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#error-page"
+    },
+    {
+      "action": "checkText",
+      "selector": "#status-code",
+      "expected": "400"
+    },
+    {
+      "action": "checkText",
+      "selector": "#error-message",
+      "expected": "invalid input"
+    }
+  ]
+}

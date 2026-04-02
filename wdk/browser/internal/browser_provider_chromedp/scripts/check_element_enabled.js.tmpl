@@ -1,0 +1,8 @@
+(() => {
+    const el = document.querySelector({{jsStr .Selector}});
+    if (!el) return null;
+    if ('disabled' in el) {
+        return !el.disabled;
+    }
+    return el.getAttribute('aria-disabled') !== 'true';
+})()

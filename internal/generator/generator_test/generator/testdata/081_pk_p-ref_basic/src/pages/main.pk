@@ -1,0 +1,62 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Basic p-ref Test in PPFT</h1>
+    <p>
+      This page tests basic p-ref functionality in PPFT files.
+      The p-ref directive should emit a data-pp-ref attribute for
+      client-side JavaScript to query elements within the partial scope.
+    </p>
+
+    <input type="text" p-ref="emailInput" placeholder="Enter email" />
+
+    <button p-ref="submitBtn" type="submit">Submit</button>
+
+    <canvas p-ref="chartCanvas" width="400" height="200"></canvas>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+  }
+</script>
+
+<script lang="ts">
+export function focusEmail(): void {
+  pk.refs.emailInput?.focus();
+}
+
+export function disableSubmit(): void {
+  if (pk.refs.submitBtn) {
+    pk.refs.submitBtn.disabled = true;
+  }
+}
+
+export function getCanvas(): HTMLCanvasElement | null {
+  return pk.refs.chartCanvas as HTMLCanvasElement;
+}
+</script>

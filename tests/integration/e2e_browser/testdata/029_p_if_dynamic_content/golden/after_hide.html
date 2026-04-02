@@ -1,0 +1,28 @@
+<div id="app">
+  <div partial="pages_index_032f49b1" p-key="r.0">
+    <h1 partial="pages_index_032f49b1" p-key="r.0:0">p-if Dynamic Content Test</h1>
+    <toggle-demo
+      partial="pages_index_032f49b1"
+      p-key="r.0:1"
+      message="Initial Message"
+      html-content="&lt;strong&gt;Bold HTML&lt;/strong&gt;"
+    >
+      <template shadowrootmode="open" shadowrootserializable>
+        <style>*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; } :host { display: block; }</style>
+        <style>.controls{margin: 1rem 0}.controls button{margin-right: 0.5rem;padding: 0.5rem 1rem}.content{padding: 1rem;border: 1px solid #ccc;margin: 1rem 0}.conditional-block{background: #e8f5e9;padding: 1rem}.hidden-block{background: #ffebee;padding: 1rem}.state-display{margin-top: 1rem;padding: 0.5rem;background: #f5f5f5}.dynamic-text,.dynamic-html{font-weight: bold}</style>
+        <div class="toggle-demo">
+          <div class="controls"><button id="toggle-btn">Toggle Show</button><button id="update-btn">Update Text</button></div>
+          <div class="content">
+            <div class="hidden-block">
+              <p>Content is hidden</p>
+            </div>
+          </div>
+          <div class="state-display">
+            <p>Show: <span id="show-value">false</span></p>
+            <p>Message: <span id="message-value">Initial Message</span></p>
+          </div>
+        </div>
+      </template>
+    </toggle-demo>
+  </div>
+</div>

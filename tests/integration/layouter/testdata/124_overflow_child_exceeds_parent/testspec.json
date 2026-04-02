@@ -1,0 +1,7 @@
+{
+    "description": "Verifies children can exceed parent bounds with overflow: visible (default), negative margins shift elements outside parent, and absolute children do not affect parent height.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

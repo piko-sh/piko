@@ -1,0 +1,58 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	"testcase_80_generic_type_alias/dto"
+	"testcase_80_generic_type_alias/fields"
+)
+
+type Props struct {
+	Data dto.PageData
+}
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+	_ = fields.Ref[dto.TeamMember]{}
+	return Response{}, piko.Metadata{}, nil
+}
+</script>
+
+<template>
+    <p class="alias-get">{{ props.Data.Member.Get().FullName() }}</p>
+
+    <p class="alias-hasitem" p-if="props.Data.Member.HasItem()">Has member</p>
+
+    <p class="alias-getid">{{ props.Data.Member.GetID() }}</p>
+
+    <p class="alias-field">{{ props.Data.Member.Get().FirstName.String() }}</p>
+
+    <p class="product-alias">{{ props.Data.Product.Get().Description() }}</p>
+
+    <p class="direct-generic">{{ props.Data.DirectMember.Get().FullName() }}</p>
+
+    <p class="compare">Alias: {{ props.Data.Member.Get().LastName.String() }} | Direct: {{ props.Data.DirectMember.Get().LastName.String() }}</p>
+
+    <p class="product-check" p-if="props.Data.Product.HasItem()">{{ props.Data.Product.Get().Name.String() }}</p>
+</template>

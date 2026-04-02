@@ -1,0 +1,16 @@
+<template>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, 200px); width: 600px;">
+    <div style="height: 40px;"></div>
+    <div style="height: 40px;"></div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, 200px); width: 600px;">
+    <div style="height: 40px;"></div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 100px repeat(auto-fill, 150px) 100px; width: 600px;">
+    <div style="height: 40px;"></div>
+    <div style="height: 40px;"></div>
+    <div style="height: 40px;"></div>
+  </div>
+</template>

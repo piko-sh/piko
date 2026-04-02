@@ -1,0 +1,102 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="lifecycle-component">
+    <div class="container">
+        <div class="log-section">
+            <h3>Lifecycle Log</h3>
+            <ul id="lifecycle-log">
+                <li p-for="entry in state.log" p-key="entry">{{ entry }}</li>
+            </ul>
+        </div>
+        <div class="controls">
+            <button id="trigger-update" p-on:click="triggerUpdate">Trigger Update</button>
+        </div>
+        <div class="counters">
+            <p id="connect-count">Connected count: {{ state.connectCount }}</p>
+            <p id="update-count">Update count: {{ state.updateCount }}</p>
+        </div>
+    </div>
+</template>
+
+<style>
+    .container {
+        padding: 1rem;
+    }
+    .log-section {
+        margin: 1rem 0;
+        padding: 1rem;
+        border: 1px solid #eee;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .log-section h3 {
+        margin-top: 0;
+    }
+    #lifecycle-log {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+    #lifecycle-log li {
+        padding: 0.25rem 0;
+        font-family: monospace;
+    }
+    button {
+        padding: 0.5rem 1rem;
+        background: #3f51b5;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    .counters {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f5f5f5;
+    }
+</style>
+
+<script lang="ts">
+    const state = {
+        log: [] as string[],
+        connectCount: 0 as number,
+        updateCount: 0 as number
+    };
+
+    let internalUpdateCount = 0;
+
+    pkc.onConnected(() => {
+        state.connectCount++;
+        state.log = [...state.log, `onConnected called (count: ${state.connectCount})`];
+    });
+
+    pkc.onDisconnected(() => {
+        console.log('onDisconnected called');
+    });
+
+    pkc.onUpdated((changedProps: Set<string>) => {
+        console.log(`onUpdated called, changed: ${Array.from(changedProps).join(', ')}`);
+    });
+
+    function triggerUpdate() {
+        internalUpdateCount++;
+        state.updateCount = internalUpdateCount;
+        state.log = [...state.log, `Update triggered (count: ${internalUpdateCount})`];
+    }
+</script>

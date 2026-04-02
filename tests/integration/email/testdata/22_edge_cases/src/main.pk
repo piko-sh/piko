@@ -1,0 +1,16 @@
+<template>
+    <pml-row>
+        <pml-col>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="10px 0">
+        <pml-col>
+            <pml-p padding="10px 25px"></pml-p>
+        </pml-col>
+    </pml-row>
+    <pml-row padding="5px 0">
+        <pml-col>
+            <pml-hr padding="0 25px"></pml-hr>
+        </pml-col>
+    </pml-row>
+</template>

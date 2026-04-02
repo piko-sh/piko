@@ -1,0 +1,61 @@
+--- PACKAGE: testcase_56_map_named_key_named_value ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 56_map_named_key_named_value/src/main.go
+    - import "keys"               -> testcase_56_map_named_key_named_value/keys
+    - import "values"             -> testcase_56_map_named_key_named_value/values
+
+[Named Types]
+  > type Response
+    - Defined In:      56_map_named_key_named_value/src/main.go
+    - TypeString:      main.Response
+    - Underlying:      struct{Lookup map[keys.Key]values.Value}
+    - Stringability:   0
+    - Fields:
+      - Lookup               map[keys.Key]values.Value
+        (Canonical Package: testcase_56_map_named_key_named_value/values)
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_56_map_named_key_named_value/keys ---
+[Package Info]
+  - Name:    keys
+
+[File-Scoped Imports]
+  > File: 56_map_named_key_named_value/src/keys/key.go
+    (no imports in this file)
+
+[Named Types]
+  > type Key
+    - Defined In:      56_map_named_key_named_value/src/keys/key.go
+    - TypeString:      keys.Key
+    - Underlying:      struct{ID string}
+    - Stringability:   0
+    - Fields:
+      - ID                   string
+
+[Package-Level Functions]
+  (none)
+
+--- PACKAGE: testcase_56_map_named_key_named_value/values ---
+[Package Info]
+  - Name:    values
+
+[File-Scoped Imports]
+  > File: 56_map_named_key_named_value/src/values/value.go
+    (no imports in this file)
+
+[Named Types]
+  > type Value
+    - Defined In:      56_map_named_key_named_value/src/values/value.go
+    - TypeString:      values.Value
+    - Underlying:      struct{Data string}
+    - Stringability:   0
+    - Fields:
+      - Data                 string
+
+[Package-Level Functions]
+  (none)

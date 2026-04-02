@@ -1,0 +1,199 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Home"
+            server.current-page="home">
+
+            <!-- Hero Carousel -->
+            <section class="page-section">
+                <m3e-carousel auto-advance interval="5000">
+                    <div class="hero">
+                        <piko:img src="@/lib/images/hero-burger.jpg" alt="The Grate Burger" style="width: 100%; aspect-ratio: 16/9; object-fit: cover;"></piko:img>
+                        <div class="hero-content">
+                            <div class="hero-title">The Grate Burger</div>
+                            <div class="hero-subtitle">The gratest burger you'll ever taste</div>
+                            <m3e-button variant="filled" size="l" href="/recipe/the-grate-burger" class="mt-md">
+                                Don't be mousey - try it!
+                            </m3e-button>
+                        </div>
+                    </div>
+                    <div class="hero">
+                        <piko:img src="@/lib/images/hero-pizza.jpg" alt="Feta Accompli Pizza" style="width: 100%; aspect-ratio: 16/9; object-fit: cover;"></piko:img>
+                        <div class="hero-content">
+                            <div class="hero-title">Feta Accompli Pizza</div>
+                            <div class="hero-subtitle">Consider it a feta accompli</div>
+                            <m3e-button variant="filled" size="l" href="/recipe/feta-accompli-pizza" class="mt-md">
+                                View Recipe
+                            </m3e-button>
+                        </div>
+                    </div>
+                    <div class="hero">
+                        <piko:img src="@/lib/images/hero-mac-and-cheese.jpg" alt="Gouda Gracious Mac &amp; Cheese" style="width: 100%; aspect-ratio: 16/9; object-fit: cover;"></piko:img>
+                        <div class="hero-content">
+                            <div class="hero-title">Gouda Gracious Mac &amp; Cheese</div>
+                            <div class="hero-subtitle">Gouda gracious, that's creamy!</div>
+                            <m3e-button variant="filled" size="l" href="/recipe/gouda-gracious-mac" class="mt-md">
+                                View Recipe
+                            </m3e-button>
+                        </div>
+                    </div>
+                    <div class="hero">
+                        <piko:img src="@/lib/images/hero-cheese-board.jpg" alt="Artisan Cheese Board" style="width: 100%; aspect-ratio: 16/9; object-fit: cover;"></piko:img>
+                        <div class="hero-content">
+                            <div class="hero-title">Say Cheese!</div>
+                            <div class="hero-subtitle">Explore our cheese encyclopaedia</div>
+                            <m3e-button variant="filled" size="l" href="/cheese-guide" class="mt-md">
+                                Cheese Guide
+                            </m3e-button>
+                        </div>
+                    </div>
+                </m3e-carousel>
+            </section>
+
+            <!-- Cheese the Day - Daily Featured Recipe -->
+            <section class="page-section">
+                <h2 class="section-title">Cheese the Day!</h2>
+                <p class="section-subtitle">Today's featured recipe - freshly picked by our resident mouse</p>
+
+                <m3e-card variant="elevated" clickable>
+                    <m3e-elevation></m3e-elevation>
+                    <m3e-ripple></m3e-ripple>
+                    <div style="display: flex; flex-wrap: wrap;">
+                        <piko:img src="@/lib/images/recipe-camembert-believe-it.jpg" alt="Camembert Believe It" style="width: 100%; max-width: 400px; aspect-ratio: 16/10; object-fit: cover;"></piko:img>
+                        <div style="flex: 1; min-width: 280px; padding: 24px;">
+                            <m3e-badge value="Today"></m3e-badge>
+                            <h3 style="font-size: 1.5rem; font-weight: 700; margin: 8px 0 4px;">Camembert Believe It</h3>
+                            <p class="recipe-card-pun">The king of cheeses, baked to molten perfection</p>
+                            <p class="text-muted mt-sm">Whole baked Camembert with rosemary, garlic, and crusty bread soldiers. A dish so good, you camembert to share it.</p>
+                            <div class="flex-row mt-md">
+                                <m3e-chip>Camembert</m3e-chip>
+                                <m3e-chip variant="outlined">30 mins</m3e-chip>
+                                <m3e-chip variant="outlined">Easy</m3e-chip>
+                            </div>
+                            <div class="flex-row mt-md">
+                                <m3e-button variant="filled" href="/recipe/camembert-believe-it">View Recipe</m3e-button>
+                                <m3e-button variant="outlined" href="/recipes">All Recipes</m3e-button>
+                            </div>
+                        </div>
+                    </div>
+                </m3e-card>
+            </section>
+
+            <!-- Mouse-watering Meals - Featured Grid -->
+            <section class="page-section">
+                <h2 class="section-title">Mouse-watering Meals</h2>
+                <p class="section-subtitle">Our most popular recipes - the mice approve!</p>
+
+                <div class="recipe-grid">
+                    <piko:partial is="recipe_card"
+                        server.title="The Grate Burger"
+                        server.slug="the-grate-burger"
+                        server.pun="The gratest burger you'll ever taste"
+                        server.description="A towering double cheeseburger with aged cheddar, caramelised onions, and our secret sauce."
+                        server.image="@/lib/images/recipe-the-grate-burger.jpg"
+                        server.cook-time="25 mins"
+                        server.cheese="Cheddar"
+                        server.difficulty="Easy"
+                        server.href="/recipe/the-grate-burger"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Raclette & Roll"
+                        server.slug="raclette-and-roll"
+                        server.pun="Ready to raclette and roll!"
+                        server.description="Classic Swiss raclette with baby potatoes, cornichons, pickled onions, and charcuterie."
+                        server.image="@/lib/images/recipe-raclette-and-roll.jpg"
+                        server.cook-time="40 mins"
+                        server.cheese="Raclette"
+                        server.difficulty="Medium"
+                        server.href="/recipe/raclette-and-roll"
+                        :server.is-new="true"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Parm-ageddon Chicken"
+                        server.slug="parm-ageddon-chicken"
+                        server.pun="Parm-ageddon is here, and it's delicious"
+                        server.description="Crispy parmesan-crusted chicken with melted mozzarella and rich tomato sauce."
+                        server.image="@/lib/images/recipe-parm-ageddon-chicken.jpg"
+                        server.cook-time="45 mins"
+                        server.cheese="Parmesan"
+                        server.difficulty="Medium"
+                        server.href="/recipe/parm-ageddon-chicken"
+                    ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Brie-lliant Caesar Salad"
+                        server.slug="brie-lliant-caesar"
+                        server.pun="Brie-lieve us, this Caesar is different"
+                        server.description="Classic Caesar salad elevated with golden brie croutons and shaved parmesan."
+                        server.image="@/lib/images/recipe-brie-lliant-caesar.jpg"
+                        server.cook-time="15 mins"
+                        server.cheese="Brie"
+                        server.difficulty="Easy"
+                        server.href="/recipe/brie-lliant-caesar"
+                    ></piko:partial>
+                </div>
+            </section>
+
+            <!-- Browse by Category -->
+            <section class="page-section">
+                <h2 class="section-title">Browse by Category</h2>
+                <p class="section-subtitle">This is nacho average recipe collection</p>
+
+                <m3e-chip-set>
+                    <m3e-chip variant="filter">Brie-lliant Breakfasts</m3e-chip>
+                    <m3e-chip variant="filter">Gouda Lunches</m3e-chip>
+                    <m3e-chip variant="filter">Ched-dar Dinners</m3e-chip>
+                    <m3e-chip variant="filter">Fondue Fun</m3e-chip>
+                    <m3e-chip variant="filter">Feeling Bleu?</m3e-chip>
+                    <m3e-chip variant="filter">Hole-some Recipes</m3e-chip>
+                    <m3e-chip variant="filter">Aged to Perfection</m3e-chip>
+                </m3e-chip-set>
+            </section>
+
+            <!-- Quick Actions FAB -->
+            <m3e-fab variant="primary" size="large" style="position: fixed; bottom: 80px; right: 24px;">
+                <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+            </m3e-fab>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    recipe_card "testmodule/partials/recipe-card.pk"
+    footer "testmodule/partials/footer.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "The Norman Kitchen - Where Every Dish is Grate!",
+    }, nil
+}
+</script>

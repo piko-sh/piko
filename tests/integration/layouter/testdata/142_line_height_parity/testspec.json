@@ -1,0 +1,7 @@
+{
+    "description": "Verifies line-height parity with Chrome for stacked paragraphs at different font weights.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

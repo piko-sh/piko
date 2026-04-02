@@ -1,0 +1,44 @@
+{
+  "description": "Validates that loop variables (from p-for) can be used in prop bindings inside a layout's slotted content. The loop is defined in the page's context, and its variables should be accessible for prop bindings on child components.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Elements with 'p-for' directives should have a unique 'p-key' binding",
+      "onLine": 47
+    }
+  ],
+  "assertNodes": [
+    {
+      "select": "#loop-container",
+      "description": "The loop container should correctly resolve the iteration over state.Items.",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "state.Items",
+          "resolvedTypeIs": "[]models.Item"
+        }
+      ]
+    },
+    {
+      "select": "#loop-child",
+      "description": "The child component inside the loop should correctly resolve prop bindings using loop variables.",
+      "assert": {
+        "originalPackageAlias": "partials/child.pk"
+      },
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "item.Value",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "item.Label",
+          "resolvedTypeIs": "string"
+        },
+        {
+          "rawExpression": "idx",
+          "resolvedTypeIs": "int"
+        }
+      ]
+    }
+  ]
+}

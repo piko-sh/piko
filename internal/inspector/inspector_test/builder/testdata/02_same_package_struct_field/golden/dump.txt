@@ -1,0 +1,28 @@
+--- PACKAGE: testcase_02_same_package_struct_field ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 02_same_package_struct_field/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Address
+    - Defined In:      02_same_package_struct_field/src/main.go
+    - TypeString:      main.Address
+    - Underlying:      struct{Street string}
+    - Stringability:   0
+    - Fields:
+      - Street               string
+
+  > type User
+    - Defined In:      02_same_package_struct_field/src/main.go
+    - TypeString:      main.User
+    - Underlying:      struct{HomeAddress main.Address}
+    - Stringability:   0
+    - Fields:
+      - HomeAddress          main.Address
+        (Canonical Package: testcase_02_same_package_struct_field)
+
+[Package-Level Functions]
+  (none)

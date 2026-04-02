@@ -1,0 +1,22 @@
+{
+  "customers": [
+    {
+      "HasInvoices": true,
+      "ID": 1,
+      "MaxInvoice": 200.75,
+      "Name": "Alice"
+    },
+    {
+      "HasInvoices": true,
+      "ID": 2,
+      "MaxInvoice": 50,
+      "Name": "Bob"
+    },
+    {
+      "HasInvoices": false,
+      "ID": 3,
+      "MaxInvoice": null,
+      "Name": "Charlie"
+    }
+  ]
+}
