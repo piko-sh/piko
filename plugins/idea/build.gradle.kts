@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "io.politepixels"
-version = "0.0.0"
+version = findProperty("version") as String? ?: "0.0.0"
 
 repositories {
     mavenCentral()
