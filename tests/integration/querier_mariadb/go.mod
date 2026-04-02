@@ -1,6 +1,6 @@
 module piko.sh/piko/tests/integration/querier_mariadb
 
-go 1.26.1
+go 1.26.0
 
 require (
 	github.com/go-sql-driver/mysql v1.9.2

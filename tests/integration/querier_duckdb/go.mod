@@ -1,6 +1,6 @@
 module piko.sh/piko/tests/integration/querier_duckdb
 
-go 1.26.1
+go 1.26.0
 
 require (
 	github.com/duckdb/duckdb-go/v2 v2.10501.0

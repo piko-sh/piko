@@ -32,9 +32,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_go"
-	"piko.sh/piko/wdk/db/db_engine_sqlite"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/db/db_engine_sqlite"
 )
 
 const runnerModuleName = "querier_test_runner"
@@ -141,7 +141,7 @@ func copyRunnerSource(t *testing.T, testCaseDirectory string, tempDirectory stri
 func writeRunnerGoMod(t *testing.T, tempDirectory string, files []querier_dto.GeneratedFile) {
 	t.Helper()
 
-	goModContent := "module " + runnerModuleName + "\n\ngo 1.26.1\n\nrequire modernc.org/sqlite v1.42.2\n"
+	goModContent := "module " + runnerModuleName + "\n\ngo 1.26.0\n\nrequire modernc.org/sqlite v1.42.2\n"
 
 	if generatedCodeImportsPiko(files) {
 		projectRoot, err := filepath.Abs(filepath.Join("..", "..", ".."))

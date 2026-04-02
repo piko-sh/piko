@@ -18,7 +18,7 @@
 
 module piko.sh/piko/tests/integration/querier_postgres
 
-go 1.26.1
+go 1.26.0
 
 require (
 	github.com/fergusstrange/embedded-postgres v1.31.0

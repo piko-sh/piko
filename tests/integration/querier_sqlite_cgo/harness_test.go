@@ -152,7 +152,7 @@ func copyRunnerSource(t *testing.T, testCaseDirectory string, tempDirectory stri
 func writeRunnerGoMod(t *testing.T, tempDirectory string, files []querier_dto.GeneratedFile) {
 	t.Helper()
 
-	goModContent := "module " + runnerModuleName + "\n\ngo 1.26.1\n\nrequire github.com/mattn/go-sqlite3 v1.14.37\n"
+	goModContent := "module " + runnerModuleName + "\n\ngo 1.26.0\n\nrequire github.com/mattn/go-sqlite3 v1.14.37\n"
 
 	if generatedCodeImportsPiko(files) {
 		projectRoot, err := filepath.Abs(filepath.Join("..", "..", ".."))
