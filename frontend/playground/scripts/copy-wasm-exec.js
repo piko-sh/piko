@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Copyright 2026 PolitePixels Limited
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +16,6 @@
 // This project stands against fascism, authoritarianism, and all forms of
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
-
-#!/usr/bin/env node
 /**
  * Copies wasm_exec.js from the Go SDK to the assets directory.
  * This file is required to run Go WASM in the browser.
