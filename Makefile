@@ -140,6 +140,10 @@ lint-licences: ## Check dependency licences for Apache-2.0 compatibility
 go-mod-tidy: ## Tidy all go.mod files
 	@$(HACK_DIR)/go/mod-tidy.sh
 
+.PHONY: go-mod-tidy-all
+go-mod-tidy-all: ## Tidy all go.mod files including testdata
+	@$(HACK_DIR)/go/mod-tidy.sh --all
+
 .PHONY: go-mod-upgrade
 go-mod-upgrade: ## Upgrade all direct dependencies across all go.mod files
 	@$(HACK_DIR)/go/mod-upgrade.sh
@@ -155,6 +159,10 @@ go-mod-major: ## List available major version upgrades across all go.mod files
 .PHONY: go-mod-verify
 go-mod-verify: ## Verify go.mod files are tidy
 	@$(HACK_DIR)/go/mod-verify.sh
+
+.PHONY: go-mod-verify-all
+go-mod-verify-all: ## Verify go.mod files are tidy including testdata
+	@$(HACK_DIR)/go/mod-verify.sh --all
 
 .PHONY: go-packages-list
 go-packages-list: ## List all Go packages (excludes generated/test-only)

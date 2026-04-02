@@ -157,9 +157,16 @@ piko::util::find_go_packages() {
 # piko::util::find_go_modules finds all go.mod files under a directory
 # Arguments:
 #   $1 - Directory to search (defaults to PIKO_ROOT)
+#   $2 - If "--all", include testdata directories
 piko::util::find_go_modules() {
     local dir="${1:-${PIKO_ROOT}}"
-    find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*"
+    local include_all="${2:-}"
+
+    if [[ "$include_all" == "--all" ]]; then
+        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*"
+    else
+        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/testdata/*"
+    fi
 }
 
 # piko::util::find_go_workspaces finds all go.work files under a directory

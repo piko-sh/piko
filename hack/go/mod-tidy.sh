@@ -32,6 +32,9 @@ source "$(dirname "$0")/../lib/init.sh"
 # Directory to search for go.mod files.
 TARGET_DIR=""
 
+# Whether to include testdata directories.
+INCLUDE_ALL=""
+
 # Newline-separated list of go.mod file paths.
 MODULES=""
 
@@ -44,21 +47,40 @@ FAILED=()
 # validate_args parses the optional directory argument.
 # Globals:
 #   TARGET_DIR - Set
+#   INCLUDE_ALL - Set
 # Arguments:
-#   $1 - Optional directory path (default: PIKO_ROOT)
+#   $@ - Optional flags and directory path
 validate_args() {
     if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-        piko::log::info "Usage: $0 [directory]"
+        piko::log::info "Usage: $0 [--all] [directory]"
         piko::log::blank
         piko::log::info "Tidy all go.mod files in the project or a specific directory."
+        piko::log::info "By default, testdata directories are excluded."
+        piko::log::blank
+        piko::log::info "Flags:"
+        piko::log::detail "  --all  Include testdata directories"
         piko::log::blank
         piko::log::info "Examples:"
         piko::log::detail "$0               # Tidy all go.mod files"
+        piko::log::detail "$0 --all         # Tidy all go.mod files including testdata"
         piko::log::detail "$0 internal/lsp  # Tidy specific directory"
         exit 0
     fi
 
-    TARGET_DIR="${1:-${PIKO_ROOT}}"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --all)
+                INCLUDE_ALL="--all"
+                shift
+                ;;
+            *)
+                TARGET_DIR="$1"
+                shift
+                ;;
+        esac
+    done
+
+    TARGET_DIR="${TARGET_DIR:-${PIKO_ROOT}}"
 
     if [[ ! -d "$TARGET_DIR" ]]; then
         piko::log::fatal "Directory '$TARGET_DIR' does not exist."
@@ -68,10 +90,11 @@ validate_args() {
 # find_modules locates all go.mod files in the target directory.
 # Globals:
 #   TARGET_DIR - Read
+#   INCLUDE_ALL - Read
 #   MODULES - Set to newline-separated list of paths
 #   MODULE_COUNT - Set
 find_modules() {
-    MODULES=$(piko::util::find_go_modules "$TARGET_DIR")
+    MODULES=$(piko::util::find_go_modules "$TARGET_DIR" "$INCLUDE_ALL")
 
     if [[ -z "$MODULES" ]]; then
         piko::log::warn "No go.mod files found in $TARGET_DIR"
