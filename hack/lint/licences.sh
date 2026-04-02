@@ -29,7 +29,7 @@
 source "$(dirname "$0")/../lib/init.sh"
 
 # Comma-separated list of allowed licence types (Go).
-ALLOWED_LICENCES_GO="Apache-2.0,MIT,BSD-2-Clause,BSD-3-Clause,ISC"
+ALLOWED_LICENCES_GO="Apache-2.0,MIT,BSD-2-Clause,BSD-3-Clause,ISC,Unlicense"
 
 # Semicolon-separated list of allowed licence types (npm).
 ALLOWED_LICENCES_NPM="Apache-2.0;MIT;MIT-0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;CC-BY-3.0;Python-2.0;BlueOak-1.0.0;WTFPL;Artistic-2.0;Zlib"
