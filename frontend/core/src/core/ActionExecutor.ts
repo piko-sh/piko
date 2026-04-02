@@ -230,7 +230,7 @@ function validateForm(element: HTMLElement, event?: Event): boolean {
 
     if (form.noValidate) { return true; }
 
-    const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | null;
+    const submitter = (event as SubmitEvent | undefined)?.submitter as HTMLButtonElement | null;
     if (submitter?.formNoValidate) { return true; }
 
     return form.reportValidity();
