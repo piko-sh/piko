@@ -50,7 +50,3 @@ require (
 )
 
 replace go.lsp.dev/protocol => github.com/politepixels/golang-language-server v0.0.0-20251021203416-834c07056957
-
-replace piko.sh/piko v0.0.0 => ../..
-
-replace piko.sh/piko/wdk/interp/interp_provider_piko v0.0.0 => ../../wdk/interp/interp_provider_piko

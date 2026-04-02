@@ -31,5 +31,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace piko.sh/piko v0.0.0 => ../../..

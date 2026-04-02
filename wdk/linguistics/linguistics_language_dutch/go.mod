@@ -23,10 +23,3 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0 => ../../../wdk/linguistics/linguistics_phonetic_dutch
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0 => ../../../wdk/linguistics/linguistics_stemmer_dutch
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0 => ../../../wdk/linguistics/linguistics_stopwords_dutch
-)

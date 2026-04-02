@@ -32,8 +32,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0 => ../monitoring_api
-)

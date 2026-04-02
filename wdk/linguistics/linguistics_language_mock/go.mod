@@ -11,10 +11,3 @@ require (
 )
 
 require golang.org/x/text v0.35.0 // indirect
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_mock v0.0.0 => ../../../wdk/linguistics/linguistics_phonetic_mock
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_mock v0.0.0 => ../../../wdk/linguistics/linguistics_stemmer_mock
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_mock v0.0.0 => ../../../wdk/linguistics/linguistics_stopwords_mock
-)

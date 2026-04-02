@@ -14,10 +14,3 @@ require (
 	github.com/kljensen/snowball v0.10.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_french v0.0.0 => ../../../wdk/linguistics/linguistics_phonetic_french
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_french v0.0.0 => ../../../wdk/linguistics/linguistics_stemmer_french
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 => ../../../wdk/linguistics/linguistics_stopwords_french
-)

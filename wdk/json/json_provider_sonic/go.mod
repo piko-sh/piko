@@ -16,5 +16,3 @@ require (
 	golang.org/x/arch v0.25.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 )
-
-replace piko.sh/piko v0.0.0 => ../../..

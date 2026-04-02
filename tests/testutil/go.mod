@@ -33,5 +33,3 @@ require (
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
 	go.opentelemetry.io/otel/trace v1.42.0 // indirect
 )
-
-replace piko.sh/piko v0.0.0 => ../..

@@ -11,8 +11,6 @@ require (
 	piko.sh/piko v0.0.0
 )
 
-replace piko.sh/piko v0.0.0 => ../../..
-
 require (
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.19.0 // indirect

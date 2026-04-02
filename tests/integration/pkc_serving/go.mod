@@ -60,9 +60,3 @@ require (
 	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/tests/integration/testutil v0.0.0 => ../../../tests/integration/testutil
-	piko.sh/piko/tests/testutil v0.0.0 => ../../testutil
-)

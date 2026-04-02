@@ -3,7 +3,7 @@ module piko.sh/piko/wdk/llm/llm_provider_ollama
 go 1.26.0
 
 require (
-	github.com/ollama/ollama v0.18.3
+	github.com/ollama/ollama v0.19.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.42.0
 	go.opentelemetry.io/otel/metric v1.42.0
@@ -36,5 +36,3 @@ require (
 	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace piko.sh/piko v0.0.0 => ../../..

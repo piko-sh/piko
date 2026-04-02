@@ -81,16 +81,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace piko.sh/piko v0.0.0 => ../..
-
-replace piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0 => ../../wdk/logger/logger_integration_otel_grpc
-
-replace piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0 => ../../wdk/logger/logger_integration_otel_http
-
-replace piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0 => ../../wdk/logger/logger_otel_sdk
-
-replace piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0 => ../../wdk/monitoring/monitoring_api
-
 replace go.lsp.dev/protocol => github.com/politepixels/golang-language-server v0.0.0-20251021203416-834c07056957
-
-replace piko.sh/piko/wdk/json/json_provider_sonic v0.0.0 => ../../wdk/json/json_provider_sonic

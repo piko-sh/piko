@@ -44,5 +44,3 @@ require (
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 // indirect
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 // indirect
 )
-
-replace piko.sh/piko v0.0.0 => ../../..

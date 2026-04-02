@@ -99,11 +99,3 @@ require (
 	google.golang.org/grpc v1.79.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/cache/cache_provider_redis v0.0.0 => ../../../wdk/cache/cache_provider_redis
-	piko.sh/piko/wdk/cache/cache_provider_redis_cluster v0.0.0 => ../../../wdk/cache/cache_provider_redis_cluster
-	piko.sh/piko/wdk/cache/cache_provider_valkey v0.0.0 => ../../../wdk/cache/cache_provider_valkey
-	piko.sh/piko/wdk/cache/cache_provider_valkey_cluster v0.0.0 => ../../../wdk/cache/cache_provider_valkey_cluster
-)

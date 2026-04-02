@@ -42,9 +42,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/tests/integration/testutil v0.0.0 => ../testutil
-	piko.sh/piko/wdk/markdown/markdown_provider_goldmark v0.0.0 => ../../../wdk/markdown/markdown_provider_goldmark
-)

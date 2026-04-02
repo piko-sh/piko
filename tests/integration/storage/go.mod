@@ -111,10 +111,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/storage/storage_provider_s3 v0.0.0 => ../../../wdk/storage/storage_provider_s3
-	piko.sh/piko/wdk/storage/storage_transformer_gzip v0.0.0 => ../../../wdk/storage/storage_transformer_gzip
-	piko.sh/piko/wdk/storage/storage_transformer_zstd v0.0.0 => ../../../wdk/storage/storage_transformer_zstd
-)

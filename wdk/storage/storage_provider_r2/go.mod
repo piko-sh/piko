@@ -68,8 +68,3 @@ require (
 	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/storage/storage_provider_s3 v0.0.0 => ../../../wdk/storage/storage_provider_s3
-)

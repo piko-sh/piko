@@ -32,5 +32,3 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace piko.sh/piko v0.0.0 => ../../..

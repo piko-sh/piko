@@ -63,8 +63,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace piko.sh/piko v0.0.0 => ../..
-
 replace go.lsp.dev/protocol => github.com/politepixels/golang-language-server v0.0.0-20251021203416-834c07056957
-
-replace piko.sh/piko/wdk/json/json_provider_sonic v0.0.0 => ../../wdk/json/json_provider_sonic

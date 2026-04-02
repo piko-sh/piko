@@ -111,5 +111,3 @@ require (
 	google.golang.org/grpc v1.79.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace piko.sh/piko v0.0.0 => ../../..

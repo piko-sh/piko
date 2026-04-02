@@ -109,19 +109,3 @@ require (
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_english v0.0.0 // indirect
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 // indirect
 )
-
-replace (
-	piko.sh/piko v0.0.0 => ../../..
-	piko.sh/piko/wdk/cache/cache_provider_redis v0.0.0 => ../../../wdk/cache/cache_provider_redis
-	piko.sh/piko/wdk/cache/cache_provider_valkey v0.0.0 => ../../../wdk/cache/cache_provider_valkey
-	piko.sh/piko/wdk/linguistics/linguistics_language_english v0.0.0 => ../../../wdk/linguistics/linguistics_language_english
-	piko.sh/piko/wdk/linguistics/linguistics_language_french v0.0.0 => ../../../wdk/linguistics/linguistics_language_french
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_english v0.0.0 => ../../../wdk/linguistics/linguistics_phonetic_english
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_french v0.0.0 => ../../../wdk/linguistics/linguistics_phonetic_french
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_english v0.0.0 => ../../../wdk/linguistics/linguistics_stemmer_english
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_french v0.0.0 => ../../../wdk/linguistics/linguistics_stemmer_french
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 => ../../../wdk/linguistics/linguistics_stopwords_english
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 => ../../../wdk/linguistics/linguistics_stopwords_french
-	piko.sh/piko/wdk/llm/llm_provider_ollama v0.0.0 => ../../../wdk/llm/llm_provider_ollama
-	piko.sh/piko/wdk/llm/llm_provider_zoltai v0.0.0 => ../../../wdk/llm/llm_provider_zoltai
-)

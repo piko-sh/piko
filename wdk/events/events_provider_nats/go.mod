@@ -13,8 +13,6 @@ require (
 	piko.sh/piko v0.0.0
 )
 
-replace piko.sh/piko v0.0.0 => ../../..
-
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/bojanz/currency v1.4.2 // indirect
