@@ -19,7 +19,7 @@
 
 package io.politepixels.piko.pk.injection
 
-import com.intellij.diagnostic.LoadingState
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.lang.Language
 import com.intellij.lang.injection.MultiHostInjector
 import com.intellij.lang.injection.MultiHostRegistrar
@@ -142,7 +142,7 @@ class PKTypeScriptLanguageInjector : MultiHostInjector {
      *         if no definitions are available or IDE is not fully loaded.
      */
     private fun getTypeSuffix(context: PsiElement): String {
-        if (!LoadingState.COMPONENTS_LOADED.isOccurred) {
+        if (ApplicationManager.getApplication()?.isLoaded != true) {
             LOG.debug("IDE not fully loaded yet, skipping type suffix injection")
             return ""
         }

@@ -137,7 +137,7 @@ class PikoSettingsConfigurable : Configurable {
     private fun com.intellij.ui.dsl.builder.Panel.lspBinaryGroup() = group("LSP Binary") {
         row("Custom LSP path:") {
             textFieldWithBrowseButton(
-                FileChooserDescriptorFactory.createSingleLocalFileDescriptor().withTitle("Select Piko LSP Binary")
+                FileChooserDescriptorFactory.createSingleFileDescriptor().withTitle("Select Piko LSP Binary")
             ).bindText(::lspPath).align(AlignX.FILL).comment("Leave empty to use bundled binary or search standard locations.")
         }
     }

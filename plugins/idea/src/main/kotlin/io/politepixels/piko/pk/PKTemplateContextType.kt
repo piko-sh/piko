@@ -28,8 +28,7 @@ import com.intellij.codeInsight.template.TemplateContextType
  * This context type enables Piko-specific live templates to be available
  * when editing .pk files.
  */
-@Suppress("DEPRECATION")
-class PKTemplateContextType : TemplateContextType("PIKO", "Piko") {
+class PKTemplateContextType : TemplateContextType("Piko") {
 
     /**
      * Determines if this template context is applicable.
