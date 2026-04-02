@@ -142,7 +142,7 @@ jobs:
           npm run package
 
       - name: Publish to VS Code Marketplace
-        if: ${{ secrets.VSCE_PAT != '' }}
+        if: env.VSCE_PAT != ''
         working-directory: plugins/vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
@@ -189,7 +189,7 @@ jobs:
         run: ./gradlew buildPlugin -x buildSearchableOptions --no-daemon
 
       - name: Publish to JetBrains Marketplace
-        if: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN != '' }}
+        if: env.PUBLISH_TOKEN != ''
         working-directory: plugins/idea
         env:
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
