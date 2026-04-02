@@ -166,7 +166,7 @@ class PikoSettingsConfigurable : Configurable {
                 .comment("Check standard paths like /usr/local/go/bin, Homebrew locations, and ~/sdk/go*/bin.")
         }
         row {
-            text("<html><small>Resolution priority: Manual path → IDE detection → Common locations → System PATH</small></html>")
+            text("<small>Resolution priority: Manual path → IDE detection → Common locations → System PATH</small>")
         }
     }
 

@@ -2,7 +2,7 @@
   "name": "piko",
   "displayName": "Piko Language Support",
   "description": "Language support for Piko template files (.pk) with embedded Go, CSS, and JSON support",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "publisher": "politepixels",
   "license": "Apache-2.0",
   "repository": {

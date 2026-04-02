@@ -124,6 +124,10 @@ jobs:
           pattern: lsp-bin-*
           path: lsp-binaries
 
+      - name: Set version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Bundle LSP binaries into plugin
         run: |
           mkdir -p plugins/vscode/bin
@@ -133,6 +137,10 @@ jobs:
             cp "$dir"/* "plugins/vscode/bin/${platform}/"
             chmod +x "plugins/vscode/bin/${platform}/"* 2>/dev/null || true
           done
+
+      - name: Set plugin version
+        working-directory: plugins/vscode
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
 
       - name: Build and package extension
         working-directory: plugins/vscode
@@ -174,6 +182,10 @@ jobs:
           pattern: lsp-bin-*
           path: lsp-binaries
 
+      - name: Set version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Bundle LSP binaries into plugin
         run: |
           mkdir -p plugins/idea/src/main/resources/bin
@@ -186,14 +198,14 @@ jobs:
 
       - name: Build plugin
         working-directory: plugins/idea
-        run: ./gradlew buildPlugin -x buildSearchableOptions --no-daemon
+        run: ./gradlew buildPlugin -x buildSearchableOptions --no-daemon -Pversion=${{ steps.version.outputs.version }}
 
       - name: Publish to JetBrains Marketplace
         if: env.PUBLISH_TOKEN != ''
         working-directory: plugins/idea
         env:
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
-        run: ./gradlew publishPlugin --no-daemon
+        run: ./gradlew publishPlugin --no-daemon -Pversion=${{ steps.version.outputs.version }}
 
       - name: Upload plugin distribution
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

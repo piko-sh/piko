@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "io.politepixels"
-version = "0.1.0"
+version = "0.0.0"
 
 repositories {
     mavenCentral()
@@ -36,6 +36,7 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "253"
+            untilBuild = provider { null }
         }
         changeNotes = """
             Initial release with:
