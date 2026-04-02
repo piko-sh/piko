@@ -307,6 +307,18 @@ jobs:
               syft "$binary" -o "spdx-json" --file "release/${basename}.sbom.spdx.json"
             fi
           done
+          for archive in release/piko-cli-*.zip release/piko-lsp-*.zip; do
+            [ -f "$archive" ] || continue
+            basename=$(basename "$archive")
+            extract_dir="sbom-tmp/${basename%.zip}"
+            mkdir -p "$extract_dir"
+            unzip -q "$archive" -d "$extract_dir"
+            binary=$(find "$extract_dir" -type f -not -name '*.zip' | head -1)
+            if [ -n "$binary" ]; then
+              syft "$binary" -o "cyclonedx-json" --file "release/${basename}.sbom.cdx.json"
+              syft "$binary" -o "spdx-json" --file "release/${basename}.sbom.spdx.json"
+            fi
+          done
           rm -rf sbom-tmp
 
       - name: Sign artefacts with cosign (keyless)
