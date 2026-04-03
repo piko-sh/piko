@@ -209,7 +209,11 @@ piko::go::upgrade_module() {
             fi
             return 1
         fi
+    fi
 
+    if [[ "$has_internal_deps" == "true" ]]; then
+        (cd "$dir" && go mod tidy 2>/dev/null) || true
+    else
         if ! (cd "$dir" && go mod tidy 2>/dev/null); then
             if [[ "$dry_run" == "true" ]]; then
                 piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"

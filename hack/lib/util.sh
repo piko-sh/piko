@@ -174,5 +174,5 @@ piko::util::find_go_modules() {
 #   $1 - Directory to search (defaults to PIKO_ROOT)
 piko::util::find_go_workspaces() {
     local dir="${1:-${PIKO_ROOT}}"
-    find "$dir" -name "go.work" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*"
+    find "$dir" -name "go.work" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/testdata/*" -not -path "*/testdata-modules/*"
 }

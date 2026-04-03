@@ -169,6 +169,32 @@ sync_workspaces() {
     done <<<"$workspaces"
 }
 
+# tidy_modules runs go mod tidy on all modules after workspace sync.
+# Globals:
+#   MODULES - Read
+#   MODULE_COUNT - Read
+tidy_modules() {
+    piko::log::blank
+    piko::log::header "Tidying all modules"
+    piko::log::blank
+
+    local current=0
+
+    while IFS= read -r mod_file; do
+        current=$((current + 1))
+        local mod_dir
+        mod_dir=$(dirname "$mod_file")
+
+        piko::log::step "$current" "$MODULE_COUNT" "$(piko::util::relative_path "$mod_dir")"
+
+        if (cd "$mod_dir" && go mod tidy 2>/dev/null); then
+            piko::log::success "Tidied: $(piko::util::relative_path "$mod_dir")"
+        else
+            piko::log::warn "Tidy failed: $(piko::util::relative_path "$mod_dir")"
+        fi
+    done <<<"$MODULES"
+}
+
 # print_summary displays upgrade results.
 # Globals:
 #   MODULE_COUNT - Read
@@ -216,6 +242,7 @@ main() {
 
     if [[ "$DRY_RUN" != "true" ]]; then
         sync_workspaces
+        tidy_modules
     fi
 
     print_summary
