@@ -41,7 +41,7 @@ func main() {
 		piko.WithDevHotreload(),
 		piko.WithServerConfigDefaults(&piko.ServerConfig{
 			Network: piko.NetworkConfig{
-				AutoNextPort: true,
+				AutoNextPort: new(true),
 			},
 		}),
 
