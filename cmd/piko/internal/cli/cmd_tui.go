@@ -21,6 +21,8 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os/signal"
+	"syscall"
 
 	"piko.sh/piko/cmd/piko/internal/tui"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -36,6 +38,9 @@ import (
 // Returns error when the TUI fails to initialise or encounters a
 // fatal error during execution.
 func runTUICmd(ctx context.Context, cc *CommandContext, _ []string) error {
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	ctx, l := logger_domain.From(ctx, log)
 
 	tuiConfig, err := tui.LoadConfig("")

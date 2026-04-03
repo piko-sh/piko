@@ -357,7 +357,13 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 		return nil, fmt.Errorf("failed to get orchestrator database connection: %w", err)
 	}
 
-	return orchestrator_querier_adapter.New(database), nil
+	dal := orchestrator_querier_adapter.New(database)
+
+	if inspector, ok := dal.(orchestrator_domain.OrchestratorInspector); ok {
+		c.orchestratorInspector = inspector
+	}
+
+	return dal, nil
 }
 
 // createProviderOrchestratorDAL creates an orchestrator DAL from the default

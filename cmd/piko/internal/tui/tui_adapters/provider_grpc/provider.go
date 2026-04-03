@@ -24,8 +24,10 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"piko.sh/piko/cmd/piko/internal/tui/tui_domain"
 	"piko.sh/piko/wdk/logger"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
@@ -116,6 +118,15 @@ func NewConnection(address string, opts ...Option) (*Connection, error) {
 
 	conn, err := grpc.NewClient(config.Address,
 		grpc.WithTransportCredentials(transportCreds),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                30 * time.Second,
+			Timeout:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.DefaultConfig,
+		}),
+		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating gRPC client for %s: %w", config.Address, err)

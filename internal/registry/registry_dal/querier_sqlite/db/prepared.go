@@ -16,7 +16,7 @@ type PreparedDBTX struct {
 }
 
 func Prepare(ctx context.Context, db *sql.DB) (*PreparedDBTX, error) {
-	staticQueries := []string{getartefact, listallartefactids, upsertartefact, deleteartefact, incrementblobrefcount, decrementblobrefcount, getblobrefcount, deleteblobreferenceifzero, insertvariantchunk, getchunksforvariant, deletechunksforvariant, countchunksforvariant, findartefactbychunkstoragekey, addgchint, popgchints, getdesiredprofilesforartefact, insertdesiredprofile, deletedesiredprofilesforartefact, findartefactidsbytag, findartefactbyvariantstoragekey, getvariantsforartefact, insertvariant, deletevariantsforartefact, insertvarianttag, deletevarianttagsforartefact, getalltagsforartefact, gettagsforvariant}
+	staticQueries := []string{getartefact, listallartefactids, upsertartefact, deleteartefact, incrementblobrefcount, decrementblobrefcount, getblobrefcount, deleteblobreferenceifzero, insertvariantchunk, getchunksforvariant, deletechunksforvariant, countchunksforvariant, findartefactbychunkstoragekey, addgchint, popgchints, listallartefactswithdata, listrecentartefactswithdata, listvariantstatuscounts, getdesiredprofilesforartefact, insertdesiredprofile, deletedesiredprofilesforartefact, findartefactidsbytag, findartefactbyvariantstoragekey, getvariantsforartefact, insertvariant, deletevariantsforartefact, insertvarianttag, deletevarianttagsforartefact, getalltagsforartefact, gettagsforvariant}
 	stmts := make(map[string]*sql.Stmt, len(staticQueries))
 	for _, query := range staticQueries {
 		statement, err := db.PrepareContext(ctx, query)

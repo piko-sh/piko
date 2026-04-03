@@ -125,7 +125,10 @@ func (c *Container) createQuerierRegistryDAL() (registry_domain.MetadataStore, e
 		return nil, fmt.Errorf("failed to get registry database connection: %w", err)
 	}
 
-	return registry_querier_adapter.NewDAL(database), nil
+	dal := registry_querier_adapter.NewDAL(database)
+	c.registryInspector = dal
+
+	return dal, nil
 }
 
 // createProviderRegistryDAL creates a registry DAL from the default otter

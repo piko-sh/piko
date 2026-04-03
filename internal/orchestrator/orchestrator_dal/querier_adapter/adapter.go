@@ -48,6 +48,8 @@ var (
 	_ orchestrator_dal.OrchestratorDALWithTx = (*Adapter)(nil)
 
 	_ orchestrator_domain.TaskStore = (*Adapter)(nil)
+
+	_ orchestrator_domain.OrchestratorInspector = (*Adapter)(nil)
 )
 
 // Adapter wraps the code-generated Queries struct to satisfy
@@ -795,6 +797,103 @@ func (a *Adapter) ListFailedTasks(ctx context.Context) ([]*orchestrator_domain.T
 		}
 	}
 	return tasks, nil
+}
+
+// ListTaskSummary returns task counts grouped by status.
+//
+// Returns []orchestrator_domain.TaskSummary which contains one entry per
+// status with its count.
+// Returns error when the database query fails.
+func (a *Adapter) ListTaskSummary(ctx context.Context) ([]orchestrator_domain.TaskSummary, error) {
+	rows, err := a.queries.ListTaskStatusCounts(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing task status counts: %w", err)
+	}
+
+	results := make([]orchestrator_domain.TaskSummary, len(rows))
+	for i, row := range rows {
+		results[i] = orchestrator_domain.TaskSummary{
+			Status: row.Status,
+			Count:  int64(row.TaskCount),
+		}
+	}
+
+	return results, nil
+}
+
+// ListRecentTasks returns the most recently updated tasks.
+//
+// Takes limit (int32) which specifies the maximum number of tasks to return.
+//
+// Returns []orchestrator_domain.TaskListItem which contains the tasks ordered
+// by update time descending.
+// Returns error when the database query fails.
+func (a *Adapter) ListRecentTasks(ctx context.Context, limit int32) ([]orchestrator_domain.TaskListItem, error) {
+	rows, err := a.queries.ListRecentTasks(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("listing recent tasks: %w", err)
+	}
+
+	results := make([]orchestrator_domain.TaskListItem, len(rows))
+	for i, row := range rows {
+		results[i] = orchestrator_domain.TaskListItem{
+			ID:         row.ID,
+			WorkflowID: row.WorkflowID,
+			Executor:   row.Executor,
+			Status:     row.Status,
+			Priority:   row.Priority,
+			Attempt:    row.Attempt,
+			LastError:  row.LastError,
+			CreatedAt:  int64(row.CreatedAt),
+			UpdatedAt:  int64(row.UpdatedAt),
+		}
+	}
+
+	return results, nil
+}
+
+// ListWorkflowSummary returns workflow-level aggregates ordered by most
+// recently updated.
+//
+// Takes limit (int32) which specifies the maximum number of workflows to
+// return.
+//
+// Returns []orchestrator_domain.WorkflowSummary which contains one entry per
+// workflow with task counts by status.
+// Returns error when the database query fails.
+func (a *Adapter) ListWorkflowSummary(ctx context.Context, limit int32) ([]orchestrator_domain.WorkflowSummary, error) {
+	rows, err := a.queries.ListWorkflowSummary(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("listing workflow summary: %w", err)
+	}
+
+	results := make([]orchestrator_domain.WorkflowSummary, len(rows))
+	for i, row := range rows {
+		results[i] = orchestrator_domain.WorkflowSummary{
+			WorkflowID:    row.WorkflowID,
+			TaskCount:     int64(row.TaskCount),
+			CompleteCount: derefInt32AsInt64(row.CompleteCount),
+			FailedCount:   derefInt32AsInt64(row.FailedCount),
+			ActiveCount:   derefInt32AsInt64(row.ActiveCount),
+			CreatedAt:     derefInt32AsInt64(row.CreatedAt),
+			UpdatedAt:     derefInt32AsInt64(row.UpdatedAt),
+		}
+	}
+
+	return results, nil
+}
+
+// derefInt32AsInt64 returns the value behind a nullable int32 pointer as
+// int64, defaulting to zero when nil.
+//
+// Takes value (*int32) which may be nil.
+//
+// Returns int64 which is the dereferenced and widened value.
+func derefInt32AsInt64(value *int32) int64 {
+	if value == nil {
+		return 0
+	}
+	return int64(*value)
 }
 
 // runInTransaction executes fn within a transaction using the generated

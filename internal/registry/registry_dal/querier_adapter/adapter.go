@@ -593,6 +593,102 @@ func (d *DAL) GetBlobRefCount(ctx context.Context, storageKey string) (int, erro
 	return int(row.RefCount), nil
 }
 
+// ListArtefactSummary returns artefact counts grouped by status. Status is
+// stored inside the FlatBuffer payload so all artefacts are fetched and
+// aggregated in Go.
+//
+// Returns []registry_domain.ArtefactSummary which contains one entry per
+// status with its count.
+// Returns error when the database query fails or a FlatBuffer is corrupt.
+func (d *DAL) ListArtefactSummary(ctx context.Context) ([]registry_domain.ArtefactSummary, error) {
+	rows, err := d.queries.ListAllArtefactsWithData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing artefacts for summary: %w", err)
+	}
+
+	statusCounts := make(map[string]int64)
+	for i := range rows {
+		artefact := registry_schema.ParseArtefactMeta(rows[i].DataFbs)
+		if artefact == nil {
+			continue
+		}
+		statusCounts[string(artefact.Status)]++
+	}
+
+	results := make([]registry_domain.ArtefactSummary, 0, len(statusCounts))
+	for status, count := range statusCounts {
+		results = append(results, registry_domain.ArtefactSummary{
+			Status: status,
+			Count:  count,
+		})
+	}
+
+	return results, nil
+}
+
+// ListVariantSummary returns variant counts grouped by status.
+//
+// Returns []registry_domain.VariantSummary which contains one entry per
+// variant status with its count.
+// Returns error when the database query fails.
+func (d *DAL) ListVariantSummary(ctx context.Context) ([]registry_domain.VariantSummary, error) {
+	rows, err := d.queries.ListVariantStatusCounts(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing variant status counts: %w", err)
+	}
+
+	results := make([]registry_domain.VariantSummary, len(rows))
+	for i, row := range rows {
+		results[i] = registry_domain.VariantSummary{
+			Status: row.Status,
+			Count:  int64(row.VariantCount),
+		}
+	}
+
+	return results, nil
+}
+
+// ListRecentArtefacts returns the most recently updated artefacts with
+// variant counts and total sizes.
+//
+// Takes limit (int32) which specifies the maximum number of artefacts to
+// return.
+//
+// Returns []registry_domain.ArtefactListItem which contains artefacts ordered
+// by update time descending.
+// Returns error when the database query fails or a FlatBuffer is corrupt.
+func (d *DAL) ListRecentArtefacts(ctx context.Context, limit int32) ([]registry_domain.ArtefactListItem, error) {
+	rows, err := d.queries.ListRecentArtefactsWithData(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("listing recent artefacts: %w", err)
+	}
+
+	results := make([]registry_domain.ArtefactListItem, 0, len(rows))
+	for i := range rows {
+		artefact := registry_schema.ParseArtefactMeta(rows[i].DataFbs)
+		if artefact == nil {
+			continue
+		}
+
+		var totalSize int64
+		for vi := range artefact.ActualVariants {
+			totalSize += artefact.ActualVariants[vi].SizeBytes
+		}
+
+		results = append(results, registry_domain.ArtefactListItem{
+			ID:           artefact.ID,
+			SourcePath:   artefact.SourcePath,
+			Status:       string(artefact.Status),
+			VariantCount: int64(len(artefact.ActualVariants)),
+			TotalSize:    totalSize,
+			CreatedAt:    artefact.CreatedAt.Unix(),
+			UpdatedAt:    artefact.UpdatedAt.Unix(),
+		})
+	}
+
+	return results, nil
+}
+
 // runInTransaction executes fn within a transaction.
 //
 // If the DAL is already inside a transaction (inTransaction == true), it
@@ -1012,4 +1108,6 @@ var (
 	_ registry_dal.RegistryDALWithTx = (*DAL)(nil)
 
 	_ registry_domain.MetadataStore = (*DAL)(nil)
+
+	_ registry_domain.RegistryInspector = (*DAL)(nil)
 )

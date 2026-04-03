@@ -16,7 +16,7 @@ type PreparedDBTX struct {
 }
 
 func Prepare(ctx context.Context, db *sql.DB) (*PreparedDBTX, error) {
-	staticQueries := []string{cleanupoldresolvedreceipts, timeoutstalereceipts, listfailedtasks, checkduplicateactivetask, updatetaskheartbeat, getstaleprocessingtaskcount, recoverstaletasks, getstaletasksforrecovery, claimtaskforrecovery, recoverclaimedtasks, releaserecoveryleases, promotescheduledtasks, pendingtaskcount, createtask, updatetask, createtasksbatch, createworkflowreceipt, resolveworkflowreceipts, getpendingreceiptsbynode, getpendingreceiptsbyworkflow, getworkflowstatus}
+	staticQueries := []string{cleanupoldresolvedreceipts, timeoutstalereceipts, listfailedtasks, checkduplicateactivetask, updatetaskheartbeat, getstaleprocessingtaskcount, listtaskstatuscounts, listrecenttasks, listworkflowsummary, recoverstaletasks, getstaletasksforrecovery, claimtaskforrecovery, recoverclaimedtasks, releaserecoveryleases, promotescheduledtasks, pendingtaskcount, createtask, updatetask, createtasksbatch, createworkflowreceipt, resolveworkflowreceipts, getpendingreceiptsbynode, getpendingreceiptsbyworkflow, getworkflowstatus}
 	stmts := make(map[string]*sql.Stmt, len(staticQueries))
 	for _, query := range staticQueries {
 		statement, err := db.PrepareContext(ctx, query)

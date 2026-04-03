@@ -1893,3 +1893,123 @@ func TestClassifyStatement(t *testing.T) {
 		})
 	}
 }
+
+func TestAnalyseQuery_Select_NotExpressions(t *testing.T) {
+	t.Parallel()
+
+	catalogue := newSQLiteCatalogue()
+
+	tests := []struct {
+		name       string
+		sql        string
+		assertions func(t *testing.T, a *querier_dto.RawQueryAnalysis)
+	}{
+		{
+			name: "NOT IN in WHERE clause",
+			sql:  "SELECT id, name FROM users WHERE id NOT IN (1, 2, 3)",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 2)
+				assert.Equal(t, "id", a.OutputColumns[0].ColumnName)
+				assert.Equal(t, "name", a.OutputColumns[1].ColumnName)
+				require.Len(t, a.FromTables, 1)
+				assert.Equal(t, "users", a.FromTables[0].Name)
+				assert.True(t, a.ReadOnly)
+			},
+		},
+		{
+			name: "NOT IN in SELECT list",
+			sql:  "SELECT id NOT IN (1, 2, 3) AS excluded FROM users",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 1)
+				assert.Equal(t, "excluded", a.OutputColumns[0].Name)
+				require.Len(t, a.FromTables, 1)
+				assert.Equal(t, "users", a.FromTables[0].Name)
+			},
+		},
+		{
+			name: "NOT BETWEEN in WHERE clause",
+			sql:  "SELECT id FROM users WHERE id NOT BETWEEN 10 AND 20",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 1)
+				require.Len(t, a.FromTables, 1)
+				assert.Equal(t, "users", a.FromTables[0].Name)
+				assert.True(t, a.ReadOnly)
+			},
+		},
+		{
+			name: "NOT BETWEEN in SELECT list",
+			sql:  "SELECT id NOT BETWEEN 10 AND 20 AS outside_range FROM users",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 1)
+				assert.Equal(t, "outside_range", a.OutputColumns[0].Name)
+			},
+		},
+		{
+			name: "NOT LIKE in WHERE clause",
+			sql:  "SELECT id, name FROM users WHERE name NOT LIKE '%test%'",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 2)
+				require.Len(t, a.FromTables, 1)
+				assert.Equal(t, "users", a.FromTables[0].Name)
+			},
+		},
+		{
+			name: "NOT LIKE in SELECT list",
+			sql:  "SELECT name NOT LIKE '%admin%' AS is_regular FROM users",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 1)
+				assert.Equal(t, "is_regular", a.OutputColumns[0].Name)
+			},
+		},
+		{
+			name: "NOT GLOB in WHERE clause",
+			sql:  "SELECT id FROM users WHERE name NOT GLOB 'A*'",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 1)
+				require.Len(t, a.FromTables, 1)
+				assert.Equal(t, "users", a.FromTables[0].Name)
+			},
+		},
+		{
+			name: "NOT GLOB in SELECT list",
+			sql:  "SELECT name NOT GLOB 'A*' AS not_a_name FROM users",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 1)
+				assert.Equal(t, "not_a_name", a.OutputColumns[0].Name)
+			},
+		},
+		{
+			name: "NOT IN inside CASE inside aggregate with GROUP BY",
+			sql:  "SELECT user_id, COUNT(*) AS total, SUM(CASE WHEN title NOT IN ('draft', 'deleted') THEN 1 ELSE 0 END) AS active_count FROM posts GROUP BY user_id",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 3, "all three output columns must be preserved")
+				assert.Equal(t, "user_id", a.OutputColumns[0].ColumnName)
+				assert.Equal(t, "total", a.OutputColumns[1].Name)
+				assert.Equal(t, "active_count", a.OutputColumns[2].Name)
+				require.Len(t, a.FromTables, 1)
+				assert.Equal(t, "posts", a.FromTables[0].Name)
+				require.Len(t, a.GroupByColumns, 1)
+				assert.Equal(t, "user_id", a.GroupByColumns[0].ColumnName)
+			},
+		},
+		{
+			name: "multiple NOT expressions combined",
+			sql:  "SELECT id FROM users WHERE name NOT LIKE '%test%' AND id NOT IN (1, 2) AND id NOT BETWEEN 100 AND 200",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.Len(t, a.OutputColumns, 1)
+				require.Len(t, a.FromTables, 1)
+				assert.Equal(t, "users", a.FromTables[0].Name)
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyseQuery(t, catalogue, testCase.sql)
+			require.NotNil(t, analysis)
+			testCase.assertions(t, analysis)
+		})
+	}
+}

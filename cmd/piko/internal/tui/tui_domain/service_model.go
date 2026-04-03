@@ -20,7 +20,6 @@ package tui_domain
 
 import (
 	"fmt"
-	"maps"
 	"strings"
 	"sync"
 	"time"
@@ -117,14 +116,8 @@ func (m *Model) UpdateResourceData(
 	m.resourceDataMutex.Lock()
 	defer m.resourceDataMutex.Unlock()
 
-	for kind, statusCounts := range summary {
-		if m.resourceSummary[kind] == nil {
-			m.resourceSummary[kind] = make(map[ResourceStatus]int)
-		}
-		maps.Copy(m.resourceSummary[kind], statusCounts)
-	}
-
-	maps.Copy(m.resourcesByKind, resources)
+	m.resourceSummary = summary
+	m.resourcesByKind = resources
 }
 
 // AddPanel adds a panel to the model.
@@ -283,6 +276,7 @@ func (m *Model) setActivePanel(index int) {
 
 	m.activePanelIndex = index
 	m.panels[index].SetFocused(true)
+	m.pushDataToPanel(m.panels[index])
 }
 
 // tickCmd returns a command that sends a tick message after the refresh
@@ -304,12 +298,31 @@ func (m *Model) pushDataToPanels() {
 	defer m.resourceDataMutex.RUnlock()
 
 	for _, panel := range m.panels {
-		m.pushSummaryToPanel(panel)
-		m.pushArtefactsToPanel(panel)
-		m.pushTasksToPanel(panel)
-		m.pushWorkflowsToPanel(panel)
-		m.pushResourcesToPanel(panel)
+		m.pushDataToPanelLocked(panel)
 	}
+}
+
+// pushDataToPanel sends the stored data to a single panel. Acquires a read
+// lock on resourceDataMutex.
+//
+// Takes panel (Panel) which is the target panel to receive the cached data.
+func (m *Model) pushDataToPanel(panel Panel) {
+	m.resourceDataMutex.RLock()
+	defer m.resourceDataMutex.RUnlock()
+
+	m.pushDataToPanelLocked(panel)
+}
+
+// pushDataToPanelLocked sends the stored data to a single panel. The caller
+// must hold resourceDataMutex.
+//
+// Takes panel (Panel) which is the target panel to receive the cached data.
+func (m *Model) pushDataToPanelLocked(panel Panel) {
+	m.pushSummaryToPanel(panel)
+	m.pushArtefactsToPanel(panel)
+	m.pushTasksToPanel(panel)
+	m.pushWorkflowsToPanel(panel)
+	m.pushResourcesToPanel(panel)
 }
 
 // pushSummaryToPanel sends the resource summary to a panel if it supports it.
@@ -390,23 +403,6 @@ func (m *Model) pushResourcesToPanel(panel Panel) {
 func (m *Model) notifyPanelsOfDataUpdate() tea.Cmd {
 	return func() tea.Msg {
 		return DataUpdatedMessage{Time: m.config.GetClock().Now()}
-	}
-}
-
-// broadcastTickToAllPanels sends a tick message to all panels for background
-// updates.
-//
-// Takes t (time.Time) which specifies the tick timestamp to send.
-//
-// Returns tea.Cmd which updates all panels with the tick message when run.
-func (m *Model) broadcastTickToAllPanels(t time.Time) tea.Cmd {
-	return func() tea.Msg {
-		tickMessage := TickMessage{Time: t}
-		for i, panel := range m.panels {
-			updatedPanel, _ := panel.Update(tickMessage)
-			m.panels[i] = updatedPanel
-		}
-		return nil
 	}
 }
 
@@ -563,14 +559,28 @@ func (m *Model) dispatchMessage(message tea.Msg) []tea.Cmd {
 }
 
 // handleTickMessage handles tick messages for regular updates.
+// Iterates all panels on the main goroutine to avoid data races and collects
+// any commands they return.
 //
 // Takes message (tickMessage) which contains the tick time.
 //
-// Returns []tea.Cmd which contains commands to schedule the next tick and
-// send the update to all panels.
+// Returns []tea.Cmd which contains the next tick command plus any commands
+// returned by panels.
 func (m *Model) handleTickMessage(message tickMessage) []tea.Cmd {
 	m.lastRefresh = message.time
-	return []tea.Cmd{m.tickCmd(), m.broadcastTickToAllPanels(message.time)}
+
+	cmds := []tea.Cmd{m.tickCmd()}
+
+	tick := TickMessage{Time: message.time}
+	for i, panel := range m.panels {
+		updatedPanel, command := panel.Update(tick)
+		m.panels[i] = updatedPanel
+		if command != nil {
+			cmds = append(cmds, command)
+		}
+	}
+
+	return cmds
 }
 
 // handleDataRefreshedMessage updates provider state after a data refresh.

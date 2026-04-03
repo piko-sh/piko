@@ -144,22 +144,64 @@ func (p *parser) parseComparisonExpression() querier_dto.Expression {
 		return p.parseIsNullSuffix(left)
 	}
 
+	notNegated := p.matchKeyword(keywordNOT)
+
+	expression := p.parsePostfixComparisonSuffix(left)
+	if expression != nil {
+		return p.maybeNegate(notNegated, expression)
+	}
+
+	if notNegated {
+		return &querier_dto.UnaryOpExpression{Operator: keywordNOT, Operand: left}
+	}
+
+	return left
+}
+
+// parsePostfixComparisonSuffix attempts to parse a
+// postfix comparison operator (IN, BETWEEN, LIKE, GLOB,
+// REGEXP, MATCH) that follows the left operand. This is
+// called after optionally consuming a NOT keyword so
+// that constructs like NOT IN and NOT LIKE are handled.
+//
+// Takes left (querier_dto.Expression) which holds the
+// already-parsed left operand of the comparison.
+//
+// Returns querier_dto.Expression which holds the parsed
+// comparison expression, or nil if no postfix operator
+// was found.
+func (p *parser) parsePostfixComparisonSuffix(left querier_dto.Expression) querier_dto.Expression {
 	if p.isKeyword("IN") {
 		return p.parseInListSuffix(left)
 	}
-
 	if p.isKeyword("BETWEEN") {
 		return p.parseBetweenSuffix(left)
 	}
-
 	for _, keyword := range []string{"LIKE", "GLOB", "REGEXP", "MATCH"} {
 		if p.matchKeyword(keyword) {
 			right := p.parseBitwiseExpression()
 			return &querier_dto.ComparisonExpression{Operator: keyword, Left: left, Right: right}
 		}
 	}
+	return nil
+}
 
-	return left
+// maybeNegate wraps an expression in a NOT unary
+// operator if the negated flag is set, otherwise returns
+// the expression unchanged.
+//
+// Takes negated (bool) which indicates whether a NOT
+// keyword was consumed before the expression.
+// Takes expression (querier_dto.Expression) which holds
+// the expression to optionally negate.
+//
+// Returns querier_dto.Expression which holds the
+// original expression or a NOT-wrapped version.
+func (*parser) maybeNegate(negated bool, expression querier_dto.Expression) querier_dto.Expression {
+	if negated {
+		return &querier_dto.UnaryOpExpression{Operator: keywordNOT, Operand: expression}
+	}
+	return expression
 }
 
 func (p *parser) parseComparisonOperator(left querier_dto.Expression) querier_dto.Expression {

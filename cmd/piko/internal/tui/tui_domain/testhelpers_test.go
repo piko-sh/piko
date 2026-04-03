@@ -28,27 +28,35 @@ import (
 )
 
 type mockPanel struct {
-	id      string
-	title   string
-	keyMap  []KeyBinding
-	focused bool
+	id         string
+	title      string
+	keyMap     []KeyBinding
+	focused    bool
+	updateFunc func(tea.Msg) (Panel, tea.Cmd)
 }
 
-func (p *mockPanel) ID() string                        { return p.id }
-func (p *mockPanel) Title() string                     { return p.title }
-func (p *mockPanel) Init() tea.Cmd                     { return nil }
-func (p *mockPanel) Update(_ tea.Msg) (Panel, tea.Cmd) { return p, nil }
-func (p *mockPanel) View(_ int, _ int) string          { return "" }
-func (p *mockPanel) Focused() bool                     { return p.focused }
-func (p *mockPanel) SetFocused(focused bool)           { p.focused = focused }
-func (p *mockPanel) KeyMap() []KeyBinding              { return p.keyMap }
+func (p *mockPanel) ID() string              { return p.id }
+func (p *mockPanel) Title() string           { return p.title }
+func (p *mockPanel) Init() tea.Cmd           { return nil }
+func (p *mockPanel) View(_ int, _ int) string { return "" }
+func (p *mockPanel) Focused() bool           { return p.focused }
+func (p *mockPanel) SetFocused(focused bool) { p.focused = focused }
+func (p *mockPanel) KeyMap() []KeyBinding    { return p.keyMap }
+
+func (p *mockPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
+	if p.updateFunc != nil {
+		return p.updateFunc(message)
+	}
+	return p, nil
+}
 
 func newMockPanel(id string) *mockPanel {
 	return &mockPanel{
-		id:      id,
-		title:   id,
-		focused: false,
-		keyMap:  nil,
+		id:         id,
+		title:      id,
+		focused:    false,
+		keyMap:     nil,
+		updateFunc: nil,
 	}
 }
 

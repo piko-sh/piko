@@ -30,6 +30,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
+// providerCategoryCount is the amount of providers to refresh
+const providerCategoryCount = 6
+
 // refreshOrchestrator manages the refresh loop for all providers.
 type refreshOrchestrator struct {
 	// service holds the parent service for access to configuration and state.
@@ -90,19 +93,20 @@ func (r *refreshOrchestrator) loop(ctx context.Context) {
 	}
 }
 
-// refreshAll refreshes all providers and updates the model.
+// refreshAll refreshes all providers concurrently and updates the model.
 func (r *refreshOrchestrator) refreshAll(ctx context.Context) {
-	r.refreshResourceProviders(ctx)
+	var wg sync.WaitGroup
 
-	r.refreshMetricsProviders(ctx)
+	wg.Add(providerCategoryCount)
 
-	r.refreshTracesProviders(ctx)
+	go func() { defer wg.Done(); r.refreshResourceProviders(ctx) }()
+	go func() { defer wg.Done(); r.refreshMetricsProviders(ctx) }()
+	go func() { defer wg.Done(); r.refreshTracesProviders(ctx) }()
+	go func() { defer wg.Done(); r.refreshHealthProviders(ctx) }()
+	go func() { defer wg.Done(); r.refreshSystemProviders(ctx) }()
+	go func() { defer wg.Done(); r.refreshFDsProviders(ctx) }()
 
-	r.refreshHealthProviders(ctx)
-
-	r.refreshSystemProviders(ctx)
-
-	r.refreshFDsProviders(ctx)
+	wg.Wait()
 
 	if r.service.program != nil {
 		r.service.program.Send(dataUpdatedMessage{time: r.service.config.GetClock().Now()})
@@ -112,6 +116,9 @@ func (r *refreshOrchestrator) refreshAll(ctx context.Context) {
 // refreshResourceProviders updates all resource providers with the latest data.
 func (r *refreshOrchestrator) refreshResourceProviders(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
+
+	combinedSummary := make(map[string]map[ResourceStatus]int)
+	combinedResources := make(map[string][]Resource)
 
 	for _, provider := range r.service.resourceProviders {
 		if err := provider.Refresh(ctx); err != nil {
@@ -133,20 +140,58 @@ func (r *refreshOrchestrator) refreshResourceProviders(ctx context.Context) {
 			continue
 		}
 
-		resources := make(map[string][]Resource)
-		for _, kind := range provider.Kinds() {
-			list, err := provider.List(ctx, kind)
-			if err != nil {
-				l.Debug("Failed to list resources",
-					logger.String(logKeyProvider, provider.Name()),
-					logger.String("kind", kind),
-					logger.Error(err))
-				continue
-			}
-			resources[kind] = list
-		}
+		mergeSummary(combinedSummary, summary)
+		collectResources(ctx, l, provider, combinedResources)
+	}
 
-		r.service.model.UpdateResourceData(summary, resources)
+	r.service.model.UpdateResourceData(combinedSummary, combinedResources)
+}
+
+// mergeSummary adds the status counts from source into destination, summing
+// counts for matching kinds and statuses.
+//
+// Takes destination (map[string]map[ResourceStatus]int) which receives the
+// merged status counts.
+// Takes source (map[string]map[ResourceStatus]int) which provides the counts
+// to add.
+func mergeSummary(
+	destination map[string]map[ResourceStatus]int,
+	source map[string]map[ResourceStatus]int,
+) {
+	for kind, statusCounts := range source {
+		if destination[kind] == nil {
+			destination[kind] = make(map[ResourceStatus]int)
+		}
+		for status, count := range statusCounts {
+			destination[kind][status] += count
+		}
+	}
+}
+
+// collectResources fetches all resource kinds from a provider and appends them
+// to the destination map.
+//
+// Takes l (logger.Logger) which receives debug messages for failed listings.
+// Takes provider (ResourceProvider) which supplies the resource kinds and
+// listings.
+// Takes destination (map[string][]Resource) which receives the collected
+// resources keyed by kind.
+func collectResources(
+	ctx context.Context,
+	l logger.Logger,
+	provider ResourceProvider,
+	destination map[string][]Resource,
+) {
+	for _, kind := range provider.Kinds() {
+		list, err := provider.List(ctx, kind)
+		if err != nil {
+			l.Debug("Failed to list resources",
+				logger.String(logKeyProvider, provider.Name()),
+				logger.String("kind", kind),
+				logger.Error(err))
+			continue
+		}
+		destination[kind] = append(destination[kind], list...)
 	}
 }
 

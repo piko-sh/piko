@@ -122,6 +122,39 @@ func TestModel_UpdateResourceData(t *testing.T) {
 	}
 }
 
+func TestModel_UpdateResourceData_RemovesStaleKinds(t *testing.T) {
+	config := newTestConfig()
+	model := NewModel(config)
+
+	model.UpdateResourceData(
+		map[string]map[ResourceStatus]int{
+			"pod": {ResourceStatusHealthy: 3},
+		},
+		map[string][]Resource{
+			"pod": {{ID: "pod-1", Name: "nginx"}},
+		},
+	)
+
+	model.UpdateResourceData(
+		map[string]map[ResourceStatus]int{
+			"service": {ResourceStatusHealthy: 1},
+		},
+		map[string][]Resource{
+			"service": {{ID: "svc-1", Name: "api"}},
+		},
+	)
+
+	if _, exists := model.resourceSummary["pod"]; exists {
+		t.Error("expected stale 'pod' kind to be removed")
+	}
+	if _, exists := model.resourcesByKind["pod"]; exists {
+		t.Error("expected stale 'pod' resources to be removed")
+	}
+	if model.resourceSummary["service"][ResourceStatusHealthy] != 1 {
+		t.Error("expected 'service' kind to be present")
+	}
+}
+
 func TestModel_Init(t *testing.T) {
 	config := newTestConfig()
 	model := NewModel(config)
@@ -368,8 +401,41 @@ func TestModel_HandleTickMessage(t *testing.T) {
 	if !model.lastRefresh.Equal(testTime) {
 		t.Error("expected lastRefresh to be updated")
 	}
+	if len(cmds) != 1 {
+		t.Errorf("expected 1 command (tick only), got %d", len(cmds))
+	}
+}
+
+func TestModel_HandleTickMessage_CollectsPanelCommands(t *testing.T) {
+	config := newTestConfig()
+	model := NewModel(config)
+
+	commandCalled := false
+	panel := newMockPanel("test")
+	panel.updateFunc = func(message tea.Msg) (Panel, tea.Cmd) {
+		if _, ok := message.(TickMessage); ok {
+			return panel, func() tea.Msg {
+				commandCalled = true
+				return nil
+			}
+		}
+		return panel, nil
+	}
+	model.AddPanel(panel)
+
+	cmds := model.handleTickMessage(tickMessage{time: time.Now()})
+
 	if len(cmds) != 2 {
-		t.Errorf("expected 2 commands, got %d", len(cmds))
+		t.Errorf("expected 2 commands (tick + panel), got %d", len(cmds))
+	}
+
+	for _, command := range cmds[1:] {
+		if command != nil {
+			command()
+		}
+	}
+	if !commandCalled {
+		t.Error("expected panel command to be collected and executable")
 	}
 }
 

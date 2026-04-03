@@ -128,7 +128,7 @@ var commands = map[string]*command{
 	"info":        {name: "info", usage: "piko info [category] [flags]", description: "Display system information", needsConnection: true, run: runInfo},
 	"watch":       {name: "watch", usage: "piko watch <resource> [flags]", description: "Stream resource updates", needsConnection: true, longRunning: true, run: runWatch},
 	"diagnostics": {name: "diagnostics", usage: "piko diagnostics [flags]", description: "Test connectivity to monitoring server", needsConnection: false, run: runDiagnosticsCmd},
-	"tui":         {name: "tui", usage: "piko tui [flags]", description: "Launch the interactive terminal UI", needsConnection: false, run: runTUICmd},
+	"tui":         {name: "tui", usage: "piko tui [flags]", description: "Launch the interactive terminal UI", needsConnection: false, longRunning: true, run: runTUICmd},
 }
 
 // RunCommand dispatches a CLI subcommand using os.Stdout and os.Stderr.
