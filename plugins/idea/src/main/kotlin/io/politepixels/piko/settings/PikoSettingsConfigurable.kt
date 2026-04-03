@@ -137,7 +137,7 @@ class PikoSettingsConfigurable : Configurable {
     private fun com.intellij.ui.dsl.builder.Panel.lspBinaryGroup() = group("LSP Binary") {
         row("Custom LSP path:") {
             textFieldWithBrowseButton(
-                FileChooserDescriptorFactory.createSingleFileDescriptor().withTitle("Select Piko LSP Binary")
+                FileChooserDescriptorFactory.singleFile().withTitle("Select Piko LSP Binary")
             ).bindText(::lspPath).align(AlignX.FILL).comment("Leave empty to use bundled binary or search standard locations.")
         }
     }
@@ -153,7 +153,7 @@ class PikoSettingsConfigurable : Configurable {
     private fun com.intellij.ui.dsl.builder.Panel.goConfigurationGroup() = group("Go Configuration") {
         row("Go binary directory:") {
             textFieldWithBrowseButton(
-                FileChooserDescriptorFactory.createSingleFolderDescriptor().withTitle("Select Go Binary Directory")
+                FileChooserDescriptorFactory.singleDir().withTitle("Select Go Binary Directory")
             ).bindText(::goBinPath).align(AlignX.FILL)
                 .comment("Path to directory containing the 'go' binary (e.g. /usr/local/go/bin). Leave empty for auto-detection.")
         }
