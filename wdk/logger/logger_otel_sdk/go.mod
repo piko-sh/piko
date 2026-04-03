@@ -9,7 +9,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.42.0
 	go.opentelemetry.io/otel/sdk/metric v1.42.0
 	go.opentelemetry.io/otel/trace v1.42.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.10
 )
 
 require (
