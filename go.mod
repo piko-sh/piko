@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.1
-	github.com/andybalholm/brotli v1.2.0
+	github.com/andybalholm/brotli v1.2.1
 	github.com/bojanz/currency v1.4.2
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/cockroachdb/apd/v3 v3.2.3
@@ -22,9 +22,9 @@ require (
 	github.com/tdewolff/minify/v2 v2.24.11
 	github.com/tdewolff/parse/v2 v2.8.11
 	github.com/valyala/quicktemplate v1.8.0
-	go.opentelemetry.io/otel v1.42.0
-	go.opentelemetry.io/otel/metric v1.42.0
-	go.opentelemetry.io/otel/trace v1.42.0
+	go.opentelemetry.io/otel v1.43.0
+	go.opentelemetry.io/otel/metric v1.43.0
+	go.opentelemetry.io/otel/trace v1.43.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/image v0.38.0
 	golang.org/x/mod v0.34.0

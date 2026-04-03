@@ -2,11 +2,11 @@ module piko.sh/piko/wdk/db/db_driver_sqlite_nocgo
 
 go 1.26.0
 
-require modernc.org/sqlite v1.47.0
+require modernc.org/sqlite v1.48.0
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/google/pprof v0.0.0-20260302011040-a15ffb7f9dcc // indirect
+	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
