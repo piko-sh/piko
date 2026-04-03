@@ -165,7 +165,7 @@ piko::util::find_go_modules() {
     if [[ "$include_all" == "--all" ]]; then
         find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*"
     else
-        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/testdata/*"
+        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/testdata/*" -not -path "*/testdata-modules/*"
     fi
 }
 

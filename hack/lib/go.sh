@@ -187,21 +187,35 @@ piko::go::upgrade_module() {
         fi
     fi
 
+    local has_internal_deps="false"
+    if grep -q 'piko\.sh/piko' "${dir}/go.mod" 2>/dev/null; then
+        has_internal_deps="true"
+    fi
+
     local before after
     before=$(cd "$dir" && go list -m -f '{{if not .Indirect}}{{.Path}}@{{.Version}}{{end}}' all 2>/dev/null | sort)
 
-    if ! (cd "$dir" && go get -u ./... 2>/dev/null); then
-        if [[ "$dry_run" == "true" ]]; then
-            piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
-        fi
-        return 1
-    fi
+    if [[ "$has_internal_deps" == "true" ]]; then
+        local external_deps
+        external_deps=$(cd "$dir" && go list -m -f '{{if not .Indirect}}{{.Path}}{{end}}' all 2>/dev/null | grep -v '^piko\.sh/piko')
 
-    if ! (cd "$dir" && go mod tidy 2>/dev/null); then
-        if [[ "$dry_run" == "true" ]]; then
-            piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
+        if [[ -n "$external_deps" ]]; then
+            (cd "$dir" && echo "$external_deps" | xargs go get -u 2>/dev/null) || true
         fi
-        return 1
+    else
+        if ! (cd "$dir" && go get -u ./... 2>/dev/null); then
+            if [[ "$dry_run" == "true" ]]; then
+                piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
+            fi
+            return 1
+        fi
+
+        if ! (cd "$dir" && go mod tidy 2>/dev/null); then
+            if [[ "$dry_run" == "true" ]]; then
+                piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
+            fi
+            return 1
+        fi
     fi
 
     after=$(cd "$dir" && go list -m -f '{{if not .Indirect}}{{.Path}}@{{.Version}}{{end}}' all 2>/dev/null | sort)
