@@ -403,6 +403,31 @@ func TestBuildCSSProfiles(t *testing.T) {
 	}
 }
 
+func TestIsPreMinified(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{name: "regular JS", input: "scripts/app.js", expected: false},
+		{name: "min.js", input: "lib/vendor.min.js", expected: true},
+		{name: "min.es.js", input: "lib/vendor-editor.min.es.js", expected: true},
+		{name: "min.umd.js", input: "lib/vendor-editor.min.umd.js", expected: true},
+		{name: "es.js not minified", input: "lib/vendor-editor.es.js", expected: false},
+		{name: "pk-js regular", input: "pk-js/page-home.js", expected: false},
+		{name: "nested min.js", input: "lib/js/react.min.js", expected: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.expected, isPreMinified(tc.input))
+		})
+	}
+}
+
 func TestBuildJSProfiles(t *testing.T) {
 	t.Parallel()
 
@@ -442,5 +467,49 @@ func TestBuildJSProfiles(t *testing.T) {
 				assert.Equal(t, registry_dto.PriorityNeed, p.Profile.Priority)
 			}
 		}
+	})
+
+	t.Run("pre-minified JS skips minification", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := profileContext{
+			artefactID: "lib/js/vendor-editor.min.es.js",
+			ext:        ".js",
+		}
+
+		profiles := buildJSProfiles(ctx)
+
+		require.NotEmpty(t, profiles)
+
+		profileNames := make([]string, len(profiles))
+		for i, p := range profiles {
+			profileNames[i] = p.Name
+		}
+
+		assert.NotContains(t, profileNames, "minified")
+		assert.Contains(t, profileNames, "gzip")
+		assert.Contains(t, profileNames, "br")
+	})
+
+	t.Run("pre-minified min.js skips minification", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := profileContext{
+			artefactID: "lib/vendor.min.js",
+			ext:        ".js",
+		}
+
+		profiles := buildJSProfiles(ctx)
+
+		require.NotEmpty(t, profiles)
+
+		profileNames := make([]string, len(profiles))
+		for i, p := range profiles {
+			profileNames[i] = p.Name
+		}
+
+		assert.NotContains(t, profileNames, "minified")
+		assert.Contains(t, profileNames, "gzip")
+		assert.Contains(t, profileNames, "br")
 	})
 }

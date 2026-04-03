@@ -229,6 +229,25 @@ func buildCSSProfiles(_ profileContext) []registry_dto.NamedProfile {
 	)
 }
 
+// isPreMinified reports whether a file name indicates the asset has already
+// been minified (e.g. "foo.min.js", "bar.min.es.js"). Double-minifying
+// breaks variable scoping in the output, so these files must skip the
+// minification step.
+//
+// Takes name (string) which is the artefact ID or file path to check.
+//
+// Returns bool which is true if the file name contains a ".min" segment
+// before the final ".js" extension.
+func isPreMinified(name string) bool {
+	base := filepath.Base(name)
+	withoutJS := strings.TrimSuffix(base, ".js")
+	if withoutJS == base {
+		return false
+	}
+	return strings.HasSuffix(withoutJS, ".min") ||
+		strings.Contains(withoutJS, ".min.")
+}
+
 // buildJSProfiles creates processing profiles for JavaScript files.
 //
 // Takes ctx (profileContext) which provides the artefact context for profile
@@ -237,6 +256,10 @@ func buildCSSProfiles(_ profileContext) []registry_dto.NamedProfile {
 // Returns []registry_dto.NamedProfile which contains the minify and compress
 // chain profiles for JavaScript processing.
 func buildJSProfiles(ctx profileContext) []registry_dto.NamedProfile {
+	if isPreMinified(ctx.artefactID) {
+		return buildCompressChain(profileSource, "minified-js", mimeTypeJS, ".min.js")
+	}
+
 	if strings.HasPrefix(ctx.artefactID, "pk-js/") {
 		profiles := make([]registry_dto.NamedProfile, 0, profileSliceCapacity)
 		profiles = append(profiles, makeProfile("readable", registry_dto.PriorityWant,
