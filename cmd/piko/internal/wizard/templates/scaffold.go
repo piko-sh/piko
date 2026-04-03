@@ -56,6 +56,10 @@ type ScaffoldData struct {
 	// directory.
 	DestinationPath string
 
+	// PikoVersion is the resolved version of piko.sh/piko to use in the
+	// generated go.mod. When empty, the template falls back to "v0.0.0".
+	PikoVersion string
+
 	// EnableInterpreted enables experimental interpreted mode support.
 	EnableInterpreted bool
 

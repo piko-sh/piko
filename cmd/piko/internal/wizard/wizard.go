@@ -58,6 +58,10 @@ type Model struct {
 	// TidyWarning holds a non-fatal warning from the go mod tidy step.
 	TidyWarning string
 
+	// VersionWarning holds a non-fatal warning when the latest Piko version
+	// could not be resolved from GitHub.
+	VersionWarning string
+
 	// Config holds the scaffold settings gathered from the wizard inputs.
 	Config templates.ScaffoldData
 
@@ -82,7 +86,11 @@ type (
 	}
 
 	// scaffoldDoneMessage signals that the scaffold operation has completed.
-	scaffoldDoneMessage struct{}
+	scaffoldDoneMessage struct {
+		// versionWarning is non-empty when the Piko version could not be
+		// resolved from GitHub.
+		versionWarning string
+	}
 
 	// tidyDoneMessage signals that the go mod tidy command has completed.
 	tidyDoneMessage struct {
@@ -137,6 +145,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.Err = message.err
 		return m, tea.Quit
 	case scaffoldDoneMessage:
+		m.VersionWarning = message.versionWarning
 		m.Step = StepTidying
 		command := m.runGoModTidy()
 		return m, command
@@ -380,10 +389,23 @@ func (m *Model) enterFeatures() (tea.Model, tea.Cmd) {
 	m.Step = StepScaffolding
 
 	return m, func() tea.Msg {
+		var versionWarning string
+
+		version, err := resolveLatestVersion()
+		if err != nil {
+			m.Config.PikoVersion = fallbackVersion
+			versionWarning = fmt.Sprintf(
+				"could not resolve latest Piko version (%v) - using %s, update go.mod manually",
+				err, fallbackVersion,
+			)
+		} else {
+			m.Config.PikoVersion = version
+		}
+
 		if err := templates.CreateProject(m.Config); err != nil {
 			return errMessage{err}
 		}
-		return scaffoldDoneMessage{}
+		return scaffoldDoneMessage{versionWarning: versionWarning}
 	}
 }
 
@@ -415,6 +437,9 @@ func Run() int {
 
 	if w := goVersionWarning(); w != "" {
 		fmt.Printf("\nWarning: %s\n", w)
+	}
+	if model.VersionWarning != "" {
+		fmt.Printf("\nWarning: %s\n", model.VersionWarning)
 	}
 	if model.TidyWarning != "" {
 		fmt.Printf("\nWarning: %s\n", model.TidyWarning)

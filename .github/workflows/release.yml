@@ -221,6 +221,16 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      - name: Tag WDK sub-modules
+        run: |
+          version="${GITHUB_REF_NAME}"
+          grep -oP '^\s+\./\Kwdk/\S+' go.work | while read -r module; do
+            tag="${module}/${version}"
+            echo "Creating tag: ${tag}"
+            git tag "${tag}" "${GITHUB_SHA}"
+          done
+          git push origin --tags
+
       - name: Download all artefacts
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:

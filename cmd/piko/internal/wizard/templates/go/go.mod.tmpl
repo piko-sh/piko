@@ -3,10 +3,10 @@ module {{ .ModuleName }}
 go 1.26.0
 
 require (
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/browser v0.0.0
+	piko.sh/piko {{ .PikoVersion }}
+	piko.sh/piko/wdk/browser {{ .PikoVersion }}
 {{- if .EnableSonicJSON }}
-	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0
+	piko.sh/piko/wdk/json/json_provider_sonic {{ .PikoVersion }}
 {{- end }}
-	piko.sh/piko/wdk/media/image_provider_imaging v0.0.0
+	piko.sh/piko/wdk/media/image_provider_imaging {{ .PikoVersion }}
 )

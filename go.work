@@ -69,7 +69,6 @@ use (
 	./wdk/highlight/highlight_chroma
 	./wdk/interp/interp_provider_piko
 	./wdk/json/json_provider_sonic
-
 	./wdk/linguistics/linguistics_language_dutch
 	./wdk/linguistics/linguistics_language_english
 	./wdk/linguistics/linguistics_language_french
