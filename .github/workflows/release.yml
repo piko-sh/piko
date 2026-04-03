@@ -224,10 +224,18 @@ jobs:
       - name: Tag WDK sub-modules
         run: |
           version="${GITHUB_REF_NAME}"
+
+          find wdk -name 'go.mod' -exec sed -i "s|piko.sh/piko\(.*\) v0\.0\.0|piko.sh/piko\1 ${version}|g" {} +
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wdk/
+          git commit -m "release: update WDK module versions to ${version}"
+
           grep -oP '^\s+\./\Kwdk/\S+' go.work | while read -r module; do
             tag="${module}/${version}"
             echo "Creating tag: ${tag}"
-            git tag "${tag}" "${GITHUB_SHA}"
+            git tag "${tag}"
           done
           git push origin --tags
 
