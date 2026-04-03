@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/davidbyttow/govips/v2 v2.17.0
 	golang.org/x/image v0.38.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.9
 )
 
 require (

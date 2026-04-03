@@ -7,7 +7,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-meta v1.1.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.9
 )
 
 require (
