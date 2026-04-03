@@ -64,6 +64,9 @@ const (
 	// mimeTypeWebmanifst is the MIME type for web app manifest files.
 	mimeTypeWebmanifst = "application/manifest+json"
 
+	// extensionMinJS is the file extension for pre-minified JavaScript files.
+	extensionMinJS = ".min.js"
+
 	// profileSliceCapacity is the default pre-allocation capacity for
 	// profile slices during build profile construction.
 	profileSliceCapacity = 4
@@ -184,7 +187,7 @@ func buildComponentProfiles(ctx profileContext) []registry_dto.NamedProfile {
 		profileCompiledJS,
 		"minified-js",
 		mimeTypeJS,
-		".min.js",
+		extensionMinJS,
 	)...)
 }
 
@@ -257,7 +260,7 @@ func isPreMinified(name string) bool {
 // chain profiles for JavaScript processing.
 func buildJSProfiles(ctx profileContext) []registry_dto.NamedProfile {
 	if isPreMinified(ctx.artefactID) {
-		return buildCompressChain(profileSource, "minified-js", mimeTypeJS, ".min.js")
+		return buildCompressChain(profileSource, "minified-js", mimeTypeJS, extensionMinJS)
 	}
 
 	if strings.HasPrefix(ctx.artefactID, "pk-js/") {
@@ -278,7 +281,7 @@ func buildJSProfiles(ctx profileContext) []registry_dto.NamedProfile {
 			profileSource,
 			"minified-pk-js",
 			mimeTypeJS,
-			".min.js",
+			extensionMinJS,
 			registry_dto.PriorityNeed,
 			"compressed-pk-js",
 		)...)
@@ -289,7 +292,7 @@ func buildJSProfiles(ctx profileContext) []registry_dto.NamedProfile {
 		profileSource,
 		"minified-js",
 		mimeTypeJS,
-		".min.js",
+		extensionMinJS,
 	)
 }
 
