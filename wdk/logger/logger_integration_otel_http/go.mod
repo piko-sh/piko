@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.42.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.42.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.8
 )
 
 require (
