@@ -141,7 +141,7 @@ func (r *refreshOrchestrator) refreshResourceProviders(ctx context.Context) {
 		}
 
 		mergeSummary(combinedSummary, summary)
-		collectResources(ctx, l, provider, combinedResources)
+		collectResources(ctx, provider, combinedResources)
 	}
 
 	r.service.model.UpdateResourceData(combinedSummary, combinedResources)
@@ -171,17 +171,17 @@ func mergeSummary(
 // collectResources fetches all resource kinds from a provider and appends them
 // to the destination map.
 //
-// Takes l (logger.Logger) which receives debug messages for failed listings.
 // Takes provider (ResourceProvider) which supplies the resource kinds and
 // listings.
 // Takes destination (map[string][]Resource) which receives the collected
 // resources keyed by kind.
 func collectResources(
 	ctx context.Context,
-	l logger.Logger,
 	provider ResourceProvider,
 	destination map[string][]Resource,
 ) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	for _, kind := range provider.Kinds() {
 		list, err := provider.List(ctx, kind)
 		if err != nil {
