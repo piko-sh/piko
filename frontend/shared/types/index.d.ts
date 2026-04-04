@@ -200,14 +200,16 @@ export interface HooksAPI {
     emit<T = unknown>(event: HookEventType, payload: T): void;
 }
 
-/** Analytics module configuration (Google Analytics GA4 integration). */
+/** Analytics module configuration (Google Analytics GA4 and/or Google Tag Manager). */
 export interface AnalyticsModuleConfig {
-    /** GA4 measurement IDs (e.g., "G-XXXXXXXXXX"). */
-    trackingIds: string[];
+    /** GA4 measurement IDs (e.g., "G-XXXXXXXXXX"). Null when no IDs are configured. */
+    trackingIds: string[] | null;
+    /** Google Tag Manager container ID (e.g., "GTM-XXXXXXX"). */
+    gtmContainerId?: string;
     /** Whether to enable verbose console logging for debugging. */
     debugMode?: boolean;
     /** Whether to anonymise user IP addresses before sending to GA. */
-    anonymizeIp?: boolean;
+    anonymiseIp?: boolean;
     /** Whether to disable automatic page-view tracking on navigation. */
     disablePageView?: boolean;
 }

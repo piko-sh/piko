@@ -57,8 +57,14 @@ const (
 )
 
 // AnalyticsConfig holds settings for the analytics module.
-// It sets up Google Analytics (GA4) integration.
+// It supports Google Analytics (GA4) direct integration and/or
+// Google Tag Manager (GTM) container loading.
 type AnalyticsConfig struct {
+	// GTMContainerID is a Google Tag Manager container ID (e.g., "GTM-XXXXXXX").
+	// When set, the GTM container script is loaded and SPA navigation events
+	// are pushed to the dataLayer for GTM triggers to consume.
+	GTMContainerID string `json:"gtmContainerId,omitempty"`
+
 	// TrackingIDs holds GA4 measurement IDs (e.g., "G-XXXXXXXXXX").
 	// Multiple IDs allow sending data to more than one property.
 	TrackingIDs []string `json:"trackingIds"`
@@ -66,9 +72,9 @@ type AnalyticsConfig struct {
 	// DebugMode enables detailed console logging for debugging.
 	DebugMode bool `json:"debugMode,omitempty"`
 
-	// AnonymizeIP hides user IP addresses before sending data
+	// AnonymiseIP hides user IP addresses before sending data
 	// to Google Analytics.
-	AnonymizeIP bool `json:"anonymizeIp,omitempty"`
+	AnonymiseIP bool `json:"anonymiseIp,omitempty"`
 
 	// DisablePageView stops automatic page view tracking when users move
 	// between pages. Set to true to track page views yourself.

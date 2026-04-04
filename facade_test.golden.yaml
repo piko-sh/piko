@@ -5,11 +5,13 @@
 AnalyticsConfig: |- # Kind: Struct
   struct {
       // Field
+      GTMContainerID string
+      // Field
       TrackingIDs []string
       // Field
       DebugMode bool
       // Field
-      AnonymizeIP bool
+      AnonymiseIP bool
       // Field
       DisablePageView bool
   }

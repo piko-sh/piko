@@ -111,6 +111,60 @@ func TestGenerateModuleHTML(t *testing.T) {
 		assert.Contains(t, configHTML, "G-123")
 	})
 
+	t.Run("analytics config with GTM container produces config with gtmContainerId", func(t *testing.T) {
+		t.Parallel()
+
+		entries := []ModuleEntry{
+			{
+				Module: ModuleAnalytics,
+				Config: AnalyticsConfig{
+					GTMContainerID: "GTM-PCRXLD",
+				},
+			},
+		}
+
+		_, _, configHTML := GenerateModuleHTML(entries, nil)
+		assert.Contains(t, configHTML, "GTM-PCRXLD")
+		assert.Contains(t, configHTML, "gtmContainerId")
+	})
+
+	t.Run("analytics config with GTM and GA4 produces both in config", func(t *testing.T) {
+		t.Parallel()
+
+		entries := []ModuleEntry{
+			{
+				Module: ModuleAnalytics,
+				Config: AnalyticsConfig{
+					GTMContainerID: "GTM-ABC123",
+					TrackingIDs:    []string{"G-999"},
+					AnonymiseIP:    true,
+				},
+			},
+		}
+
+		_, _, configHTML := GenerateModuleHTML(entries, nil)
+		assert.Contains(t, configHTML, "GTM-ABC123")
+		assert.Contains(t, configHTML, "G-999")
+		assert.Contains(t, configHTML, "anonymiseIp")
+	})
+
+	t.Run("analytics config with GTM only omits empty trackingIds", func(t *testing.T) {
+		t.Parallel()
+
+		entries := []ModuleEntry{
+			{
+				Module: ModuleAnalytics,
+				Config: AnalyticsConfig{
+					GTMContainerID: "GTM-ONLY",
+				},
+			},
+		}
+
+		_, _, configHTML := GenerateModuleHTML(entries, nil)
+		assert.Contains(t, configHTML, "GTM-ONLY")
+		assert.NotContains(t, configHTML, "G-")
+	})
+
 	t.Run("multiple built-in modules", func(t *testing.T) {
 		t.Parallel()
 

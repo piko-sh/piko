@@ -3061,7 +3061,7 @@ function validateForm(element, event) {
   if (form.noValidate) {
     return true;
   }
-  const submitter = event.submitter;
+  const submitter = event?.submitter;
   if (submitter?.formNoValidate) {
     return true;
   }
@@ -6327,9 +6327,7 @@ function initFrameworkServices(services, options, instance) {
     loader: services.loader,
     errorDisplay: services.errorDisplay,
     eventBus: services.eventBus,
-    onPageLoad: (doc2, url, scroll) => {
-      void handlePageLoad(pageLoadDeps, doc2, url, scroll);
-    },
+    onPageLoad: (doc2, url, scroll) => handlePageLoad(pageLoadDeps, doc2, url, scroll),
     hookManager: services.hookManager,
     formStateManager: services.formStateManager,
     a11yAnnouncer: services.a11yAnnouncer

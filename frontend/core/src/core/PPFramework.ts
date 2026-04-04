@@ -472,7 +472,7 @@ function initFrameworkServices(
         loader: services.loader,
         errorDisplay: services.errorDisplay,
         eventBus: services.eventBus,
-        onPageLoad: (doc, url, scroll) => { void handlePageLoad(pageLoadDeps, doc, url, scroll); },
+        onPageLoad: (doc, url, scroll) => handlePageLoad(pageLoadDeps, doc, url, scroll),
         hookManager: services.hookManager,
         formStateManager: services.formStateManager,
         a11yAnnouncer: services.a11yAnnouncer
