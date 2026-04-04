@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {resolveElement} from './resolve';
+
 /** Configuration options for whenVisible(). */
 export interface WhenVisibleOptions {
     /** IntersectionObserver threshold (0-1, default: 0). */
@@ -68,25 +70,6 @@ export interface MutationWatchOptions {
 
 /** Default timeout in ms for requestIdleCallback fallback (when not supported). */
 const DEFAULT_IDLE_CALLBACK_TIMEOUT_MS = 50;
-
-/**
- * Resolves a target to an Element.
- *
- * @param target - CSS selector, p-ref name, or Element.
- * @returns The resolved element, or null if not found.
- */
-function resolveElement(target: string | Element): Element | null {
-    if (target instanceof Element) {
-        return target;
-    }
-
-    const byRef = document.querySelector(`[p-ref="${target}"]`);
-    if (byRef) {
-        return byRef;
-    }
-
-    return document.querySelector(target);
-}
 
 /**
  * Executes a callback when an element becomes visible in the viewport.

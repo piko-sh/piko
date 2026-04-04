@@ -460,6 +460,16 @@ function notifyDOMUpdated(root) {
     _onDOMUpdated(root);
   }
 }
+const LOADING_CLASS = "pk-loading";
+const ARIA_BUSY_ATTR = "aria-busy";
+function applyLoadingIndicator(el) {
+  el.classList.add(LOADING_CLASS);
+  el.setAttribute(ARIA_BUSY_ATTR, "true");
+}
+function removeLoadingIndicator(el) {
+  el.classList.remove(LOADING_CLASS);
+  el.removeAttribute(ARIA_BUSY_ATTR);
+}
 const REFRESH_LEVEL_NO_REFRESH_ATTRS$1 = 3;
 const REFRESH_LEVEL_OWN_ATTRS = 2;
 function detectRefreshLevel$1(el) {
@@ -528,8 +538,7 @@ async function performReload(el, name, options) {
   params.set("_f", "true");
   const url = `${baseSrc}?${params.toString()}`;
   const level = options.level ?? detectRefreshLevel$1(el);
-  el.classList.add("pk-loading");
-  el.setAttribute("aria-busy", "true");
+  applyLoadingIndicator(el);
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -559,8 +568,7 @@ async function performReload(el, name, options) {
     });
     throw error;
   } finally {
-    el.classList.remove("pk-loading");
-    el.removeAttribute("aria-busy");
+    removeLoadingIndicator(el);
   }
 }
 function partial(nameOrElement) {
@@ -1079,7 +1087,13 @@ function setFormValues(selector, values) {
     }
   }
 }
-function resolveElement$1(target) {
+function resolveElement(target) {
+  if (target instanceof Element) {
+    return target;
+  }
+  return document.querySelector(`[p-ref="${target}"]`) ?? document.querySelector(target);
+}
+function resolveHTMLElement(target) {
   if (target instanceof HTMLElement) {
     return target;
   }
@@ -1134,7 +1148,7 @@ function restoreOriginalState(element, className, original, textWasSet, disabled
 }
 async function loading(target, promise, options = {}) {
   const { className = "loading", text, disabled = true, minDuration = 0, onStart, onEnd } = options;
-  const element = resolveElement$1(target);
+  const element = resolveHTMLElement(target);
   if (!element) {
     console.warn(`[pk] loading: target "${target}" not found`);
     return promise;
@@ -1235,14 +1249,7 @@ function resolveTarget(target) {
   if (target === "*") {
     return document;
   }
-  if (target instanceof HTMLElement) {
-    return target;
-  }
-  const byRef = document.querySelector(`[p-ref="${target}"]`);
-  if (byRef) {
-    return byRef;
-  }
-  return document.querySelector(target);
+  return resolveElement(target);
 }
 function dispatch(target, eventName, detail, options) {
   const el = resolveTarget(target);
@@ -1375,8 +1382,7 @@ async function executeReload(handle, options, retriesLeft, maxRetries) {
       applyOptimisticUpdate(handle.element, optimistic);
     }
     if (loading2 && handle.element) {
-      handle.element.classList.add("pk-loading");
-      handle.element.setAttribute("aria-busy", "true");
+      applyLoadingIndicator(handle.element);
     }
     await handle.reload(toStringRecord(args));
     onSuccess?.(handle.element?.innerHTML ?? "");
@@ -1394,8 +1400,7 @@ async function executeReload(handle, options, retriesLeft, maxRetries) {
     throw error;
   } finally {
     if (loading2 && handle.element) {
-      handle.element.classList.remove("pk-loading");
-      handle.element.removeAttribute("aria-busy");
+      removeLoadingIndicator(handle.element);
     }
   }
 }
@@ -1617,16 +1622,6 @@ function createSSESubscription(name, options) {
   };
 }
 const DEFAULT_IDLE_CALLBACK_TIMEOUT_MS = 50;
-function resolveElement(target) {
-  if (target instanceof Element) {
-    return target;
-  }
-  const byRef = document.querySelector(`[p-ref="${target}"]`);
-  if (byRef) {
-    return byRef;
-  }
-  return document.querySelector(target);
-}
 function whenVisible(target, callback, options = {}) {
   const {
     threshold = 0,
@@ -3007,8 +3002,6 @@ const HTTP_STATUS_UNPROCESSABLE$1 = 422;
 const HTTP_STATUS_FORBIDDEN$1 = 403;
 const CSRF_ERROR_EXPIRED = "csrf_expired";
 const CSRF_ERROR_INVALID = "csrf_invalid";
-const LOADING_CLASS = "pk-loading";
-const ARIA_BUSY_ATTR = "aria-busy";
 const DEFAULT_RETRY_BASE_DELAY = 1e3;
 const MAX_RETRY_DELAY = 3e4;
 const DEFAULT_SSE_RECONNECT_DELAY = 3e3;
@@ -3086,32 +3079,26 @@ function applyServerErrors(form, errors) {
 }
 function showLoading(target, element) {
   if (target === true) {
-    element.classList.add(LOADING_CLASS);
-    element.setAttribute(ARIA_BUSY_ATTR, "true");
+    applyLoadingIndicator(element);
   } else if (typeof target === "string") {
     const el = document.querySelector(target);
     if (el) {
-      el.classList.add(LOADING_CLASS);
-      el.setAttribute(ARIA_BUSY_ATTR, "true");
+      applyLoadingIndicator(el);
     }
   } else if (target instanceof HTMLElement) {
-    target.classList.add(LOADING_CLASS);
-    target.setAttribute(ARIA_BUSY_ATTR, "true");
+    applyLoadingIndicator(target);
   }
 }
 function hideLoading(target, element) {
   if (target === true) {
-    element.classList.remove(LOADING_CLASS);
-    element.removeAttribute(ARIA_BUSY_ATTR);
+    removeLoadingIndicator(element);
   } else if (typeof target === "string") {
     const el = document.querySelector(target);
     if (el) {
-      el.classList.remove(LOADING_CLASS);
-      el.removeAttribute(ARIA_BUSY_ATTR);
+      removeLoadingIndicator(el);
     }
   } else if (target instanceof HTMLElement) {
-    target.classList.remove(LOADING_CLASS);
-    target.removeAttribute(ARIA_BUSY_ATTR);
+    removeLoadingIndicator(target);
   }
 }
 function calculateRetryDelay(attempt, config) {
@@ -4099,41 +4086,6 @@ function registerActionFunction(name, actionFactory) {
 }
 function getActionFunction(name) {
   return actionFunctionRegistry.get(name);
-}
-function createEventBus() {
-  const listeners2 = /* @__PURE__ */ new Map();
-  return {
-    on(event, callback) {
-      if (!listeners2.has(event)) {
-        listeners2.set(event, /* @__PURE__ */ new Set());
-      }
-      listeners2.get(event)?.add(callback);
-      return () => this.off(event, callback);
-    },
-    off(event, callback) {
-      listeners2.get(event)?.delete(callback);
-    },
-    emit(event, data) {
-      const eventListeners = listeners2.get(event);
-      if (!eventListeners) {
-        return;
-      }
-      eventListeners.forEach((cb) => {
-        try {
-          cb(data);
-        } catch (e) {
-          console.error(`EventBus: Error in listener for '${event}':`, e);
-        }
-      });
-    },
-    clear(event) {
-      if (event) {
-        listeners2.delete(event);
-      } else {
-        listeners2.clear();
-      }
-    }
-  };
 }
 const LOADER_FADE_MS = 300;
 const PROGRESS_MIN = 0;
@@ -5697,7 +5649,6 @@ function updateHistoryState(windowOps, targetUrl, replaceHistory) {
 function emitNavigationSuccess(deps, ctx, pageTitle) {
   const duration = Date.now() - ctx.startTime;
   deps.a11yAnnouncer?.announceNavigation(pageTitle);
-  deps.eventBus.emit("navigation:complete", { url: ctx.targetUrl });
   deps.hookManager?.emit(HookEvent.NAVIGATION_COMPLETE, {
     url: ctx.targetUrl,
     previousUrl: ctx.previousUrl,
@@ -5730,7 +5681,6 @@ function shouldCancelNavigation(isPopNavigation, formStateManager) {
 }
 function emitNavigationStart(deps, ctx, localBeforeNavigate) {
   safeInvokeCallback(localBeforeNavigate, ctx.targetUrl);
-  deps.eventBus.emit("navigation:start", { url: ctx.targetUrl });
   deps.hookManager?.emit(HookEvent.NAVIGATION_START, {
     url: ctx.targetUrl,
     previousUrl: ctx.previousUrl,
@@ -5821,7 +5771,6 @@ function createRouter(deps) {
     fetchClient: deps.fetchClient,
     loader: deps.loader,
     errorDisplay: deps.errorDisplay,
-    eventBus: deps.eventBus,
     onPageLoad: deps.onPageLoad,
     windowOps,
     domOps,
@@ -6326,7 +6275,6 @@ function initFrameworkServices(services, options, instance) {
     fetchClient: services.fetchClient,
     loader: services.loader,
     errorDisplay: services.errorDisplay,
-    eventBus: services.eventBus,
     onPageLoad: (doc2, url, scroll) => handlePageLoad(pageLoadDeps, doc2, url, scroll),
     hookManager: services.hookManager,
     formStateManager: services.formStateManager,
@@ -6387,7 +6335,6 @@ function createInitialServices() {
   const hookManager = createHookManager();
   return {
     hookManager,
-    eventBus: createEventBus(),
     spriteSheetManager: createSpriteSheetManager(),
     moduleLoader: createModuleLoader(),
     linkHeaderParser: createLinkHeaderParser(),
@@ -6443,7 +6390,6 @@ function buildFrameworkInstance(services) {
       services.globalConfig = value;
       services.router?.setConfig({ beforeNavigate: value.beforeNavigate, afterNavigate: value.afterNavigate });
     },
-    eventBus: services.eventBus,
     hooks: services.hookManager.api,
     registerHelper: services.helperRegistry.register.bind(services.helperRegistry),
     /** Gets whether the browser is currently online. */

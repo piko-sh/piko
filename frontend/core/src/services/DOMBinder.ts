@@ -450,7 +450,7 @@ function handleCustomEventNoModifier(ctx: ModifierContext): void {
     }
 
     const available = pageContext.getExportedFunctions();
-    const suggestion = findClosestMatch(ctx.payload.f, available);
+    const suggestion = __DEV__ ? findClosestMatch(ctx.payload.f, available) : undefined;
 
     let message = `[DOMBinder] Function "${ctx.payload.f}" not found for p-event handler.`;
     message += ` Did you forget to export it?`;
@@ -503,7 +503,7 @@ function handleExplicitPartialCall(ctx: ModifierContext, explicitPartial: string
     }
 
     const available = pageContext.getRegisteredPartialNames();
-    const suggestion = findClosestMatch(explicitPartial, available);
+    const suggestion = __DEV__ ? findClosestMatch(explicitPartial, available) : undefined;
 
     let message = `[DOMBinder] Partial "${explicitPartial}" not found or has no function "${fnName}".`;
     if (suggestion) {
@@ -550,7 +550,7 @@ function handleImplicitScopeCall(ctx: ModifierContext, fnName: string): void {
     }
 
     const available = pageContext.getExportedFunctions();
-    const suggestion = findClosestMatch(fnName, available);
+    const suggestion = __DEV__ ? findClosestMatch(fnName, available) : undefined;
 
     let message = `[DOMBinder] Function "${fnName}" not found.`;
     if (partialId) {

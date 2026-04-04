@@ -16,9 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-export {createEventBus} from './EventBus';
-export type {EventBus, EventCallback} from './EventBus';
-
 export {createLoaderUI} from './LoaderUI';
 export type {LoaderUI, LoaderUIOptions} from './LoaderUI';
 

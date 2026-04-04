@@ -22,7 +22,6 @@ import {getGlobalPageContext} from '@/services/PageContext';
 import {
     createDOMBinder,
     createErrorDisplay,
-    createEventBus,
     createHelperRegistry,
     createLinkHeaderParser,
     createLoaderUI,
@@ -31,7 +30,6 @@ import {
     createSyncPartialManager,
     type DOMBinder,
     type ErrorDisplay,
-    type EventBus,
     type HelperRegistry,
     type LinkHeaderParser,
     type LoaderUI,
@@ -194,9 +192,6 @@ interface PPFrameworkInstance {
     /** Executes a server helper by name with the given arguments. */
     executeServerHelper(name: string, args: unknown[], triggerElement: HTMLElement, event?: Event): void;
 
-    /** Event bus for framework-wide events. */
-    eventBus: EventBus;
-
     /** Hooks API for analytics integrations. */
     hooks: HooksAPI;
 
@@ -240,8 +235,6 @@ function loadPageScripts(doc: Document | DocumentFragment): void {
 interface FrameworkServices {
     /** The hook manager for analytics events. */
     hookManager: HookManager;
-    /** The event bus for framework-wide events. */
-    eventBus: EventBus;
     /** The sprite sheet manager for SVG merging. */
     spriteSheetManager: SpriteSheetManager;
     /** The module loader for ES module scripts. */
@@ -471,7 +464,6 @@ function initFrameworkServices(
         fetchClient: services.fetchClient,
         loader: services.loader,
         errorDisplay: services.errorDisplay,
-        eventBus: services.eventBus,
         onPageLoad: (doc, url, scroll) => handlePageLoad(pageLoadDeps, doc, url, scroll),
         hookManager: services.hookManager,
         formStateManager: services.formStateManager,
@@ -558,7 +550,6 @@ function createInitialServices(): FrameworkServices {
 
     return {
         hookManager,
-        eventBus: createEventBus(),
         spriteSheetManager: createSpriteSheetManager(),
         moduleLoader: createModuleLoader(),
         linkHeaderParser: createLinkHeaderParser(),
@@ -608,7 +599,6 @@ function buildFrameworkInstance(services: FrameworkServices): PPFrameworkInstanc
             services.globalConfig = value;
             services.router?.setConfig({beforeNavigate: value.beforeNavigate, afterNavigate: value.afterNavigate});
         },
-        eventBus: services.eventBus,
         hooks: services.hookManager.api,
         registerHelper: services.helperRegistry.register.bind(services.helperRegistry),
         /** Gets whether the browser is currently online. */

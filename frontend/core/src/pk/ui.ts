@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {resolveHTMLElement} from './resolve';
+
 /** Configuration options for the loading function. */
 export interface LoadingOptions {
     /** CSS class to add during loading (default: 'loading'). */
@@ -54,30 +56,6 @@ export interface RetryResult<T> {
     data: T;
     /** Number of attempts it took. */
     attempts: number;
-}
-
-/**
- * Resolves a target to an HTMLElement.
- *
- * @param target - CSS selector, p-ref name, or HTMLElement.
- * @returns The resolved element, or null if not found.
- */
-function resolveElement(target: string | HTMLElement): HTMLElement | null {
-    if (target instanceof HTMLElement) {
-        return target;
-    }
-
-    const byRef = document.querySelector(`[p-ref="${target}"]`);
-    if (byRef instanceof HTMLElement) {
-        return byRef;
-    }
-
-    const bySelector = document.querySelector(target);
-    if (bySelector instanceof HTMLElement) {
-        return bySelector;
-    }
-
-    return null;
 }
 
 /**
@@ -203,7 +181,7 @@ export async function loading<T>(
 ): Promise<T> {
     const {className = 'loading', text, disabled = true, minDuration = 0, onStart, onEnd} = options;
 
-    const element = resolveElement(target);
+    const element = resolveHTMLElement(target);
     if (!element) {
         console.warn(`[pk] loading: target "${target}" not found`);
         return promise;

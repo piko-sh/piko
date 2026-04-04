@@ -68,6 +68,7 @@ export const BROWSER_GLOBALS = {
   Symbol: "readonly",
   atob: "readonly",
   btoa: "readonly",
+  __DEV__: "readonly",
 };
 
 export const BROWSER_TEST_GLOBALS = {
@@ -119,6 +120,7 @@ export const BROWSER_TEST_GLOBALS = {
   ShadowRoot: "readonly",
   Range: "readonly",
   Selection: "readonly",
+  __DEV__: "readonly",
 };
 
 export const NODE_GLOBALS = {

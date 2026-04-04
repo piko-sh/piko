@@ -27,6 +27,10 @@ import * as path from 'path';
 const isAnalyze = process.env.ANALYZE === 'true';
 
 export default defineConfig({
+  define: {
+    __DEV__: 'true',
+  },
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src')
@@ -136,7 +140,8 @@ export default defineConfig({
               join_vars: true,
               negate_iife: true,
               sequences: 500,
-              inline: 3
+              inline: 3,
+              global_defs: { __DEV__: false }
             },
             mangle: {
               toplevel: true,
@@ -174,7 +179,8 @@ export default defineConfig({
               join_vars: true,
               negate_iife: true,
               sequences: 500,
-              inline: 3
+              inline: 3,
+              global_defs: { __DEV__: false }
             },
             mangle: {
               toplevel: true,

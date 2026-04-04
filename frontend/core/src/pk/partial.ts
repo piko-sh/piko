@@ -18,6 +18,7 @@
 
 import fragmentMorpher from '@/core/fragmentMorpher';
 import {notifyDOMUpdated} from '@/pk/domUpdater';
+import {applyLoadingIndicator, removeLoadingIndicator} from '@/pk/loadingState';
 
 /**
  * Refresh level for graduated partial refresh.
@@ -174,8 +175,7 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
 
     const level = options.level ?? detectRefreshLevel(el);
 
-    el.classList.add('pk-loading');
-    el.setAttribute('aria-busy', 'true');
+    applyLoadingIndicator(el);
 
     try {
         const response = await fetch(url);
@@ -211,8 +211,7 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
         });
         throw error;
     } finally {
-        el.classList.remove('pk-loading');
-        el.removeAttribute('aria-busy');
+        removeLoadingIndicator(el);
     }
 }
 

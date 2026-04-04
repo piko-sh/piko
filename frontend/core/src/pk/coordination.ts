@@ -18,6 +18,7 @@
 
 import {partial, type PartialHandle} from './partial';
 import {debounce} from './utils';
+import {applyLoadingIndicator, removeLoadingIndicator} from './loadingState';
 
 /** Base delay in milliseconds for exponential backoff retry. */
 const RETRY_BACKOFF_BASE_MS = 1000;
@@ -195,8 +196,7 @@ async function executeReload(
         }
 
         if (loading && handle.element) {
-            handle.element.classList.add('pk-loading');
-            handle.element.setAttribute('aria-busy', 'true');
+            applyLoadingIndicator(handle.element);
         }
 
         await handle.reload(toStringRecord(args));
@@ -217,8 +217,7 @@ async function executeReload(
         throw error;
     } finally {
         if (loading && handle.element) {
-            handle.element.classList.remove('pk-loading');
-            handle.element.removeAttribute('aria-busy');
+            removeLoadingIndicator(handle.element);
         }
     }
 }

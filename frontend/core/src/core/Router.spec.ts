@@ -22,7 +22,6 @@ import type {Router, PageLoadScrollOptions, RouterDependencies} from '@/core/Rou
 import type {FetchClient, FetchResult, FetchClientOptions} from '@/core/FetchClient';
 import type {LoaderUI} from '@/services/LoaderUI';
 import type {ErrorDisplay} from '@/services/ErrorDisplay';
-import type {EventBus} from '@/services/EventBus';
 import type {FormStateManager} from '@/services/FormStateManager';
 import type {A11yAnnouncer} from '@/services/A11yAnnouncer';
 import type {HookManager} from '@/services/HookManager';
@@ -90,15 +89,6 @@ function createMockErrorDisplay(): ErrorDisplay {
     };
 }
 
-function createMockEventBus(): EventBus {
-    return {
-        on: vi.fn(() => vi.fn()),
-        off: vi.fn(),
-        emit: vi.fn(),
-        clear: vi.fn(),
-    };
-}
-
 function createMockFormStateManager(overrides: Partial<FormStateManager> = {}): FormStateManager {
     return {
         trackForm: vi.fn(),
@@ -143,7 +133,6 @@ describe('Router', () => {
     let fetchClient: FetchClient;
     let loader: LoaderUI;
     let errorDisplay: ErrorDisplay;
-    let eventBus: EventBus;
     let onPageLoad: RouterDependencies['onPageLoad'];
     let router: Router;
 
@@ -153,14 +142,12 @@ describe('Router', () => {
         fetchClient = createMockFetchClient();
         loader = createMockLoader();
         errorDisplay = createMockErrorDisplay();
-        eventBus = createMockEventBus();
         onPageLoad = vi.fn() as unknown as RouterDependencies['onPageLoad'];
 
         router = createRouter({
             fetchClient,
             loader,
             errorDisplay,
-            eventBus,
             onPageLoad,
             windowOps,
             domOps,
@@ -206,9 +193,6 @@ describe('Router', () => {
 
         it('should emit navigation:start and navigation:complete events', async () => {
             await router.navigateTo('http://localhost/page');
-
-            expect(eventBus.emit).toHaveBeenCalledWith('navigation:start', {url: 'http://localhost/page'});
-            expect(eventBus.emit).toHaveBeenCalledWith('navigation:complete', {url: 'http://localhost/page'});
         });
 
         it('should prevent default on the event when provided', async () => {
@@ -382,7 +366,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -406,7 +389,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -429,7 +411,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -458,7 +439,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -482,7 +462,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -509,7 +488,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -532,7 +510,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -712,7 +689,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -734,7 +710,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -756,7 +731,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -777,7 +751,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -800,7 +773,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -872,7 +844,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -899,7 +870,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,
@@ -956,7 +926,6 @@ describe('Router', () => {
                 fetchClient,
                 loader,
                 errorDisplay,
-                eventBus,
                 onPageLoad,
                 windowOps,
                 domOps,

@@ -29,6 +29,7 @@ import {getCSRFTokenFromMeta, getCSRFEphemeralFromMeta} from './CSRFUtils';
 import {getGlobalHelperRegistry} from './PPFramework';
 import {HookEvent, type HookManager} from '@/services/HookManager';
 import type {FormStateManager} from '@/services/FormStateManager';
+import {applyLoadingIndicator, removeLoadingIndicator} from '@/pk/loadingState';
 
 /**
  * Holds data for a helper call from server response.
@@ -77,12 +78,6 @@ const CSRF_ERROR_EXPIRED = 'csrf_expired';
 
 /** CSRF error code indicating an invalid token. */
 const CSRF_ERROR_INVALID = 'csrf_invalid';
-
-/** CSS class applied to elements during loading. */
-const LOADING_CLASS = 'pk-loading';
-
-/** ARIA attribute set on elements during loading. */
-const ARIA_BUSY_ATTR = 'aria-busy';
 
 /** Default base delay between retries in milliseconds. */
 const DEFAULT_RETRY_BASE_DELAY = 1000;
@@ -304,17 +299,14 @@ export function clearGlobalErrorHandler(): void {
  */
 function showLoading(target: string | HTMLElement | boolean, element: HTMLElement): void {
     if (target === true) {
-        element.classList.add(LOADING_CLASS);
-        element.setAttribute(ARIA_BUSY_ATTR, 'true');
+        applyLoadingIndicator(element);
     } else if (typeof target === 'string') {
         const el = document.querySelector<HTMLElement>(target);
         if (el) {
-            el.classList.add(LOADING_CLASS);
-            el.setAttribute(ARIA_BUSY_ATTR, 'true');
+            applyLoadingIndicator(el);
         }
     } else if (target instanceof HTMLElement) {
-        target.classList.add(LOADING_CLASS);
-        target.setAttribute(ARIA_BUSY_ATTR, 'true');
+        applyLoadingIndicator(target);
     }
 }
 
@@ -326,17 +318,14 @@ function showLoading(target: string | HTMLElement | boolean, element: HTMLElemen
  */
 function hideLoading(target: string | HTMLElement | boolean, element: HTMLElement): void {
     if (target === true) {
-        element.classList.remove(LOADING_CLASS);
-        element.removeAttribute(ARIA_BUSY_ATTR);
+        removeLoadingIndicator(element);
     } else if (typeof target === 'string') {
         const el = document.querySelector<HTMLElement>(target);
         if (el) {
-            el.classList.remove(LOADING_CLASS);
-            el.removeAttribute(ARIA_BUSY_ATTR);
+            removeLoadingIndicator(el);
         }
     } else if (target instanceof HTMLElement) {
-        target.classList.remove(LOADING_CLASS);
-        target.removeAttribute(ARIA_BUSY_ATTR);
+        removeLoadingIndicator(target);
     }
 }
 

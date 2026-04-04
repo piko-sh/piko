@@ -19,7 +19,6 @@
 import type {FetchClient} from '@/core/FetchClient';
 import type {LoaderUI} from '@/services/LoaderUI';
 import type {ErrorDisplay} from '@/services/ErrorDisplay';
-import type {EventBus} from '@/services/EventBus';
 import type {FormStateManager} from '@/services/FormStateManager';
 import type {A11yAnnouncer} from '@/services/A11yAnnouncer';
 import {HookEvent, type HookManager} from '@/services/HookManager';
@@ -80,8 +79,6 @@ export interface RouterDependencies {
     loader: LoaderUI;
     /** Error display service. */
     errorDisplay: ErrorDisplay;
-    /** Event bus for navigation events. */
-    eventBus: EventBus;
     /** Callback invoked when a page is loaded and ready for DOM insertion. May return a Promise when the DOM update is deferred (e.g. View Transitions). */
     onPageLoad: (doc: Document, targetUrl: string, scrollOptions: PageLoadScrollOptions) => void | Promise<void>;
     /** Window operations implementation. Defaults to browser window. */
@@ -157,8 +154,6 @@ interface NavigationDeps {
     loader: LoaderUI;
     /** Error display service. */
     errorDisplay: ErrorDisplay;
-    /** Event bus for navigation events. */
-    eventBus: EventBus;
     /** Callback invoked when a page is loaded and ready for DOM insertion. May return a Promise when the DOM update is deferred (e.g. View Transitions). */
     onPageLoad: (doc: Document, targetUrl: string, scrollOptions: PageLoadScrollOptions) => void | Promise<void>;
     /** Window operations implementation. */
@@ -252,7 +247,6 @@ function emitNavigationSuccess(
     const duration = Date.now() - ctx.startTime;
 
     deps.a11yAnnouncer?.announceNavigation(pageTitle);
-    deps.eventBus.emit('navigation:complete', {url: ctx.targetUrl});
 
     deps.hookManager?.emit(HookEvent.NAVIGATION_COMPLETE, {
         url: ctx.targetUrl,
@@ -324,7 +318,6 @@ function emitNavigationStart(
     localBeforeNavigate: ((url: string) => void) | undefined
 ): void {
     safeInvokeCallback(localBeforeNavigate, ctx.targetUrl);
-    deps.eventBus.emit('navigation:start', {url: ctx.targetUrl});
     deps.hookManager?.emit(HookEvent.NAVIGATION_START, {
         url: ctx.targetUrl,
         previousUrl: ctx.previousUrl,
@@ -480,7 +473,6 @@ export function createRouter(deps: RouterDependencies): Router {
         fetchClient: deps.fetchClient,
         loader: deps.loader,
         errorDisplay: deps.errorDisplay,
-        eventBus: deps.eventBus,
         onPageLoad: deps.onPageLoad,
         windowOps,
         domOps,

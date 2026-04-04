@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {resolveElement} from './resolve';
+
 /** Options for dispatching a custom event. */
 export interface DispatchOptions {
     /** Whether the event bubbles up through the DOM (default: true). */
@@ -28,12 +30,9 @@ export interface DispatchOptions {
 export type EventListener = (event: CustomEvent) => void;
 
 /**
- * Resolves a target specification to an Element.
+ * Resolves a target specification to an Element or Document.
  *
- * Supports '*' for document, p-ref attribute lookup, CSS selector
- * matching, and direct HTMLElement references.
- *
- * @param target - Target specification string or element.
+ * @param target - Target string, element, or '*' for the document.
  * @returns The resolved element, document, or null if not found.
  */
 function resolveTarget(target: string | HTMLElement | '*'): Element | Document | null {
@@ -41,16 +40,7 @@ function resolveTarget(target: string | HTMLElement | '*'): Element | Document |
         return document;
     }
 
-    if (target instanceof HTMLElement) {
-        return target;
-    }
-
-    const byRef = document.querySelector(`[p-ref="${target}"]`);
-    if (byRef) {
-        return byRef;
-    }
-
-    return document.querySelector(target);
+    return resolveElement(target);
 }
 
 /**
