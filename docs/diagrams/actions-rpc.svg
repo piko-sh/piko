@@ -1,0 +1,56 @@
+<svg viewBox="0 0 520 298" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowA" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#6BD5CC" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrowB" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#92A1AF" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  <g>
+    <rect x="4" y="4" width="512" height="105" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <rect x="4" y="4" width="512" height="28" rx="10" fill="#1C544F"/>
+    <rect x="4" y="22" width="512" height="10" fill="#1C544F"/>
+    <circle cx="18" cy="18" r="4" fill="#ff5f57"/>
+    <circle cx="30" cy="18" r="4" fill="#febc2e"/>
+    <circle cx="42" cy="18" r="4" fill="#28c840"/>
+    <text x="260" y="21" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">.pk template</text>
+
+    <text x="18" y="52" fill="#485461" font-family="monospace" font-size="11">1</text>
+    <text x="18" y="70" fill="#485461" font-family="monospace" font-size="11">2</text>
+    <text x="18" y="88" fill="#485461" font-family="monospace" font-size="11">3</text>
+
+    <text x="38" y="52" fill="#C9F5F2" font-family="monospace" font-size="11">&lt;button <tspan fill="#A7F0E9">p-on:click="<tspan fill="#FFEE9C">action.customer.create(form.name, form.email)</tspan>"</tspan>&gt;</text>
+    <text x="50" y="70" fill="#C9F5F2" font-family="monospace" font-size="11">Create Customer</text>
+    <text x="38" y="88" fill="#C9F5F2" font-family="monospace" font-size="11">&lt;/button&gt;</text>
+  </g>
+
+  <line x1="160" y1="109" x2="160" y2="170" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrowA)"/>
+  <text x="175" y="144" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">call</text>
+
+  <line x1="380" y1="170" x2="380" y2="109" stroke="#92A1AF" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrowB)"/>
+  <text x="365" y="144" text-anchor="end" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">response</text>
+
+  <g>
+    <rect x="4" y="172" width="512" height="105" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <rect x="4" y="172" width="512" height="28" rx="10" fill="#364049"/>
+    <rect x="4" y="190" width="512" height="10" fill="#364049"/>
+    <circle cx="18" cy="186" r="4" fill="#ff5f57"/>
+    <circle cx="30" cy="186" r="4" fill="#febc2e"/>
+    <circle cx="42" cy="186" r="4" fill="#28c840"/>
+    <text x="260" y="189" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Go action</text>
+
+    <text x="18" y="220" fill="#485461" font-family="monospace" font-size="11">1</text>
+    <text x="18" y="238" fill="#485461" font-family="monospace" font-size="11">2</text>
+    <text x="18" y="256" fill="#485461" font-family="monospace" font-size="11">3</text>
+    <text x="18" y="272" fill="#485461" font-family="monospace" font-size="11">4</text>
+
+    <text x="38" y="220" fill="#C9F5F2" font-family="monospace" font-size="11">func (a CreateAction) <tspan fill="#FFEE9C">Call(name, email string)</tspan> (Response, error) {</text>
+    <text x="50" y="238" fill="#A7F0E9" font-family="monospace" font-size="11">customer := save(name, email)</text>
+    <text x="50" y="256" fill="#C9F5F2" font-family="monospace" font-size="11">return Response{ID: customer.ID}, nil</text>
+    <text x="38" y="272" fill="#C9F5F2" font-family="monospace" font-size="11">}</text>
+  </g>
+
+  <text x="260" y="294" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">same arguments · no REST · no fetch · automatic CSRF</text>
+</svg>
