@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/bytedance/sonic v1.15.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.12
 )
 
 require (
