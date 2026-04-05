@@ -57,6 +57,13 @@ func createTestMarkdownFile(t *testing.T, directory, filename, content string) s
 func setupTestProvider(t *testing.T, directory string) *MarkdownProvider {
 	t.Helper()
 
+	provider, _ := setupTestProviderWithSource(t, directory)
+	return provider
+}
+
+func setupTestProviderWithSource(t *testing.T, directory string) (*MarkdownProvider, collection_dto.ContentSource) {
+	t.Helper()
+
 	parser := markdown_testparser.NewParser()
 	service := markdown_domain.NewMarkdownService(parser, nil)
 
@@ -69,7 +76,12 @@ func setupTestProvider(t *testing.T, directory string) *MarkdownProvider {
 	}
 	t.Cleanup(func() { _ = sandbox.Close() })
 
-	return NewMarkdownProvider("markdown", sandbox, service, nil)
+	source := collection_dto.ContentSource{
+		Sandbox:  sandbox,
+		BasePath: directory,
+	}
+
+	return NewMarkdownProvider("markdown", sandbox, service, nil), source
 }
 
 func TestMarkdownProvider_Name(t *testing.T) {
@@ -160,7 +172,7 @@ Content`)
 
 func TestMarkdownProvider_FetchStaticContent_Simple(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	absContentDir := filepath.Join(tmpDir, "content", "blog")
 
@@ -178,7 +190,7 @@ tags:
 This is my **test** post.`)
 
 	ctx := context.Background()
-	items, err := provider.FetchStaticContent(ctx, "blog")
+	items, err := provider.FetchStaticContent(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("FetchStaticContent failed: %v", err)
 	}
@@ -216,7 +228,7 @@ This is my **test** post.`)
 
 func TestMarkdownProvider_FetchStaticContent_MultiLocale(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	absContentDir := filepath.Join(tmpDir, "content", "blog")
 
@@ -239,7 +251,7 @@ title: Mein Artikel
 Deutscher Inhalt`)
 
 	ctx := context.Background()
-	items, err := provider.FetchStaticContent(ctx, "blog")
+	items, err := provider.FetchStaticContent(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("FetchStaticContent failed: %v", err)
 	}
@@ -299,7 +311,7 @@ Deutscher Inhalt`)
 
 func TestMarkdownProvider_FetchStaticContent_SuffixPattern(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	absContentDir := filepath.Join(tmpDir, "content", "pages")
 
@@ -316,7 +328,7 @@ title: À Propos
 Contenu à propos`)
 
 	ctx := context.Background()
-	items, err := provider.FetchStaticContent(ctx, "pages")
+	items, err := provider.FetchStaticContent(ctx, "pages", source)
 	if err != nil {
 		t.Fatalf("FetchStaticContent failed: %v", err)
 	}
@@ -337,14 +349,14 @@ Contenu à propos`)
 
 func TestMarkdownProvider_FetchStaticContent_NoFiles(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	if err := os.MkdirAll(filepath.Join(tmpDir, "content", "empty"), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
 	ctx := context.Background()
-	items, err := provider.FetchStaticContent(ctx, "empty")
+	items, err := provider.FetchStaticContent(ctx, "empty", source)
 	if err != nil {
 		t.Fatalf("FetchStaticContent failed: %v", err)
 	}
@@ -367,7 +379,7 @@ func TestMarkdownProvider_GenerateRuntimeFetcher(t *testing.T) {
 
 func TestMarkdownProvider_ComputeETag(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	absContentDir := filepath.Join(tmpDir, "content", "blog")
 
@@ -383,7 +395,7 @@ Content 2`)
 
 	ctx := context.Background()
 
-	etag, err := provider.ComputeETag(ctx, "blog")
+	etag, err := provider.ComputeETag(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("ComputeETag failed: %v", err)
 	}
@@ -392,7 +404,7 @@ Content 2`)
 		t.Errorf("ETag should start with 'md-', got %q", etag)
 	}
 
-	etag2, err := provider.ComputeETag(ctx, "blog")
+	etag2, err := provider.ComputeETag(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("Second ComputeETag failed: %v", err)
 	}
@@ -403,7 +415,7 @@ Content 2`)
 
 func TestMarkdownProvider_ComputeETag_EmptyCollection(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	if err := os.MkdirAll(filepath.Join(tmpDir, "content", "empty"), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
@@ -411,7 +423,7 @@ func TestMarkdownProvider_ComputeETag_EmptyCollection(t *testing.T) {
 
 	ctx := context.Background()
 
-	etag, err := provider.ComputeETag(ctx, "empty")
+	etag, err := provider.ComputeETag(ctx, "empty", source)
 	if err != nil {
 		t.Fatalf("ComputeETag failed: %v", err)
 	}
@@ -423,7 +435,7 @@ func TestMarkdownProvider_ComputeETag_EmptyCollection(t *testing.T) {
 
 func TestMarkdownProvider_ComputeETag_ChangesOnModification(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	absContentDir := filepath.Join(tmpDir, "content", "blog")
 
@@ -434,7 +446,7 @@ Content`)
 
 	ctx := context.Background()
 
-	etag1, err := provider.ComputeETag(ctx, "blog")
+	etag1, err := provider.ComputeETag(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("ComputeETag failed: %v", err)
 	}
@@ -448,7 +460,7 @@ New content`), 0644)
 	now := time.Now()
 	_ = os.Chtimes(filePath, now, now)
 
-	etag2, err := provider.ComputeETag(ctx, "blog")
+	etag2, err := provider.ComputeETag(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("ComputeETag after modification failed: %v", err)
 	}
@@ -460,7 +472,7 @@ New content`), 0644)
 
 func TestMarkdownProvider_ValidateETag_Unchanged(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	absContentDir := filepath.Join(tmpDir, "content", "blog")
 
@@ -471,12 +483,12 @@ Content`)
 
 	ctx := context.Background()
 
-	originalETag, err := provider.ComputeETag(ctx, "blog")
+	originalETag, err := provider.ComputeETag(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("ComputeETag failed: %v", err)
 	}
 
-	currentETag, changed, err := provider.ValidateETag(ctx, "blog", originalETag)
+	currentETag, changed, err := provider.ValidateETag(ctx, "blog", originalETag, source)
 	if err != nil {
 		t.Fatalf("ValidateETag failed: %v", err)
 	}
@@ -492,7 +504,7 @@ Content`)
 
 func TestMarkdownProvider_ValidateETag_Changed(t *testing.T) {
 	tmpDir := t.TempDir()
-	provider := setupTestProvider(t, tmpDir)
+	provider, source := setupTestProviderWithSource(t, tmpDir)
 
 	absContentDir := filepath.Join(tmpDir, "content", "blog")
 
@@ -503,7 +515,7 @@ Content`)
 
 	ctx := context.Background()
 
-	originalETag, err := provider.ComputeETag(ctx, "blog")
+	originalETag, err := provider.ComputeETag(ctx, "blog", source)
 	if err != nil {
 		t.Fatalf("ComputeETag failed: %v", err)
 	}
@@ -516,7 +528,7 @@ New`), 0644)
 	now := time.Now()
 	_ = os.Chtimes(filePath, now, now)
 
-	currentETag, changed, err := provider.ValidateETag(ctx, "blog", originalETag)
+	currentETag, changed, err := provider.ValidateETag(ctx, "blog", originalETag, source)
 	if err != nil {
 		t.Fatalf("ValidateETag failed: %v", err)
 	}
@@ -681,8 +693,9 @@ func TestMarkdownProvider_FetchStaticContent_Errors(t *testing.T) {
 		sandbox.WalkDirErr = os.ErrPermission
 
 		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		source := collection_dto.ContentSource{Sandbox: sandbox}
 
-		_, err := provider.FetchStaticContent(context.Background(), "blog")
+		_, err := provider.FetchStaticContent(context.Background(), "blog", source)
 
 		if err == nil {
 			t.Fatal("Expected error, got nil")
@@ -707,8 +720,9 @@ func TestMarkdownProvider_FetchStaticContent_Errors(t *testing.T) {
 		}
 
 		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		source := collection_dto.ContentSource{Sandbox: sandbox}
 
-		items, err := provider.FetchStaticContent(context.Background(), "empty")
+		items, err := provider.FetchStaticContent(context.Background(), "empty", source)
 
 		if err != nil {
 			t.Fatalf("Expected no error, got: %v", err)
@@ -736,8 +750,9 @@ func TestMarkdownProvider_FetchStaticContent_Errors(t *testing.T) {
 		sandbox.ReadFileErr = os.ErrPermission
 
 		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		source := collection_dto.ContentSource{Sandbox: sandbox}
 
-		items, err := provider.FetchStaticContent(context.Background(), "blog")
+		items, err := provider.FetchStaticContent(context.Background(), "blog", source)
 
 		if err != nil {
 			t.Fatalf("Expected no error (graceful degradation), got: %v", err)
@@ -766,8 +781,9 @@ func TestMarkdownProvider_ComputeETag_Errors(t *testing.T) {
 		sandbox.WalkDirErr = os.ErrPermission
 
 		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		source := collection_dto.ContentSource{Sandbox: sandbox}
 
-		_, err := provider.ComputeETag(context.Background(), "blog")
+		_, err := provider.ComputeETag(context.Background(), "blog", source)
 
 		if err == nil {
 			t.Fatal("Expected error, got nil")
@@ -787,38 +803,15 @@ func TestMarkdownProvider_ComputeETag_Errors(t *testing.T) {
 		}
 
 		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		source := collection_dto.ContentSource{Sandbox: sandbox}
 
-		etag, err := provider.ComputeETag(context.Background(), "empty")
+		etag, err := provider.ComputeETag(context.Background(), "empty", source)
 
 		if err != nil {
 			t.Fatalf("Expected no error, got: %v", err)
 		}
 		if etag != "md-empty" {
 			t.Errorf("Expected etag 'md-empty', got %q", etag)
-		}
-	})
-}
-
-func TestMarkdownProvider_SetContentModulePath_Errors(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns error when resolver not configured", func(t *testing.T) {
-		t.Parallel()
-
-		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-		defer func() { _ = sandbox.Close() }()
-		parser := markdown_testparser.NewParser()
-		service := markdown_domain.NewMarkdownService(parser, nil)
-
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
-
-		err := provider.SetContentModulePath(context.Background(), "github.com/org/repo/docs")
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "resolver not configured for module content sourcing; use WithModuleResolver option" {
-			t.Errorf("Unexpected error message: %v", err)
 		}
 	})
 }
@@ -1032,34 +1025,6 @@ func TestSortStrings(t *testing.T) {
 	}
 }
 
-func TestWithModuleResolver(t *testing.T) {
-	t.Parallel()
-
-	resolver := &mockResolverPort{}
-	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-	defer func() { _ = sandbox.Close() }()
-	parser := markdown_testparser.NewParser()
-	service := markdown_domain.NewMarkdownService(parser, nil)
-
-	provider := NewMarkdownProvider("markdown", sandbox, service, nil, WithModuleResolver(resolver))
-
-	assert.NotNil(t, provider.resolver)
-}
-
-func TestMarkdownProvider_SetBasePath(t *testing.T) {
-	t.Parallel()
-
-	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-	defer func() { _ = sandbox.Close() }()
-	parser := markdown_testparser.NewParser()
-	service := markdown_domain.NewMarkdownService(parser, nil)
-
-	provider := NewMarkdownProvider("markdown", sandbox, service, nil)
-	provider.SetBasePath(context.Background(), "/custom/path")
-
-	assert.Equal(t, "/custom/path", provider.basePath)
-}
-
 func TestMarkdownProvider_ValidateTargetType(t *testing.T) {
 	t.Parallel()
 
@@ -1105,16 +1070,14 @@ func TestResolveContentPath(t *testing.T) {
 	t.Run("local content prefixes with content and collection", func(t *testing.T) {
 		t.Parallel()
 
-		provider := &MarkdownProvider{isExternalModule: false}
-		result := provider.resolveContentPath("post.md", "blog")
+		result := resolveContentPath("post.md", "blog", false)
 		assert.Equal(t, filepath.Join("content", "blog", "post.md"), result)
 	})
 
 	t.Run("external module returns path as-is", func(t *testing.T) {
 		t.Parallel()
 
-		provider := &MarkdownProvider{isExternalModule: true}
-		result := provider.resolveContentPath("post.md", "blog")
+		result := resolveContentPath("post.md", "blog", true)
 		assert.Equal(t, "post.md", result)
 	})
 }
@@ -1184,148 +1147,6 @@ func TestExtractPlainContent(t *testing.T) {
 	})
 }
 
-func TestMarkdownProvider_ResolveModuleContentRoot(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		tmpDir := t.TempDir()
-		resolver := &mockResolverPort{
-			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
-				return "github.com/org/repo", "docs", nil
-			},
-			GetModuleDirFunc: func(_ context.Context, _ string) (string, error) {
-				return tmpDir, nil
-			},
-		}
-		provider := &MarkdownProvider{
-			resolver: resolver,
-		}
-
-		contentRoot, moduleBase, err := provider.resolveModuleContentRoot(
-			context.Background(), "github.com/org/repo/docs")
-
-		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(tmpDir, "docs"), contentRoot)
-		assert.Equal(t, "github.com/org/repo", moduleBase)
-	})
-
-	t.Run("FindModuleBoundary fails", func(t *testing.T) {
-		t.Parallel()
-
-		resolver := &mockResolverPort{
-			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
-				return "", "", errors.New("unknown module")
-			},
-		}
-		provider := &MarkdownProvider{
-			resolver: resolver,
-		}
-
-		_, _, err := provider.resolveModuleContentRoot(
-			context.Background(), "github.com/org/repo/docs")
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "finding module boundary")
-	})
-
-	t.Run("GetModuleDir fails", func(t *testing.T) {
-		t.Parallel()
-
-		resolver := &mockResolverPort{
-			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
-				return "github.com/org/repo", "docs", nil
-			},
-			GetModuleDirFunc: func(_ context.Context, _ string) (string, error) {
-				return "", errors.New("module not downloaded")
-			},
-		}
-		provider := &MarkdownProvider{
-			resolver: resolver,
-		}
-
-		_, _, err := provider.resolveModuleContentRoot(
-			context.Background(), "github.com/org/repo/docs")
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "resolving module directory")
-	})
-}
-
-func TestCreateModuleSandbox(t *testing.T) {
-	t.Parallel()
-
-	t.Run("valid path", func(t *testing.T) {
-		t.Parallel()
-
-		tmpDir := t.TempDir()
-		sandbox, err := createModuleSandbox("github.com/org/repo", tmpDir)
-
-		require.NoError(t, err)
-		assert.NotNil(t, sandbox)
-	})
-
-	t.Run("invalid path", func(t *testing.T) {
-		t.Parallel()
-
-		_, err := createModuleSandbox("github.com/org/repo", "/nonexistent/path/that/does/not/exist")
-
-		require.Error(t, err)
-	})
-}
-
-func TestMarkdownProvider_SetContentModulePath_FullFlow(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		tmpDir := t.TempDir()
-		resolver := &mockResolverPort{
-			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
-				return "github.com/org/repo", "", nil
-			},
-			GetModuleDirFunc: func(_ context.Context, _ string) (string, error) {
-				return tmpDir, nil
-			},
-		}
-
-		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-		defer func() { _ = sandbox.Close() }()
-		parser := markdown_testparser.NewParser()
-		service := markdown_domain.NewMarkdownService(parser, nil)
-
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil, WithModuleResolver(resolver))
-		err := provider.SetContentModulePath(context.Background(), "github.com/org/repo")
-
-		require.NoError(t, err)
-		assert.True(t, provider.isExternalModule)
-		assert.Equal(t, tmpDir, provider.basePath)
-	})
-
-	t.Run("resolve fails", func(t *testing.T) {
-		t.Parallel()
-
-		resolver := &mockResolverPort{
-			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
-				return "", "", errors.New("module not found")
-			},
-		}
-
-		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-		defer func() { _ = sandbox.Close() }()
-		parser := markdown_testparser.NewParser()
-		service := markdown_domain.NewMarkdownService(parser, nil)
-
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil, WithModuleResolver(resolver))
-		err := provider.SetContentModulePath(context.Background(), "github.com/org/repo/docs")
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "resolving module content root")
-	})
-}
-
 func TestMarkdownProvider_ProcessCollectionEntry_ScanError(t *testing.T) {
 	t.Parallel()
 
@@ -1371,10 +1192,14 @@ Get started here.`)
 	service := markdown_domain.NewMarkdownService(parser, nil)
 
 	provider := NewMarkdownProvider("markdown", sandbox, service, nil)
-	provider.isExternalModule = true
+	source := collection_dto.ContentSource{
+		Sandbox:    sandbox,
+		BasePath:   tmpDir,
+		IsExternal: true,
+	}
 
 	ctx := context.Background()
-	items, err := provider.FetchStaticContent(ctx, "docs")
+	items, err := provider.FetchStaticContent(ctx, "docs", source)
 
 	require.NoError(t, err)
 	assert.Len(t, items, 2)
@@ -1519,7 +1344,7 @@ func TestBuildContentItem_DraftAndDates(t *testing.T) {
 		t.Parallel()
 
 		tmpDir := t.TempDir()
-		provider := setupTestProvider(t, tmpDir)
+		provider, source := setupTestProviderWithSource(t, tmpDir)
 
 		absContentDir := filepath.Join(tmpDir, "content", "blog")
 		createTestMarkdownFile(t, absContentDir, "draft-post.md", `---
@@ -1530,7 +1355,7 @@ draft: true
 This is a draft post.`)
 
 		ctx := context.Background()
-		items, err := provider.FetchStaticContent(ctx, "blog")
+		items, err := provider.FetchStaticContent(ctx, "blog", source)
 
 		require.NoError(t, err)
 		require.Len(t, items, 1)
@@ -1544,7 +1369,7 @@ This is a draft post.`)
 		t.Parallel()
 
 		tmpDir := t.TempDir()
-		provider := setupTestProvider(t, tmpDir)
+		provider, source := setupTestProviderWithSource(t, tmpDir)
 
 		absContentDir := filepath.Join(tmpDir, "content", "blog")
 		createTestMarkdownFile(t, absContentDir, "dated-post.md", `---
@@ -1555,7 +1380,7 @@ date: 2024-05-15
 This post has a publish date.`)
 
 		ctx := context.Background()
-		items, err := provider.FetchStaticContent(ctx, "blog")
+		items, err := provider.FetchStaticContent(ctx, "blog", source)
 
 		require.NoError(t, err)
 		require.Len(t, items, 1)
@@ -1571,7 +1396,7 @@ This post has a publish date.`)
 		t.Parallel()
 
 		tmpDir := t.TempDir()
-		provider := setupTestProvider(t, tmpDir)
+		provider, source := setupTestProviderWithSource(t, tmpDir)
 
 		absContentDir := filepath.Join(tmpDir, "content", "blog")
 		createTestMarkdownFile(t, absContentDir, "described-post.md", `---
@@ -1582,7 +1407,7 @@ description: A short summary of the post
 Post content here.`)
 
 		ctx := context.Background()
-		items, err := provider.FetchStaticContent(ctx, "blog")
+		items, err := provider.FetchStaticContent(ctx, "blog", source)
 
 		require.NoError(t, err)
 		require.Len(t, items, 1)
@@ -1597,7 +1422,7 @@ Post content here.`)
 		t.Parallel()
 
 		tmpDir := t.TempDir()
-		provider := setupTestProvider(t, tmpDir)
+		provider, source := setupTestProviderWithSource(t, tmpDir)
 
 		absContentDir := filepath.Join(tmpDir, "content", "blog")
 		createTestMarkdownFile(t, absContentDir, "tagged-post.md", `---
@@ -1610,7 +1435,7 @@ tags:
 Tagged content.`)
 
 		ctx := context.Background()
-		items, err := provider.FetchStaticContent(ctx, "blog")
+		items, err := provider.FetchStaticContent(ctx, "blog", source)
 
 		require.NoError(t, err)
 		require.Len(t, items, 1)
@@ -1625,7 +1450,7 @@ Tagged content.`)
 		t.Parallel()
 
 		tmpDir := t.TempDir()
-		provider := setupTestProvider(t, tmpDir)
+		provider, source := setupTestProviderWithSource(t, tmpDir)
 
 		absContentDir := filepath.Join(tmpDir, "content", "blog")
 		createTestMarkdownFile(t, absContentDir, "wordy-post.md", `---
@@ -1635,7 +1460,7 @@ title: Wordy Post
 This is a post with several words in it to verify counting.`)
 
 		ctx := context.Background()
-		items, err := provider.FetchStaticContent(ctx, "blog")
+		items, err := provider.FetchStaticContent(ctx, "blog", source)
 
 		require.NoError(t, err)
 		require.Len(t, items, 1)
@@ -1650,7 +1475,7 @@ This is a post with several words in it to verify counting.`)
 		t.Parallel()
 
 		tmpDir := t.TempDir()
-		provider := setupTestProvider(t, tmpDir)
+		provider, source := setupTestProviderWithSource(t, tmpDir)
 
 		absContentDir := filepath.Join(tmpDir, "content", "blog")
 		createTestMarkdownFile(t, absContentDir, "full-post.md", `---
@@ -1666,7 +1491,7 @@ tags:
 This post has every frontmatter field populated for testing.`)
 
 		ctx := context.Background()
-		items, err := provider.FetchStaticContent(ctx, "blog")
+		items, err := provider.FetchStaticContent(ctx, "blog", source)
 
 		require.NoError(t, err)
 		require.Len(t, items, 1)
@@ -1689,7 +1514,7 @@ This post has every frontmatter field populated for testing.`)
 		t.Parallel()
 
 		tmpDir := t.TempDir()
-		provider := setupTestProvider(t, tmpDir)
+		provider, source := setupTestProviderWithSource(t, tmpDir)
 
 		absContentDir := filepath.Join(tmpDir, "content", "blog")
 		createTestMarkdownFile(t, absContentDir, "dated-custom.md", `---
@@ -1701,7 +1526,7 @@ author: Jane Doe
 Welcome to my blog.`)
 
 		ctx := context.Background()
-		items, err := provider.FetchStaticContent(ctx, "blog")
+		items, err := provider.FetchStaticContent(ctx, "blog", source)
 
 		require.NoError(t, err)
 		require.Len(t, items, 1)

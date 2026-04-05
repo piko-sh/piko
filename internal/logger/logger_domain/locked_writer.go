@@ -34,7 +34,7 @@ import (
 type LockedWriter struct {
 	mu *sync.Mutex
 
-	w  io.Writer
+	w io.Writer
 }
 
 // NewLockedWriter creates a LockedWriter that serialises writes to w
@@ -77,7 +77,7 @@ func (lw *LockedWriter) HoldWrites() func() {
 }
 
 var (
-	stderrMu     sync.Mutex
+	stderrMu sync.Mutex
 
 	stderrWriter = &LockedWriter{w: os.Stderr, mu: &stderrMu}
 )

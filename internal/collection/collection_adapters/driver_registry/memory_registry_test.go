@@ -55,6 +55,7 @@ func (m *mockProvider) ValidateTargetType(targetType ast.Expr) error {
 func (m *mockProvider) FetchStaticContent(
 	ctx context.Context,
 	collectionName string,
+	source collection_dto.ContentSource,
 ) ([]collection_dto.ContentItem, error) {
 	return nil, nil
 }
@@ -71,6 +72,7 @@ func (m *mockProvider) GenerateRuntimeFetcher(
 func (m *mockProvider) ComputeETag(
 	ctx context.Context,
 	collectionName string,
+	source collection_dto.ContentSource,
 ) (string, error) {
 	return "mock-etag", nil
 }
@@ -79,6 +81,7 @@ func (m *mockProvider) ValidateETag(
 	ctx context.Context,
 	collectionName string,
 	expectedETag string,
+	source collection_dto.ContentSource,
 ) (string, bool, error) {
 	return expectedETag, false, nil
 }

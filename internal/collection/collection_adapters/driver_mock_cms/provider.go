@@ -117,6 +117,7 @@ func (*MockCMSProvider) ValidateTargetType(_ goast.Expr) error {
 func (*MockCMSProvider) FetchStaticContent(
 	_ context.Context,
 	_ string,
+	_ collection_dto.ContentSource,
 ) ([]collection_dto.ContentItem, error) {
 	return nil, errors.New("mock CMS provider does not support static fetching (dynamic only)")
 }

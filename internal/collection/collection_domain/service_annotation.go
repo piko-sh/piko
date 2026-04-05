@@ -53,7 +53,8 @@ func (s *collectionService) generateStaticCollectionAnnotation(
 		logger_domain.String(logKeyProvider, provider.Name()),
 		logger_domain.String(logKeyCollection, collectionName))
 
-	items, err := s.fetchOrCacheStaticContent(ctx, provider, collectionName)
+	source := s.defaultContentSource()
+	items, err := s.fetchOrCacheStaticContent(ctx, provider, collectionName, source)
 	if err != nil {
 		return nil, fmt.Errorf("fetching static content for collection %q: %w", collectionName, err)
 	}
@@ -86,6 +87,7 @@ func (s *collectionService) fetchOrCacheStaticContent(
 	ctx context.Context,
 	provider CollectionProvider,
 	collectionName string,
+	source collection_dto.ContentSource,
 ) ([]collection_dto.ContentItem, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	if cachedItems, ok := s.getCachedContent(provider.Name(), collectionName); ok {
@@ -96,7 +98,7 @@ func (s *collectionService) fetchOrCacheStaticContent(
 		return cachedItems, nil
 	}
 
-	items, err := provider.FetchStaticContent(ctx, collectionName)
+	items, err := provider.FetchStaticContent(ctx, collectionName, source)
 	if err != nil {
 		return nil, fmt.Errorf("fetching static content: %w", err)
 	}

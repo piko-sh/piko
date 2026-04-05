@@ -736,6 +736,9 @@ func (c *Container) createDefaultCollectionService() {
 		return
 	}
 	c.collectionService = service
+	shutdown.Register(c.GetAppContext(), "CollectionService", func(_ context.Context) error {
+		return service.Close()
+	})
 	initHybridCache(c)
 }
 

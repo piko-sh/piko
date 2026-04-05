@@ -22,11 +22,14 @@ import (
 	"context"
 	"errors"
 	"go/ast"
+	"sync"
 	"testing"
 	"time"
 
 	"piko.sh/piko/internal/collection/collection_dto"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 func mustCastToCollectionService(t *testing.T, service CollectionService) *collectionService {
@@ -105,6 +108,41 @@ func newTestHybridRegistry() *MockHybridRegistry {
 	}
 }
 
+type mockResolverPort struct {
+	FindModuleBoundaryFunc func(ctx context.Context, importPath string) (string, string, error)
+	GetModuleDirFunc       func(ctx context.Context, modulePath string) (string, error)
+}
+
+var _ resolver_domain.ResolverPort = (*mockResolverPort)(nil)
+
+func (*mockResolverPort) DetectLocalModule(_ context.Context) error { return nil }
+func (*mockResolverPort) GetModuleName() string                     { return "" }
+func (*mockResolverPort) GetBaseDir() string                        { return "" }
+func (*mockResolverPort) ResolvePKPath(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+func (*mockResolverPort) ResolveCSSPath(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+func (*mockResolverPort) ResolveAssetPath(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+func (*mockResolverPort) ConvertEntryPointPathToManifestKey(_ string) string { return "" }
+
+func (m *mockResolverPort) GetModuleDir(ctx context.Context, modulePath string) (string, error) {
+	if m.GetModuleDirFunc != nil {
+		return m.GetModuleDirFunc(ctx, modulePath)
+	}
+	return "", nil
+}
+
+func (m *mockResolverPort) FindModuleBoundary(ctx context.Context, importPath string) (string, string, error) {
+	if m.FindModuleBoundaryFunc != nil {
+		return m.FindModuleBoundaryFunc(ctx, importPath)
+	}
+	return "", "", nil
+}
+
 func TestNewCollectionService(t *testing.T) {
 	registry := newTestProviderRegistry()
 
@@ -162,6 +200,132 @@ func TestNewCollectionService_withServiceClock(t *testing.T) {
 	}
 }
 
+func TestNewCollectionService_WithDefaultSandbox(t *testing.T) {
+	registry := newTestProviderRegistry()
+	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+	defer func() { _ = sandbox.Close() }()
+
+	service := NewCollectionService(context.Background(), registry, WithDefaultSandbox(sandbox))
+	s := mustCastToCollectionService(t, service)
+	if s.defaultSandbox != sandbox {
+		t.Error("WithDefaultSandbox did not inject the mock sandbox")
+	}
+}
+
+func TestNewCollectionService_WithResolver(t *testing.T) {
+	registry := newTestProviderRegistry()
+	resolver := &mockResolverPort{}
+
+	service := NewCollectionService(context.Background(), registry, WithResolver(resolver))
+	s := mustCastToCollectionService(t, service)
+	if s.resolver != resolver {
+		t.Error("WithResolver did not inject the mock resolver")
+	}
+}
+
+func TestDefaultContentSource(t *testing.T) {
+	registry := newTestProviderRegistry()
+	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+	defer func() { _ = sandbox.Close() }()
+
+	service := NewCollectionService(context.Background(), registry, WithDefaultSandbox(sandbox))
+	s := mustCastToCollectionService(t, service)
+
+	source := s.defaultContentSource()
+	if source.IsExternal {
+		t.Error("expected IsExternal=false")
+	}
+	if source.Sandbox != sandbox {
+		t.Error("expected defaultSandbox to be returned")
+	}
+}
+
+func TestServiceClose_NoSandboxes(t *testing.T) {
+	registry := newTestProviderRegistry()
+	service := NewCollectionService(context.Background(), registry)
+
+	err := service.Close()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestServiceClose_ClosesAllSandboxes(t *testing.T) {
+	registry := newTestProviderRegistry()
+	service := NewCollectionService(context.Background(), registry)
+	s := mustCastToCollectionService(t, service)
+
+	sb1 := safedisk.NewMockSandbox("/mod1", safedisk.ModeReadOnly)
+	sb2 := safedisk.NewMockSandbox("/mod2", safedisk.ModeReadOnly)
+
+	s.trackExternalSandbox(sb1)
+	s.trackExternalSandbox(sb2)
+
+	err := service.Close()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if sb1.CallCounts["Close"] != 1 {
+		t.Errorf("expected sb1.Close called once, got %d", sb1.CallCounts["Close"])
+	}
+	if sb2.CallCounts["Close"] != 1 {
+		t.Errorf("expected sb2.Close called once, got %d", sb2.CallCounts["Close"])
+	}
+
+	if len(s.externalSandboxes) != 0 {
+		t.Errorf("expected externalSandboxes to be empty after Close, got %d", len(s.externalSandboxes))
+	}
+}
+
+func TestServiceClose_ReturnsFirstError(t *testing.T) {
+	registry := newTestProviderRegistry()
+	service := NewCollectionService(context.Background(), registry)
+	s := mustCastToCollectionService(t, service)
+
+	sb1 := safedisk.NewMockSandbox("/mod1", safedisk.ModeReadOnly)
+	sb1.CloseErr = errors.New("close failed")
+	sb2 := safedisk.NewMockSandbox("/mod2", safedisk.ModeReadOnly)
+
+	s.trackExternalSandbox(sb1)
+	s.trackExternalSandbox(sb2)
+
+	err := service.Close()
+	if err == nil {
+		t.Fatal("expected error from Close")
+	}
+	if err.Error() != "close failed" {
+		t.Errorf("expected 'close failed', got %q", err.Error())
+	}
+
+	if sb2.CallCounts["Close"] != 1 {
+		t.Errorf("expected sb2.Close called even after sb1 error, got %d", sb2.CallCounts["Close"])
+	}
+}
+
+func TestTrackExternalSandbox_Concurrent(t *testing.T) {
+	registry := newTestProviderRegistry()
+	service := NewCollectionService(context.Background(), registry)
+	s := mustCastToCollectionService(t, service)
+
+	const goroutines = 20
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for range goroutines {
+		go func() {
+			defer wg.Done()
+			sb := safedisk.NewMockSandbox("/mod", safedisk.ModeReadOnly)
+			s.trackExternalSandbox(sb)
+		}()
+	}
+	wg.Wait()
+
+	if len(s.externalSandboxes) != goroutines {
+		t.Errorf("expected %d sandboxes, got %d", goroutines, len(s.externalSandboxes))
+	}
+}
+
 func TestProcessCollectionDirective_ProviderNotFound(t *testing.T) {
 	registry := newTestProviderRegistry()
 	service := NewCollectionService(context.Background(), registry)
@@ -184,7 +348,7 @@ func TestProcessCollectionDirective_StaticProvider(t *testing.T) {
 	provider := &MockCollectionProvider{
 		NameFunc: func() string { return "static-test" },
 		TypeFunc: func() ProviderType { return ProviderTypeStatic },
-		FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+		FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 			return []collection_dto.ContentItem{
 				{
 					ID:       "post-1",
@@ -283,7 +447,7 @@ func TestProcessCollectionDirective_HybridProvider(t *testing.T) {
 	provider := &MockCollectionProvider{
 		NameFunc: func() string { return "hybrid-test" },
 		TypeFunc: func() ProviderType { return ProviderTypeHybrid },
-		FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+		FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 			return []collection_dto.ContentItem{
 				{
 					ID:       "item-1",
@@ -293,7 +457,7 @@ func TestProcessCollectionDirective_HybridProvider(t *testing.T) {
 				},
 			}, nil
 		},
-		ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+		ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 			return "etag-123", nil
 		},
 	}
@@ -333,7 +497,7 @@ func TestProcessCollectionDirective_StaticFetchError(t *testing.T) {
 	provider := &MockCollectionProvider{
 		NameFunc: func() string { return "error-test" },
 		TypeFunc: func() ProviderType { return ProviderTypeStatic },
-		FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+		FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 			return nil, expectedErr
 		},
 	}
@@ -617,7 +781,7 @@ func TestProcessGetCollectionCall(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "markdown" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{
 					{ID: "1", Slug: "post-1", URL: "/blog/post-1", Metadata: map[string]any{"title": "Post"}},
 				}, nil
@@ -686,12 +850,12 @@ func TestProcessGetCollectionCall(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "markdown" },
 			TypeFunc: func() ProviderType { return ProviderTypeHybrid },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{
 					{ID: "1", Slug: "post-1", URL: "/blog/post-1", Metadata: map[string]any{"title": "Post"}},
 				}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "etag-abc", nil
 			},
 		}
@@ -718,7 +882,7 @@ func TestProcessGetCollectionCall(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "markdown" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return nil, nil
 			},
 		}
@@ -980,7 +1144,7 @@ func TestDispatchProviderAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "test" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{
 					{ID: "1", Slug: "p", URL: "/p", Metadata: map[string]any{"title": "P"}},
 				}, nil
@@ -1038,12 +1202,12 @@ func TestDispatchProviderAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "test" },
 			TypeFunc: func() ProviderType { return ProviderTypeHybrid },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{
 					{ID: "1", Slug: "p", URL: "/p", Metadata: map[string]any{"title": "P"}},
 				}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "etag-1", nil
 			},
 		}

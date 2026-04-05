@@ -36,7 +36,6 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/internal/markdown/markdown_dto"
 	"piko.sh/piko/internal/render/render_domain"
-	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -83,6 +82,7 @@ const (
 //   - Memory: ~10KB per markdown file + AST size
 type MarkdownProvider struct {
 	// sandbox provides restricted file system access for reading content files.
+	// Used by DiscoverCollections and Check for project-level operations.
 	sandbox safedisk.Sandbox
 
 	// markdownService turns markdown content into structured output.
@@ -91,27 +91,13 @@ type MarkdownProvider struct {
 	// renderService extracts plain text from AST for search indexing.
 	renderService render_domain.RenderService
 
-	// resolver provides module resolution for external content sources.
-	// Optional; only needed when using p-collection-source.
-	resolver resolver_domain.ResolverPort
-
 	// scanner finds content files in collection directories.
+	// Used by DiscoverCollections and Check for project-level operations.
 	scanner *fileScanner
 
 	// name is the unique identifier for this provider.
 	name string
-
-	// basePath is the root path used to find content files.
-	basePath string
-
-	// isExternalModule indicates the provider is reading from an external module.
-	// When true, the sandbox root is the content root directly, so no
-	// content/{collection} prefix is applied.
-	isExternalModule bool
 }
-
-// MarkdownProviderOption is a function that sets up a MarkdownProvider.
-type MarkdownProviderOption func(*MarkdownProvider)
 
 // NewMarkdownProvider creates a new markdown collection provider.
 //
@@ -134,91 +120,16 @@ func NewMarkdownProvider(
 	sandbox safedisk.Sandbox,
 	markdownService markdown_domain.MarkdownService,
 	renderService render_domain.RenderService,
-	opts ...MarkdownProviderOption,
 ) *MarkdownProvider {
 	m := &MarkdownProvider{
 		sandbox:         sandbox,
 		markdownService: markdownService,
 		renderService:   renderService,
-
-		resolver:         nil,
-		scanner:          newFileScanner(sandbox),
-		name:             name,
-		basePath:         "",
-		isExternalModule: false,
-	}
-
-	for _, opt := range opts {
-		opt(m)
+		scanner:         newFileScanner(sandbox),
+		name:            name,
 	}
 
 	return m
-}
-
-// SetBasePath sets the project base path for resolving content directories.
-//
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes basePath (string) which specifies the directory path.
-//
-// This must be called before FetchStaticContent if the provider is used
-// outside of its default working directory context.
-func (m *MarkdownProvider) SetBasePath(ctx context.Context, basePath string) {
-	m.basePath = basePath
-	_, l := logger_domain.From(ctx, log)
-	l.Internal("Base path set for markdown provider",
-		logger_domain.String("base_path", basePath))
-}
-
-// SetContentModulePath configures the provider to read content from an
-// external Go module via GOMODCACHE or a local replace directive.
-//
-// This implements the ContentModuleConfigurable interface, enabling the
-// p-collection-source feature.
-//
-// The modulePath can include a subpath (e.g., "github.com/org/repo/docs").
-// The resolver splits this into the module path and subpath, resolves the
-// module's filesystem location, and creates a new sandbox for reading content.
-//
-// Security model: The safedisk factory is created on-demand with the resolved
-// module path as its only allowed path. This is safe because:
-//   - The path originates from go.mod (developer-controlled)
-//   - Module resolution is performed by Go tooling
-//   - The trust boundary is established by the module system, not filesystem paths
-//
-// Takes modulePath (string) which is the full import path including any
-// subpath.
-//
-// Returns error when:
-//   - The resolver is not configured
-//   - The module cannot be found in GOMODCACHE or via replace directive
-//   - The sandbox cannot be created for the module content
-func (m *MarkdownProvider) SetContentModulePath(ctx context.Context, modulePath string) error {
-	ctx, l := logger_domain.From(ctx, log)
-	if m.resolver == nil {
-		return errors.New("resolver not configured for module content sourcing; use WithModuleResolver option")
-	}
-
-	contentRoot, moduleBase, err := m.resolveModuleContentRoot(ctx, modulePath)
-	if err != nil {
-		return fmt.Errorf("resolving module content root for %q: %w", modulePath, err)
-	}
-
-	moduleSandbox, err := createModuleSandbox(moduleBase, contentRoot)
-	if err != nil {
-		return fmt.Errorf("creating module sandbox for %q: %w", modulePath, err)
-	}
-
-	m.sandbox = moduleSandbox
-	m.scanner = newFileScanner(moduleSandbox)
-	m.basePath = contentRoot
-	m.isExternalModule = true
-
-	l.Internal("Configured provider to read from external module",
-		logger_domain.String("module_path", modulePath),
-		logger_domain.String("content_root", contentRoot))
-
-	return nil
 }
 
 // Name returns the unique identifier for this provider.
@@ -312,22 +223,24 @@ func (*MarkdownProvider) ValidateTargetType(_ ast.Expr) error {
 func (m *MarkdownProvider) FetchStaticContent(
 	ctx context.Context,
 	collectionName string,
+	source collection_dto.ContentSource,
 ) ([]collection_dto.ContentItem, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Fetching static markdown content",
 		logger_domain.String(keyCollection, collectionName),
-		logger_domain.Bool("is_external_module", m.isExternalModule))
+		logger_domain.Bool("is_external_module", source.IsExternal))
 
-	config := m.getDefaultConfig()
+	config := m.getDefaultConfig(source.BasePath)
+	scanner := newFileScanner(source.Sandbox)
 
 	var collectionPath string
-	if m.isExternalModule {
+	if source.IsExternal {
 		collectionPath = "."
 	} else {
 		collectionPath = filepath.Join(keyContent, collectionName)
 	}
 
-	files, err := m.scanner.scanDirectory(ctx, collectionPath)
+	files, err := scanner.scanDirectory(ctx, collectionPath)
 	if err != nil {
 		return nil, fmt.Errorf("scanning collection directory: %w", err)
 	}
@@ -347,7 +260,7 @@ func (m *MarkdownProvider) FetchStaticContent(
 	translationGroups := make(map[string][]int)
 
 	for _, file := range files {
-		item, err := m.processMarkdownFile(ctx, file, collectionName, analyser)
+		item, err := m.processMarkdownFile(ctx, source.Sandbox, source.IsExternal, file, collectionName, analyser)
 		if err != nil {
 			l.Warn("Failed to process markdown file",
 				logger_domain.String(keyPath, file.relativePath),
@@ -433,22 +346,25 @@ func (m *MarkdownProvider) Check(_ context.Context, _ healthprobe_dto.CheckType)
 //
 // Returns string which is the computed ETag, or "md-empty" if no files exist.
 // Returns error when scanning the collection directory fails.
-func (m *MarkdownProvider) ComputeETag(
+func (*MarkdownProvider) ComputeETag(
 	ctx context.Context,
 	collectionName string,
+	source collection_dto.ContentSource,
 ) (string, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Computing ETag for markdown collection",
 		logger_domain.String(keyCollection, collectionName))
 
+	scanner := newFileScanner(source.Sandbox)
+
 	var collectionPath string
-	if m.isExternalModule {
+	if source.IsExternal {
 		collectionPath = "."
 	} else {
 		collectionPath = filepath.Join(keyContent, collectionName)
 	}
 
-	files, err := m.scanner.scanDirectory(ctx, collectionPath)
+	files, err := scanner.scanDirectory(ctx, collectionPath)
 	if err != nil {
 		return "", fmt.Errorf("scanning for ETag computation: %w", err)
 	}
@@ -460,12 +376,12 @@ func (m *MarkdownProvider) ComputeETag(
 	modTimes := make([]string, 0, len(files))
 	for _, file := range files {
 		var relativePath string
-		if m.isExternalModule {
+		if source.IsExternal {
 			relativePath = file.relativePath
 		} else {
 			relativePath = filepath.Join(keyContent, collectionName, file.relativePath)
 		}
-		info, err := m.sandbox.Stat(relativePath)
+		info, err := source.Sandbox.Stat(relativePath)
 		if err != nil {
 			continue
 		}
@@ -506,9 +422,10 @@ func (m *MarkdownProvider) ValidateETag(
 	ctx context.Context,
 	collectionName string,
 	expectedETag string,
+	source collection_dto.ContentSource,
 ) (currentETag string, changed bool, err error) {
 	ctx, l := logger_domain.From(ctx, log)
-	currentETag, err = m.ComputeETag(ctx, collectionName)
+	currentETag, err = m.ComputeETag(ctx, collectionName, source)
 	if err != nil {
 		return "", false, fmt.Errorf("computing ETag for collection %q: %w", collectionName, err)
 	}
@@ -546,44 +463,6 @@ func (*MarkdownProvider) GenerateRevalidator(
 	_ collection_dto.HybridConfig,
 ) (*collection_dto.RuntimeFetcherCode, error) {
 	return nil, nil
-}
-
-// resolveModuleContentRoot resolves a module import path to its filesystem
-// content root directory.
-//
-// Takes modulePath (string) which is the full import path (e.g.,
-// "github.com/org/repo/docs").
-//
-// Returns contentRoot (string) which is the filesystem path to the content.
-// Returns moduleBase (string) which is the Go module path without subpath.
-// Returns error when module boundary detection or directory resolution fails.
-func (m *MarkdownProvider) resolveModuleContentRoot(
-	ctx context.Context,
-	modulePath string,
-) (contentRoot string, moduleBase string, err error) {
-	ctx, l := logger_domain.From(ctx, log)
-	moduleBase, subpath, err := m.resolver.FindModuleBoundary(ctx, modulePath)
-	if err != nil {
-		return "", "", fmt.Errorf("finding module boundary for %q: %w", modulePath, err)
-	}
-
-	l.Internal("Resolved module boundary",
-		logger_domain.String("module_path", modulePath),
-		logger_domain.String("module_base", moduleBase),
-		logger_domain.String("subpath", subpath))
-
-	moduleDir, err := m.resolver.GetModuleDir(ctx, moduleBase)
-	if err != nil {
-		return "", "", fmt.Errorf("resolving module directory for %q: %w", moduleBase, err)
-	}
-
-	contentRoot = filepath.Join(moduleDir, subpath)
-
-	l.Internal("Resolved content root for external module",
-		logger_domain.String("module_base", moduleBase),
-		logger_domain.String("content_root", contentRoot))
-
-	return contentRoot, moduleBase, nil
 }
 
 // processCollectionEntry processes a single directory entry during collection
@@ -669,6 +548,8 @@ func (*MarkdownProvider) detectLocalesInFiles(
 // Returns error when the file cannot be read or markdown processing fails.
 func (m *MarkdownProvider) processMarkdownFile(
 	ctx context.Context,
+	sandbox safedisk.Sandbox,
+	isExternal bool,
 	file *discoveredFile,
 	collectionName string,
 	analyser *pathAnalyser,
@@ -681,9 +562,9 @@ func (m *MarkdownProvider) processMarkdownFile(
 		logger_domain.String("locale", pathInfo.locale),
 		logger_domain.String("slug", pathInfo.slug))
 
-	relativePath := m.resolveContentPath(file.relativePath, collectionName)
+	relativePath := resolveContentPath(file.relativePath, collectionName, isExternal)
 
-	content, err := m.sandbox.ReadFile(relativePath)
+	content, err := sandbox.ReadFile(relativePath)
 	if err != nil {
 		return collection_dto.ContentItem{}, fmt.Errorf("reading file: %w", err)
 	}
@@ -705,8 +586,8 @@ func (m *MarkdownProvider) processMarkdownFile(
 // Takes collectionName (string) which identifies the content collection.
 //
 // Returns string which is the resolved path within the sandbox.
-func (m *MarkdownProvider) resolveContentPath(filePath, collectionName string) string {
-	if m.isExternalModule {
+func resolveContentPath(filePath, collectionName string, isExternal bool) string {
+	if isExternal {
 		return filePath
 	}
 	return filepath.Join(keyContent, collectionName, filePath)
@@ -896,8 +777,7 @@ func (*MarkdownProvider) extractNavigationMetadata(
 //
 // Returns collection_dto.ProviderConfig which contains sensible defaults
 // including common locales and English as the default locale.
-func (m *MarkdownProvider) getDefaultConfig() collection_dto.ProviderConfig {
-	basePath := m.basePath
+func (m *MarkdownProvider) getDefaultConfig(basePath string) collection_dto.ProviderConfig {
 	if basePath == "" {
 		basePath = m.sandbox.Root()
 	}
@@ -953,54 +833,6 @@ func (x *xxHash64) WriteString(s string) {
 // Returns uint64 which is the computed hash.
 func (x *xxHash64) Sum64() uint64 {
 	return x.h
-}
-
-// WithModuleResolver sets a module resolver for the provider.
-//
-// This enables the p-collection-source feature, which lets the provider read
-// content from external Go modules.
-//
-// Takes resolver (resolver_domain.ResolverPort) which handles module path
-// lookup.
-//
-// Returns MarkdownProviderOption which adds module resolution support.
-func WithModuleResolver(resolver resolver_domain.ResolverPort) MarkdownProviderOption {
-	return func(m *MarkdownProvider) {
-		m.resolver = resolver
-	}
-}
-
-// createModuleSandbox creates a read-only sandbox for accessing content from
-// an external Go module.
-//
-// The sandbox factory is created on-demand with only the content root as an
-// allowed path. This is safe because module paths come from go.mod resolution.
-//
-// Takes moduleBase (string) which is the Go module path for naming.
-// Takes contentRoot (string) which is the filesystem path to sandbox.
-//
-// Returns safedisk.Sandbox which is the configured sandbox.
-// Returns error when factory or sandbox creation fails.
-func createModuleSandbox(moduleBase, contentRoot string) (safedisk.Sandbox, error) {
-	moduleFactory, err := safedisk.NewFactory(safedisk.FactoryConfig{
-		Enabled:      true,
-		AllowedPaths: []string{contentRoot},
-		CWD:          contentRoot,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating factory for module content at %q: %w", contentRoot, err)
-	}
-
-	moduleSandbox, err := moduleFactory.Create(
-		fmt.Sprintf("module-content-%s", moduleBase),
-		contentRoot,
-		safedisk.ModeReadOnly,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("creating sandbox for module content at %q: %w", contentRoot, err)
-	}
-
-	return moduleSandbox, nil
 }
 
 // extractDates gets date fields from frontmatter data.

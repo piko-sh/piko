@@ -68,19 +68,19 @@ type previewListResponse struct {
 }
 
 type previewGroup struct {
-	Type      string            `json:"type"`
+	Type string `json:"type"`
 
 	Templates []previewTemplate `json:"templates"`
 }
 
 type previewTemplate struct {
-	SourcePath string            `json:"sourcePath"`
+	SourcePath string `json:"sourcePath"`
 
-	Scenarios  []previewScenario `json:"scenarios"`
+	Scenarios []previewScenario `json:"scenarios"`
 }
 
 type previewScenario struct {
-	Name        string `json:"name"`
+	Name string `json:"name"`
 
 	Description string `json:"description,omitempty"`
 }

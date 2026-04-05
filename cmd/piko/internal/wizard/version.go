@@ -41,7 +41,9 @@ const (
 // githubRelease holds the fields we need from the GitHub releases API.
 type githubRelease struct {
 	TagName    string `json:"tag_name"`
+
 	Draft      bool   `json:"draft"`
+
 	Prerelease bool   `json:"prerelease"`
 }
 

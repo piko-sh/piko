@@ -268,7 +268,7 @@ func (*SimpleProviderAdapter) ValidateTargetType(_ ast.Expr) error {
 //
 // Returns []ContentItem which contains all items from the collection.
 // Returns error when the collection cannot be fetched.
-func (a *SimpleProviderAdapter) FetchStaticContent(ctx context.Context, collectionName string) ([]ContentItem, error) {
+func (a *SimpleProviderAdapter) FetchStaticContent(ctx context.Context, collectionName string, _ collection_dto.ContentSource) ([]ContentItem, error) {
 	return a.provider.FetchContent(ctx, collectionName, nil)
 }
 
@@ -292,7 +292,7 @@ func (*SimpleProviderAdapter) GenerateRuntimeFetcher(
 //
 // Returns string which is the computed ETag value.
 // Returns error when the fingerprint cannot be computed.
-func (a *SimpleProviderAdapter) ComputeETag(ctx context.Context, collectionName string) (string, error) {
+func (a *SimpleProviderAdapter) ComputeETag(ctx context.Context, collectionName string, _ collection_dto.ContentSource) (string, error) {
 	return a.provider.ComputeETag(ctx, collectionName)
 }
 
@@ -308,7 +308,7 @@ func (a *SimpleProviderAdapter) ComputeETag(ctx context.Context, collectionName 
 // Returns changed (bool) which is true if the content has changed
 // since the expected ETag was generated.
 // Returns err (error) when the validation cannot be performed.
-func (a *SimpleProviderAdapter) ValidateETag(ctx context.Context, collectionName string, expectedETag string) (currentETag string, changed bool, err error) {
+func (a *SimpleProviderAdapter) ValidateETag(ctx context.Context, collectionName string, expectedETag string, _ collection_dto.ContentSource) (currentETag string, changed bool, err error) {
 	return a.provider.ValidateETag(ctx, collectionName, expectedETag)
 }
 

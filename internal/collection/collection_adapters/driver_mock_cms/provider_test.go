@@ -46,7 +46,7 @@ func TestMockCMSProvider_FetchStaticContent_ReturnsError(t *testing.T) {
 	provider := driver_mock_cms.NewMockCMSProvider("mock-cms")
 	ctx := context.Background()
 
-	_, err := provider.FetchStaticContent(ctx, "blog")
+	_, err := provider.FetchStaticContent(ctx, "blog", collection_dto.ContentSource{})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does not support static fetching")

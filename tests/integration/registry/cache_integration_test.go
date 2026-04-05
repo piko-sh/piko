@@ -84,10 +84,6 @@ func TestRegistryCache_Integration(t *testing.T) {
 		}
 		wg.Wait()
 
-		// Singleflight coalesces concurrent calls, so the underlying store
-		// should be called far fewer than numConcurrentGets times. Allow a
-		// small number (up to 5) to account for goroutines that arrive in
-		// separate singleflight windows.
 		storeCalls := len(f.spyStore.Calls)
 		assert.LessOrEqual(t, storeCalls, 5,
 			"Expected stampede protection to coalesce calls, but store was called %d times", storeCalls)

@@ -35,13 +35,13 @@ type mockPanel struct {
 	updateFunc func(tea.Msg) (Panel, tea.Cmd)
 }
 
-func (p *mockPanel) ID() string              { return p.id }
-func (p *mockPanel) Title() string           { return p.title }
-func (p *mockPanel) Init() tea.Cmd           { return nil }
+func (p *mockPanel) ID() string               { return p.id }
+func (p *mockPanel) Title() string            { return p.title }
+func (p *mockPanel) Init() tea.Cmd            { return nil }
 func (p *mockPanel) View(_ int, _ int) string { return "" }
-func (p *mockPanel) Focused() bool           { return p.focused }
-func (p *mockPanel) SetFocused(focused bool) { p.focused = focused }
-func (p *mockPanel) KeyMap() []KeyBinding    { return p.keyMap }
+func (p *mockPanel) Focused() bool            { return p.focused }
+func (p *mockPanel) SetFocused(focused bool)  { p.focused = focused }
+func (p *mockPanel) KeyMap() []KeyBinding     { return p.keyMap }
 
 func (p *mockPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 	if p.updateFunc != nil {

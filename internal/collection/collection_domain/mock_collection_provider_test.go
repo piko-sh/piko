@@ -178,7 +178,7 @@ func TestMockCollectionProvider_FetchStaticContent(t *testing.T) {
 		t.Parallel()
 		m := &MockCollectionProvider{}
 
-		got, err := m.FetchStaticContent(context.Background(), "blog")
+		got, err := m.FetchStaticContent(context.Background(), "blog", collection_dto.ContentSource{})
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
@@ -189,13 +189,13 @@ func TestMockCollectionProvider_FetchStaticContent(t *testing.T) {
 		t.Parallel()
 		expected := []collection_dto.ContentItem{{Metadata: map[string]any{"title": "hello"}}}
 		m := &MockCollectionProvider{
-			FetchStaticContentFunc: func(_ context.Context, name string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, name string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				assert.Equal(t, "blog", name)
 				return expected, nil
 			},
 		}
 
-		got, err := m.FetchStaticContent(context.Background(), "blog")
+		got, err := m.FetchStaticContent(context.Background(), "blog", collection_dto.ContentSource{})
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, got)
@@ -205,12 +205,12 @@ func TestMockCollectionProvider_FetchStaticContent(t *testing.T) {
 		t.Parallel()
 		wantErr := errors.New("fetch failed")
 		m := &MockCollectionProvider{
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return nil, wantErr
 			},
 		}
 
-		_, err := m.FetchStaticContent(context.Background(), "blog")
+		_, err := m.FetchStaticContent(context.Background(), "blog", collection_dto.ContentSource{})
 
 		assert.ErrorIs(t, err, wantErr)
 	})
@@ -268,7 +268,7 @@ func TestMockCollectionProvider_ComputeETag(t *testing.T) {
 		t.Parallel()
 		m := &MockCollectionProvider{}
 
-		got, err := m.ComputeETag(context.Background(), "blog")
+		got, err := m.ComputeETag(context.Background(), "blog", collection_dto.ContentSource{})
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", got)
@@ -278,12 +278,12 @@ func TestMockCollectionProvider_ComputeETag(t *testing.T) {
 	t.Run("delegates to ComputeETagFunc", func(t *testing.T) {
 		t.Parallel()
 		m := &MockCollectionProvider{
-			ComputeETagFunc: func(_ context.Context, name string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, name string, _ collection_dto.ContentSource) (string, error) {
 				return "etag-" + name, nil
 			},
 		}
 
-		got, err := m.ComputeETag(context.Background(), "blog")
+		got, err := m.ComputeETag(context.Background(), "blog", collection_dto.ContentSource{})
 
 		require.NoError(t, err)
 		assert.Equal(t, "etag-blog", got)
@@ -293,12 +293,12 @@ func TestMockCollectionProvider_ComputeETag(t *testing.T) {
 		t.Parallel()
 		wantErr := errors.New("etag computation failed")
 		m := &MockCollectionProvider{
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "", wantErr
 			},
 		}
 
-		_, err := m.ComputeETag(context.Background(), "blog")
+		_, err := m.ComputeETag(context.Background(), "blog", collection_dto.ContentSource{})
 
 		assert.ErrorIs(t, err, wantErr)
 	})
@@ -311,7 +311,7 @@ func TestMockCollectionProvider_ValidateETag(t *testing.T) {
 		t.Parallel()
 		m := &MockCollectionProvider{}
 
-		etag, changed, err := m.ValidateETag(context.Background(), "blog", "old-etag")
+		etag, changed, err := m.ValidateETag(context.Background(), "blog", "old-etag", collection_dto.ContentSource{})
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", etag)
@@ -322,12 +322,12 @@ func TestMockCollectionProvider_ValidateETag(t *testing.T) {
 	t.Run("delegates to ValidateETagFunc", func(t *testing.T) {
 		t.Parallel()
 		m := &MockCollectionProvider{
-			ValidateETagFunc: func(_ context.Context, _ string, expected string) (string, bool, error) {
+			ValidateETagFunc: func(_ context.Context, _ string, expected string, _ collection_dto.ContentSource) (string, bool, error) {
 				return "new-etag", expected != "new-etag", nil
 			},
 		}
 
-		etag, changed, err := m.ValidateETag(context.Background(), "blog", "old-etag")
+		etag, changed, err := m.ValidateETag(context.Background(), "blog", "old-etag", collection_dto.ContentSource{})
 
 		require.NoError(t, err)
 		assert.Equal(t, "new-etag", etag)
@@ -338,12 +338,12 @@ func TestMockCollectionProvider_ValidateETag(t *testing.T) {
 		t.Parallel()
 		wantErr := errors.New("validation failed")
 		m := &MockCollectionProvider{
-			ValidateETagFunc: func(_ context.Context, _ string, _ string) (string, bool, error) {
+			ValidateETagFunc: func(_ context.Context, _ string, _ string, _ collection_dto.ContentSource) (string, bool, error) {
 				return "", false, wantErr
 			},
 		}
 
-		_, _, err := m.ValidateETag(context.Background(), "blog", "old")
+		_, _, err := m.ValidateETag(context.Background(), "blog", "old", collection_dto.ContentSource{})
 
 		assert.ErrorIs(t, err, wantErr)
 	})
@@ -407,7 +407,7 @@ func TestMockCollectionProvider_ZeroValueIsUsable(t *testing.T) {
 
 	assert.NoError(t, m.ValidateTargetType(&ast.Ident{Name: "T"}))
 
-	content, err := m.FetchStaticContent(context.Background(), "c")
+	content, err := m.FetchStaticContent(context.Background(), "c", collection_dto.ContentSource{})
 	assert.NoError(t, err)
 	assert.Nil(t, content)
 
@@ -415,11 +415,11 @@ func TestMockCollectionProvider_ZeroValueIsUsable(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, fetcher)
 
-	etag, err := m.ComputeETag(context.Background(), "c")
+	etag, err := m.ComputeETag(context.Background(), "c", collection_dto.ContentSource{})
 	assert.NoError(t, err)
 	assert.Equal(t, "", etag)
 
-	currentETag, changed, err := m.ValidateETag(context.Background(), "c", "e")
+	currentETag, changed, err := m.ValidateETag(context.Background(), "c", "e", collection_dto.ContentSource{})
 	assert.NoError(t, err)
 	assert.Equal(t, "", currentETag)
 	assert.False(t, changed)
@@ -439,12 +439,16 @@ func TestMockCollectionProvider_ConcurrentAccess(t *testing.T) {
 			return nil, nil
 		},
 		ValidateTargetTypeFunc: func(_ ast.Expr) error { return nil },
-		FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) { return nil, nil },
+		FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
+			return nil, nil
+		},
 		GenerateRuntimeFetcherFunc: func(_ context.Context, _ string, _ ast.Expr, _ collection_dto.FetchOptions) (*collection_dto.RuntimeFetcherCode, error) {
 			return nil, nil
 		},
-		ComputeETagFunc:  func(_ context.Context, _ string) (string, error) { return "", nil },
-		ValidateETagFunc: func(_ context.Context, _ string, _ string) (string, bool, error) { return "", false, nil },
+		ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) { return "", nil },
+		ValidateETagFunc: func(_ context.Context, _ string, _ string, _ collection_dto.ContentSource) (string, bool, error) {
+			return "", false, nil
+		},
 		GenerateRevalidatorFunc: func(_ context.Context, _ string, _ ast.Expr, _ collection_dto.HybridConfig) (*collection_dto.RuntimeFetcherCode, error) {
 			return nil, nil
 		},
@@ -461,10 +465,10 @@ func TestMockCollectionProvider_ConcurrentAccess(t *testing.T) {
 			m.Type()
 			_, _ = m.DiscoverCollections(context.Background(), collection_dto.ProviderConfig{})
 			_ = m.ValidateTargetType(&ast.Ident{Name: "T"})
-			_, _ = m.FetchStaticContent(context.Background(), "c")
+			_, _ = m.FetchStaticContent(context.Background(), "c", collection_dto.ContentSource{})
 			_, _ = m.GenerateRuntimeFetcher(context.Background(), "c", &ast.Ident{Name: "T"}, collection_dto.FetchOptions{})
-			_, _ = m.ComputeETag(context.Background(), "c")
-			_, _, _ = m.ValidateETag(context.Background(), "c", "e")
+			_, _ = m.ComputeETag(context.Background(), "c", collection_dto.ContentSource{})
+			_, _, _ = m.ValidateETag(context.Background(), "c", "e", collection_dto.ContentSource{})
 			_, _ = m.GenerateRevalidator(context.Background(), "c", &ast.Ident{Name: "T"}, collection_dto.HybridConfig{})
 		}()
 	}

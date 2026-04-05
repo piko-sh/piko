@@ -36,7 +36,7 @@ func TestGenerateStaticAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{
 					{ID: "1", Slug: "a", URL: "/a", Metadata: map[string]any{"title": "A"}},
 				}, nil
@@ -67,7 +67,7 @@ func TestGenerateStaticAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return nil, errors.New("fetch failed")
 			},
 		}
@@ -88,7 +88,7 @@ func TestGenerateStaticAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				callCount++
 				return []collection_dto.ContentItem{
 					{ID: "1", Slug: "a", URL: "/a", Metadata: map[string]any{"title": "A"}},
@@ -120,7 +120,7 @@ func TestGenerateStaticAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return nil, nil
 			},
 		}
@@ -143,7 +143,7 @@ func TestGenerateStaticAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
 			TypeFunc: func() ProviderType { return ProviderTypeStatic },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{
 					{ID: "1", Locale: "en", Slug: "a", URL: "/a", Metadata: map[string]any{"title": "A"}},
 					{ID: "2", Locale: "fr", Slug: "b", URL: "/b", Metadata: map[string]any{"title": "B"}},
@@ -170,14 +170,14 @@ func TestFetchOrCacheStaticContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{{ID: "1"}}, nil
 			},
 		}
 		_ = registry.Register(provider)
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
 
-		items, err := service.fetchOrCacheStaticContent(context.Background(), provider, "blog")
+		items, err := service.fetchOrCacheStaticContent(context.Background(), provider, "blog", collection_dto.ContentSource{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -192,7 +192,7 @@ func TestFetchOrCacheStaticContent(t *testing.T) {
 		callCount := 0
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				callCount++
 				return []collection_dto.ContentItem{{ID: "1"}}, nil
 			},
@@ -200,8 +200,8 @@ func TestFetchOrCacheStaticContent(t *testing.T) {
 		_ = registry.Register(provider)
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
 
-		_, _ = service.fetchOrCacheStaticContent(context.Background(), provider, "blog")
-		_, _ = service.fetchOrCacheStaticContent(context.Background(), provider, "blog")
+		_, _ = service.fetchOrCacheStaticContent(context.Background(), provider, "blog", collection_dto.ContentSource{})
+		_, _ = service.fetchOrCacheStaticContent(context.Background(), provider, "blog", collection_dto.ContentSource{})
 
 		if callCount != 1 {
 			t.Errorf("expected 1 fetch call, got %d", callCount)
@@ -213,14 +213,14 @@ func TestFetchOrCacheStaticContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return nil, errors.New("broken")
 			},
 		}
 		_ = registry.Register(provider)
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
 
-		_, err := service.fetchOrCacheStaticContent(context.Background(), provider, "blog")
+		_, err := service.fetchOrCacheStaticContent(context.Background(), provider, "blog", collection_dto.ContentSource{})
 		if err == nil {
 			t.Error("expected error")
 		}

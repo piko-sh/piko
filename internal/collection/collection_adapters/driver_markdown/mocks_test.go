@@ -29,51 +29,10 @@ import (
 	"piko.sh/piko/internal/email/email_dto"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/render/render_dto"
-	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-var (
-	_ resolver_domain.ResolverPort = (*mockResolverPort)(nil)
-	_ render_domain.RenderService  = (*mockRenderService)(nil)
-)
-
-type mockResolverPort struct {
-	FindModuleBoundaryFunc func(ctx context.Context, importPath string) (string, string, error)
-	GetModuleDirFunc       func(ctx context.Context, modulePath string) (string, error)
-}
-
-func (*mockResolverPort) DetectLocalModule(_ context.Context) error { return nil }
-func (*mockResolverPort) GetModuleName() string                     { return "" }
-func (*mockResolverPort) GetBaseDir() string                        { return "" }
-
-func (*mockResolverPort) ResolvePKPath(_ context.Context, _, _ string) (string, error) {
-	return "", nil
-}
-
-func (*mockResolverPort) ResolveCSSPath(_ context.Context, _, _ string) (string, error) {
-	return "", nil
-}
-
-func (*mockResolverPort) ResolveAssetPath(_ context.Context, _, _ string) (string, error) {
-	return "", nil
-}
-
-func (*mockResolverPort) ConvertEntryPointPathToManifestKey(_ string) string { return "" }
-
-func (m *mockResolverPort) GetModuleDir(ctx context.Context, modulePath string) (string, error) {
-	if m.GetModuleDirFunc != nil {
-		return m.GetModuleDirFunc(ctx, modulePath)
-	}
-	return "", nil
-}
-
-func (m *mockResolverPort) FindModuleBoundary(ctx context.Context, importPath string) (string, string, error) {
-	if m.FindModuleBoundaryFunc != nil {
-		return m.FindModuleBoundaryFunc(ctx, importPath)
-	}
-	return "", "", nil
-}
+var _ render_domain.RenderService = (*mockRenderService)(nil)
 
 type mockRenderService struct {
 	RenderASTToPlainTextFunc func(ctx context.Context, templateAST *ast_domain.TemplateAST) (string, error)

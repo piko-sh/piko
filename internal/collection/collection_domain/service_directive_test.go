@@ -21,178 +21,208 @@ package collection_domain
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"piko.sh/piko/internal/collection/collection_dto"
+	"piko.sh/piko/wdk/safedisk"
 )
 
-type mockBasePathConfigurable struct {
-	basePath string
-	MockCollectionProvider
-}
-
-func (m *mockBasePathConfigurable) SetBasePath(_ context.Context, basePath string) {
-	m.basePath = basePath
-}
-
-type mockContentModuleConfigurable struct {
-	setContentModulePathFunc func(ctx context.Context, modulePath string) error
-	MockCollectionProvider
-}
-
-func (m *mockContentModuleConfigurable) SetContentModulePath(ctx context.Context, modulePath string) error {
-	if m.setContentModulePathFunc != nil {
-		return m.setContentModulePathFunc(ctx, modulePath)
-	}
-	return nil
-}
-
-func TestConfigureContentSource(t *testing.T) {
-	t.Run("ContentModulePath", func(t *testing.T) {
-		registry := newTestProviderRegistry()
-
-		provider := &mockContentModuleConfigurable{
-			MockCollectionProvider: MockCollectionProvider{
-				NameFunc: func() string { return "md" },
-			},
-		}
-		_ = registry.Register(&provider.MockCollectionProvider)
-		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
-
-		directive := &collection_dto.CollectionDirectiveInfo{
-			ContentModulePath: "piko.sh/piko/docs",
-		}
-		err := service.configureContentSource(context.Background(), provider, directive)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("ProviderNotModuleConfigurable", func(t *testing.T) {
+func TestResolveContentSource(t *testing.T) {
+	t.Run("EmptyDirective", func(t *testing.T) {
 		registry := newTestProviderRegistry()
 
 		provider := &MockCollectionProvider{
-			NameFunc: func() string { return "plain" },
+			NameFunc: func() string { return "md" },
 		}
 		_ = registry.Register(provider)
-		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
+		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+		defer func() { _ = sandbox.Close() }()
+		service := mustCastToCollectionService(t, NewCollectionService(
+			context.Background(), registry, WithDefaultSandbox(sandbox)))
 
-		directive := &collection_dto.CollectionDirectiveInfo{
-			ContentModulePath: "piko.sh/piko/docs",
+		directive := &collection_dto.CollectionDirectiveInfo{}
+		source, err := service.resolveContentSource(context.Background(), directive)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-		err := service.configureContentSource(context.Background(), provider, directive)
-		if err == nil {
-			t.Error("expected error for non-module-configurable provider")
+		if source.IsExternal {
+			t.Error("expected IsExternal=false for empty directive")
 		}
-	})
-
-	t.Run("ModuleSetupFails", func(t *testing.T) {
-		registry := newTestProviderRegistry()
-
-		provider := &mockContentModuleConfigurable{
-			MockCollectionProvider: MockCollectionProvider{
-				NameFunc: func() string { return "md" },
-			},
-			setContentModulePathFunc: func(_ context.Context, _ string) error {
-				return errors.New("module resolve failed")
-			},
-		}
-		_ = registry.Register(&provider.MockCollectionProvider)
-		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
-
-		directive := &collection_dto.CollectionDirectiveInfo{
-			ContentModulePath: "piko.sh/piko/docs",
-		}
-		err := service.configureContentSource(context.Background(), provider, directive)
-		if err == nil {
-			t.Error("expected error when module setup fails")
+		if source.Sandbox != sandbox {
+			t.Error("expected default sandbox for local content")
 		}
 	})
 
-	t.Run("BasePathConfigurable", func(t *testing.T) {
+	t.Run("LocalWithBasePath", func(t *testing.T) {
 		registry := newTestProviderRegistry()
-
-		provider := &mockBasePathConfigurable{
-			MockCollectionProvider: MockCollectionProvider{
-				NameFunc: func() string { return "md" },
-			},
-		}
-		_ = registry.Register(&provider.MockCollectionProvider)
-		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
+		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+		defer func() { _ = sandbox.Close() }()
+		service := mustCastToCollectionService(t, NewCollectionService(
+			context.Background(), registry, WithDefaultSandbox(sandbox)))
 
 		directive := &collection_dto.CollectionDirectiveInfo{
 			BasePath: "/custom/path",
 		}
-		err := service.configureContentSource(context.Background(), provider, directive)
+		source, err := service.resolveContentSource(context.Background(), directive)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if provider.basePath != "/custom/path" {
-			t.Errorf("expected basePath '/custom/path', got %q", provider.basePath)
+		if source.IsExternal {
+			t.Error("expected IsExternal=false")
+		}
+		if source.BasePath != "/custom/path" {
+			t.Errorf("expected BasePath '/custom/path', got %q", source.BasePath)
 		}
 	})
 
-	t.Run("NoSourceConfig", func(t *testing.T) {
+	t.Run("NilResolverWithModulePath", func(t *testing.T) {
 		registry := newTestProviderRegistry()
-
-		provider := &MockCollectionProvider{
-			NameFunc: func() string { return "md" },
-		}
-		_ = registry.Register(provider)
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
 
-		directive := &collection_dto.CollectionDirectiveInfo{}
-		err := service.configureContentSource(context.Background(), provider, directive)
+		directive := &collection_dto.CollectionDirectiveInfo{
+			ContentModulePath: "piko.sh/piko/docs",
+		}
+		_, err := service.resolveContentSource(context.Background(), directive)
+		if err == nil {
+			t.Fatal("expected error when resolver is nil")
+		}
+		if !strings.Contains(err.Error(), "resolver not configured") {
+			t.Errorf("unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("FindModuleBoundaryFails", func(t *testing.T) {
+		registry := newTestProviderRegistry()
+		resolver := &mockResolverPort{
+			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
+				return "", "", errors.New("unknown module")
+			},
+		}
+		service := mustCastToCollectionService(t, NewCollectionService(
+			context.Background(), registry, WithResolver(resolver)))
+
+		directive := &collection_dto.CollectionDirectiveInfo{
+			ContentModulePath: "piko.sh/piko/docs",
+		}
+		_, err := service.resolveContentSource(context.Background(), directive)
+		if err == nil {
+			t.Fatal("expected error from FindModuleBoundary failure")
+		}
+		if !strings.Contains(err.Error(), "finding module boundary") {
+			t.Errorf("unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("GetModuleDirFails", func(t *testing.T) {
+		registry := newTestProviderRegistry()
+		resolver := &mockResolverPort{
+			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
+				return "piko.sh/piko", "docs", nil
+			},
+			GetModuleDirFunc: func(_ context.Context, _ string) (string, error) {
+				return "", errors.New("module not downloaded")
+			},
+		}
+		service := mustCastToCollectionService(t, NewCollectionService(
+			context.Background(), registry, WithResolver(resolver)))
+
+		directive := &collection_dto.CollectionDirectiveInfo{
+			ContentModulePath: "piko.sh/piko/docs",
+		}
+		_, err := service.resolveContentSource(context.Background(), directive)
+		if err == nil {
+			t.Fatal("expected error from GetModuleDir failure")
+		}
+		if !strings.Contains(err.Error(), "resolving module directory") {
+			t.Errorf("unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("ExternalModuleSuccess", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		registry := newTestProviderRegistry()
+		resolver := &mockResolverPort{
+			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
+				return "piko.sh/piko", "", nil
+			},
+			GetModuleDirFunc: func(_ context.Context, _ string) (string, error) {
+				return tmpDir, nil
+			},
+		}
+		service := mustCastToCollectionService(t, NewCollectionService(
+			context.Background(), registry, WithResolver(resolver)))
+
+		directive := &collection_dto.CollectionDirectiveInfo{
+			ContentModulePath: "piko.sh/piko",
+		}
+		source, err := service.resolveContentSource(context.Background(), directive)
 		if err != nil {
-			t.Fatalf("expected no error for empty source config, got %v", err)
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !source.IsExternal {
+			t.Error("expected IsExternal=true for module content")
+		}
+		if source.Sandbox == nil {
+			t.Error("expected non-nil sandbox for external module")
+		}
+		if source.BasePath != tmpDir {
+			t.Errorf("expected BasePath %q, got %q", tmpDir, source.BasePath)
+		}
+
+		if len(service.externalSandboxes) != 1 {
+			t.Errorf("expected 1 tracked sandbox, got %d", len(service.externalSandboxes))
+		}
+	})
+
+	t.Run("ExternalModuleSandboxTrackedAndClosed", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		registry := newTestProviderRegistry()
+		resolver := &mockResolverPort{
+			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
+				return "piko.sh/piko", "", nil
+			},
+			GetModuleDirFunc: func(_ context.Context, _ string) (string, error) {
+				return tmpDir, nil
+			},
+		}
+		svc := NewCollectionService(context.Background(), registry, WithResolver(resolver))
+		service := mustCastToCollectionService(t, svc)
+
+		directive := &collection_dto.CollectionDirectiveInfo{
+			ContentModulePath: "piko.sh/piko",
+		}
+		_, err := service.resolveContentSource(context.Background(), directive)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if err := svc.Close(); err != nil {
+			t.Fatalf("Close failed: %v", err)
+		}
+		if len(service.externalSandboxes) != 0 {
+			t.Errorf("expected empty externalSandboxes after Close, got %d", len(service.externalSandboxes))
 		}
 	})
 }
 
-func TestConfigureProviderBasePath(t *testing.T) {
-	t.Run("Supported", func(t *testing.T) {
-		registry := newTestProviderRegistry()
-
-		provider := &mockBasePathConfigurable{
-			MockCollectionProvider: MockCollectionProvider{
-				NameFunc: func() string { return "md" },
-			},
+func TestCreateModuleSandbox(t *testing.T) {
+	t.Run("ValidPath", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		sandbox, err := createModuleSandbox("piko.sh/piko", tmpDir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-		_ = registry.Register(&provider.MockCollectionProvider)
-		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
-
-		service.configureProviderBasePath(context.Background(), provider, "/some/path")
-		if provider.basePath != "/some/path" {
-			t.Errorf("expected basePath '/some/path', got %q", provider.basePath)
+		if sandbox == nil {
+			t.Fatal("expected non-nil sandbox")
 		}
+		_ = sandbox.Close()
 	})
 
-	t.Run("NotSupported", func(t *testing.T) {
-		registry := newTestProviderRegistry()
-
-		provider := &MockCollectionProvider{
-			NameFunc: func() string { return "md" },
-		}
-		_ = registry.Register(provider)
-		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
-
-		service.configureProviderBasePath(context.Background(), provider, "/some/path")
-	})
-
-	t.Run("EmptyPath", func(t *testing.T) {
-		registry := newTestProviderRegistry()
-
-		provider := &mockBasePathConfigurable{
-			MockCollectionProvider: MockCollectionProvider{
-				NameFunc: func() string { return "md" },
-			},
-		}
-		_ = registry.Register(&provider.MockCollectionProvider)
-		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
-
-		service.configureProviderBasePath(context.Background(), provider, "")
-		if provider.basePath != "" {
-			t.Errorf("expected empty basePath for empty input, got %q", provider.basePath)
+	t.Run("InvalidPath", func(t *testing.T) {
+		_, err := createModuleSandbox("piko.sh/piko", "/nonexistent/path/that/does/not/exist")
+		if err == nil {
+			t.Fatal("expected error for invalid path")
 		}
 	})
 }
@@ -208,10 +238,10 @@ func TestFetchAndPrepareHybridContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{{ID: "1"}}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "etag-1", nil
 			},
 		}
@@ -219,7 +249,7 @@ func TestFetchAndPrepareHybridContent(t *testing.T) {
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry, withEncoder(encoder)))
 
 		directive := &collection_dto.CollectionDirectiveInfo{CollectionName: "blog"}
-		items, etag, blob, err := service.fetchAndPrepareHybridContent(context.Background(), provider, directive)
+		items, etag, blob, err := service.fetchAndPrepareHybridContent(context.Background(), provider, directive, collection_dto.ContentSource{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -244,10 +274,10 @@ func TestFetchAndPrepareHybridContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{{ID: "1"}}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "", errors.New("etag failed")
 			},
 		}
@@ -255,7 +285,7 @@ func TestFetchAndPrepareHybridContent(t *testing.T) {
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry, withEncoder(encoder)))
 
 		directive := &collection_dto.CollectionDirectiveInfo{CollectionName: "blog"}
-		_, _, _, err := service.fetchAndPrepareHybridContent(context.Background(), provider, directive)
+		_, _, _, err := service.fetchAndPrepareHybridContent(context.Background(), provider, directive, collection_dto.ContentSource{})
 		if err == nil {
 			t.Error("expected error from ETag failure")
 		}
@@ -271,10 +301,10 @@ func TestFetchAndPrepareHybridContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{{ID: "1"}}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "etag-1", nil
 			},
 		}
@@ -282,7 +312,7 @@ func TestFetchAndPrepareHybridContent(t *testing.T) {
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry, withEncoder(encoder)))
 
 		directive := &collection_dto.CollectionDirectiveInfo{CollectionName: "blog"}
-		_, _, _, err := service.fetchAndPrepareHybridContent(context.Background(), provider, directive)
+		_, _, _, err := service.fetchAndPrepareHybridContent(context.Background(), provider, directive, collection_dto.ContentSource{})
 		if err == nil {
 			t.Error("expected error from encode failure")
 		}

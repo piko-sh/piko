@@ -454,9 +454,6 @@ func (ph *PageHelper) ClearConsoleLogs() {
 	defer cancel()
 	_ = chromedp.Run(clearContext, chromedp.Evaluate(js, nil))
 
-	// Allow time for the console.clear event to propagate through CDP before
-	// resetting the internal buffers. Without this, the event listener captures
-	// the "console.clear" message after we have already emptied the slices.
 	time.Sleep(50 * time.Millisecond)
 
 	ph.consoleMutex.Lock()

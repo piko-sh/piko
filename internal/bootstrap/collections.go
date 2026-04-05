@@ -70,18 +70,12 @@ func createCollectionService(c *Container) (collection_domain.CollectionService,
 		highlighter := c.GetHighlighter()
 		renderer := c.GetRenderer()
 
-		resolver, err := c.GetResolver()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get resolver for collection service: %w", err)
-		}
-
 		mdService := markdown_domain.NewMarkdownService(markdownParser, highlighter)
 		mdProvider := driver_markdown.NewMarkdownProvider(
 			"markdown",
 			contentSandbox,
 			mdService,
 			renderer,
-			driver_markdown.WithModuleResolver(resolver),
 		)
 
 		if err := registry.Register(mdProvider); err != nil {
@@ -97,7 +91,15 @@ func createCollectionService(c *Container) (collection_domain.CollectionService,
 		l.Internal("No markdown parser configured - skipping markdown collection provider")
 	}
 
-	collectionService := collection_domain.NewCollectionService(c.GetAppContext(), registry)
+	resolver, resolverErr := c.GetResolver()
+	if resolverErr != nil {
+		return nil, fmt.Errorf("failed to get resolver for collection service: %w", resolverErr)
+	}
+
+	collectionService := collection_domain.NewCollectionService(c.GetAppContext(), registry,
+		collection_domain.WithDefaultSandbox(contentSandbox),
+		collection_domain.WithResolver(resolver),
+	)
 
 	l.Internal("Collection service initialised")
 

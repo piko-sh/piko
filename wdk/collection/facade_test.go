@@ -26,6 +26,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/collection/collection_dto"
 )
 
 type mockSimpleProvider struct {
@@ -114,7 +116,7 @@ func TestSimpleProviderAdapter_FetchStaticContent(t *testing.T) {
 	provider := &mockSimpleProvider{items: items}
 	adapter := NewSimpleProviderAdapter(provider)
 
-	result, err := adapter.FetchStaticContent(context.Background(), "posts")
+	result, err := adapter.FetchStaticContent(context.Background(), "posts", collection_dto.ContentSource{})
 
 	require.NoError(t, err)
 	assert.Equal(t, items, result)
@@ -137,7 +139,7 @@ func TestSimpleProviderAdapter_ComputeETag(t *testing.T) {
 	provider := &mockSimpleProvider{etag: "abc123"}
 	adapter := NewSimpleProviderAdapter(provider)
 
-	etag, err := adapter.ComputeETag(context.Background(), "posts")
+	etag, err := adapter.ComputeETag(context.Background(), "posts", collection_dto.ContentSource{})
 
 	require.NoError(t, err)
 	assert.Equal(t, "abc123", etag)
@@ -152,7 +154,7 @@ func TestSimpleProviderAdapter_ValidateETag(t *testing.T) {
 	t.Run("changed", func(t *testing.T) {
 		t.Parallel()
 
-		currentETag, changed, err := adapter.ValidateETag(context.Background(), "posts", "v1")
+		currentETag, changed, err := adapter.ValidateETag(context.Background(), "posts", "v1", collection_dto.ContentSource{})
 
 		require.NoError(t, err)
 		assert.Equal(t, "v2", currentETag)
@@ -162,7 +164,7 @@ func TestSimpleProviderAdapter_ValidateETag(t *testing.T) {
 	t.Run("not changed", func(t *testing.T) {
 		t.Parallel()
 
-		currentETag, changed, err := adapter.ValidateETag(context.Background(), "posts", "v2")
+		currentETag, changed, err := adapter.ValidateETag(context.Background(), "posts", "v2", collection_dto.ContentSource{})
 
 		require.NoError(t, err)
 		assert.Equal(t, "v2", currentETag)

@@ -29,11 +29,11 @@ import (
 )
 
 const (
-	identArgs                        = "args"
+	identArgs = "args"
 
 	identPikoExpandSlicePlaceholders = "pikoExpandSlicePlaceholders"
 
-	identPikoSliceExpansionSpec      = "pikoSliceExpansionSpec"
+	identPikoSliceExpansionSpec = "pikoSliceExpansionSpec"
 )
 
 // NeedsSliceExpansion reports whether the given query requires runtime SQL

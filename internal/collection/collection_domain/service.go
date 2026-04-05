@@ -27,7 +27,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -58,45 +60,30 @@ type collectionService struct {
 	// clock provides time operations for health checks and timestamps.
 	clock clock.Clock
 
+	// defaultSandbox provides filesystem access for local content collections.
+	defaultSandbox safedisk.Sandbox
+
+	// resolver provides module resolution for external content sources
+	// (p-collection-source directives).
+	resolver resolver_domain.ResolverPort
+
 	// cache stores content items by provider and collection name.
 	cache map[string][]collection_dto.ContentItem
 
+	// externalSandboxes tracks sandboxes created for external module content
+	// sources so they can be closed when the service shuts down.
+	externalSandboxes []safedisk.Sandbox
+
 	// cacheMutex guards concurrent access to the cache map.
 	cacheMutex sync.RWMutex
+
+	// sandboxMutex guards concurrent access to externalSandboxes.
+	sandboxMutex sync.Mutex
 }
 
-// collectionServiceOption is a functional option for configuring
+// CollectionServiceOption is a functional option for configuring
 // CollectionService.
-type collectionServiceOption func(*collectionService)
-
-// BasePathConfigurable is an optional interface for providers that support
-// setting a base path for content resolution.
-type BasePathConfigurable interface {
-	// SetBasePath sets the base path used for resolving relative paths.
-	//
-	// Takes ctx (context.Context) which carries deadlines, cancellation
-	// signals, and request-scoped values.
-	// Takes basePath (string) which specifies the root directory for path
-	// resolution.
-	SetBasePath(ctx context.Context, basePath string)
-}
-
-// ContentModuleConfigurable is an optional interface for providers that can
-// read content from external Go modules via GOMODCACHE.
-//
-// Providers implementing this interface can source content from other Go
-// modules, enabling documentation and content to live in external packages
-// while being rendered by the current project.
-type ContentModuleConfigurable interface {
-	// SetContentModulePath configures the provider to read content from an
-	// external Go module.
-	//
-	// Takes modulePath (string) which is the full import path including any
-	// subpath (e.g., "piko.sh/piko/docs").
-	//
-	// Returns error when the module cannot be resolved or accessed.
-	SetContentModulePath(ctx context.Context, modulePath string) error
-}
+type CollectionServiceOption func(*collectionService)
 
 // ProcessCollectionDirective expands a p-collection directive into entry
 // points.
@@ -234,6 +221,26 @@ func (s *collectionService) ValidateConfiguration(
 
 	l.Internal("Collection configuration validation successful")
 	return nil
+}
+
+// Close releases resources held by the service, including any sandboxes
+// created for external module content sources.
+//
+// Returns error when one or more sandbox closes fail. The first error is
+// returned, but all sandboxes are attempted.
+func (s *collectionService) Close() error {
+	s.sandboxMutex.Lock()
+	sandboxes := s.externalSandboxes
+	s.externalSandboxes = nil
+	s.sandboxMutex.Unlock()
+
+	var firstErr error
+	for _, sb := range sandboxes {
+		if err := sb.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 // validateDefaultProvider checks that the default provider is registered.
@@ -480,7 +487,7 @@ func (s *collectionService) dispatchProviderAnnotation(
 //
 // Takes registry (ProviderRegistryPort) which provides lookup for content
 // providers.
-// Takes opts (...collectionServiceOption) which provides optional functional
+// Takes opts (...CollectionServiceOption) which provides optional functional
 // options for customising the service.
 //
 // Returns CollectionService which is a fully initialised service ready for
@@ -488,7 +495,7 @@ func (s *collectionService) dispatchProviderAnnotation(
 func NewCollectionService(
 	_ context.Context,
 	registry ProviderRegistryPort,
-	opts ...collectionServiceOption,
+	opts ...CollectionServiceOption,
 ) CollectionService {
 	s := &collectionService{
 		registry:       registry,
@@ -511,9 +518,9 @@ func NewCollectionService(
 // Takes registry (HybridRegistryPort) which provides the hybrid registry
 // implementation.
 //
-// Returns collectionServiceOption which configures the service to use the
+// Returns CollectionServiceOption which configures the service to use the
 // given registry.
-func withHybridRegistry(registry HybridRegistryPort) collectionServiceOption {
+func withHybridRegistry(registry HybridRegistryPort) CollectionServiceOption {
 	return func(s *collectionService) {
 		s.hybridRegistry = registry
 	}
@@ -524,9 +531,9 @@ func withHybridRegistry(registry HybridRegistryPort) collectionServiceOption {
 // Takes encoder (CollectionEncoderPort) which provides custom
 // encoding logic for collection data.
 //
-// Returns collectionServiceOption which configures the service to use the
+// Returns CollectionServiceOption which configures the service to use the
 // given encoder.
-func withEncoder(encoder CollectionEncoderPort) collectionServiceOption {
+func withEncoder(encoder CollectionEncoderPort) CollectionServiceOption {
 	return func(s *collectionService) {
 		s.encoder = encoder
 	}
@@ -537,11 +544,53 @@ func withEncoder(encoder CollectionEncoderPort) collectionServiceOption {
 //
 // Takes c (clock.Clock) which provides the clock implementation to use.
 //
-// Returns collectionServiceOption which configures the service with the clock.
-func withServiceClock(c clock.Clock) collectionServiceOption {
+// Returns CollectionServiceOption which configures the service with the clock.
+func withServiceClock(c clock.Clock) CollectionServiceOption {
 	return func(s *collectionService) {
 		s.clock = c
 	}
+}
+
+// WithDefaultSandbox sets the default sandbox for local content collections.
+//
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access for the
+// project's content/ directory.
+//
+// Returns CollectionServiceOption which configures the service sandbox.
+func WithDefaultSandbox(sandbox safedisk.Sandbox) CollectionServiceOption {
+	return func(s *collectionService) {
+		s.defaultSandbox = sandbox
+	}
+}
+
+// WithResolver sets the module resolver for external content sources.
+//
+// Takes resolver (resolver_domain.ResolverPort) which handles Go module path
+// resolution for p-collection-source directives.
+//
+// Returns CollectionServiceOption which configures the service resolver.
+func WithResolver(resolver resolver_domain.ResolverPort) CollectionServiceOption {
+	return func(s *collectionService) {
+		s.resolver = resolver
+	}
+}
+
+// defaultContentSource returns a ContentSource for local project content.
+//
+// This is used by code paths that don't have a directive (e.g.
+// GetAllCollectionItems calls in Go code) where the content is always local.
+func (s *collectionService) defaultContentSource() collection_dto.ContentSource {
+	return collection_dto.ContentSource{
+		Sandbox:    s.defaultSandbox,
+		IsExternal: false,
+	}
+}
+
+// trackExternalSandbox records a sandbox for later cleanup by Close.
+func (s *collectionService) trackExternalSandbox(sandbox safedisk.Sandbox) {
+	s.sandboxMutex.Lock()
+	s.externalSandboxes = append(s.externalSandboxes, sandbox)
+	s.sandboxMutex.Unlock()
 }
 
 // newDefaultCollectionEncoder returns the default FlatBuffer encoder for

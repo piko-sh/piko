@@ -138,6 +138,7 @@ type CollectionProvider interface {
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
 	//   - collectionName: The collection to fetch (e.g., "blog", "products")
+	//   - source: Where the content files are located (local or external module)
 	//
 	// Returns:
 	//   - A slice of ContentItem (one per item in the collection)
@@ -145,7 +146,7 @@ type CollectionProvider interface {
 	//
 	// For Dynamic providers: Should return an error indicating this operation is
 	// not supported.
-	FetchStaticContent(ctx context.Context, collectionName string) ([]collection_dto.ContentItem, error)
+	FetchStaticContent(ctx context.Context, collectionName string, source collection_dto.ContentSource) ([]collection_dto.ContentItem, error)
 
 	// GenerateRuntimeFetcher generates Go code for fetching data at RUNTIME.
 	//
@@ -196,6 +197,7 @@ type CollectionProvider interface {
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
 	//   - collectionName: The collection to compute ETag for
+	//   - source: Where the content files are located (local or external module)
 	//
 	// Returns:
 	//   - An ETag string (format varies by provider)
@@ -207,7 +209,7 @@ type CollectionProvider interface {
 	//   - Database: "db-{hash of row versions}"
 	//
 	// For pure Static/Dynamic providers: May return ("", ErrNotSupported)
-	ComputeETag(ctx context.Context, collectionName string) (string, error)
+	ComputeETag(ctx context.Context, collectionName string, source collection_dto.ContentSource) (string, error)
 
 	// ValidateETag checks if the current content matches an expected ETag.
 	//
@@ -230,7 +232,7 @@ type CollectionProvider interface {
 	//   - For databases: Check row versions without full scan
 	//
 	// For pure Static/Dynamic providers: May return ("", false, ErrNotSupported)
-	ValidateETag(ctx context.Context, collectionName string, expectedETag string) (currentETag string, changed bool, err error)
+	ValidateETag(ctx context.Context, collectionName string, expectedETag string, source collection_dto.ContentSource) (currentETag string, changed bool, err error)
 
 	// GenerateRevalidator generates Go code for runtime ETag validation and
 	// refresh.
@@ -511,6 +513,14 @@ type CollectionService interface {
 	//   - nil if all configurations are valid
 	//   - An error describing any validation failures
 	ValidateConfiguration(ctx context.Context, config *Config) error
+
+	// Close releases resources held by the service.
+	//
+	// This closes any sandboxes created for external module content sources
+	// during directive processing.
+	//
+	// Returns error when resource cleanup fails.
+	Close() error
 }
 
 // CollectionDirectiveInfo contains parsed information from a p-collection

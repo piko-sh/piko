@@ -45,7 +45,7 @@ type MockCollectionProvider struct {
 
 	// FetchStaticContentFunc is the function called by
 	// FetchStaticContent.
-	FetchStaticContentFunc func(ctx context.Context, collectionName string) ([]collection_dto.ContentItem, error)
+	FetchStaticContentFunc func(ctx context.Context, collectionName string, source collection_dto.ContentSource) ([]collection_dto.ContentItem, error)
 
 	// GenerateRuntimeFetcherFunc is the function called
 	// by GenerateRuntimeFetcher.
@@ -53,11 +53,11 @@ type MockCollectionProvider struct {
 
 	// ComputeETagFunc is the function called by
 	// ComputeETag.
-	ComputeETagFunc func(ctx context.Context, collectionName string) (string, error)
+	ComputeETagFunc func(ctx context.Context, collectionName string, source collection_dto.ContentSource) (string, error)
 
 	// ValidateETagFunc is the function called by
 	// ValidateETag.
-	ValidateETagFunc func(ctx context.Context, collectionName string, expectedETag string) (currentETag string, changed bool, err error)
+	ValidateETagFunc func(ctx context.Context, collectionName string, expectedETag string, source collection_dto.ContentSource) (currentETag string, changed bool, err error)
 
 	// GenerateRevalidatorFunc is the function called by
 	// GenerateRevalidator.
@@ -160,10 +160,10 @@ func (m *MockCollectionProvider) ValidateTargetType(targetType ast.Expr) error {
 // Takes collectionName (string) which identifies the collection by name.
 //
 // Returns (nil, nil) if FetchStaticContentFunc is nil.
-func (m *MockCollectionProvider) FetchStaticContent(ctx context.Context, collectionName string) ([]collection_dto.ContentItem, error) {
+func (m *MockCollectionProvider) FetchStaticContent(ctx context.Context, collectionName string, source collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 	atomic.AddInt64(&m.FetchStaticContentCallCount, 1)
 	if m.FetchStaticContentFunc != nil {
-		return m.FetchStaticContentFunc(ctx, collectionName)
+		return m.FetchStaticContentFunc(ctx, collectionName, source)
 	}
 	return nil, nil
 }
@@ -196,10 +196,10 @@ func (m *MockCollectionProvider) GenerateRuntimeFetcher(
 // Takes collectionName (string) which identifies the collection by name.
 //
 // Returns ("", nil) if ComputeETagFunc is nil.
-func (m *MockCollectionProvider) ComputeETag(ctx context.Context, collectionName string) (string, error) {
+func (m *MockCollectionProvider) ComputeETag(ctx context.Context, collectionName string, source collection_dto.ContentSource) (string, error) {
 	atomic.AddInt64(&m.ComputeETagCallCount, 1)
 	if m.ComputeETagFunc != nil {
-		return m.ComputeETagFunc(ctx, collectionName)
+		return m.ComputeETagFunc(ctx, collectionName, source)
 	}
 	return "", nil
 }
@@ -212,10 +212,10 @@ func (m *MockCollectionProvider) ComputeETag(ctx context.Context, collectionName
 // Takes expectedETag (string) which is the ETag value to validate against.
 //
 // Returns ("", false, nil) if ValidateETagFunc is nil.
-func (m *MockCollectionProvider) ValidateETag(ctx context.Context, collectionName string, expectedETag string) (string, bool, error) {
+func (m *MockCollectionProvider) ValidateETag(ctx context.Context, collectionName string, expectedETag string, source collection_dto.ContentSource) (string, bool, error) {
 	atomic.AddInt64(&m.ValidateETagCallCount, 1)
 	if m.ValidateETagFunc != nil {
-		return m.ValidateETagFunc(ctx, collectionName, expectedETag)
+		return m.ValidateETagFunc(ctx, collectionName, expectedETag, source)
 	}
 	return "", false, nil
 }

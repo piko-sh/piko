@@ -311,21 +311,21 @@ func prepareLocalisableEntry(
 // single table type, allowing email and PDF entries (which share an identical
 // field layout) to be packed by the same generic helper.
 type localisableEntryPacker struct {
-	start                  func(*flatbuffers.Builder)
+	start func(*flatbuffers.Builder)
 
-	addPackagePath         func(*flatbuffers.Builder, flatbuffers.UOffsetT)
+	addPackagePath func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
-	addSourcePath          func(*flatbuffers.Builder, flatbuffers.UOffsetT)
+	addSourcePath func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
-	addStyleBlock          func(*flatbuffers.Builder, flatbuffers.UOffsetT)
+	addStyleBlock func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
 	addHasSupportedLocales func(*flatbuffers.Builder, bool)
 
-	addLocalTranslations   func(*flatbuffers.Builder, flatbuffers.UOffsetT)
+	addLocalTranslations func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
-	addHasPreview          func(*flatbuffers.Builder, bool)
+	addHasPreview func(*flatbuffers.Builder, bool)
 
-	end                    func(*flatbuffers.Builder) flatbuffers.UOffsetT
+	end func(*flatbuffers.Builder) flatbuffers.UOffsetT
 }
 
 // emailEntryPacker holds the FlatBuffer callbacks for email entry tables.

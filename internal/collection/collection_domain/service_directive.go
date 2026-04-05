@@ -22,10 +22,12 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"path/filepath"
 	"time"
 
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 // expandStaticCollection creates virtual entry points for each content item.
@@ -47,13 +49,14 @@ func (s *collectionService) expandStaticCollection(
 		logger_domain.String(logKeyProvider, provider.Name()),
 		logger_domain.String(logKeyCollection, directive.CollectionName))
 
-	if err := s.configureContentSource(ctx, provider, directive); err != nil {
-		return nil, fmt.Errorf("configuring content source for collection %q: %w", directive.CollectionName, err)
+	source, err := s.resolveContentSource(ctx, directive)
+	if err != nil {
+		return nil, fmt.Errorf("resolving content source for collection %q: %w", directive.CollectionName, err)
 	}
 
 	l.Trace("Calling provider FetchStaticContent",
 		logger_domain.String("collection", directive.CollectionName))
-	items, err := provider.FetchStaticContent(ctx, directive.CollectionName)
+	items, err := provider.FetchStaticContent(ctx, directive.CollectionName, source)
 	if err != nil {
 		return nil, fmt.Errorf("fetching static content: %w", err)
 	}
@@ -154,11 +157,12 @@ func (s *collectionService) expandHybridCollection(
 		logger_domain.String(logKeyProvider, provider.Name()),
 		logger_domain.String(logKeyCollection, directive.CollectionName))
 
-	if err := s.configureContentSource(ctx, provider, directive); err != nil {
-		return nil, fmt.Errorf("configuring content source for hybrid collection %q: %w", directive.CollectionName, err)
+	source, err := s.resolveContentSource(ctx, directive)
+	if err != nil {
+		return nil, fmt.Errorf("resolving content source for hybrid collection %q: %w", directive.CollectionName, err)
 	}
 
-	items, etag, blob, err := s.fetchAndPrepareHybridContent(ctx, provider, directive)
+	items, etag, blob, err := s.fetchAndPrepareHybridContent(ctx, provider, directive, source)
 	if err != nil {
 		return s.expandStaticCollection(ctx, provider, directive)
 	}
@@ -167,65 +171,99 @@ func (s *collectionService) expandHybridCollection(
 	return s.createHybridEntryPoints(ctx, items, directive, provider.Name())
 }
 
-// configureContentSource sets the content source for a collection provider.
+// resolveContentSource builds a ContentSource for a collection directive.
 //
-// If ContentModulePath is set, the provider reads from an external Go module.
-// This takes priority over BasePath. Otherwise, if BasePath is set, the
-// provider uses the local file path.
+// If ContentModulePath is set, the source is resolved from an external Go
+// module via GOMODCACHE. Otherwise, the source uses the project's default
+// sandbox with the directive's BasePath.
 //
-// Takes provider (CollectionProvider) which is the provider to set up.
 // Takes directive (*collection_dto.CollectionDirectiveInfo) which holds the
 // content source settings.
 //
-// Returns error when the provider does not support module content sourcing or
-// when module setup fails.
-func (*collectionService) configureContentSource(
+// Returns collection_dto.ContentSource which describes where content lives.
+// Returns error when module resolution fails.
+func (s *collectionService) resolveContentSource(
 	ctx context.Context,
-	provider CollectionProvider,
 	directive *collection_dto.CollectionDirectiveInfo,
-) error {
+) (collection_dto.ContentSource, error) {
 	ctx, l := logger_domain.From(ctx, log)
+
 	if directive.ContentModulePath != "" {
-		configurable, ok := provider.(ContentModuleConfigurable)
-		if !ok {
-			return fmt.Errorf(
-				"provider %q does not support module content sourcing (p-collection-source)",
-				provider.Name(),
+		if s.resolver == nil {
+			return collection_dto.ContentSource{}, fmt.Errorf(
+				"resolver not configured for module content sourcing (p-collection-source %q)",
+				directive.ContentModulePath,
 			)
 		}
 
-		if err := configurable.SetContentModulePath(ctx, directive.ContentModulePath); err != nil {
-			return fmt.Errorf("configuring module content source: %w", err)
+		moduleBase, subpath, err := s.resolver.FindModuleBoundary(ctx, directive.ContentModulePath)
+		if err != nil {
+			return collection_dto.ContentSource{}, fmt.Errorf("finding module boundary for %q: %w", directive.ContentModulePath, err)
 		}
 
-		l.Internal("Configured provider to read from external module",
-			logger_domain.String(logKeyProvider, provider.Name()),
-			logger_domain.String("module_path", directive.ContentModulePath))
-		return nil
+		moduleDir, err := s.resolver.GetModuleDir(ctx, moduleBase)
+		if err != nil {
+			return collection_dto.ContentSource{}, fmt.Errorf("resolving module directory for %q: %w", moduleBase, err)
+		}
+
+		contentRoot := filepath.Join(moduleDir, subpath)
+
+		moduleSandbox, err := createModuleSandbox(moduleBase, contentRoot)
+		if err != nil {
+			return collection_dto.ContentSource{}, err
+		}
+
+		s.trackExternalSandbox(moduleSandbox)
+
+		l.Internal("Resolved external module content source",
+			logger_domain.String("module_path", directive.ContentModulePath),
+			logger_domain.String("content_root", contentRoot))
+
+		return collection_dto.ContentSource{
+			Sandbox:    moduleSandbox,
+			BasePath:   contentRoot,
+			IsExternal: true,
+		}, nil
 	}
 
-	if configurable, ok := provider.(BasePathConfigurable); ok && directive.BasePath != "" {
-		configurable.SetBasePath(ctx, directive.BasePath)
-		l.Trace("Configured provider base path",
-			logger_domain.String("base_path", directive.BasePath))
-	}
+	l.Trace("Using local content source",
+		logger_domain.String("base_path", directive.BasePath))
 
-	return nil
+	return collection_dto.ContentSource{
+		Sandbox:    s.defaultSandbox,
+		BasePath:   directive.BasePath,
+		IsExternal: false,
+	}, nil
 }
 
-// configureProviderBasePath sets the base path if the provider supports it.
+// createModuleSandbox creates a read-only sandbox for accessing content from
+// an external Go module.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes provider (CollectionProvider) which is checked for BasePathConfigurable
-// support.
-// Takes basePath (string) which specifies the path to set on the provider.
-func (*collectionService) configureProviderBasePath(ctx context.Context, provider CollectionProvider, basePath string) {
-	_, l := logger_domain.From(ctx, log)
-	if configurable, ok := provider.(BasePathConfigurable); ok && basePath != "" {
-		configurable.SetBasePath(ctx, basePath)
-		l.Trace("Configured provider base path", logger_domain.String("base_path", basePath))
+// Takes moduleBase (string) which is the Go module path for naming.
+// Takes contentRoot (string) which is the filesystem path to sandbox.
+//
+// Returns safedisk.Sandbox which is the configured sandbox.
+// Returns error when factory or sandbox creation fails.
+func createModuleSandbox(moduleBase, contentRoot string) (safedisk.Sandbox, error) {
+	moduleFactory, err := safedisk.NewFactory(safedisk.FactoryConfig{
+		Enabled:      true,
+		AllowedPaths: []string{contentRoot},
+		CWD:          contentRoot,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating factory for module content at %q: %w", contentRoot, err)
 	}
+
+	moduleSandbox, err := moduleFactory.Create(
+		fmt.Sprintf("module-content-%s", moduleBase),
+		contentRoot,
+		safedisk.ModeReadOnly,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating sandbox for module content at %q: %w", contentRoot, err)
+	}
+
+	return moduleSandbox, nil
 }
 
 // fetchAndPrepareHybridContent fetches content, computes ETag, and encodes
@@ -243,9 +281,10 @@ func (s *collectionService) fetchAndPrepareHybridContent(
 	ctx context.Context,
 	provider CollectionProvider,
 	directive *collection_dto.CollectionDirectiveInfo,
+	source collection_dto.ContentSource,
 ) ([]collection_dto.ContentItem, string, []byte, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	items, err := provider.FetchStaticContent(ctx, directive.CollectionName)
+	items, err := provider.FetchStaticContent(ctx, directive.CollectionName, source)
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("fetching static content for hybrid: %w", err)
 	}
@@ -255,7 +294,7 @@ func (s *collectionService) fetchAndPrepareHybridContent(
 		logger_domain.String(logKeyCollection, directive.CollectionName),
 		logger_domain.Int(logKeyItemCount, len(items)))
 
-	etag, err := provider.ComputeETag(ctx, directive.CollectionName)
+	etag, err := provider.ComputeETag(ctx, directive.CollectionName, source)
 	if err != nil {
 		l.Warn("Failed to compute ETag, falling back to static mode",
 			logger_domain.String(logKeyProvider, provider.Name()),

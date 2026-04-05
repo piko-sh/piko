@@ -55,7 +55,8 @@ func (s *collectionService) generateHybridAnnotation(
 		logger_domain.String(logKeyProvider, provider.Name()),
 		logger_domain.String(logKeyCollection, collectionName))
 
-	processedItems, etag, err := s.prepareHybridContent(ctx, provider, collectionName, options)
+	source := s.defaultContentSource()
+	processedItems, etag, err := s.prepareHybridContent(ctx, provider, collectionName, options, source)
 	if err != nil {
 		return s.generateStaticCollectionAnnotation(ctx, provider, collectionName, targetTypeExpr, options)
 	}
@@ -98,9 +99,10 @@ func (s *collectionService) prepareHybridContent(
 	provider CollectionProvider,
 	collectionName string,
 	options *collection_dto.FetchOptions,
+	source collection_dto.ContentSource,
 ) ([]collection_dto.ContentItem, string, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	items, err := s.fetchOrCacheStaticContent(ctx, provider, collectionName)
+	items, err := s.fetchOrCacheStaticContent(ctx, provider, collectionName, source)
 	if err != nil {
 		return nil, "", fmt.Errorf("fetching static content for hybrid collection %q: %w", collectionName, err)
 	}
@@ -110,7 +112,7 @@ func (s *collectionService) prepareHybridContent(
 		logger_domain.Int("original_count", len(items)),
 		logger_domain.Int("filtered_count", len(processedItems)))
 
-	etag, err := provider.ComputeETag(ctx, collectionName)
+	etag, err := provider.ComputeETag(ctx, collectionName, source)
 	if err != nil {
 		l.Warn("Failed to compute ETag, falling back to static mode",
 			logger_domain.String(logKeyProvider, provider.Name()),

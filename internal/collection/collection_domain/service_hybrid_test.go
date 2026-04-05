@@ -39,7 +39,7 @@ func TestGenerateHybridAnnotation(t *testing.T) {
 		return &MockCollectionProvider{
 			NameFunc: func() string { return "hybrid" },
 			TypeFunc: func() ProviderType { return ProviderTypeHybrid },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				if fetchErr != nil {
 					return nil, fetchErr
 				}
@@ -47,7 +47,7 @@ func TestGenerateHybridAnnotation(t *testing.T) {
 					{ID: "1", Slug: "p", URL: "/p", Metadata: map[string]any{"title": "P"}},
 				}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				if etagErr != nil {
 					return "", etagErr
 				}
@@ -158,7 +158,7 @@ func TestGenerateHybridAnnotation(t *testing.T) {
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "hybrid" },
 			TypeFunc: func() ProviderType { return ProviderTypeHybrid },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				fetchCallCount++
 				if fetchCallCount == 1 {
 					return nil, errors.New("fetch failed")
@@ -167,7 +167,7 @@ func TestGenerateHybridAnnotation(t *testing.T) {
 					{ID: "1", Slug: "p", URL: "/p", Metadata: map[string]any{"title": "P"}},
 				}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "etag-1", nil
 			},
 		}
@@ -192,10 +192,10 @@ func TestPrepareHybridContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{{ID: "1"}}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "etag-abc", nil
 			},
 		}
@@ -203,7 +203,7 @@ func TestPrepareHybridContent(t *testing.T) {
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
 
 		opts := &collection_dto.FetchOptions{}
-		items, etag, err := service.prepareHybridContent(context.Background(), provider, "blog", opts)
+		items, etag, err := service.prepareHybridContent(context.Background(), provider, "blog", opts, collection_dto.ContentSource{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -220,7 +220,7 @@ func TestPrepareHybridContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return nil, errors.New("fetch failed")
 			},
 		}
@@ -228,7 +228,7 @@ func TestPrepareHybridContent(t *testing.T) {
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
 
 		opts := &collection_dto.FetchOptions{}
-		_, _, err := service.prepareHybridContent(context.Background(), provider, "blog", opts)
+		_, _, err := service.prepareHybridContent(context.Background(), provider, "blog", opts, collection_dto.ContentSource{})
 		if err == nil {
 			t.Error("expected error from fetch failure")
 		}
@@ -239,10 +239,10 @@ func TestPrepareHybridContent(t *testing.T) {
 
 		provider := &MockCollectionProvider{
 			NameFunc: func() string { return "md" },
-			FetchStaticContentFunc: func(_ context.Context, _ string) ([]collection_dto.ContentItem, error) {
+			FetchStaticContentFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
 				return []collection_dto.ContentItem{{ID: "1"}}, nil
 			},
-			ComputeETagFunc: func(_ context.Context, _ string) (string, error) {
+			ComputeETagFunc: func(_ context.Context, _ string, _ collection_dto.ContentSource) (string, error) {
 				return "", errors.New("etag broke")
 			},
 		}
@@ -250,7 +250,7 @@ func TestPrepareHybridContent(t *testing.T) {
 		service := mustCastToCollectionService(t, NewCollectionService(context.Background(), registry))
 
 		opts := &collection_dto.FetchOptions{}
-		_, _, err := service.prepareHybridContent(context.Background(), provider, "blog", opts)
+		_, _, err := service.prepareHybridContent(context.Background(), provider, "blog", opts, collection_dto.ContentSource{})
 		if err == nil {
 			t.Error("expected error from ETag failure")
 		}

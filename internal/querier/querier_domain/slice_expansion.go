@@ -41,19 +41,19 @@ type SliceExpansionSpec struct {
 type placeholderMapping struct {
 	newStart int
 
-	count    int
+	count int
 }
 
 // placeholderOccurrence records the location and metadata of a single ?N
 // placeholder found in a query string.
 type placeholderOccurrence struct {
-	start       int
+	start int
 
-	end         int
+	end int
 
 	originalNum int
 
-	inParens    bool
+	inParens bool
 }
 
 // buildPlaceholderRemap sorts the specs by placeholder number and computes
