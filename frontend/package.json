@@ -1,13 +1,18 @@
 {
   "name": "@piko/frontend",
   "version": "1.0.0",
-  "description": "Piko WDK frontend - core, extensions, and playground",
+  "description": "Piko WDK frontend - core, capabilities, extensions, and playground",
   "private": true,
   "scripts": {
-    "build": "npm run build:core && npm run build:extensions && npm run build:playground",
+    "build": "npm run build:core && npm run build:capabilities && npm run build:extensions && npm run build:playground",
     "build:core": "npm --prefix core run build",
-    "build:extensions": "npm run build:components && npm run build:modals && npm run build:toasts && npm run build:analytics && npm run build:dev-ext",
-    "build:components": "npm --prefix extensions/components run build",
+    "build:capabilities": "npm run build:cap-navigation && npm run build:cap-actions && npm run build:cap-partials && npm run build:cap-forms && npm run build:cap-components",
+    "build:cap-navigation": "npm --prefix capabilities/navigation run build",
+    "build:cap-actions": "npm --prefix capabilities/actions run build",
+    "build:cap-partials": "npm --prefix capabilities/partials run build",
+    "build:cap-forms": "npm --prefix capabilities/forms run build",
+    "build:cap-components": "npm --prefix capabilities/components run build",
+    "build:extensions": "npm run build:modals && npm run build:toasts && npm run build:analytics && npm run build:dev-ext",
     "build:modals": "npm --prefix extensions/modals run build",
     "build:toasts": "npm --prefix extensions/toasts run build",
     "build:analytics": "npm --prefix extensions/analytics run build",
@@ -15,13 +20,13 @@
     "build:playground": "npm --prefix playground run build",
     "build:playground:wasm": "npm --prefix playground run build:wasm",
     "build:dev": "npm --prefix core run build:dev",
-    "test": "npm --prefix core run test && npm --prefix extensions/components run test",
+    "test": "npm --prefix core run test && npm --prefix capabilities/components run test",
     "test:playground": "npm --prefix playground run test",
     "test:watch": "npm --prefix core run test:watch",
     "coverage": "npm --prefix core run coverage",
     "lint": "npm --prefix core run lint",
     "lint:fix": "npm --prefix core run lint:fix",
-    "install:all": "npm install && npm --prefix core install && npm --prefix extensions/components install && npm --prefix extensions/modals install && npm --prefix extensions/toasts install && npm --prefix extensions/analytics install && npm --prefix extensions/dev install && npm --prefix playground install"
+    "install:all": "npm install && npm --prefix core install && npm --prefix capabilities/navigation install && npm --prefix capabilities/actions install && npm --prefix capabilities/partials install && npm --prefix capabilities/forms install && npm --prefix capabilities/components install && npm --prefix extensions/modals install && npm --prefix extensions/toasts install && npm --prefix extensions/analytics install && npm --prefix extensions/dev install && npm --prefix playground install"
   },
   "author": "PolitePixels Limited",
   "license": "Apache-2.0"

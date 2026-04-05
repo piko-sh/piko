@@ -1,0 +1,70 @@
+{
+    "description": "Boolean attribute props (?disabled, ?checked, ?hidden) should toggle attributes correctly",
+    "initialState": {
+        "disabled": true,
+        "checked": false,
+        "hidden": false
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.el('button', 'btn', { '?disabled': state.disabled }, [dom.txt('Submit', 'btn-txt')]), dom.el('input', 'cb', { type: 'checkbox', '?checked': state.checked }), dom.el('p', 'para', { '?hidden': state.hidden }, [dom.txt('Visible text', 'p-txt')])])",
+    "steps": [
+        {
+            "description": "Initial render with disabled button, unchecked checkbox, visible paragraph",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "attributes": { "disabled": "" },
+                    "description": "Button should be disabled"
+                },
+                {
+                    "selector": "input",
+                    "exists": true,
+                    "description": "Checkbox should exist"
+                },
+                {
+                    "selector": "p",
+                    "exists": true,
+                    "description": "Paragraph should exist"
+                },
+                {
+                    "selector": "p",
+                    "textContent": "Visible text",
+                    "description": "Paragraph should have correct text"
+                }
+            ]
+        },
+        {
+            "description": "Enable button and check checkbox",
+            "stateChanges": [
+                { "path": "disabled", "value": false },
+                { "path": "checked", "value": true }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('button', 'btn', { '?disabled': state.disabled }, [dom.txt('Submit', 'btn-txt')]), dom.el('input', 'cb', { type: 'checkbox', '?checked': state.checked }), dom.el('p', 'para', { '?hidden': state.hidden }, [dom.txt('Visible text', 'p-txt')])])",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "attributes": { "disabled": null },
+                    "description": "Button should not be disabled"
+                },
+                {
+                    "selector": "input",
+                    "attributes": { "checked": "" },
+                    "description": "Checkbox should be checked"
+                }
+            ]
+        },
+        {
+            "description": "Hide paragraph",
+            "stateChanges": [
+                { "path": "hidden", "value": true }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('button', 'btn', { '?disabled': state.disabled }, [dom.txt('Submit', 'btn-txt')]), dom.el('input', 'cb', { type: 'checkbox', '?checked': state.checked }), dom.el('p', 'para', { '?hidden': state.hidden }, [dom.txt('Visible text', 'p-txt')])])",
+            "assertions": [
+                {
+                    "selector": "p",
+                    "attributes": { "hidden": "" },
+                    "description": "Paragraph should have hidden attribute"
+                }
+            ]
+        }
+    ]
+}

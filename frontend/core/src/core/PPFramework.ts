@@ -24,36 +24,108 @@ import {
     createErrorDisplay,
     createHelperRegistry,
     createLinkHeaderParser,
-    createLoaderUI,
     createModuleLoader,
     createSpriteSheetManager,
-    createSyncPartialManager,
     type DOMBinder,
     type ErrorDisplay,
     type HelperRegistry,
     type LinkHeaderParser,
-    type LoaderUI,
     type ModuleLoader,
     type SpriteSheetManager,
-    type SyncPartialManager,
     initModuleLoaderFromPage,
     type OpenModalOptions,
     type PPHelper
 } from '@/services';
-import {createHookManager, HookEvent, type HookManager, type HooksAPI} from '@/services/HookManager';
+import {createHookManager, HookEvent, type HookManager, type HooksAPI, type HookEventType, type HookPayloads} from '@/services/HookManager';
 import {createNetworkStatus, type NetworkStatus} from '@/services/NetworkStatus';
-import {createA11yAnnouncer, type A11yAnnouncer} from '@/services/A11yAnnouncer';
-import {createFormStateManager, type FormStateManager} from '@/services/FormStateManager';
-import {createFetchClient, type FetchClient, type FetchResult} from '@/core/FetchClient';
-import {createRouter, type NavigateOptions, type PageLoadScrollOptions, type Router} from '@/core/Router';
-import {handleAction} from '@/core/ActionExecutor';
-import {getActionFunction} from '@/pk/action';
-import {createRemoteRenderer, type PatchTarget, type RemoteRenderer, type RemoteRenderOptions} from '@/core/RemoteRenderer';
-import {createModalManager, type ModalManager, type ModalRequestOptions} from '@/core/ModalManager';
+import {getActionFunction} from '@/pk/actionRegistry';
 import {addFragmentQuery, buildRemoteUrl, isSameDomain} from '@/core/URLUtils';
+import {_onCapabilityReady, _getCapability} from '@/core/CapabilityRegistry';
+
+/** API provided by the navigation capability when it loads. */
+interface NavigationCapabilityAPI {
+    /** Performs SPA navigation to a URL. */
+    navigateTo(url: string, evt?: Event, options?: NavigateOptions): Promise<void>;
+    /** Fetches and patches remote content into the DOM. */
+    remoteRender(options: RemoteRenderOptions): Promise<void>;
+    /** Patches an HTML string directly into the DOM. */
+    patchPartial(htmlString: string, cssSelector: string): void;
+    /** Whether a navigation is currently in progress. */
+    isNavigating(): boolean;
+    /** Shows or hides the navigation loader. */
+    toggleLoader(visible: boolean): void;
+    /** Updates the loader progress bar. */
+    updateProgressBar(percent: number): void;
+    /** Replaces the loader with a new colour. */
+    createLoaderIndicator(colour: string): void;
+    /** Destroys the capability (cleanup). */
+    destroy(): void;
+}
+
+/** API provided by the actions capability when it loads. */
+interface ActionsCapabilityAPI {
+    /** Executes an action descriptor through the full action lifecycle. */
+    handleAction(descriptor: unknown, element: HTMLElement, event?: Event): Promise<void>;
+}
 
 export type {PPHelper} from '@/services';
-export type {NavigateOptions, RemoteRenderOptions, PatchTarget, FetchResult};
+
+/** Options for navigation operations. */
+export interface NavigateOptions {
+    /** Replace current history entry instead of pushing. */
+    replaceHistory?: boolean;
+}
+
+/** Options for remote rendering operations. */
+export interface RemoteRenderOptions {
+    /** URL of the remote content to fetch. */
+    src: string;
+    /** Query parameters to append to the URL. */
+    args?: Record<string, string | number>;
+    /** Form data to send as POST body. */
+    formData?: FormData | URLSearchParams | Map<string, string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined>> | Record<string, string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined>>;
+    /** Default patch method for all targets. */
+    patchMethod?: 'replace' | 'morph';
+    /** Default attributes to sync for all targets. */
+    patchAttributes?: string[];
+    /** Default childrenOnly setting for all targets. */
+    childrenOnly?: boolean;
+    /** Multiple patch targets for the fetched content. */
+    targets?: PatchTarget[];
+    /** CSS selector for single-target rendering. */
+    querySelector?: string;
+    /** DOM element for single-target rendering. */
+    patchLocation?: HTMLElement;
+    /** Preserve parent CSS scopes during morph. */
+    preservePartialScopes?: boolean;
+}
+
+/** A target element for patching with remote content. */
+export interface PatchTarget {
+    /** CSS selector to locate the source element in the fetched document. */
+    querySelector?: string;
+    /** The DOM element to patch content into. */
+    patchLocation?: HTMLElement;
+    /** Patch method override for this target. */
+    patchMethod?: 'replace' | 'morph';
+    /** Whether to morph only children. */
+    childrenOnly?: boolean;
+    /** Whether to preserve partial scope attributes during morph. */
+    preservePartialScopes?: boolean;
+    /** Attributes owned by this morph level. */
+    ownedAttributes?: string[];
+}
+
+/** Result from a fetch operation. */
+export type FetchResult = [boolean, string];
+
+/** Scroll options for page load. */
+export interface PageLoadScrollOptions {
+    /** Scroll Y position to restore. */
+    restoreScrollY?: number;
+    /** Hash fragment to scroll to. */
+    hash?: string;
+}
 
 /**
  * Scans the DOM for partial elements and registers their name-to-ID mappings
@@ -175,16 +247,13 @@ interface PPFrameworkInstance {
     displayError(message: string): void;
 
     /** Creates a new loader indicator with the given colour. */
-    createLoaderIndicator(color: string): void;
+    createLoaderIndicator(colour: string): void;
 
     /** Loads module scripts from the given document. */
     loadModuleScripts(doc: Document): void;
 
     /** Patches an HTML string into the DOM at the given CSS selector. */
     patchPartial(htmlString: string, cssSelector: string): void;
-
-    /** Opens a modal if available, dispatching a fallback event if not found. */
-    openModalIfAvailable(options: ModalRequestOptions): Promise<void>;
 
     /** Executes a helper action from a p-on attribute string. */
     executeHelper(event: Event, actionString: string, element: HTMLElement): void;
@@ -195,8 +264,15 @@ interface PPFrameworkInstance {
     /** Hooks API for analytics integrations. */
     hooks: HooksAPI;
 
-    /** Internal hook emitter for framework-level event dispatch. */
-    emitHook: HookManager['emit'];
+    /**
+     * Emits a hook event to all registered listeners. Intended for trusted
+     * extensions (e.g. modals, toasts) that need to surface analytics events
+     * without being granted the full internal HookManager.
+     *
+     * @param event - Hook event to emit.
+     * @param payload - Typed payload for the event.
+     */
+    _emitHook<E extends HookEventType>(event: E, payload: HookPayloads[E]): void;
 
     /** Registers a helper function for extensions. */
     registerHelper(name: string, helper: PPHelper): void;
@@ -244,30 +320,18 @@ interface FrameworkServices {
     moduleLoader: ModuleLoader;
     /** The link header parser for preload hints. */
     linkHeaderParser: LinkHeaderParser;
-    /** The modal manager for dialog handling. */
-    modalManager: ModalManager;
     /** The global helper registry. */
     helperRegistry: HelperRegistry;
     /** The network status monitor (lazy). */
     networkStatus: NetworkStatus | null;
-    /** The accessibility announcer (lazy). */
-    a11yAnnouncer: A11yAnnouncer | null;
-    /** The form state manager (lazy). */
-    formStateManager: FormStateManager | null;
-    /** The loader UI for navigation progress (lazy). */
-    loader: LoaderUI | null;
     /** The error display for user-facing messages (lazy). */
     errorDisplay: ErrorDisplay | null;
-    /** The fetch client for HTTP requests (lazy). */
-    fetchClient: FetchClient | null;
-    /** The SPA router (lazy). */
-    router: Router | null;
-    /** The remote renderer for partial updates (lazy). */
-    remoteRenderer: RemoteRenderer | null;
+    /** The navigation capability API (set when capability loads). */
+    navigation: NavigationCapabilityAPI | null;
+    /** The actions capability API (set when capability loads). */
+    actions: ActionsCapabilityAPI | null;
     /** The DOM binder for event delegation (lazy). */
     domBinder: DOMBinder | null;
-    /** The sync partial manager for auto-refreshing partials (lazy). */
-    syncPartialManager: SyncPartialManager | null;
     /** The global configuration options. */
     globalConfig: PPFrameworkOptions;
     /** The cached module configuration from the DOM. */
@@ -424,38 +488,22 @@ async function handlePageLoad(
  *
  * @param services - The mutable services bag to populate.
  * @param options - The framework configuration options.
- * @param instance - The framework instance for callback wiring.
+ * @param _instance - The framework instance (reserved for capability wiring).
  */
 function initFrameworkServices(
     services: FrameworkServices,
     options: PPFrameworkOptions,
-    instance: PPFrameworkInstance
+    _instance: PPFrameworkInstance
 ): void {
     services.globalConfig = options;
 
-    services.loader = createLoaderUI({colour: options.loaderColour ?? '#29e'});
     services.errorDisplay = createErrorDisplay();
-
     services.networkStatus = createNetworkStatus({hookManager: services.hookManager});
-    services.a11yAnnouncer = createA11yAnnouncer();
-    services.formStateManager = createFormStateManager({hookManager: services.hookManager});
-
-    services.fetchClient = createFetchClient();
-
     const bindDOM = (root: HTMLElement): void => {
         services.domBinder?.bind(root);
-        services.syncPartialManager?.bind(root);
     };
 
     _registerDOMUpdater(bindDOM);
-
-    services.remoteRenderer = createRemoteRenderer({
-        moduleLoader: services.moduleLoader,
-        spriteSheetManager: services.spriteSheetManager,
-        linkHeaderParser: services.linkHeaderParser,
-        onDOMUpdated: bindDOM,
-        hookManager: services.hookManager
-    });
 
     const pageLoadDeps: PageLoadDeps = {
         spriteSheetManager: services.spriteSheetManager,
@@ -463,42 +511,62 @@ function initFrameworkServices(
         moduleLoader: services.moduleLoader
     };
 
-    services.router = createRouter({
-        fetchClient: services.fetchClient,
-        loader: services.loader,
-        errorDisplay: services.errorDisplay,
-        onPageLoad: (doc, url, scroll) => handlePageLoad(pageLoadDeps, doc, url, scroll),
-        hookManager: services.hookManager,
-        formStateManager: services.formStateManager,
-        a11yAnnouncer: services.a11yAnnouncer
+    _onCapabilityReady('navigation', (factory: unknown) => {
+        const createNav = factory as (deps: unknown) => NavigationCapabilityAPI;
+        services.navigation = createNav({
+            onPageLoad: (doc: Document, url: string, scroll: unknown) => handlePageLoad(pageLoadDeps, doc, url, scroll as PageLoadScrollOptions),
+            hookManager: services.hookManager,
+            errorDisplay: services.errorDisplay,
+            formStateManager: null,
+            moduleLoader: services.moduleLoader,
+            spriteSheetManager: services.spriteSheetManager,
+            linkHeaderParser: services.linkHeaderParser,
+            getPageContext: () => getGlobalPageContext(),
+            onDOMUpdated: bindDOM,
+            runPageCleanup: _runPageCleanup,
+            executeConnectedForPartials: _executeConnectedForPartials,
+            executeBeforeRender: (id: string | HTMLElement) => { void id; },
+            executeAfterRender: (id: string | HTMLElement) => { void id; },
+            executeUpdated: (id: string | HTMLElement) => { void id; },
+            addFragmentQuery,
+            isSameDomain,
+            buildRemoteUrl,
+        });
     });
 
-    services.router.setConfig({
-        beforeNavigate: options.beforeNavigate,
-        afterNavigate: options.afterNavigate
+    _onCapabilityReady('actions', (factory: unknown) => {
+        const createActions = factory as (deps: unknown) => ActionsCapabilityAPI;
+        services.actions = createActions({
+            hookManager: services.hookManager,
+            formStateManager: null,
+            helperRegistry: services.helperRegistry,
+        });
     });
 
     services.domBinder = createDOMBinder(services.helperRegistry, {
         onNavigate: (url, _event) => {
-            void instance.navigateTo(url);
+            if (services.navigation) {
+                void services.navigation.navigateTo(url);
+            } else {
+                window.location.href = url;
+            }
         },
         onOpenModal: (opts: OpenModalOptions) => {
-            void services.modalManager.openIfAvailable({
-                selector: opts.selector,
-                params: opts.params,
-                title: opts.title,
-                message: opts.message,
-                cancelLabel: opts.cancelLabel,
-                confirmLabel: opts.confirmLabel,
-                confirmAction: opts.confirmAction,
-                triggerElement: opts.element
-            });
+            opts.element.dispatchEvent(new CustomEvent('pk-open-modal', {
+                bubbles: true,
+                detail: {
+                    selector: opts.selector,
+                    params: opts.params,
+                    title: opts.title,
+                    message: opts.message,
+                    cancelLabel: opts.cancelLabel,
+                    confirmLabel: opts.confirmLabel,
+                    confirmAction: opts.confirmAction,
+                }
+            }));
         }
     });
 
-    services.syncPartialManager = createSyncPartialManager({
-        onRemoteRender: (renderOptions) => instance.remoteRender(renderOptions)
-    });
 }
 
 /**
@@ -520,10 +588,7 @@ function initFrameworkDOM(services: FrameworkServices): void {
     const appRoot = document.querySelector('#app') as HTMLElement | null;
     if (appRoot) {
         services.domBinder?.bind(appRoot);
-        services.syncPartialManager?.bind(appRoot);
     }
-
-    services.formStateManager?.scanAndTrackForms();
 
     services.hookManager.processQueue();
 
@@ -556,18 +621,12 @@ function createInitialServices(): FrameworkServices {
         spriteSheetManager: createSpriteSheetManager(),
         moduleLoader: createModuleLoader(),
         linkHeaderParser: createLinkHeaderParser(),
-        modalManager: createModalManager({hookManager}),
         helperRegistry: globalHelperRegistry,
         networkStatus: null,
-        a11yAnnouncer: null,
-        formStateManager: null,
-        loader: null,
         errorDisplay: null,
-        fetchClient: null,
-        router: null,
-        remoteRenderer: null,
+        navigation: null,
+        actions: null,
         domBinder: null,
-        syncPartialManager: null,
         globalConfig: {},
         moduleConfigCache: null
     };
@@ -584,26 +643,27 @@ function buildFrameworkInstance(services: FrameworkServices): PPFrameworkInstanc
         /** Gets the set of loaded module script URLs. */
         get loadedModuleScripts() { return services.moduleLoader.getLoadedModules(); },
         /** Gets whether a navigation is currently in progress. */
-        get navigating() { return services.router?.isNavigating() ?? false; },
+        get navigating() { return services.navigation?.isNavigating() ?? false; },
         /** No-op setter retained for backwards compatibility. */
         set navigating(_value: boolean) {},
         /** Gets the loader bar element from the DOM. */
         get loaderElement() { return document.getElementById('ppf-loader-bar') as HTMLDivElement | null; },
         /** No-op setter retained for backwards compatibility. */
         set loaderElement(_value: HTMLDivElement | null) {},
-        /** Gets the current AbortController from the fetch client. */
-        get currentAbortController() { return services.fetchClient?.getController() ?? null; },
+        /** Gets the current AbortController -- no longer directly accessible. */
+        get currentAbortController() { return null; },
         /** No-op setter retained for backwards compatibility. */
         set currentAbortController(_value: AbortController | null) {},
         /** Gets the global configuration options. */
         get globalConfig() { return services.globalConfig; },
-        /** Sets the global configuration and updates the router. */
+        /** Sets the global configuration options. */
         set globalConfig(value: PPFrameworkOptions) {
             services.globalConfig = value;
-            services.router?.setConfig({beforeNavigate: value.beforeNavigate, afterNavigate: value.afterNavigate});
         },
         hooks: services.hookManager.api,
-        emitHook: services.hookManager.emit,
+        _emitHook<E extends HookEventType>(event: E, payload: HookPayloads[E]): void {
+            services.hookManager.emit(event, payload);
+        },
         registerHelper: services.helperRegistry.register.bind(services.helperRegistry),
         /** Gets whether the browser is currently online. */
         get isOnline() { return services.networkStatus?.isOnline ?? navigator.onLine; },
@@ -613,18 +673,18 @@ function buildFrameworkInstance(services: FrameworkServices): PPFrameworkInstanc
             initFrameworkDOM(services);
         },
         async navigateTo(targetUrl: string, evt?: Event, options: NavigateOptions = {}): Promise<void> {
-            if (!services.router) {
-                console.warn('PPFramework: navigateTo called before init()');
+            if (!services.navigation) {
+                window.location.href = targetUrl;
                 return;
             }
-            return services.router.navigateTo(targetUrl, evt, options);
+            return services.navigation.navigateTo(targetUrl, evt, options);
         },
         async remoteRender(options: RemoteRenderOptions): Promise<void> {
-            if (!services.remoteRenderer) {
-                console.warn('PPFramework: remoteRender called before init()');
+            if (!services.navigation) {
+                console.warn('PPFramework: remoteRender requires navigation capability');
                 return;
             }
-            return services.remoteRenderer.render(options);
+            return services.navigation.remoteRender(options);
         },
         dispatchAction: (actionName: string, element: HTMLElement, event?: Event) => {
             dispatchActionImpl(actionName, element, event);
@@ -633,21 +693,18 @@ function buildFrameworkInstance(services: FrameworkServices): PPFrameworkInstanc
         addFragmentQuery,
         isSameDomain,
         assetSrc: (src: string, moduleName?: string): string => resolveAssetSrc(src, moduleName),
-        createLoaderIndicator(color: string) {
-            if (services.loader) { services.loader.destroy(); }
-            services.loader = createLoaderUI({colour: color});
+        createLoaderIndicator(colour: string) {
+            services.navigation?.createLoaderIndicator(colour);
         },
         toggleLoader(isVisible: boolean) {
-            if (!services.loader) { return; }
-            if (isVisible) { services.loader.show(); } else { services.loader.hide(); }
+            services.navigation?.toggleLoader(isVisible);
         },
-        updateProgressBar(percentValue: number) { services.loader?.setProgress(percentValue); },
+        updateProgressBar(percentValue: number) {
+            services.navigation?.updateProgressBar(percentValue);
+        },
         displayError(message: string) { services.errorDisplay?.show(message); },
         loadModuleScripts(doc: Document) { services.moduleLoader.loadFromDocument(doc); },
-        patchPartial(htmlString: string, cssSelector: string) { services.remoteRenderer?.patchPartial(htmlString, cssSelector); },
-        async openModalIfAvailable(options: ModalRequestOptions): Promise<void> {
-            return services.modalManager.openIfAvailable(options);
-        },
+        patchPartial(htmlString: string, cssSelector: string) { services.navigation?.patchPartial(htmlString, cssSelector); },
         executeHelper: (event: Event, actionString: string, element: HTMLElement) => {
             executeHelperImpl(event, actionString, element);
         },
@@ -724,9 +781,12 @@ function dispatchActionImpl(
 
         const args = formData ? [formData] : [];
         const result = actionFn(...args);
-        handleAction(result, element, event).catch((err: unknown) => {
-            console.error(`[PPFramework] dispatchAction failed for "${actionName}":`, err);
-        });
+        const actionsApi = _getCapability<ActionsCapabilityAPI>('actions');
+        if (actionsApi) {
+            actionsApi.handleAction(result, element, event).catch((err: unknown) => {
+                console.error(`[PPFramework] dispatchAction failed for "${actionName}":`, err);
+            });
+        }
         return;
     }
 
@@ -784,6 +844,3 @@ function resolveAssetSrc(src: string, moduleName?: string): string {
 
 /** Global PPFramework singleton instance. */
 export const PPFramework = createPPFramework();
-
-document.addEventListener('DOMContentLoaded', () => {
-});

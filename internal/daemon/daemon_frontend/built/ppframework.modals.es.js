@@ -17,14 +17,109 @@ function waitForPiko(extensionName) {
     check();
   });
 }
+const HookEvent = {
+  MODAL_OPEN: "modal:open",
+  MODAL_CLOSE: "modal:close"
+};
+function createModalManager(deps = {}) {
+  const { hookManager } = deps;
+  return {
+    /**
+     * Opens a modal if available, dispatching a fallback event if not found.
+     *
+     * @param options - The modal request options.
+     */
+    async openIfAvailable(options) {
+      const {
+        selector: modalSelector,
+        params = /* @__PURE__ */ new Map(),
+        title: modalTitle = "",
+        message: modalMessage = "",
+        cancelLabel: modalCancelLabel = "",
+        confirmLabel: modalConfirmLabel = "",
+        confirmAction: modalConfirmAction = "",
+        triggerElement,
+        fallbackEventName = "modal-not-found"
+      } = options;
+      const modalElem = document.querySelector(modalSelector);
+      if (!modalElem) {
+        console.warn(`ModalManager: Could not find modal "${modalSelector}". Falling back to dispatch event.`);
+        triggerElement.dispatchEvent(new CustomEvent(fallbackEventName, { bubbles: true, composed: true }));
+        return;
+      }
+      const modalId = modalElem.id || modalSelector;
+      hookManager?.emit(HookEvent.MODAL_OPEN, {
+        modalId,
+        url: window.location.href,
+        timestamp: Date.now()
+      });
+      const requestFn = modalElem.request;
+      if (typeof requestFn === "function") {
+        const confirmed = await requestFn({
+          modal_title: modalTitle,
+          message: modalMessage,
+          cancel_label: modalCancelLabel,
+          confirm_label: modalConfirmLabel,
+          confirm_action: modalConfirmAction,
+          params: Object.fromEntries(params.entries())
+        });
+        hookManager?.emit(HookEvent.MODAL_CLOSE, {
+          modalId,
+          timestamp: Date.now()
+        });
+        if (confirmed) {
+          triggerElement.dispatchEvent(
+            new CustomEvent("modal-confirmed", {
+              detail: {},
+              bubbles: true,
+              composed: true
+            })
+          );
+        } else {
+          triggerElement.dispatchEvent(
+            new CustomEvent("modal-cancelled", {
+              detail: {},
+              bubbles: true,
+              composed: true
+            })
+          );
+        }
+      } else {
+        console.warn(`ModalManager: The modal "${modalSelector}" does not have a request() function. Trying open...`);
+        modalElem.setAttribute("open", "true");
+      }
+    }
+  };
+}
 function registerHelpers(pk) {
+  const hookManager = {
+    emit(event, payload) {
+      pk.hooks.on(event, () => {
+      });
+    }
+  };
+  const modalManager = createModalManager({ hookManager });
+  document.addEventListener("pk-open-modal", (event) => {
+    const detail = event.detail;
+    const triggerElement = event.target;
+    void modalManager.openIfAvailable({
+      selector: detail.selector,
+      params: detail.params,
+      title: detail.title,
+      message: detail.message,
+      cancelLabel: detail.cancelLabel,
+      confirmLabel: detail.confirmLabel,
+      confirmAction: detail.confirmAction,
+      triggerElement
+    });
+  });
   pk.registerHelper("showModal", (element, _event) => {
     const selector = element.dataset.modalSelector;
     if (!selector) {
       console.warn('helpers.showModal() requires a "data-modal-selector" attribute.', element);
       return;
     }
-    void pk.modal.open({
+    void modalManager.openIfAvailable({
       selector,
       params: /* @__PURE__ */ new Map(),
       title: element.dataset.modalTitle ?? "",
@@ -98,7 +193,6 @@ function registerHelpers(pk) {
       console.error(`The element matching "${selector}" does not have a public 'reload()' method.`);
     }
   });
-  console.debug("[piko/modals] Extension loaded - helpers: showModal, closeModal, updateModal, reloadPartial");
 }
 waitForPiko("modals").then(registerHelpers).catch((err) => console.error(err.message));
 //# sourceMappingURL=ppframework.modals.es.js.map

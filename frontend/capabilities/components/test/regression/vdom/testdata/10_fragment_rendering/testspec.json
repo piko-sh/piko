@@ -1,0 +1,43 @@
+{
+    "description": "Fragments should group children without adding a wrapper element",
+    "initialState": {
+        "items": ["Alpha", "Beta"]
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.frag('items', state.items.map((item, i) => dom.el('span', 'item-' + i, { class: 'tag' }, [dom.txt(item, 'txt-' + i)])))])",
+    "steps": [
+        {
+            "description": "Initial render with two fragment items",
+            "assertions": [
+                {
+                    "selector": ".tag",
+                    "count": 2,
+                    "description": "Should have two tag spans"
+                },
+                {
+                    "selector": ".tag:first-child",
+                    "textContent": "Alpha",
+                    "description": "First tag should be Alpha"
+                }
+            ]
+        },
+        {
+            "description": "Add third item",
+            "stateChanges": [
+                { "path": "items", "value": ["Alpha", "Beta", "Gamma"] }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.frag('items', state.items.map((item, i) => dom.el('span', 'item-' + i, { class: 'tag' }, [dom.txt(item, 'txt-' + i)])))])",
+            "assertions": [
+                {
+                    "selector": ".tag",
+                    "count": 3,
+                    "description": "Should have three tag spans"
+                },
+                {
+                    "selector": ".tag:last-child",
+                    "textContent": "Gamma",
+                    "description": "Last tag should be Gamma"
+                }
+            ]
+        }
+    ]
+}

@@ -17,7 +17,7 @@
 // strip others of their rights and dignity.
 
 import {PPFramework as _PPFramework} from '../core/PPFramework';
-import type {NavigateOptions as RouterNavigateOptions} from '../core/Router';
+import type {NavigateOptions as RouterNavigateOptions} from '../core/PPFramework';
 
 /** Options for the navigate() function. */
 export interface NavigateOptions {

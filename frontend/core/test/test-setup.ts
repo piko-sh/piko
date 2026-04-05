@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import { beforeEach } from 'vitest';
+import { _clearCapabilities } from '../src/core/CapabilityRegistry';
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -25,4 +26,6 @@ beforeEach(() => {
   const appRoot = document.createElement('div');
   appRoot.id = 'app';
   document.body.appendChild(appRoot);
+
+  _clearCapabilities();
 });

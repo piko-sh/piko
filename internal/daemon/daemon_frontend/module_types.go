@@ -54,6 +54,23 @@ const (
 	// reactivity). Unlike other modules, this is not injected site-wide; it
 	// is loaded on demand when a page contains PKC components.
 	ModuleComponents
+
+	// ModuleNavigation provides SPA routing, DOM morphing, and remote
+	// rendering. Loaded on demand when a page contains piko:a elements.
+	ModuleNavigation
+
+	// ModuleActions provides server action execution, SSE streaming, and
+	// CSRF handling. Loaded on demand when a page contains p-on: or p-event:
+	// directives.
+	ModuleActions
+
+	// ModulePartials provides partial reloading, cascading, and auto-refresh.
+	// Loaded on demand when a page contains partial_src attributes.
+	ModulePartials
+
+	// ModuleForms provides form state management and validation.
+	// Loaded on demand when a page contains form elements or p-model directives.
+	ModuleForms
 )
 
 // AnalyticsConfig holds settings for the analytics module.
@@ -138,6 +155,14 @@ func (m FrontendModule) String() string {
 		return "dev"
 	case ModuleComponents:
 		return "components"
+	case ModuleNavigation:
+		return "navigation"
+	case ModuleActions:
+		return "actions"
+	case ModulePartials:
+		return "partials"
+	case ModuleForms:
+		return "forms"
 	default:
 		return "unknown"
 	}
@@ -160,6 +185,14 @@ func (m FrontendModule) AssetPath() string {
 		return "built/ppframework.dev.min.es.js"
 	case ModuleComponents:
 		return "built/ppframework.components.min.es.js"
+	case ModuleNavigation:
+		return "built/ppframework.navigation.min.es.js"
+	case ModuleActions:
+		return "built/ppframework.actions.min.es.js"
+	case ModulePartials:
+		return "built/ppframework.partials.min.es.js"
+	case ModuleForms:
+		return "built/ppframework.forms.min.es.js"
 	default:
 		return ""
 	}
@@ -181,6 +214,14 @@ func (m FrontendModule) ServeURL() string {
 		return "/_piko/dist/ppframework.dev.min.es.js"
 	case ModuleComponents:
 		return "/_piko/dist/ppframework.components.min.es.js"
+	case ModuleNavigation:
+		return "/_piko/dist/ppframework.navigation.min.es.js"
+	case ModuleActions:
+		return "/_piko/dist/ppframework.actions.min.es.js"
+	case ModulePartials:
+		return "/_piko/dist/ppframework.partials.min.es.js"
+	case ModuleForms:
+		return "/_piko/dist/ppframework.forms.min.es.js"
 	default:
 		return ""
 	}

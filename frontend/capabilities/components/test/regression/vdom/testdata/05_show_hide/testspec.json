@@ -1,0 +1,62 @@
+{
+    "description": "The _s prop should toggle element visibility via display:none",
+    "initialState": {
+        "visible": true
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.el('p', 'msg', { _s: state.visible, class: 'message' }, [dom.txt('Hello World', 'txt')])])",
+    "steps": [
+        {
+            "description": "Initial render - element visible",
+            "assertions": [
+                {
+                    "selector": ".message",
+                    "exists": true,
+                    "description": "Message element should exist"
+                },
+                {
+                    "selector": ".message",
+                    "textContent": "Hello World",
+                    "description": "Message should contain Hello World"
+                }
+            ]
+        },
+        {
+            "description": "Hide element by setting visible to false",
+            "stateChanges": [
+                { "path": "visible", "value": false }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('p', 'msg', { _s: state.visible, class: 'message' }, [dom.txt('Hello World', 'txt')])])",
+            "assertions": [
+                {
+                    "selector": ".message",
+                    "exists": true,
+                    "description": "Message element should still exist in DOM when hidden"
+                },
+                {
+                    "selector": ".message",
+                    "textContent": "Hello World",
+                    "description": "Hidden element should still have text content"
+                }
+            ]
+        },
+        {
+            "description": "Show element again by setting visible to true",
+            "stateChanges": [
+                { "path": "visible", "value": true }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('p', 'msg', { _s: state.visible, class: 'message' }, [dom.txt('Hello World', 'txt')])])",
+            "assertions": [
+                {
+                    "selector": ".message",
+                    "exists": true,
+                    "description": "Message element should exist after being shown again"
+                },
+                {
+                    "selector": ".message",
+                    "textContent": "Hello World",
+                    "description": "Message should contain Hello World after being shown again"
+                }
+            ]
+        }
+    ]
+}

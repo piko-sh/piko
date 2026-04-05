@@ -17,4 +17,5 @@
 // strip others of their rights and dignity.
 
 /** Build-time constant replaced by Terser; code guarded by __DEV__ is stripped from production bundles. */
+// eslint-disable-next-line @typescript-eslint/naming-convention -- build-time constant injected by Terser
 declare const __DEV__: boolean;

@@ -1,0 +1,91 @@
+{
+    "description": "Lists should render and update correctly with keyed children",
+    "initialState": {
+        "items": ["Apple", "Banana", "Cherry"]
+    },
+    "initialVDOM": "dom.el('ul', 'list', {}, state.items.map((item, i) => dom.el('li', `item-${i}`, { 'data-key': item }, [dom.txt(item, `txt-${i}`)])))",
+    "steps": [
+        {
+            "description": "Initial render with three items",
+            "assertions": [
+                {
+                    "selector": "ul",
+                    "exists": true,
+                    "description": "List should exist"
+                },
+                {
+                    "selector": "li",
+                    "count": 3,
+                    "description": "Should have three list items"
+                },
+                {
+                    "selector": "li:first-child",
+                    "textContent": "Apple",
+                    "description": "First item should be Apple"
+                },
+                {
+                    "selector": "li:last-child",
+                    "textContent": "Cherry",
+                    "description": "Last item should be Cherry"
+                }
+            ]
+        },
+        {
+            "description": "Add item to the end",
+            "stateChanges": [
+                { "path": "items", "value": ["Apple", "Banana", "Cherry", "Date"] }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, state.items.map((item, i) => dom.el('li', `item-${i}`, { 'data-key': item }, [dom.txt(item, `txt-${i}`)])))",
+            "assertions": [
+                {
+                    "selector": "li",
+                    "count": 4,
+                    "description": "Should have four list items"
+                },
+                {
+                    "selector": "li:last-child",
+                    "textContent": "Date",
+                    "description": "Last item should be Date"
+                }
+            ]
+        },
+        {
+            "description": "Remove item from middle",
+            "stateChanges": [
+                { "path": "items", "value": ["Apple", "Cherry", "Date"] }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, state.items.map((item, i) => dom.el('li', `item-${i}`, { 'data-key': item }, [dom.txt(item, `txt-${i}`)])))",
+            "assertions": [
+                {
+                    "selector": "li",
+                    "count": 3,
+                    "description": "Should have three list items"
+                },
+                {
+                    "selector": "li:nth-child(2)",
+                    "textContent": "Cherry",
+                    "description": "Second item should now be Cherry"
+                }
+            ]
+        },
+        {
+            "description": "Clear all items",
+            "stateChanges": [
+                { "path": "items", "value": [] }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, state.items.map((item, i) => dom.el('li', `item-${i}`, { 'data-key': item }, [dom.txt(item, `txt-${i}`)])))",
+            "assertions": [
+                {
+                    "selector": "li",
+                    "count": 0,
+                    "description": "Should have no list items"
+                },
+                {
+                    "selector": "ul",
+                    "exists": true,
+                    "description": "List container should still exist"
+                }
+            ]
+        }
+    ]
+}

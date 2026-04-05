@@ -184,33 +184,6 @@ export interface AnalyticsTrackPayload {
 /** Callback invoked when a hook event fires. */
 export type HookCallback<T = unknown> = (payload: T) => void;
 
-/** Hooks API exposed by `piko.hooks`. */
-export interface HooksAPI {
-    /**
-     * Registers a callback for the given event type.
-     *
-     * @param event - Hook event to listen for.
-     * @param callback - Function invoked when the event fires.
-     */
-    on<T = unknown>(event: HookEventType, callback: HookCallback<T>): void;
-
-    /**
-     * Removes a previously registered callback.
-     *
-     * @param event - Hook event to stop listening for.
-     * @param callback - Specific callback to remove. Omit to remove all listeners for the event.
-     */
-    off(event: HookEventType, callback?: HookCallback): void;
-
-    /**
-     * Emits a hook event with the given payload.
-     *
-     * @param event - Hook event to emit.
-     * @param payload - Data to pass to registered callbacks.
-     */
-    emit<T = unknown>(event: HookEventType, payload: T): void;
-}
-
 /** Analytics module configuration (Google Analytics GA4 and/or Google Tag Manager). */
 export interface AnalyticsModuleConfig {
     /** GA4 measurement IDs (e.g., "G-XXXXXXXXXX"). Null when no IDs are configured. */
@@ -455,6 +428,48 @@ export interface PikoNamespace {
          */
         resolve(src: string, moduleName?: string): string;
     };
+
+    /**
+     * Registers a capability implementation or factory with the framework.
+     *
+     * @param name - The capability name.
+     * @param impl - The capability implementation or factory function.
+     */
+    _registerCapability(name: string, impl: unknown): void;
+
+    /**
+     * Emits a hook event to all registered listeners. Intended for trusted
+     * extensions (e.g. modals, toasts) that need to surface analytics events.
+     * `piko.hooks` itself is listener-only by design; this is the controlled
+     * escape hatch that keeps emission explicit and greppable.
+     *
+     * @param event - Hook event to emit.
+     * @param payload - Data to pass to registered callbacks.
+     */
+    _emitHook(event: HookEventType, payload: unknown): void;
+
+    /**
+     * Registers a callback that fires when the framework is ready.
+     *
+     * @param callback - Function to invoke once the framework is ready.
+     */
+    ready(callback: () => void): void;
+
+    /**
+     * Registers a helper function for use in templates.
+     *
+     * @param name - Helper name.
+     * @param helper - Helper function implementation.
+     */
+    registerHelper(name: string, helper: PPHelper): void;
+
+    /**
+     * Gets runtime configuration for a frontend module.
+     *
+     * @param moduleName - Module name to retrieve configuration for.
+     * @returns The module configuration, or null if not found.
+     */
+    getModuleConfig<T = unknown>(moduleName: string): T | null;
 
     /** Partial reload coordination. */
     readonly partials: {

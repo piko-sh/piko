@@ -1,0 +1,82 @@
+{
+    "description": "Conditional elements should appear and disappear based on state",
+    "initialState": {
+        "showDetails": false,
+        "count": 0
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.el('span', 'counter', {}, [dom.txt(String(state.count), 'cnt')]), state.showDetails ? dom.el('p', 'details', { class: 'details' }, [dom.txt('Details are visible', 'dtxt')]) : dom.cmt('no-details', 'placeholder')])",
+    "steps": [
+        {
+            "description": "Initial render without details",
+            "assertions": [
+                {
+                    "selector": "span",
+                    "textContent": "0",
+                    "description": "Counter should show 0"
+                },
+                {
+                    "selector": "p.details",
+                    "exists": false,
+                    "description": "Details paragraph should not exist"
+                }
+            ]
+        },
+        {
+            "description": "Show details",
+            "stateChanges": [
+                { "path": "showDetails", "value": true }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('span', 'counter', {}, [dom.txt(String(state.count), 'cnt')]), state.showDetails ? dom.el('p', 'details', { class: 'details' }, [dom.txt('Details are visible', 'dtxt')]) : dom.cmt('no-details', 'placeholder')])",
+            "assertions": [
+                {
+                    "selector": "p.details",
+                    "exists": true,
+                    "description": "Details paragraph should exist"
+                },
+                {
+                    "selector": "p.details",
+                    "textContent": "Details are visible",
+                    "description": "Details should have correct text"
+                }
+            ]
+        },
+        {
+            "description": "Update count while details shown",
+            "stateChanges": [
+                { "path": "count", "value": 5 }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('span', 'counter', {}, [dom.txt(String(state.count), 'cnt')]), state.showDetails ? dom.el('p', 'details', { class: 'details' }, [dom.txt('Details are visible', 'dtxt')]) : dom.cmt('no-details', 'placeholder')])",
+            "assertions": [
+                {
+                    "selector": "span",
+                    "textContent": "5",
+                    "description": "Counter should show 5"
+                },
+                {
+                    "selector": "p.details",
+                    "exists": true,
+                    "description": "Details should still be visible"
+                }
+            ]
+        },
+        {
+            "description": "Hide details again",
+            "stateChanges": [
+                { "path": "showDetails", "value": false }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('span', 'counter', {}, [dom.txt(String(state.count), 'cnt')]), state.showDetails ? dom.el('p', 'details', { class: 'details' }, [dom.txt('Details are visible', 'dtxt')]) : dom.cmt('no-details', 'placeholder')])",
+            "assertions": [
+                {
+                    "selector": "p.details",
+                    "exists": false,
+                    "description": "Details should be hidden again"
+                },
+                {
+                    "selector": "span",
+                    "textContent": "5",
+                    "description": "Counter should still show 5"
+                }
+            ]
+        }
+    ]
+}

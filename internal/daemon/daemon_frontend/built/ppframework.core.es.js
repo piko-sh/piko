@@ -1,604 +1,3 @@
-const ELEMENT_NODE = 1;
-const TEXT_NODE = 3;
-const COMMENT_NODE = 8;
-const DOCUMENT_FRAGMENT_NODE = 11;
-const doc = typeof document === "undefined" ? void 0 : document;
-function syncBooleanAttrProp(fromEl, toEl, name) {
-  const fromValue = fromEl[name];
-  const toValue = toEl[name];
-  if (fromValue !== toValue) {
-    fromEl[name] = toValue;
-    if (toValue) {
-      fromEl.setAttribute(name, "");
-    } else {
-      fromEl.removeAttribute(name);
-    }
-  }
-}
-function handleInput(fromEl, toEl) {
-  const from = fromEl;
-  const to = toEl;
-  syncBooleanAttrProp(from, to, "checked");
-  syncBooleanAttrProp(from, to, "disabled");
-  if (from !== doc?.activeElement && from.value !== to.value) {
-    from.value = to.value;
-  }
-  if (from.type !== "file" && !to.hasAttribute("value")) {
-    from.removeAttribute("value");
-  }
-}
-function handleTextarea(fromEl, toEl) {
-  const from = fromEl;
-  const to = toEl;
-  if (from.value !== to.value) {
-    from.value = to.value;
-  }
-}
-function handleOption(fromEl, toEl) {
-  syncBooleanAttrProp(fromEl, toEl, "selected");
-}
-function handleSelect(fromEl, toEl) {
-  const from = fromEl;
-  const to = toEl;
-  if (from.multiple !== to.multiple) {
-    from.multiple = to.multiple;
-  }
-  if (!from.multiple) {
-    const selectedValue = Array.from(to.options).find((o) => o.selected)?.value;
-    if (from.value !== selectedValue) {
-      from.value = selectedValue ?? "";
-    }
-  } else {
-    const selectedValues = new Set(Array.from(to.options).filter((o) => o.selected).map((o) => o.value));
-    Array.from(from.options).forEach((o) => {
-      o.selected = selectedValues.has(o.value);
-    });
-  }
-}
-function handleDetails(fromEl, toEl) {
-  const from = fromEl;
-  const to = toEl;
-  if (from.open !== to.open) {
-    from.open = to.open;
-  }
-}
-function handleMedia(fromEl, toEl) {
-  const from = fromEl;
-  const to = toEl;
-  if (from.src !== to.src) {
-    from.src = to.src;
-  }
-  if (to.hasAttribute("paused") && !from.paused) {
-    from.pause();
-  } else if (!to.hasAttribute("paused") && from.paused) {
-    if (to.hasAttribute("autoplay")) {
-      from.play().catch((err) => {
-        console.warn("[fragmentMorpher] Media play failed:", err);
-      });
-    }
-  }
-  if (from.muted !== to.hasAttribute("muted")) {
-    from.muted = to.hasAttribute("muted");
-  }
-  if (from.loop !== to.hasAttribute("loop")) {
-    from.loop = to.hasAttribute("loop");
-  }
-  const toVolume = to.getAttribute("volume");
-  if (toVolume !== null && from.volume !== parseFloat(toVolume)) {
-    from.volume = parseFloat(toVolume);
-  }
-}
-const nativeSpecialElHandlers = {
-  INPUT: handleInput,
-  TEXTAREA: handleTextarea,
-  OPTION: handleOption,
-  SELECT: handleSelect,
-  DETAILS: handleDetails,
-  AUDIO: handleMedia,
-  VIDEO: handleMedia
-};
-function isFormAssociated(el) {
-  return el.constructor.formAssociated ?? false;
-}
-function syncCustomElementState(fromEl, toEl) {
-  const fromElWithState = fromEl;
-  const toElWithState = toEl;
-  if ("value" in toElWithState && fromElWithState.value !== toElWithState.value) {
-    fromElWithState.value = toElWithState.value;
-  }
-  if ("checked" in toElWithState && fromElWithState.checked !== toElWithState.checked) {
-    fromElWithState.checked = toElWithState.checked;
-  }
-  if (typeof fromElWithState._updateFormState === "function") {
-    fromElWithState._updateFormState();
-  }
-}
-function toElement(html) {
-  if (!doc) {
-    throw new Error("PartialMorpher requires a document environment.");
-  }
-  const template = doc.createElement("template");
-  template.innerHTML = html.trim();
-  const firstChild = template.content.firstChild;
-  if (template.content.childNodes.length === 1 && firstChild) {
-    return firstChild;
-  }
-  return template.content;
-}
-function compareNodeNames(fromEl, toEl) {
-  return fromEl.nodeName === toEl.nodeName;
-}
-function defaultGetNodeKey(node) {
-  if (node.nodeType === ELEMENT_NODE) {
-    const id = node.id;
-    return id || null;
-  }
-  return null;
-}
-function extractParentScopes(partialAttr) {
-  return partialAttr.trim().split(/\s+/).slice(1);
-}
-function mergePartialScopes(selfScope, parentScopes) {
-  if (parentScopes.length === 0) {
-    return selfScope;
-  }
-  return [selfScope, ...parentScopes].join(" ");
-}
-function applyParentScopesToTree(node, parentScopes) {
-  if (parentScopes.length === 0) {
-    return;
-  }
-  if (node.nodeType === ELEMENT_NODE) {
-    const el = node;
-    const currentPartial = el.getAttribute("partial");
-    if (currentPartial) {
-      const selfScope = currentPartial.split(/\s+/)[0];
-      el.setAttribute("partial", mergePartialScopes(selfScope, parentScopes));
-    }
-  }
-  for (const child of Array.from(node.childNodes)) {
-    applyParentScopesToTree(child, parentScopes);
-  }
-}
-function extractParentScopesFromChildren(container) {
-  const childWithPartial = container.querySelector("[partial]:not([slot])");
-  const partialAttr = childWithPartial?.getAttribute("partial");
-  if (partialAttr) {
-    return extractParentScopes(partialAttr);
-  }
-  return [];
-}
-const PRESERVE_ATTR_NAME = "pk-no-refresh-attrs";
-function buildPreservedAttrsList(fromEl) {
-  const preserved = fromEl.getAttribute(PRESERVE_ATTR_NAME)?.split(",").map((s) => s.trim()) ?? [];
-  if (fromEl.hasAttribute(PRESERVE_ATTR_NAME)) {
-    preserved.push(PRESERVE_ATTR_NAME);
-  }
-  return preserved;
-}
-function handlePartialScopePreservation(fromEl, toEl, options) {
-  if (!options?.preservePartialScopes) {
-    return false;
-  }
-  const existingPartial = fromEl.getAttribute("partial");
-  const newPartial = toEl.getAttribute("partial");
-  if (!existingPartial || !newPartial) {
-    return false;
-  }
-  const parentScopes = extractParentScopes(existingPartial);
-  const selfScope = newPartial.split(/\s+/)[0];
-  fromEl.setAttribute("partial", mergePartialScopes(selfScope, parentScopes));
-  return true;
-}
-function shouldSkipAttrUpdate(attrName, ctx) {
-  if (attrName === "pk-ev-bound" || attrName === "pk-sync-bound") {
-    return true;
-  }
-  if (ctx.partialScopeHandled && attrName === "partial") {
-    return true;
-  }
-  if (ctx.preservedAttrs.includes(attrName)) {
-    return true;
-  }
-  if (ctx.isOwnedMode && ctx.ownedAttrs && !ctx.ownedAttrs.includes(attrName)) {
-    return true;
-  }
-  return false;
-}
-function syncToAttrs(fromEl, toEl, ctx) {
-  for (const toAttr of Array.from(toEl.attributes)) {
-    if (shouldSkipAttrUpdate(toAttr.name, ctx)) {
-      continue;
-    }
-    if (fromEl.getAttributeNS(toAttr.namespaceURI, toAttr.localName) !== toAttr.value) {
-      fromEl.setAttributeNS(toAttr.namespaceURI, toAttr.name, toAttr.value);
-    }
-  }
-}
-function removeStaleAttrs(fromEl, toEl, ctx) {
-  for (const fromAttr of Array.from(fromEl.attributes)) {
-    if (fromAttr.name === "pk-ev-bound" || fromAttr.name === "pk-sync-bound") {
-      continue;
-    }
-    if (ctx.partialScopeHandled && fromAttr.name === "partial") {
-      continue;
-    }
-    if (ctx.preservedAttrs.includes(fromAttr.name)) {
-      continue;
-    }
-    if (!toEl.hasAttributeNS(fromAttr.namespaceURI, fromAttr.localName)) {
-      fromEl.removeAttributeNS(fromAttr.namespaceURI, fromAttr.localName);
-    }
-  }
-}
-function morphAttrs(fromEl, toEl, options) {
-  const ownedAttrs = options?.ownedAttributes;
-  const ctx = {
-    preservedAttrs: buildPreservedAttrsList(fromEl),
-    ownedAttrs,
-    isOwnedMode: Boolean(ownedAttrs && ownedAttrs.length > 0),
-    partialScopeHandled: handlePartialScopePreservation(fromEl, toEl, options)
-  };
-  syncToAttrs(fromEl, toEl, ctx);
-  if (!ctx.isOwnedMode) {
-    removeStaleAttrs(fromEl, toEl, ctx);
-  }
-}
-function isSignificantNode(node) {
-  if (node.nodeType !== ELEMENT_NODE && node.nodeType !== TEXT_NODE && node.nodeType !== COMMENT_NODE) {
-    return false;
-  }
-  if (node.nodeType === TEXT_NODE && !node.nodeValue?.trim()) {
-    return false;
-  }
-  return true;
-}
-function buildFromNodeMaps(fromEl, getNodeKey2) {
-  const fromNodesByKey = /* @__PURE__ */ new Map();
-  const unkeyedFromNodes = [];
-  for (const child of Array.from(fromEl.childNodes)) {
-    if (!isSignificantNode(child)) {
-      continue;
-    }
-    const key = getNodeKey2(child);
-    if (key !== null) {
-      fromNodesByKey.set(key, child);
-    } else {
-      unkeyedFromNodes.push(child);
-    }
-  }
-  return { fromNodesByKey, unkeyedFromNodes };
-}
-function discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex, options) {
-  fromNodesByKey.forEach((nodeToDiscard) => {
-    if (options.onBeforeNodeDiscarded?.(nodeToDiscard) !== false) {
-      nodeToDiscard.parentNode?.removeChild(nodeToDiscard);
-      options.onNodeDiscarded?.(nodeToDiscard);
-    }
-  });
-  let unkeyedIndex = unkeyedFromIndex;
-  while (unkeyedIndex < unkeyedFromNodes.length) {
-    const nodeToDiscard = unkeyedFromNodes[unkeyedIndex];
-    if (options.onBeforeNodeDiscarded?.(nodeToDiscard) !== false) {
-      nodeToDiscard.parentNode?.removeChild(nodeToDiscard);
-      options.onNodeDiscarded?.(nodeToDiscard);
-    }
-    unkeyedIndex++;
-  }
-}
-function findFromMatch(toChild, state, getNodeKey2) {
-  const toKey = getNodeKey2(toChild);
-  if (toKey !== null) {
-    const match = state.fromNodesByKey.get(toKey);
-    if (match) {
-      state.fromNodesByKey.delete(toKey);
-      return match;
-    }
-    return null;
-  }
-  if (state.unkeyedFromIndex < state.unkeyedFromNodes.length) {
-    const potentialMatch = state.unkeyedFromNodes[state.unkeyedFromIndex];
-    if (compareNodeNames(potentialMatch, toChild)) {
-      state.unkeyedFromIndex++;
-      return potentialMatch;
-    }
-  }
-  return null;
-}
-function morphChildren(fromEl, toEl, isParentPreserved, options) {
-  const getNodeKey2 = options.getNodeKey ?? defaultGetNodeKey;
-  const { fromNodesByKey, unkeyedFromNodes } = buildFromNodeMaps(fromEl, getNodeKey2);
-  const state = { fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex: 0 };
-  let fromChild = fromEl.firstChild;
-  const advanceFromPointer = () => {
-    while (fromChild && !isSignificantNode(fromChild)) {
-      fromChild = fromChild.nextSibling;
-    }
-  };
-  for (const toChild of Array.from(toEl.childNodes)) {
-    if (!isSignificantNode(toChild)) {
-      continue;
-    }
-    const fromMatch = findFromMatch(toChild, state, getNodeKey2);
-    if (fromMatch) {
-      const morphedNode = morphNode(fromMatch, toChild, isParentPreserved, options);
-      advanceFromPointer();
-      if (fromChild !== morphedNode) {
-        fromEl.insertBefore(morphedNode, fromChild);
-      } else {
-        fromChild = fromChild.nextSibling;
-      }
-    } else {
-      const newNode = toChild.cloneNode(true);
-      if (options._parentScopesToInherit && options._parentScopesToInherit.length > 0) {
-        applyParentScopesToTree(newNode, options._parentScopesToInherit);
-      }
-      if (options.onBeforeNodeAdded?.(newNode) !== false) {
-        fromEl.insertBefore(newNode, fromChild);
-        options.onNodeAdded?.(newNode);
-      }
-    }
-  }
-  discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, state.unkeyedFromIndex, options);
-}
-function morphElementNode(fromEl, toEl, isParentPreserved, currentOptions) {
-  let preserveEl;
-  if (fromEl.hasAttribute("pk-refresh")) {
-    preserveEl = false;
-  } else if (fromEl.hasAttribute("pk-no-refresh")) {
-    preserveEl = true;
-  } else {
-    preserveEl = isParentPreserved;
-  }
-  if (!preserveEl) {
-    if (currentOptions.onBeforeElUpdated?.(fromEl, toEl) !== false) {
-      morphAttrs(fromEl, toEl, currentOptions);
-      const nativeHandler = nativeSpecialElHandlers[fromEl.nodeName.toUpperCase()];
-      if (nativeHandler) {
-        nativeHandler(fromEl, toEl);
-      } else if (isFormAssociated(fromEl)) {
-        syncCustomElementState(fromEl, toEl);
-      }
-    }
-  }
-  if (currentOptions.onBeforeElChildrenUpdated?.(fromEl, toEl) !== false) {
-    morphChildren(fromEl, toEl, preserveEl, currentOptions);
-  }
-  if (!preserveEl && currentOptions.onElUpdated) {
-    currentOptions.onElUpdated(fromEl);
-  }
-  return fromEl;
-}
-function replaceIncompatibleNode(from, to, currentOptions) {
-  const replacement = to.cloneNode(true);
-  if (currentOptions.onBeforeNodeAdded?.(replacement) === false) {
-    return from;
-  }
-  from.parentNode?.replaceChild(replacement, from);
-  currentOptions.onNodeDiscarded?.(from);
-  currentOptions.onNodeAdded?.(replacement);
-  return replacement;
-}
-function morphNode(from, to, isParentPreserved, currentOptions) {
-  if (currentOptions.onBeforeNodeDiscarded?.(from) === false) {
-    return from;
-  }
-  if (from.nodeType === ELEMENT_NODE && to.nodeType === DOCUMENT_FRAGMENT_NODE) {
-    morphChildren(from, to, isParentPreserved, currentOptions);
-    return from;
-  }
-  if (from.nodeType !== to.nodeType || !compareNodeNames(from, to)) {
-    return replaceIncompatibleNode(from, to, currentOptions);
-  }
-  if (from.nodeType === TEXT_NODE || from.nodeType === COMMENT_NODE) {
-    if (!isParentPreserved && from.nodeValue !== to.nodeValue) {
-      from.nodeValue = to.nodeValue;
-    }
-    return from;
-  }
-  return morphElementNode(from, to, isParentPreserved, currentOptions);
-}
-function captureActiveElementKey(fromNode, getNodeKey2) {
-  const activeEl = doc?.activeElement;
-  const key = activeEl && fromNode.contains(activeEl) ? getNodeKey2(activeEl) : null;
-  return { activeEl, key };
-}
-function buildEffectiveOptions(fromNode, options) {
-  if (!options.preservePartialScopes || options._parentScopesToInherit) {
-    return options;
-  }
-  const parentScopes = extractParentScopesFromChildren(fromNode);
-  if (parentScopes.length === 0) {
-    return options;
-  }
-  return { ...options, _parentScopesToInherit: parentScopes };
-}
-function performMorph(fromNode, toNode, options) {
-  const initialPreserve = options.initialState === "pk-no-refresh";
-  if (options.childrenOnly) {
-    const containerPreserved = fromNode.hasAttribute("pk-no-refresh") || initialPreserve && !fromNode.hasAttribute("pk-refresh");
-    morphChildren(fromNode, toNode, containerPreserved, options);
-  } else {
-    morphNode(fromNode, toNode, initialPreserve, options);
-  }
-}
-function fragmentMorpher(fromNode, toNodeOrHTML, options = {}) {
-  if (!fromNode || !toNodeOrHTML) {
-    return;
-  }
-  const toNode = typeof toNodeOrHTML === "string" ? toElement(toNodeOrHTML) : toNodeOrHTML;
-  const getNodeKey2 = options.getNodeKey ?? defaultGetNodeKey;
-  const { activeEl, key: activeElKey } = captureActiveElementKey(fromNode, getNodeKey2);
-  const effectiveOptions = buildEffectiveOptions(fromNode, options);
-  performMorph(fromNode, toNode, effectiveOptions);
-  if (activeElKey !== null && doc?.activeElement !== activeEl) {
-    findAndFocusNodeByKey(fromNode, activeElKey, getNodeKey2);
-  }
-}
-function findAndFocusNodeByKey(container, key, getNodeKey2) {
-  if (getNodeKey2(container) === key) {
-    container.focus();
-    return;
-  }
-  const walker = doc?.createTreeWalker(container, Node.ELEMENT_NODE, { acceptNode: () => NodeFilter.FILTER_ACCEPT });
-  if (!walker) {
-    return;
-  }
-  while (walker.nextNode()) {
-    if (getNodeKey2(walker.currentNode) === key) {
-      walker.currentNode.focus();
-      return;
-    }
-  }
-}
-let _onDOMUpdated = null;
-function registerDOMUpdater(callback) {
-  _onDOMUpdated = callback;
-}
-function notifyDOMUpdated(root) {
-  if (_onDOMUpdated) {
-    _onDOMUpdated(root);
-  }
-}
-const LOADING_CLASS = "pk-loading";
-const ARIA_BUSY_ATTR = "aria-busy";
-function applyLoadingIndicator(el) {
-  el.classList.add(LOADING_CLASS);
-  el.setAttribute(ARIA_BUSY_ATTR, "true");
-}
-function removeLoadingIndicator(el) {
-  el.classList.remove(LOADING_CLASS);
-  el.removeAttribute(ARIA_BUSY_ATTR);
-}
-const REFRESH_LEVEL_NO_REFRESH_ATTRS$1 = 3;
-const REFRESH_LEVEL_OWN_ATTRS = 2;
-function detectRefreshLevel$1(el) {
-  if (el.hasAttribute("pk-no-refresh-attrs")) {
-    return REFRESH_LEVEL_NO_REFRESH_ATTRS$1;
-  }
-  if (el.hasAttribute("pk-own-attrs")) {
-    return REFRESH_LEVEL_OWN_ATTRS;
-  }
-  if (el.hasAttribute("pk-refresh-root")) {
-    return 1;
-  }
-  return 0;
-}
-function getOwnedAttributes(el) {
-  const attr = el.getAttribute("pk-own-attrs");
-  if (!attr) {
-    return void 0;
-  }
-  return attr.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
-}
-function parseHTML(html) {
-  const parser = new DOMParser();
-  const doc2 = parser.parseFromString(html, "text/html");
-  return doc2.body.firstElementChild;
-}
-function applyRefresh(el, newContent, level, ownedAttrs) {
-  switch (level) {
-    case 0:
-      fragmentMorpher(el, newContent, { childrenOnly: true });
-      break;
-    case 1:
-      fragmentMorpher(el, newContent, {
-        childrenOnly: false,
-        preservePartialScopes: true
-      });
-      break;
-    case REFRESH_LEVEL_OWN_ATTRS:
-      fragmentMorpher(el, newContent, {
-        childrenOnly: false,
-        preservePartialScopes: true,
-        ownedAttributes: ownedAttrs
-      });
-      break;
-    case REFRESH_LEVEL_NO_REFRESH_ATTRS$1:
-      fragmentMorpher(el, newContent, {
-        childrenOnly: false,
-        preservePartialScopes: true
-      });
-      break;
-  }
-}
-async function performReload(el, name, options) {
-  const baseSrc = el.getAttribute("partial_src");
-  if (!baseSrc) {
-    throw new Error(`Partial "${name}" has no partial_src attribute. Is the partial's template marked as public?`);
-  }
-  let effectiveData = options.data;
-  if (!effectiveData) {
-    const partialProps = el.getAttribute("partial_props");
-    if (partialProps) {
-      effectiveData = Object.fromEntries(new URLSearchParams(partialProps));
-    }
-  }
-  const params = new URLSearchParams(effectiveData);
-  params.set("_f", "true");
-  const url = `${baseSrc}?${params.toString()}`;
-  const level = options.level ?? detectRefreshLevel$1(el);
-  applyLoadingIndicator(el);
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to reload partial: ${response.status}`);
-    }
-    const html = await response.text();
-    const newContent = parseHTML(html);
-    if (!newContent) {
-      console.warn(`[pk] partial "${name}" received empty or invalid response`);
-      return;
-    }
-    const ownedAttrs = options.ownedAttrs ?? getOwnedAttributes(el);
-    applyRefresh(el, newContent, level, ownedAttrs);
-    if (effectiveData) {
-      el.setAttribute(
-        "partial_props",
-        new URLSearchParams(effectiveData).toString()
-      );
-    }
-    notifyDOMUpdated(el);
-  } catch (error) {
-    console.error(`[pk] Failed to reload partial "${name}":`, {
-      url,
-      args: options.data,
-      level,
-      error
-    });
-    throw error;
-  } finally {
-    removeLoadingIndicator(el);
-  }
-}
-function partial(nameOrElement) {
-  let el;
-  let name;
-  if (typeof nameOrElement === "string") {
-    name = nameOrElement;
-    el = document.querySelector(`[partial_name="${name}"]`);
-  } else {
-    el = nameOrElement;
-    name = el.getAttribute("partial_name") ?? el.getAttribute("partial") ?? "unknown";
-  }
-  return {
-    element: el,
-    async reload(data) {
-      if (!el) {
-        console.warn(`[pk] partial "${name}" not found`);
-        return;
-      }
-      return performReload(el, name, { data });
-    },
-    async reloadWithOptions(options) {
-      if (!el) {
-        console.warn(`[pk] partial "${name}" not found`);
-        return;
-      }
-      return performReload(el, name, options);
-    }
-  };
-}
 const listeners = /* @__PURE__ */ new Map();
 const bus = {
   /**
@@ -829,264 +228,6 @@ function extractParams(pattern) {
   });
   return params;
 }
-const PATTERNS = {
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  url: /^https?:\/\/[^\s/$.?#].[^\s]*$/i,
-  phone: /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/,
-  date: /^\d{4}-\d{2}-\d{2}$/
-};
-const DEFAULT_MESSAGES = {
-  required: "This field is required",
-  minLength: "Value is too short",
-  maxLength: "Value is too long",
-  min: "Value is too small",
-  max: "Value is too large",
-  pattern: "Invalid format",
-  email: "Invalid email address",
-  url: "Invalid URL",
-  phone: "Invalid phone number",
-  date: "Invalid date format (YYYY-MM-DD)"
-};
-function resolveForm(selector) {
-  if (selector instanceof HTMLFormElement) {
-    return selector;
-  }
-  const element = document.querySelector(selector);
-  if (element instanceof HTMLFormElement) {
-    return element;
-  }
-  console.warn(`[pk] formData: "${selector}" is not a form element`);
-  return null;
-}
-function formDataToObject(fd) {
-  const result = {};
-  fd.forEach((value, key) => {
-    const arrayMatch = key.match(/^(.+)\[\]$/);
-    const actualKey = arrayMatch ? arrayMatch[1] : key;
-    if (arrayMatch || result[actualKey] !== void 0) {
-      const existing = result[actualKey];
-      if (Array.isArray(existing)) {
-        existing.push(value);
-      } else if (existing !== void 0) {
-        result[actualKey] = [existing, value];
-      } else {
-        result[actualKey] = [value];
-      }
-    } else {
-      result[actualKey] = value;
-    }
-  });
-  return result;
-}
-function getStringValue(value) {
-  if (value === null || value === void 0) {
-    return "";
-  }
-  return String(value);
-}
-function validateLength(strValue, rule) {
-  if (rule.minLength !== void 0 && strValue.length < rule.minLength) {
-    return rule.message ?? `${DEFAULT_MESSAGES.minLength} (minimum ${rule.minLength} characters)`;
-  }
-  if (rule.maxLength !== void 0 && strValue.length > rule.maxLength) {
-    return rule.message ?? `${DEFAULT_MESSAGES.maxLength} (maximum ${rule.maxLength} characters)`;
-  }
-  return null;
-}
-function validateNumericRange(value, rule) {
-  const numValue = Number(value);
-  if (isNaN(numValue)) {
-    return null;
-  }
-  if (rule.min !== void 0 && numValue < rule.min) {
-    return rule.message ?? `${DEFAULT_MESSAGES.min} (minimum ${rule.min})`;
-  }
-  if (rule.max !== void 0 && numValue > rule.max) {
-    return rule.message ?? `${DEFAULT_MESSAGES.max} (maximum ${rule.max})`;
-  }
-  return null;
-}
-function validatePattern(strValue, rule) {
-  if (rule.pattern === void 0) {
-    return null;
-  }
-  const pattern = typeof rule.pattern === "string" ? new RegExp(rule.pattern) : rule.pattern;
-  if (!pattern.test(strValue)) {
-    return rule.message ?? DEFAULT_MESSAGES.pattern;
-  }
-  return null;
-}
-function validateFormat(strValue, rule) {
-  if (rule.format === void 0) {
-    return null;
-  }
-  const formatPattern = PATTERNS[rule.format];
-  if (!formatPattern.test(strValue)) {
-    return rule.message ?? DEFAULT_MESSAGES[rule.format];
-  }
-  return null;
-}
-function validateCustom(value, rule) {
-  if (rule.custom === void 0) {
-    return null;
-  }
-  const customResult = rule.custom(value);
-  if (customResult === false) {
-    return rule.message ?? "Validation failed";
-  }
-  if (typeof customResult === "string") {
-    return customResult;
-  }
-  return null;
-}
-function validateField(value, rule) {
-  const errors = [];
-  const strValue = getStringValue(value);
-  const isEmpty = strValue.trim() === "";
-  if (rule.required && isEmpty) {
-    errors.push(rule.message ?? DEFAULT_MESSAGES.required);
-    return errors;
-  }
-  if (isEmpty) {
-    return errors;
-  }
-  const validationResults = [
-    validateLength(strValue, rule),
-    validateNumericRange(value, rule),
-    validatePattern(strValue, rule),
-    validateFormat(strValue, rule),
-    validateCustom(value, rule)
-  ];
-  for (const error of validationResults) {
-    if (error !== null) {
-      errors.push(error);
-    }
-  }
-  return errors;
-}
-function formData(selector) {
-  const form = resolveForm(selector);
-  const fd = form ? new FormData(form) : new FormData();
-  const formObject = formDataToObject(fd);
-  return {
-    toObject() {
-      return { ...formObject };
-    },
-    toFormData() {
-      return form ? new FormData(form) : new FormData();
-    },
-    toJSON() {
-      return JSON.stringify(formObject);
-    },
-    get(key) {
-      return formObject[key];
-    },
-    has(key) {
-      return key in formObject;
-    },
-    getAll(key) {
-      const value = formObject[key];
-      if (Array.isArray(value)) {
-        return value;
-      }
-      if (value !== void 0) {
-        return [value];
-      }
-      return [];
-    }
-  };
-}
-function validate(selector, rules = {}) {
-  const form = resolveForm(selector);
-  const data = formData(selector);
-  const formObject = data.toObject();
-  const errors = {};
-  let firstInvalidField = null;
-  for (const [field, rule] of Object.entries(rules)) {
-    const fieldErrors = validateField(formObject[field], rule);
-    if (fieldErrors.length > 0) {
-      errors[field] = fieldErrors;
-      firstInvalidField ??= field;
-    }
-  }
-  const isValid = Object.keys(errors).length === 0;
-  return {
-    isValid,
-    errors,
-    focus() {
-      if (!form || !firstInvalidField) {
-        return;
-      }
-      const field = form.elements.namedItem(firstInvalidField);
-      if (field instanceof HTMLElement && "focus" in field) {
-        field.focus();
-      }
-    },
-    getErrors(field) {
-      return errors[field] ?? [];
-    },
-    hasError(field) {
-      return field in errors && errors[field].length > 0;
-    }
-  };
-}
-function resetForm(selector) {
-  const form = resolveForm(selector);
-  if (form) {
-    form.reset();
-  }
-}
-function setInputValue(input, value) {
-  if (input.type === "checkbox") {
-    input.checked = Boolean(value);
-  } else if (input.type !== "file") {
-    input.value = String(value ?? "");
-  }
-}
-function setRadioNodeListValue(nodeList, value) {
-  for (const element of Array.from(nodeList)) {
-    if (!(element instanceof HTMLInputElement)) {
-      continue;
-    }
-    if (element.type === "checkbox") {
-      element.checked = Array.isArray(value) ? value.includes(element.value) : element.value === String(value);
-    } else if (element.type === "radio") {
-      element.checked = element.value === String(value);
-    }
-  }
-}
-function setSelectValue(select, value) {
-  if (select.multiple && Array.isArray(value)) {
-    for (const option of Array.from(select.options)) {
-      option.selected = value.includes(option.value);
-    }
-  } else {
-    select.value = String(value ?? "");
-  }
-}
-function setFormValues(selector, values) {
-  const form = resolveForm(selector);
-  if (!form) {
-    return;
-  }
-  for (const [name, value] of Object.entries(values)) {
-    const elements = form.elements.namedItem(name);
-    if (!elements) {
-      continue;
-    }
-    if (elements instanceof RadioNodeList) {
-      setRadioNodeListValue(elements, value);
-      continue;
-    }
-    if (elements instanceof HTMLInputElement) {
-      setInputValue(elements, value);
-    } else if (elements instanceof HTMLSelectElement) {
-      setSelectValue(elements, value);
-    } else if (elements instanceof HTMLTextAreaElement) {
-      elements.value = String(value ?? "");
-    }
-  }
-}
 function resolveElement(target) {
   if (target instanceof Element) {
     return target;
@@ -1173,7 +314,7 @@ async function withRetry(operation, options = {}) {
   const {
     attempts = 3,
     backoff = "exponential",
-    delay: delay2 = 1e3,
+    delay = 1e3,
     maxDelay = 3e4,
     onRetry,
     shouldRetry = () => true
@@ -1188,7 +329,7 @@ async function withRetry(operation, options = {}) {
         throw lastError;
       }
       onRetry?.(attempt, lastError);
-      const waitTime = calculateDelay(attempt, { backoff, delay: delay2, maxDelay });
+      const waitTime = calculateDelay(attempt, { backoff, delay, maxDelay });
       await sleep(waitTime);
     }
   }
@@ -1197,7 +338,7 @@ async function withRetry(operation, options = {}) {
 async function withLoading(target, operation, options = {}) {
   return loading(target, operation(), options);
 }
-function debounceAsync(handler, delay2) {
+function debounceAsync(handler, delay) {
   let timeoutId = null;
   let pendingResolve = null;
   let pendingReject = null;
@@ -1218,7 +359,7 @@ function debounceAsync(handler, delay2) {
             pendingReject?.(error instanceof Error ? error : new Error(String(error)));
           }
         })();
-      }, delay2);
+      }, delay);
     });
   };
   debounced.cancel = () => {
@@ -1229,12 +370,12 @@ function debounceAsync(handler, delay2) {
   };
   return debounced;
 }
-function throttleAsync(handler, delay2) {
+function throttleAsync(handler, delay) {
   let lastCall = 0;
   let pendingPromise = null;
   return async (...args) => {
     const now = Date.now();
-    if (now - lastCall >= delay2) {
+    if (now - lastCall >= delay) {
       lastCall = now;
       pendingPromise = handler(...args);
       return pendingPromise;
@@ -1319,305 +460,6 @@ function throttle(handler, ms) {
     if (now - lastCall >= ms) {
       lastCall = now;
       handler(...args);
-    }
-  };
-}
-const RETRY_BACKOFF_BASE_MS = 1e3;
-const debounceRegistry = /* @__PURE__ */ new Map();
-function delay$1(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-function toStringRecord(args) {
-  if (!args) {
-    return void 0;
-  }
-  const result = {};
-  for (const [key, value] of Object.entries(args)) {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      result[key] = value;
-    } else if (value !== null && value !== void 0) {
-      result[key] = String(value);
-    }
-  }
-  return result;
-}
-function sanitiseHTML(html) {
-  const template = document.createElement("template");
-  template.innerHTML = html;
-  template.content.querySelectorAll("script").forEach((s) => s.remove());
-  template.content.querySelectorAll("*").forEach((el) => {
-    for (const attr of Array.from(el.attributes)) {
-      if (attr.name.startsWith("on")) {
-        el.removeAttribute(attr.name);
-      }
-    }
-  });
-  const container = document.createElement("div");
-  container.appendChild(template.content.cloneNode(true));
-  return container.innerHTML;
-}
-function applyOptimisticUpdate(element, optimistic) {
-  if (typeof optimistic === "string") {
-    element.innerHTML = sanitiseHTML(optimistic);
-  } else if (typeof optimistic === "object" && optimistic !== null) {
-    const opts = optimistic;
-    if (typeof opts.innerHTML === "string") {
-      element.innerHTML = sanitiseHTML(opts.innerHTML);
-    }
-    if (typeof opts.className === "string") {
-      element.className = opts.className;
-    }
-    if (typeof opts.addClass === "string") {
-      element.classList.add(opts.addClass);
-    }
-    if (typeof opts.removeClass === "string") {
-      element.classList.remove(opts.removeClass);
-    }
-  }
-}
-async function executeReload(handle, options, retriesLeft, maxRetries) {
-  const { args, loading: loading2 = true, optimistic, onSuccess, onError } = options;
-  try {
-    if (optimistic !== void 0 && handle.element) {
-      applyOptimisticUpdate(handle.element, optimistic);
-    }
-    if (loading2 && handle.element) {
-      applyLoadingIndicator(handle.element);
-    }
-    await handle.reload(toStringRecord(args));
-    onSuccess?.(handle.element?.innerHTML ?? "");
-  } catch (error) {
-    if (retriesLeft > 0) {
-      const backoffDelay = Math.pow(2, maxRetries - retriesLeft) * RETRY_BACKOFF_BASE_MS;
-      await delay$1(backoffDelay);
-      return executeReload(handle, options, retriesLeft - 1, maxRetries);
-    }
-    console.error(`[pk] Failed to reload partial after ${maxRetries} retries:`, {
-      name: handle.element?.getAttribute("data-partial"),
-      error
-    });
-    onError?.(error);
-    throw error;
-  } finally {
-    if (loading2 && handle.element) {
-      removeLoadingIndicator(handle.element);
-    }
-  }
-}
-async function reloadPartial(nameOrElement, options = {}) {
-  const handle = partial(nameOrElement);
-  const name = typeof nameOrElement === "string" ? nameOrElement : nameOrElement.getAttribute("partial_name") ?? "unknown";
-  if (!handle.element) {
-    console.warn(`[pk] reloadPartial: partial "${name}" not found`);
-    return;
-  }
-  const { retry = 0, debounce: debounceMs, ...reloadOpts } = options;
-  if (debounceMs && debounceMs > 0) {
-    let debouncedFn = debounceRegistry.get(name);
-    if (!debouncedFn) {
-      debouncedFn = debounce(async () => {
-        await executeReload(handle, reloadOpts, retry, retry);
-      }, debounceMs);
-      debounceRegistry.set(name, debouncedFn);
-    }
-    debouncedFn();
-    return;
-  }
-  return executeReload(handle, reloadOpts, retry, retry);
-}
-async function reloadGroup(names, options = {}) {
-  const { mode = "parallel", args, loading: loading2, onProgress } = options;
-  if (mode === "parallel") {
-    const promises = names.map(
-      (name, index) => reloadPartial(name, { args, loading: loading2 }).then(() => {
-        onProgress?.(index + 1, names.length);
-      })
-    );
-    await Promise.all(promises);
-  } else {
-    for (let i = 0; i < names.length; i++) {
-      await reloadPartial(names[i], { args, loading: loading2 });
-      onProgress?.(i + 1, names.length);
-    }
-  }
-}
-function autoRefresh(name, options) {
-  const { interval, when, onError = "retry", maxRetries = 3 } = options;
-  let intervalId = null;
-  let retryCount = 0;
-  let stopped = false;
-  const refresh = async () => {
-    if (stopped) {
-      return;
-    }
-    if (when && !when()) {
-      return;
-    }
-    try {
-      await reloadPartial(name);
-      retryCount = 0;
-    } catch (error) {
-      retryCount++;
-      console.warn(`[pk] autoRefresh "${name}" failed (attempt ${retryCount}/${maxRetries}):`, error);
-      if (onError === "stop" || retryCount >= maxRetries) {
-        if (intervalId !== null) {
-          clearInterval(intervalId);
-          intervalId = null;
-        }
-        stopped = true;
-        console.warn(`[pk] autoRefresh "${name}" stopped after ${retryCount} failures`);
-      }
-    }
-  };
-  intervalId = setInterval(() => void refresh(), interval);
-  return () => {
-    stopped = true;
-    if (intervalId !== null) {
-      clearInterval(intervalId);
-      intervalId = null;
-    }
-  };
-}
-async function reloadCascade(tree, options = {}) {
-  const { args, onNodeComplete } = options;
-  await reloadPartial(tree.name, { args });
-  onNodeComplete?.(tree.name);
-  if (tree.children && tree.children.length > 0) {
-    await Promise.all(
-      tree.children.map((child) => reloadCascade(child, options))
-    );
-  }
-}
-const MAX_RECONNECT_BACKOFF_MULTIPLIER = 5;
-function parseSSEData(data) {
-  if (typeof data === "string") {
-    try {
-      return JSON.parse(data);
-    } catch {
-    }
-  }
-  return data;
-}
-function createMessageHandler(state, name, onMessage) {
-  return (event) => {
-    if (state.stopped) {
-      return;
-    }
-    const data = parseSSEData(event.data);
-    if (onMessage) {
-      onMessage(data);
-    } else {
-      void reloadPartial(name);
-    }
-  };
-}
-function createErrorHandler(state, url, onError, reconnectDelay, maxReconnects, onClose, connect) {
-  return () => {
-    if (state.stopped) {
-      return;
-    }
-    state.eventSource?.close();
-    state.eventSource = null;
-    if (onError === "stop") {
-      state.stopped = true;
-      console.warn(`[pk] SSE connection to "${url}" failed, stopping`);
-      onClose?.();
-      return;
-    }
-    if (state.reconnectCount < maxReconnects) {
-      state.reconnectCount++;
-      const delay2 = reconnectDelay * Math.min(state.reconnectCount, MAX_RECONNECT_BACKOFF_MULTIPLIER);
-      console.warn(`[pk] SSE connection to "${url}" lost, reconnecting in ${delay2}ms (attempt ${state.reconnectCount}/${maxReconnects})`);
-      state.reconnectTimeout = setTimeout(() => {
-        if (!state.stopped) {
-          connect();
-        }
-      }, delay2);
-    } else {
-      state.stopped = true;
-      console.error(`[pk] SSE connection to "${url}" failed after ${maxReconnects} attempts`);
-      onClose?.();
-    }
-  };
-}
-function subscribeToUpdates(name, options) {
-  const {
-    url,
-    onMessage,
-    onError = "reconnect",
-    reconnectDelay = 3e3,
-    maxReconnects = 10,
-    eventTypes = ["message"],
-    onOpen,
-    onClose
-  } = options;
-  const state = {
-    eventSource: null,
-    reconnectCount: 0,
-    reconnectTimeout: null,
-    stopped: false
-  };
-  const handleMessage = createMessageHandler(state, name, onMessage);
-  const connect = () => {
-    if (state.stopped) {
-      return;
-    }
-    try {
-      state.eventSource = new EventSource(url);
-      state.eventSource.onopen = () => {
-        state.reconnectCount = 0;
-        onOpen?.();
-      };
-      state.eventSource.onerror = createErrorHandler(
-        state,
-        url,
-        onError,
-        reconnectDelay,
-        maxReconnects,
-        onClose,
-        connect
-      );
-      for (const eventType of eventTypes) {
-        state.eventSource.addEventListener(eventType, handleMessage);
-      }
-    } catch (error) {
-      console.error(`[pk] Failed to create SSE connection to "${url}":`, { error });
-      state.eventSource = null;
-    }
-  };
-  connect();
-  return () => {
-    state.stopped = true;
-    if (state.reconnectTimeout) {
-      clearTimeout(state.reconnectTimeout);
-    }
-    state.eventSource?.close();
-    onClose?.();
-  };
-}
-function createSSESubscription(name, options) {
-  let state = "connecting";
-  let reconnectCount = 0;
-  const unsubscribe = subscribeToUpdates(name, {
-    ...options,
-    onOpen: () => {
-      state = "open";
-      reconnectCount = 0;
-      options.onOpen?.();
-    },
-    onClose: () => {
-      state = "closed";
-      options.onClose?.();
-    },
-    onError: options.onError
-  });
-  return {
-    unsubscribe,
-    get state() {
-      return state;
-    },
-    get reconnectCount() {
-      return reconnectCount;
     }
   };
 }
@@ -2021,86 +863,6 @@ function traceAsync(name, operation) {
     }
   };
 }
-const activeRefreshers = /* @__PURE__ */ new Map();
-function processElement(el) {
-  if (activeRefreshers.has(el)) {
-    return;
-  }
-  const intervalStr = el.dataset.autoRefresh;
-  const partialName = el.dataset.partial;
-  if (!intervalStr || !partialName) {
-    return;
-  }
-  const interval = parseInt(intervalStr, 10);
-  if (isNaN(interval) || interval <= 0) {
-    console.warn(`[pk] Invalid auto-refresh interval: "${intervalStr}" on element`, el);
-    return;
-  }
-  const whenCondition = el.dataset.autoRefreshWhen;
-  let when;
-  if (whenCondition === "visible") {
-    when = () => document.visibilityState === "visible";
-  } else if (whenCondition === "focus") {
-    when = () => document.hasFocus();
-  }
-  const onErrorStr = el.dataset.autoRefreshOnError;
-  const onError = onErrorStr === "stop" ? "stop" : "retry";
-  const cleanup = autoRefresh(partialName, {
-    interval,
-    when,
-    onError
-  });
-  activeRefreshers.set(el, cleanup);
-}
-function cleanupElement(el) {
-  const cleanup = activeRefreshers.get(el);
-  if (cleanup) {
-    cleanup();
-    activeRefreshers.delete(el);
-  }
-}
-function cleanupElementAndDescendants(el) {
-  cleanupElement(el);
-  const descendants = el.querySelectorAll("[data-auto-refresh]");
-  descendants.forEach(cleanupElement);
-}
-function initAutoRefreshObserver() {
-  const existingElements = document.querySelectorAll("[data-auto-refresh]");
-  existingElements.forEach(processElement);
-  function processAddedNode(node) {
-    if (!(node instanceof HTMLElement)) {
-      return;
-    }
-    if (node.hasAttribute("data-auto-refresh")) {
-      processElement(node);
-    }
-    node.querySelectorAll("[data-auto-refresh]").forEach(processElement);
-  }
-  function processRemovedNode(node) {
-    if (node instanceof HTMLElement) {
-      cleanupElementAndDescendants(node);
-    }
-  }
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach(processAddedNode);
-      mutation.removedNodes.forEach(processRemovedNode);
-    }
-  });
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-}
-function stopAllAutoRefreshers() {
-  for (const cleanup of activeRefreshers.values()) {
-    cleanup();
-  }
-  activeRefreshers.clear();
-}
-function getActiveRefresherCount() {
-  return activeRefreshers.size;
-}
 function findFunctionInGlobal(name, exports$1) {
   const exportedFunction = exports$1[name];
   return typeof exportedFunction === "function" ? exportedFunction : void 0;
@@ -2395,6 +1157,9 @@ let _readyCallbacks = [];
 let _isReady = false;
 var piko;
 ((piko2) => {
+  function partial(_nameOrElement) {
+    return null;
+  }
   piko2.partial = partial;
   piko2.bus = bus;
   ((nav2) => {
@@ -2414,10 +1179,10 @@ var piko;
     nav2.navigateTo = navigateTo;
   })(piko2.nav || (piko2.nav = {}));
   ((form2) => {
-    form2.data = formData;
-    form2.validate = validate;
-    form2.reset = resetForm;
-    form2.setValues = setFormValues;
+    function data(_selector) {
+      return null;
+    }
+    form2.data = data;
   })(piko2.form || (piko2.form = {}));
   ((ui2) => {
     ui2.loading = loading;
@@ -2431,18 +1196,20 @@ var piko;
     event2.waitFor = waitForEvent;
   })(piko2.event || (piko2.event = {}));
   ((partials2) => {
-    partials2.reload = reloadPartial;
-    partials2.reloadGroup = reloadGroup;
-    partials2.reloadCascade = reloadCascade;
-    partials2.autoRefresh = autoRefresh;
+    function reload(_name, _options) {
+      return Promise.resolve();
+    }
+    partials2.reload = reload;
     function render(options) {
       return PPFramework.remoteRender(options);
     }
     partials2.render = render;
   })(piko2.partials || (piko2.partials = {}));
   ((sse2) => {
-    sse2.subscribe = subscribeToUpdates;
-    sse2.create = createSSESubscription;
+    function subscribe(_url, _callback) {
+      return null;
+    }
+    sse2.subscribe = subscribe;
   })(piko2.sse || (piko2.sse = {}));
   ((timing2) => {
     timing2.debounce = debounce;
@@ -2476,9 +1243,16 @@ var piko;
     trace2.async = async;
   })(piko2.trace || (piko2.trace = {}));
   ((autoRefreshObserver2) => {
-    autoRefreshObserver2.init = initAutoRefreshObserver;
-    autoRefreshObserver2.stopAll = stopAllAutoRefreshers;
-    autoRefreshObserver2.getActiveCount = getActiveRefresherCount;
+    function init() {
+    }
+    autoRefreshObserver2.init = init;
+    function stopAll() {
+    }
+    autoRefreshObserver2.stopAll = stopAll;
+    function getActiveCount() {
+      return 0;
+    }
+    autoRefreshObserver2.getActiveCount = getActiveCount;
   })(piko2.autoRefreshObserver || (piko2.autoRefreshObserver = {}));
   ((context2) => {
     context2.get = getGlobalPageContext;
@@ -2533,17 +1307,11 @@ var piko;
       PPFramework.displayError(message);
     }
     loader2.error = error;
-    function create(color) {
-      PPFramework.createLoaderIndicator(color);
+    function create(colour) {
+      PPFramework.createLoaderIndicator(colour);
     }
     loader2.create = create;
   })(piko2.loader || (piko2.loader = {}));
-  ((modal2) => {
-    function open(options) {
-      return PPFramework.openModalIfAvailable(options);
-    }
-    modal2.open = open;
-  })(piko2.modal || (piko2.modal = {}));
   ((network2) => {
     function isOnline() {
       return PPFramework.isOnline;
@@ -2683,50 +1451,11 @@ function _executeDisconnected(scope) {
   }
   state.cleanups.length = 0;
 }
-function _executeBeforeRender(scope) {
-  const state = partialLifecycleState.get(scope);
-  if (!state || state.callbacks.onBeforeRender.length === 0) {
-    return;
-  }
-  for (const callback of state.callbacks.onBeforeRender) {
-    try {
-      callback();
-    } catch (error) {
-      console.error("[pk] Error in onBeforeRender:", error);
-    }
-  }
-}
-function _executeAfterRender(scope) {
-  const state = partialLifecycleState.get(scope);
-  if (!state || state.callbacks.onAfterRender.length === 0) {
-    return;
-  }
-  for (const callback of state.callbacks.onAfterRender) {
-    try {
-      callback();
-    } catch (error) {
-      console.error("[pk] Error in onAfterRender:", error);
-    }
-  }
-}
-function _executeUpdated(scope, context) {
-  const state = partialLifecycleState.get(scope);
-  if (!state || state.callbacks.onUpdated.length === 0) {
-    return;
-  }
-  for (const callback of state.callbacks.onUpdated) {
-    try {
-      callback(context);
-    } catch (error) {
-      console.error("[pk] Error in onUpdated:", error);
-    }
-  }
-}
 function _executeConnectedForPartials(container) {
   const partials = container.querySelectorAll("[partial]");
-  for (const partial2 of partials) {
-    if (partialLifecycleState.has(partial2) && !connectedPartials.has(partial2)) {
-      _executeConnected(partial2);
+  for (const partial of partials) {
+    if (partialLifecycleState.has(partial) && !connectedPartials.has(partial)) {
+      _executeConnected(partial);
     }
   }
 }
@@ -2804,8 +1533,8 @@ function executeDisconnectedForRemovedPartials(element) {
     _executeDisconnected(element);
   }
   const partials = element.querySelectorAll("[partial]");
-  for (const partial2 of partials) {
-    _executeDisconnected(partial2);
+  for (const partial of partials) {
+    _executeDisconnected(partial);
   }
 }
 function getCallbackNames(callbacks) {
@@ -2898,1199 +1627,8 @@ function _createPKContext(scope) {
     onCleanup: (cleanupFunction) => onCleanup(cleanupFunction, scope)
   };
 }
-const BLOCK_DELIMITER = "\n\n";
-const DEFAULT_EVENT_TYPE = "message";
-const COMPLETE_EVENT_TYPE = "complete";
-const ERROR_EVENT_TYPE = "error";
-const EVENT_LINE_PREFIX = "event: ";
-const DATA_LINE_PREFIX = "data: ";
-const ID_LINE_PREFIX = "id: ";
-function parseSSEBlock(block) {
-  const trimmed = block.trim();
-  if (!trimmed || trimmed.startsWith(":")) {
-    return null;
-  }
-  let eventType = "";
-  let rawData = "";
-  let id;
-  for (const line of trimmed.split("\n")) {
-    if (line.startsWith(EVENT_LINE_PREFIX)) {
-      eventType = line.substring(EVENT_LINE_PREFIX.length);
-    } else if (line.startsWith(DATA_LINE_PREFIX)) {
-      rawData = line.substring(DATA_LINE_PREFIX.length);
-    } else if (line.startsWith(ID_LINE_PREFIX)) {
-      id = line.substring(ID_LINE_PREFIX.length);
-    }
-  }
-  if (!eventType && !rawData) {
-    return null;
-  }
-  if (!eventType) {
-    eventType = DEFAULT_EVENT_TYPE;
-  }
-  let data = rawData;
-  try {
-    data = JSON.parse(rawData);
-  } catch {
-  }
-  return { eventType, data, id };
-}
-function processSSEBlock(block, callbacks) {
-  const parsed = parseSSEBlock(block);
-  if (!parsed) {
-    return null;
-  }
-  if (parsed.eventType === COMPLETE_EVENT_TYPE) {
-    return { completeData: parsed.data };
-  }
-  if (parsed.eventType === ERROR_EVENT_TYPE) {
-    const errorData = parsed.data;
-    const message = typeof errorData?.message === "string" ? errorData.message : "SSE stream error";
-    throw createActionError(0, message, void 0, parsed.data);
-  }
-  callbacks.onEvent(parsed.data, parsed.eventType);
-  if (parsed.id && callbacks.onEventId) {
-    callbacks.onEventId(parsed.id);
-  }
-  return null;
-}
-async function consumeSSEStream(reader, callbacks) {
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let completeData = void 0;
-  let receivedComplete = false;
-  for (; ; ) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split(BLOCK_DELIMITER);
-    buffer = parts.pop() ?? "";
-    for (const part of parts) {
-      const result = processSSEBlock(part, callbacks);
-      if (!result) {
-        continue;
-      }
-      completeData = result.completeData;
-      receivedComplete = true;
-    }
-  }
-  return { completeData, receivedComplete };
-}
-async function readSSEStream(body, callbacks, _signal) {
-  const reader = body.getReader();
-  try {
-    const { completeData, receivedComplete } = await consumeSSEStream(reader, callbacks);
-    if (!receivedComplete) {
-      throw createActionError(0, "SSE stream ended without completion");
-    }
-    return completeData;
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw createActionError(0, "Request cancelled");
-    }
-    if (error !== null && typeof error === "object" && "status" in error) {
-      throw error;
-    }
-    const message = error instanceof Error ? error.message : "SSE connection lost";
-    throw createActionError(0, message);
-  } finally {
-    try {
-      reader.releaseLock();
-    } catch {
-    }
-  }
-}
-const CSRF_TOKEN_META_NAME = "csrf-token";
-const CSRF_EPHEMERAL_META_NAME = "csrf-ephemeral";
-function getCSRFTokenFromMeta() {
-  return document.querySelector(`meta[name="${CSRF_TOKEN_META_NAME}"]`)?.content ?? null;
-}
-function getCSRFEphemeralFromMeta() {
-  return document.querySelector(`meta[name="${CSRF_EPHEMERAL_META_NAME}"]`)?.content ?? null;
-}
-const HTTP_STATUS_UNPROCESSABLE$1 = 422;
-const HTTP_STATUS_FORBIDDEN$1 = 403;
-const CSRF_ERROR_EXPIRED = "csrf_expired";
-const CSRF_ERROR_INVALID = "csrf_invalid";
-const DEFAULT_RETRY_BASE_DELAY = 1e3;
-const MAX_RETRY_DELAY = 3e4;
-const DEFAULT_SSE_RECONNECT_DELAY = 3e3;
-const MAX_SSE_RECONNECT_DELAY = 3e4;
-const HTTP_STATUS_TIMEOUT = 408;
-const HTTP_STATUS_SERVER_ERROR = 500;
-const HTTP_STATUS_OK = 200;
-const RANDOM_STRING_RADIX = 36;
-const RANDOM_STRING_SLICE_START = 2;
-const RANDOM_STRING_SLICE_END = 9;
-const debounceTimers = /* @__PURE__ */ new Map();
-function getCSRFTokens(element) {
-  const actionToken = element?.getAttribute("data-csrf-action-token") ?? getCSRFTokenFromMeta();
-  const ephemeralToken = element?.getAttribute("data-csrf-ephemeral-token") ?? getCSRFEphemeralFromMeta();
-  return { actionToken, ephemeralToken };
-}
-function isCSRFError(status, responseData) {
-  return status === HTTP_STATUS_FORBIDDEN$1 && (responseData.error === CSRF_ERROR_EXPIRED || responseData.error === CSRF_ERROR_INVALID);
-}
-function attemptCSRFRecovery(responseData, element, retryAction) {
-  if (responseData.error === CSRF_ERROR_INVALID) {
-    window.location.reload();
-    return true;
-  }
-  const partial2 = element.closest("[partial_src]");
-  if (partial2) {
-    partial2.dispatchEvent(new CustomEvent("refresh-partial", {
-      bubbles: false,
-      detail: {
-        afterMorph: () => {
-          const refreshedEl = partial2.querySelector("[data-csrf-action-token]");
-          if (refreshedEl) {
-            retryAction();
-          } else {
-            console.warn("[ActionExecutor] Could not find element with CSRF token after partial refresh");
-          }
-        }
-      }
-    }));
-    return true;
-  }
-  window.location.reload();
-  return true;
-}
-function validateForm(element, event) {
-  const form = element.closest("form");
-  if (!form) {
-    return true;
-  }
-  if (form.noValidate) {
-    return true;
-  }
-  const submitter = event?.submitter;
-  if (submitter?.formNoValidate) {
-    return true;
-  }
-  return form.reportValidity();
-}
-function clearPreviousErrors(form) {
-  form.querySelectorAll("[error]").forEach((el) => {
-    el.removeAttribute("error");
-  });
-}
-function applyServerErrors(form, errors) {
-  clearPreviousErrors(form);
-  for (const [fieldName, messages] of Object.entries(errors)) {
-    const errorMessage = messages.join(", ");
-    const fields = form.querySelectorAll(`[name="${fieldName}"]`);
-    if (fields.length > 0) {
-      fields.forEach((field) => {
-        field.setAttribute("error", errorMessage);
-      });
-    }
-  }
-}
-function showLoading(target, element) {
-  if (target === true) {
-    applyLoadingIndicator(element);
-  } else if (typeof target === "string") {
-    const el = document.querySelector(target);
-    if (el) {
-      applyLoadingIndicator(el);
-    }
-  } else if (target instanceof HTMLElement) {
-    applyLoadingIndicator(target);
-  }
-}
-function hideLoading(target, element) {
-  if (target === true) {
-    removeLoadingIndicator(element);
-  } else if (typeof target === "string") {
-    const el = document.querySelector(target);
-    if (el) {
-      removeLoadingIndicator(el);
-    }
-  } else if (target instanceof HTMLElement) {
-    removeLoadingIndicator(target);
-  }
-}
-function calculateRetryDelay(attempt, config) {
-  const backoff = config.backoff ?? "exponential";
-  if (backoff === "linear") {
-    return Math.min(DEFAULT_RETRY_BASE_DELAY * (attempt + 1), MAX_RETRY_DELAY);
-  }
-  return Math.min(DEFAULT_RETRY_BASE_DELAY * Math.pow(2, attempt), MAX_RETRY_DELAY);
-}
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-async function executeWithRetry(actionName, args, method, actionToken, ephemeralToken, retryConfig, options) {
-  const maxAttempts = retryConfig?.attempts ?? 1;
-  let lastError = null;
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      return await executeServerAction(actionName, args, method, actionToken, ephemeralToken, options);
-    } catch (error) {
-      if (error instanceof Error && !("status" in error)) {
-        lastError = createActionError(0, error.message);
-      } else {
-        lastError = error;
-      }
-      const isTimeout = lastError.status === HTTP_STATUS_TIMEOUT;
-      const isCancelled = lastError.status === 0 && lastError.message === "Request cancelled";
-      const isRetryable = (lastError.status === 0 || lastError.status >= HTTP_STATUS_SERVER_ERROR || isTimeout) && !isCancelled;
-      if (!isRetryable || attempt >= maxAttempts - 1) {
-        throw lastError;
-      }
-      const retryDelay = calculateRetryDelay(attempt, retryConfig ?? {});
-      await delay(retryDelay);
-    }
-  }
-  throw lastError;
-}
-function buildActionBody(args, ephemeralToken) {
-  const headers = {};
-  const bodyData = {};
-  if (args.length > 0) {
-    if (args.length === 1 && typeof args[0] === "object" && args[0] !== null) {
-      Object.assign(bodyData, args[0]);
-    } else {
-      bodyData["args"] = args.map((v, i) => ({ [i]: v })).reduce((acc, b) => ({ ...acc, ...b }), {});
-    }
-  }
-  if (ephemeralToken) {
-    bodyData["_csrf_ephemeral_token"] = ephemeralToken;
-  }
-  const hasFiles = Object.values(bodyData).some(
-    (v) => v instanceof File || v instanceof Blob
-  );
-  if (hasFiles) {
-    const formData2 = new FormData();
-    for (const [key, value] of Object.entries(bodyData)) {
-      if (value instanceof File) {
-        formData2.append(key, value, value.name);
-      } else if (value instanceof Blob) {
-        formData2.append(key, value);
-      } else if (value !== void 0 && value !== null) {
-        formData2.append(key, String(value));
-      }
-    }
-    return { body: formData2, headers };
-  }
-  headers["Content-Type"] = "application/json";
-  return { body: JSON.stringify(bodyData), headers };
-}
-function createRequestAbortController(options) {
-  const controller = new AbortController();
-  let timeoutId;
-  if (options?.signal) {
-    if (options.signal.aborted) {
-      controller.abort();
-    } else {
-      options.signal.addEventListener("abort", () => controller.abort());
-    }
-  }
-  if (options?.timeout && options.timeout > 0) {
-    timeoutId = setTimeout(() => controller.abort(), options.timeout);
-  }
-  return { controller, timeoutId };
-}
-async function parseActionResponse(response) {
-  let responseData;
-  try {
-    responseData = await response.json();
-  } catch {
-    throw createActionError(
-      response.status,
-      "Failed to parse server response",
-      void 0,
-      void 0
-    );
-  }
-  if (!response.ok) {
-    const validationErrors = response.status === HTTP_STATUS_UNPROCESSABLE$1 ? responseData.errors : void 0;
-    throw createActionError(
-      response.status,
-      responseData.message ?? responseData.error ?? `Action failed with status ${response.status}`,
-      validationErrors,
-      responseData.error ?? responseData.data,
-      responseData._helpers
-    );
-  }
-  return responseData;
-}
-async function executeServerAction(actionName, args, method, actionToken, ephemeralToken, options) {
-  const { body, headers } = buildActionBody(args, ephemeralToken);
-  if (actionToken) {
-    headers["X-CSRF-Action-Token"] = actionToken;
-  }
-  const { controller, timeoutId } = createRequestAbortController(options);
-  try {
-    const response = await fetch(`/_piko/actions/${actionName}`, {
-      method,
-      headers,
-      credentials: "same-origin",
-      body,
-      signal: controller.signal
-    });
-    return await parseActionResponse(response);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      const isTimeout = options?.timeout && !options.signal?.aborted;
-      throw createActionError(
-        isTimeout ? HTTP_STATUS_TIMEOUT : 0,
-        isTimeout ? "Request timeout" : "Request cancelled",
-        void 0,
-        void 0
-      );
-    }
-    throw error;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  }
-}
-function getDebounceKey(actionName, element) {
-  element.dataset.ppActionId ??= `action-${Date.now()}-${Math.random().toString(RANDOM_STRING_RADIX).slice(RANDOM_STRING_SLICE_START, RANDOM_STRING_SLICE_END)}`;
-  return `${actionName}:${element.dataset.ppActionId}`;
-}
-function clearDebounce(key) {
-  const timer = debounceTimers.get(key);
-  if (timer) {
-    clearTimeout(timer);
-    debounceTimers.delete(key);
-  }
-}
-async function executeHelpers(helpers, element, event) {
-  const helperRegistry = getGlobalHelperRegistry();
-  const errors = [];
-  for (const helper of helpers) {
-    try {
-      const args = (helper.args ?? []).map((a) => String(a));
-      await helperRegistry.execute(helper.name, element, event, args);
-    } catch (error) {
-      console.error(`[ActionExecutor] Helper "${helper.name}" failed:`, error);
-      errors.push(error);
-    }
-  }
-  if (errors.length > 0) {
-    throw new AggregateError(errors, `${errors.length} helper(s) failed`);
-  }
-}
-async function invokeSuccessCallback(descriptor, response, element, event) {
-  if (!descriptor.onSuccess) {
-    return;
-  }
-  try {
-    const data = response.data ?? response;
-    const next = descriptor.onSuccess(data);
-    if (isActionDescriptor(next)) {
-      await handleAction(next, element, event);
-    }
-  } catch (error) {
-    console.error("[ActionExecutor] onSuccess callback failed:", error);
-    throw error;
-  }
-}
-function validateAndEmitStart(descriptor, element, form, actionStartTime, event) {
-  if (form) {
-    clearPreviousErrors(form);
-    if (!validateForm(element, event)) {
-      return false;
-    }
-  }
-  return true;
-}
-async function executeServerRequest(descriptor, element) {
-  const { actionToken, ephemeralToken } = getCSRFTokens(element);
-  if (descriptor.onProgress) {
-    const sseOptions = { timeout: descriptor.timeout, signal: descriptor.signal };
-    let data;
-    if (descriptor.retryStream) {
-      data = await executeServerActionSSEWithRetry({
-        actionName: descriptor.action,
-        args: descriptor.args ?? [],
-        method: descriptor.method ?? "POST",
-        actionToken,
-        ephemeralToken,
-        onProgress: descriptor.onProgress,
-        retryConfig: descriptor.retryStream,
-        options: sseOptions
-      });
-    } else {
-      data = await executeServerActionSSE({
-        actionName: descriptor.action,
-        args: descriptor.args ?? [],
-        method: descriptor.method ?? "POST",
-        actionToken,
-        ephemeralToken,
-        onProgress: descriptor.onProgress,
-        options: sseOptions
-      });
-    }
-    return { data, status: HTTP_STATUS_OK };
-  }
-  return await executeWithRetry(
-    descriptor.action,
-    descriptor.args ?? [],
-    descriptor.method ?? "POST",
-    actionToken,
-    ephemeralToken,
-    descriptor.retry,
-    { timeout: descriptor.timeout, signal: descriptor.signal }
-  );
-}
-async function handleActionSuccess(descriptor, response, element, event, form, actionStartTime) {
-  if (!descriptor.shouldSuppressHelpers && response._helpers && response._helpers.length > 0) {
-    await executeHelpers(response._helpers, element, event);
-  }
-  await invokeSuccessCallback(descriptor, response, element, event);
-}
-function invokeErrorHandlers(actionError, descriptor, rawError) {
-  if (descriptor.onError) {
-    try {
-      descriptor.onError(actionError);
-    } catch (callbackError) {
-      console.error("[ActionExecutor] onError callback failed:", callbackError);
-    }
-  } else {
-    console.error("[ActionExecutor] Action failed:", rawError);
-  }
-}
-async function handleActionFailure(descriptor, error, element, event, form, actionStartTime) {
-  const actionError = error;
-  const errorCode = typeof actionError.data === "string" ? actionError.data : void 0;
-  if (isCSRFError(actionError.status, { error: errorCode })) {
-    const recovered = attemptCSRFRecovery(
-      { error: errorCode },
-      element,
-      () => {
-        void executeAction(descriptor, element, event);
-      }
-    );
-    if (recovered) {
-      return true;
-    }
-  }
-  if (actionError._helpers && actionError._helpers.length > 0) {
-    await executeHelpers(actionError._helpers, element, event);
-  }
-  if (actionError.status === HTTP_STATUS_UNPROCESSABLE$1 && actionError.validationErrors && form) {
-    applyServerErrors(form, actionError.validationErrors);
-  }
-  invokeErrorHandlers(actionError, descriptor, error);
-  return false;
-}
-async function executeAction(descriptor, element, event) {
-  const actionStartTime = Date.now();
-  const form = element.closest("form");
-  if (!validateAndEmitStart(descriptor, element, form, actionStartTime, event)) {
-    return;
-  }
-  if (descriptor.optimistic) {
-    try {
-      descriptor.optimistic();
-    } catch (error) {
-      console.error("[ActionExecutor] Optimistic update failed:", error);
-    }
-  }
-  if (descriptor.loading !== void 0) {
-    showLoading(descriptor.loading, element);
-  }
-  try {
-    const response = await executeServerRequest(descriptor, element);
-    await handleActionSuccess(descriptor, response, element, event, form, actionStartTime);
-  } catch (error) {
-    const recovered = await handleActionFailure(descriptor, error, element, event, form);
-    if (recovered) {
-      return;
-    }
-    throw error;
-  } finally {
-    if (descriptor.onComplete) {
-      try {
-        descriptor.onComplete();
-      } catch (error) {
-        console.error("[ActionExecutor] onComplete callback failed:", error);
-      }
-    }
-    if (descriptor.loading !== void 0) {
-      hideLoading(descriptor.loading, element);
-    }
-  }
-}
-async function handleAction(descriptor, element, event) {
-  if (descriptor.debounce && descriptor.debounce > 0) {
-    const debounceKey = getDebounceKey(descriptor.action, element);
-    clearDebounce(debounceKey);
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        debounceTimers.delete(debounceKey);
-        executeAction(descriptor, element, event).then(resolve).catch((err) => {
-          console.error("[ActionExecutor] Debounced action failed:", err);
-          reject(err instanceof Error ? err : new Error(String(err)));
-        });
-      }, descriptor.debounce);
-      debounceTimers.set(debounceKey, timer);
-    });
-  }
-  return executeAction(descriptor, element, event);
-}
-const SSE_CONTENT_TYPE = "text/event-stream";
-const SSE_ACCEPT_HEADER = "text/event-stream";
-function calculateSSEReconnectDelay(attempt, config) {
-  const baseDelay = config.baseDelay ?? DEFAULT_SSE_RECONNECT_DELAY;
-  const maxDelay = config.maxDelay ?? MAX_SSE_RECONNECT_DELAY;
-  const backoff = config.backoff ?? "linear";
-  if (backoff === "linear") {
-    return Math.min(baseDelay * (attempt + 1), maxDelay);
-  }
-  return Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
-}
-function buildSSEHeaders(actionToken, ephemeralToken, lastEventId) {
-  const headers = {
-    "Content-Type": "application/json",
-    "Accept": SSE_ACCEPT_HEADER
-  };
-  if (actionToken && ephemeralToken) {
-    headers["X-CSRF-Action-Token"] = actionToken;
-  }
-  if (lastEventId) {
-    headers["Last-Event-ID"] = lastEventId;
-  }
-  return headers;
-}
-function buildSSEUrl(actionName, actionToken, ephemeralToken) {
-  let url = `/_piko/actions/${actionName}`;
-  if (actionToken && ephemeralToken) {
-    url += `?_csrf_ephemeral_token=${encodeURIComponent(ephemeralToken)}`;
-  }
-  return url;
-}
-function buildSSEBody(args) {
-  const bodyData = {};
-  if (args.length > 0) {
-    if (args.length === 1 && typeof args[0] === "object" && args[0] !== null) {
-      Object.assign(bodyData, args[0]);
-    } else {
-      bodyData["args"] = args.map((v, i) => ({ [i]: v })).reduce((acc, b) => ({ ...acc, ...b }), {});
-    }
-  }
-  return bodyData;
-}
-function setupAbortControl(options) {
-  const controller = new AbortController();
-  let timeoutId;
-  if (options?.signal) {
-    if (options.signal.aborted) {
-      controller.abort();
-    } else {
-      options.signal.addEventListener("abort", () => controller.abort());
-    }
-  }
-  if (options?.timeout && options.timeout > 0) {
-    timeoutId = setTimeout(() => controller.abort(), options.timeout);
-  }
-  return { controller, timeoutId };
-}
-async function throwSSEErrorResponse(response) {
-  let responseData;
-  try {
-    responseData = await response.json();
-  } catch {
-    throw createActionError(response.status, `Action failed with status ${response.status}`);
-  }
-  const validationErrors = response.status === HTTP_STATUS_UNPROCESSABLE$1 ? responseData.errors : void 0;
-  throw createActionError(
-    response.status,
-    responseData.message ?? responseData.error ?? `Action failed with status ${response.status}`,
-    validationErrors,
-    responseData.error ?? responseData.data,
-    responseData._helpers
-  );
-}
-function rethrowAsActionError(error, options) {
-  if (error instanceof DOMException && error.name === "AbortError") {
-    const isTimeout = options?.timeout && !options.signal?.aborted;
-    throw createActionError(
-      isTimeout ? HTTP_STATUS_TIMEOUT : 0,
-      isTimeout ? "Request timeout" : "Request cancelled"
-    );
-  }
-  throw error;
-}
-async function executeServerActionSSEInternal(params) {
-  const { actionName, args, method, actionToken, ephemeralToken, onProgress, options, lastEventId, onEventId } = params;
-  const headers = buildSSEHeaders(actionToken, ephemeralToken, lastEventId);
-  const url = buildSSEUrl(actionName, actionToken, ephemeralToken);
-  const bodyData = buildSSEBody(args);
-  const { controller, timeoutId } = setupAbortControl(options);
-  try {
-    const response = await fetch(url, {
-      method,
-      headers,
-      credentials: "same-origin",
-      body: JSON.stringify(bodyData),
-      signal: controller.signal
-    });
-    if (!response.ok) {
-      await throwSSEErrorResponse(response);
-    }
-    const contentType = response.headers.get("Content-Type") ?? "";
-    if (contentType.startsWith(SSE_CONTENT_TYPE) && response.body) {
-      return await readSSEStream(response.body, { onEvent: onProgress, onEventId }, controller.signal);
-    }
-    let responseData;
-    try {
-      responseData = await response.json();
-    } catch {
-      throw createActionError(response.status, "Failed to parse server response");
-    }
-    return responseData;
-  } catch (error) {
-    return rethrowAsActionError(error, options);
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  }
-}
-async function executeServerActionSSE(params) {
-  return executeServerActionSSEInternal(params);
-}
-async function executeServerActionSSEWithRetry(params) {
-  const { actionName, args, method, actionToken, ephemeralToken, onProgress, retryConfig, options } = params;
-  let reconnectCount = 0;
-  let lastEventId;
-  const maxReconnects = retryConfig.maxReconnects;
-  for (; ; ) {
-    try {
-      let isReconnection = reconnectCount > 0;
-      const wrappedOnProgress = (data, eventType) => {
-        if (isReconnection) {
-          reconnectCount = 0;
-          isReconnection = false;
-        }
-        onProgress(data, eventType);
-      };
-      const result = await executeServerActionSSEInternal({
-        actionName,
-        args,
-        method,
-        actionToken,
-        ephemeralToken,
-        onProgress: wrappedOnProgress,
-        options,
-        lastEventId,
-        onEventId: (id) => {
-          lastEventId = id;
-        }
-      });
-      return result;
-    } catch (error) {
-      const actionError = error;
-      if (actionError.message === "Request cancelled") {
-        throw error;
-      }
-      if (actionError.data !== void 0) {
-        throw error;
-      }
-      if (actionError.status !== 0) {
-        throw error;
-      }
-      if (reconnectCount >= maxReconnects) {
-        throw createActionError(
-          0,
-          `SSE stream failed after ${reconnectCount} reconnection attempts`
-        );
-      }
-      retryConfig.onDisconnect?.();
-      const reconnectDelay = calculateSSEReconnectDelay(reconnectCount, retryConfig);
-      await delay(reconnectDelay);
-      if (options?.signal?.aborted) {
-        throw createActionError(0, "Request cancelled");
-      }
-      reconnectCount++;
-      retryConfig.onReconnect?.(reconnectCount);
-    }
-  }
-}
-async function callServerActionDirect(actionName, args, method = "POST", options) {
-  const { actionToken, ephemeralToken } = getCSRFTokens();
-  if (options?.onProgress) {
-    let data;
-    const sseOptions = { timeout: options.timeout, signal: options.signal };
-    if (options.retryStream) {
-      data = await executeServerActionSSEWithRetry({
-        actionName,
-        args,
-        method,
-        actionToken,
-        ephemeralToken,
-        onProgress: options.onProgress,
-        retryConfig: options.retryStream,
-        options: sseOptions
-      });
-    } else {
-      data = await executeServerActionSSE({
-        actionName,
-        args,
-        method,
-        actionToken,
-        ephemeralToken,
-        onProgress: options.onProgress,
-        options: sseOptions
-      });
-    }
-    return {
-      data,
-      status: HTTP_STATUS_OK,
-      message: void 0,
-      helpers: void 0
-    };
-  }
-  const response = await executeServerAction(
-    actionName,
-    args,
-    method,
-    actionToken,
-    ephemeralToken,
-    options
-  );
-  const helpers = response._helpers;
-  if (!options?.suppressHelpers && helpers && helpers.length > 0) {
-    await executeHelpers(helpers, document.body);
-  }
-  return {
-    data: response.data ?? response,
-    status: response.status ?? HTTP_STATUS_OK,
-    message: response.message,
-    helpers
-  };
-}
-const HTTP_STATUS_UNPROCESSABLE = 422;
-const HTTP_STATUS_UNAUTHORIZED = 401;
-const HTTP_STATUS_FORBIDDEN = 403;
-function createActionError(status, message, validationErrors, data, helpers) {
-  return {
-    status,
-    message,
-    validationErrors,
-    data,
-    _helpers: helpers,
-    get isNetworkError() {
-      return this.status === 0;
-    },
-    get isValidationError() {
-      return this.status === HTTP_STATUS_UNPROCESSABLE && this.validationErrors !== void 0;
-    },
-    get isAuthError() {
-      return this.status === HTTP_STATUS_UNAUTHORIZED || this.status === HTTP_STATUS_FORBIDDEN;
-    }
-  };
-}
 function isActionDescriptor(value) {
   return value !== null && typeof value === "object" && typeof value.action === "string";
-}
-class ActionBuilder {
-  /**
-   * Creates a new ActionBuilder.
-   *
-   * @param actionName - Server action name.
-   * @param args - Arguments to pass to the action.
-   */
-  constructor(actionName, args) {
-    this._suppressHelpers = false;
-    this._action = actionName;
-    this._args = args;
-  }
-  /** Returns the server action name. */
-  get action() {
-    return this._action;
-  }
-  /** Returns the arguments to pass to the action. */
-  get args() {
-    return this._args;
-  }
-  /** Returns the configured HTTP method. */
-  get method() {
-    return this._method;
-  }
-  /** Returns the optimistic update callback. */
-  get optimistic() {
-    return this._optimistic;
-  }
-  /** Returns the success callback. */
-  get onSuccess() {
-    return this._onSuccess;
-  }
-  /** Returns the error callback. */
-  get onError() {
-    return this._onError;
-  }
-  /** Returns the completion callback. */
-  get onComplete() {
-    return this._onComplete;
-  }
-  /** Returns the loading state target. */
-  get loading() {
-    return this._loading;
-  }
-  /** Returns the debounce delay in milliseconds. */
-  get debounce() {
-    return this._debounce;
-  }
-  /** Returns the retry configuration. */
-  get retry() {
-    return this._retry;
-  }
-  /** Returns the timeout in milliseconds. */
-  get timeout() {
-    return this._timeout;
-  }
-  /** Returns the external abort signal. */
-  get signal() {
-    return this._signal;
-  }
-  /** Returns whether automatic helper execution is suppressed. */
-  get shouldSuppressHelpers() {
-    return this._suppressHelpers;
-  }
-  /** Returns the SSE progress callback. */
-  get onProgress() {
-    return this._onProgress;
-  }
-  /** Returns the SSE stream retry configuration. */
-  get retryStream() {
-    return this._retryStream;
-  }
-  /**
-   * Sets the HTTP method.
-   *
-   * @param method - The HTTP method to use.
-   * @returns This builder for chaining.
-   */
-  setMethod(method) {
-    this._method = method;
-    return this;
-  }
-  /**
-   * Sets the optimistic update callback.
-   *
-   * Runs immediately before the server request.
-   *
-   * @param optimisticUpdate - Callback to run before the request.
-   * @returns This builder for chaining.
-   */
-  setOptimistic(optimisticUpdate) {
-    this._optimistic = optimisticUpdate;
-    return this;
-  }
-  /**
-   * Sets the success callback.
-   *
-   * Can return another ActionDescriptor to chain actions.
-   *
-   * @param successHandler - Callback receiving the typed response.
-   * @returns This builder for chaining.
-   */
-  setOnSuccess(successHandler) {
-    this._onSuccess = successHandler;
-    return this;
-  }
-  /**
-   * Sets the error callback.
-   *
-   * Use this to roll back optimistic updates.
-   *
-   * @param errorHandler - Callback receiving the ActionError.
-   * @returns This builder for chaining.
-   */
-  setOnError(errorHandler) {
-    this._onError = errorHandler;
-    return this;
-  }
-  /**
-   * Sets the completion callback.
-   *
-   * Runs after success or error, always.
-   *
-   * @param completeHandler - Callback to run on completion.
-   * @returns This builder for chaining.
-   */
-  setOnComplete(completeHandler) {
-    this._onComplete = completeHandler;
-    return this;
-  }
-  /**
-   * Sets the loading state target.
-   *
-   * - `true`: Apply to trigger element.
-   * - `string`: CSS selector.
-   * - `HTMLElement`: Specific element.
-   *
-   * @param target - The loading state target.
-   * @returns This builder for chaining.
-   */
-  setLoading(target) {
-    this._loading = target;
-    return this;
-  }
-  /**
-   * Sets the debounce delay.
-   *
-   * @param ms - Delay in milliseconds.
-   * @returns This builder for chaining.
-   */
-  setDebounce(ms) {
-    this._debounce = ms;
-    return this;
-  }
-  /**
-   * Sets the retry configuration.
-   *
-   * @param attempts - Number of retry attempts.
-   * @param backoff - Optional backoff strategy.
-   * @returns This builder for chaining.
-   */
-  setRetry(attempts, backoff) {
-    this._retry = { attempts, backoff };
-    return this;
-  }
-  /**
-   * Sets the timeout in milliseconds.
-   *
-   * The request is aborted after this duration.
-   *
-   * @param ms - Timeout duration.
-   * @returns This builder for chaining.
-   */
-  setTimeout(ms) {
-    this._timeout = ms;
-    return this;
-  }
-  /**
-   * Sets the external abort signal for cancellation.
-   *
-   * @param signal - The AbortSignal to use.
-   * @returns This builder for chaining.
-   */
-  setSignal(signal) {
-    this._signal = signal;
-    return this;
-  }
-  /**
-   * Sets the progress callback for SSE streaming.
-   *
-   * When set, the action framework automatically uses SSE transport
-   * (POST with Accept: text/event-stream). The callback fires for each
-   * intermediate event; terminal events route to onSuccess/onError.
-   *
-   * @param progressHandler - Callback receiving event data and event type.
-   * @returns This builder for chaining.
-   */
-  setOnProgress(progressHandler) {
-    this._onProgress = progressHandler;
-    return this;
-  }
-  /**
-   * Sets the retry configuration for SSE streams.
-   *
-   * When set alongside onProgress, the action builder automatically
-   * reconnects the SSE stream on connection drops with configurable
-   * backoff. Use maxReconnects: Infinity for long-lived streams.
-   *
-   * @param config - Retry stream configuration.
-   * @returns This builder for chaining.
-   */
-  setRetryStream(config) {
-    this._retryStream = config;
-    return this;
-  }
-  /**
-   * Sets the HTTP method (alias for setMethod).
-   *
-   * @param method - The HTTP method to use.
-   * @returns This builder for chaining.
-   */
-  withMethod(method) {
-    return this.setMethod(method);
-  }
-  /**
-   * Sets the optimistic update callback (alias for setOptimistic).
-   *
-   * @param optimisticUpdate - Callback to run before the request.
-   * @returns This builder for chaining.
-   */
-  withOptimistic(optimisticUpdate) {
-    return this.setOptimistic(optimisticUpdate);
-  }
-  /**
-   * Sets the success callback (alias for setOnSuccess).
-   *
-   * @param successHandler - Callback receiving the typed response.
-   * @returns This builder for chaining.
-   */
-  withOnSuccess(successHandler) {
-    return this.setOnSuccess(successHandler);
-  }
-  /**
-   * Sets the error callback (alias for setOnError).
-   *
-   * @param errorHandler - Callback receiving the ActionError.
-   * @returns This builder for chaining.
-   */
-  withOnError(errorHandler) {
-    return this.setOnError(errorHandler);
-  }
-  /**
-   * Sets the completion callback (alias for setOnComplete).
-   *
-   * @param completeHandler - Callback to run on completion.
-   * @returns This builder for chaining.
-   */
-  withOnComplete(completeHandler) {
-    return this.setOnComplete(completeHandler);
-  }
-  /**
-   * Sets the loading state target (alias for setLoading).
-   *
-   * @param target - The loading state target.
-   * @returns This builder for chaining.
-   */
-  withLoading(target) {
-    return this.setLoading(target);
-  }
-  /**
-   * Sets the debounce delay (alias for setDebounce).
-   *
-   * @param ms - Delay in milliseconds.
-   * @returns This builder for chaining.
-   */
-  withDebounce(ms) {
-    return this.setDebounce(ms);
-  }
-  /**
-   * Sets the retry configuration (alias for setRetry).
-   *
-   * @param attempts - Number of retry attempts.
-   * @param backoff - Optional backoff strategy.
-   * @returns This builder for chaining.
-   */
-  withRetry(attempts, backoff) {
-    return this.setRetry(attempts, backoff);
-  }
-  /**
-   * Sets the timeout (alias for setTimeout).
-   *
-   * @param ms - Timeout duration in milliseconds.
-   * @returns This builder for chaining.
-   */
-  withTimeout(ms) {
-    return this.setTimeout(ms);
-  }
-  /**
-   * Sets the external abort signal (alias for setSignal).
-   *
-   * @param signal - The AbortSignal to use.
-   * @returns This builder for chaining.
-   */
-  withSignal(signal) {
-    return this.setSignal(signal);
-  }
-  /**
-   * Sets the SSE progress callback (alias for setOnProgress).
-   *
-   * @param progressHandler - Callback receiving event data and event type.
-   * @returns This builder for chaining.
-   */
-  withOnProgress(progressHandler) {
-    return this.setOnProgress(progressHandler);
-  }
-  /**
-   * Sets the SSE stream retry configuration (alias for setRetryStream).
-   *
-   * @param config - Retry stream configuration.
-   * @returns This builder for chaining.
-   */
-  withRetryStream(config) {
-    return this.setRetryStream(config);
-  }
-  /**
-   * Suppress automatic execution of server-response helpers.
-   *
-   * When called, helpers returned by the server (e.g. redirect, resetForm)
-   * will NOT be executed automatically. This is useful when you need to
-   * process the response programmatically and don't want side effects.
-   *
-   * The helpers are still available on the DirectCallResponse for manual
-   * inspection when using `.call()`.
-   *
-   * @returns This builder for chaining.
-   */
-  suppressHelpers() {
-    this._suppressHelpers = true;
-    return this;
-  }
-  /**
-   * Builds the final ActionDescriptor.
-   *
-   * Note: The builder itself implements ActionDescriptor, so calling build()
-   * is optional. You can use the builder directly.
-   *
-   * @returns The constructed ActionDescriptor.
-   */
-  build() {
-    return {
-      action: this._action,
-      args: this._args,
-      method: this._method,
-      optimistic: this._optimistic,
-      onSuccess: this._onSuccess,
-      onError: this._onError,
-      onComplete: this._onComplete,
-      loading: this._loading,
-      debounce: this._debounce,
-      retry: this._retry,
-      timeout: this._timeout,
-      signal: this._signal,
-      shouldSuppressHelpers: this._suppressHelpers || void 0,
-      onProgress: this._onProgress,
-      retryStream: this._retryStream
-    };
-  }
-  /**
-   * Execute the action directly and return the typed response.
-   *
-   * This is an imperative alternative to the callback pattern, useful in
-   * component scripts where you need the response data directly.
-   *
-   * Helpers from the server response are processed automatically before
-   * the promise resolves.
-   *
-   * @returns Promise resolving to the typed response data.
-   */
-  async call() {
-    const response = await callServerActionDirect(
-      this._action,
-      this._args,
-      this._method ?? "POST",
-      {
-        timeout: this._timeout,
-        signal: this._signal,
-        suppressHelpers: this._suppressHelpers || void 0,
-        onProgress: this._onProgress,
-        retryStream: this._retryStream
-      }
-    );
-    return response.data;
-  }
-}
-function createActionBuilder(name, args) {
-  if (typeof args.toObject === "function") {
-    args = args.toObject();
-  }
-  return new ActionBuilder(name, [args]);
 }
 const actionFunctionRegistry = /* @__PURE__ */ new Map();
 function registerActionFunction(name, actionFactory) {
@@ -4099,57 +1637,23 @@ function registerActionFunction(name, actionFactory) {
 function getActionFunction(name) {
   return actionFunctionRegistry.get(name);
 }
-const LOADER_FADE_MS = 300;
-const PROGRESS_MIN = 0;
-const PROGRESS_MAX$1 = 100;
-function createLoaderUI(options = {}) {
-  const {
-    colour = "#29e",
-    fadeMs = LOADER_FADE_MS,
-    container = document.body
-  } = options;
-  const el = document.createElement("div");
-  el.id = "ppf-loader-bar";
-  el.style.cssText = [
-    "position:fixed",
-    "top:0",
-    "left:0",
-    "width:0%",
-    "height:2px",
-    `background:${colour}`,
-    "transition:width .2s",
-    "z-index:9999",
-    "pointer-events:none",
-    "display:none"
-  ].join(";");
-  container.appendChild(el);
-  return {
-    show() {
-      el.style.display = "block";
-      el.style.width = "0%";
-    },
-    hide() {
-      el.style.width = "100%";
-      setTimeout(() => {
-        el.style.width = "0%";
-        el.style.display = "none";
-      }, fadeMs);
-    },
-    setProgress(percent) {
-      let pct = percent;
-      if (pct < PROGRESS_MIN) {
-        pct = PROGRESS_MIN;
-      }
-      if (pct > PROGRESS_MAX$1) {
-        pct = PROGRESS_MAX$1;
-      }
-      el.style.display = "block";
-      el.style.width = `${pct}%`;
-    },
-    destroy() {
-      el.remove();
-    }
-  };
+class ActionBuilder {
+  /**
+   * Creates a new ActionBuilder.
+   *
+   * @param actionName - Server action name.
+   * @param actionArgs - Arguments for the action.
+   */
+  constructor(actionName, actionArgs) {
+    this.action = actionName;
+    this.args = actionArgs;
+  }
+}
+function createActionBuilder(name, args) {
+  if (typeof args.toObject === "function") {
+    args = args.toObject();
+  }
+  return new ActionBuilder(name, [args]);
 }
 const ERROR_DISPLAY_MS = 5e3;
 function createErrorDisplay(options = {}) {
@@ -4283,8 +1787,8 @@ function createModuleLoader() {
     document.body.appendChild(newScript);
   }
   return {
-    loadFromDocument(doc2) {
-      const moduleScripts = doc2.querySelectorAll('script[type="module"]');
+    loadFromDocument(doc) {
+      const moduleScripts = doc.querySelectorAll('script[type="module"]');
       moduleScripts.forEach((scriptEl) => {
         const src = scriptEl.getAttribute("src");
         if (src) {
@@ -4292,10 +1796,10 @@ function createModuleLoader() {
         }
       });
     },
-    async loadFromDocumentAsync(doc2) {
+    async loadFromDocumentAsync(doc) {
       const loadPromises = [];
       let failCount = 0;
-      const moduleScripts = doc2.querySelectorAll('script[type="module"]');
+      const moduleScripts = doc.querySelectorAll('script[type="module"]');
       moduleScripts.forEach((scriptEl) => {
         const src = scriptEl.getAttribute("src");
         if (src && !loadedModuleScripts.has(src)) {
@@ -4376,6 +1880,48 @@ function createLinkHeaderParser() {
     }
   };
 }
+const capabilities = /* @__PURE__ */ new Map();
+const pendingCallbacks = /* @__PURE__ */ new Map();
+function _registerCapability(name, impl) {
+  capabilities.set(name, impl);
+  const callbacks = pendingCallbacks.get(name);
+  if (callbacks) {
+    pendingCallbacks.delete(name);
+    for (const cb of callbacks) {
+      cb(impl);
+    }
+  }
+}
+function _getCapability(name) {
+  return capabilities.get(name);
+}
+function _hasCapability(name) {
+  return capabilities.has(name);
+}
+function _onCapabilityReady(name, callback) {
+  const existing = capabilities.get(name);
+  if (existing !== void 0) {
+    callback(existing);
+    return;
+  }
+  const queue = pendingCallbacks.get(name);
+  if (queue) {
+    queue.push(callback);
+  } else {
+    pendingCallbacks.set(name, [callback]);
+  }
+}
+function createFormData(form) {
+  const fd = new FormData(form);
+  const obj = {};
+  for (const [key, value] of fd.entries()) {
+    obj[key] = value;
+  }
+  return {
+    toObject: () => ({ ...obj }),
+    toJSON: () => JSON.stringify(obj)
+  };
+}
 const BASE64_BLOCK_SIZE = 4;
 function resolveArgsWithEvent(args, event, element) {
   return args.map((a) => {
@@ -4392,7 +1938,7 @@ function resolveArgsWithEvent(args, event, element) {
         console.warn("[DOMBinder] $form used but no form ancestor found for element:", element);
         return null;
       }
-      return formData(form);
+      return createFormData(form);
     }
     return a.v;
   });
@@ -4412,7 +1958,7 @@ function resolveArgsForAction(args, event, element) {
         console.warn("[DOMBinder] $form used but no form ancestor found for element:", element);
         return {};
       }
-      return formData(form).toObject();
+      return createFormData(form).toObject();
     }
     return a.v;
   });
@@ -4490,7 +2036,7 @@ function executeHelper(helper, ctx) {
       if (!form) {
         return "";
       }
-      return formData(form).toJSON();
+      return createFormData(form).toJSON();
     }
     return String(a.v);
   });
@@ -4505,9 +2051,16 @@ function executeHelper(helper, ctx) {
     console.error("[DOMBinder] Helper execution failed:", err);
   }
 }
+function executeViaCapability(descriptor, el, event) {
+  const api = _getCapability("actions");
+  if (api) {
+    return api.handleAction(descriptor, el, event);
+  }
+  return void 0;
+}
 function dispatchIfActionDescriptor(result, el, event, errorPrefix, fnName) {
   if (isActionDescriptor(result)) {
-    handleAction(result, el, event).catch((err) => {
+    executeViaCapability(result, el, event)?.catch((err) => {
       console.error(`${errorPrefix} Action execution failed for "${fnName}":`, err);
     });
     return;
@@ -4515,7 +2068,7 @@ function dispatchIfActionDescriptor(result, el, event, errorPrefix, fnName) {
   if (result instanceof Promise) {
     result.then((resolved) => {
       if (isActionDescriptor(resolved)) {
-        return handleAction(resolved, el, event);
+        return executeViaCapability(resolved, el, event);
       }
       return void 0;
     }).catch((err) => {
@@ -4831,140 +2384,6 @@ function createDOMBinder(helperRegistry, callbacks) {
     bindActions
   };
 }
-const VISIBILITY_DEBOUNCE_MS = 150;
-const INPUT_DEBOUNCE_MS = 400;
-const SYNC_BOUND_MARKER = "pk-sync-bound";
-const SYNC_TRIGGER_TAGS = ["SELECT", "INPUT", "PP-SELECT", "PP-CHECKBOX"];
-function extractPrimaryValue(attrValue) {
-  if (!attrValue) {
-    return "";
-  }
-  const parts = attrValue.trim().split(/\s+/);
-  return parts[parts.length - 1] || "";
-}
-function gatherFormData(form) {
-  if (!form) {
-    return void 0;
-  }
-  const formData2 = new FormData(form);
-  const data = {};
-  for (const key of new Set(formData2.keys())) {
-    data[key] = formData2.getAll(key);
-  }
-  return data;
-}
-function isElementVisible(el) {
-  const rect = el.getBoundingClientRect();
-  return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
-}
-const REFRESH_LEVEL_NO_REFRESH_ATTRS = 3;
-function detectRefreshLevel(el) {
-  if (el.hasAttribute("pk-no-refresh-attrs")) {
-    return REFRESH_LEVEL_NO_REFRESH_ATTRS;
-  }
-  if (el.hasAttribute("pk-own-attrs")) {
-    return 2;
-  }
-  if (el.hasAttribute("pk-refresh-root")) {
-    return 1;
-  }
-  return 0;
-}
-function createUpdateServer(binding) {
-  const { containerEl, partialSrc, callbacks } = binding;
-  return async (formData2 = null) => {
-    const form = containerEl.closest("form");
-    const gatheredData = formData2 ?? gatherFormData(form);
-    const level = detectRefreshLevel(containerEl);
-    const childrenOnly = level === 0;
-    const preservePartialScopes = level >= 1;
-    const ownedAttributes = level === 2 ? getOwnedAttributes(containerEl) : void 0;
-    await callbacks.onRemoteRender({
-      src: partialSrc,
-      formData: gatheredData,
-      patchMethod: "morph",
-      childrenOnly,
-      preservePartialScopes,
-      ownedAttributes,
-      querySelector: `[partial_src="${partialSrc}"]`,
-      patchLocation: containerEl
-    });
-  };
-}
-function setupContainerEventListeners(binding) {
-  const { containerEl, debounceTimers: debounceTimers2 } = binding;
-  const updateServer = createUpdateServer(binding);
-  containerEl.addEventListener("input", (_event) => {
-    clearTimeout(debounceTimers2.get(containerEl));
-    debounceTimers2.set(containerEl, setTimeout(() => void updateServer(), INPUT_DEBOUNCE_MS));
-  });
-  containerEl.addEventListener("change", (event) => {
-    const target = event.target;
-    if (!SYNC_TRIGGER_TAGS.includes(target.tagName)) {
-      return;
-    }
-    if (target.tagName === "INPUT" && target.type === "text") {
-      return;
-    }
-    clearTimeout(debounceTimers2.get(containerEl));
-    void updateServer();
-  });
-  containerEl.addEventListener("refresh-partial", (event) => {
-    event.stopPropagation();
-    const customEvent = event;
-    void updateServer(customEvent.detail?.formData ?? null).then(() => {
-      customEvent.detail?.afterMorph?.();
-    }).catch((err) => {
-      console.error("[SyncPartialManager] refresh-partial failed:", err);
-    });
-  });
-}
-function createSyncPartialManager(callbacks) {
-  const debounceVisibleElements = /* @__PURE__ */ new Set();
-  let visibilityDebounceTimer;
-  const visibilityState = /* @__PURE__ */ new WeakMap();
-  const processVisibleBatch = () => {
-    debounceVisibleElements.forEach((el) => el.dispatchEvent(new CustomEvent("refresh-partial", { bubbles: false })));
-    debounceVisibleElements.clear();
-  };
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        const containerEl = entry.target;
-        const wasVisible = visibilityState.get(containerEl) === "visible";
-        if (entry.isIntersecting && !wasVisible) {
-          debounceVisibleElements.add(containerEl);
-        }
-        visibilityState.set(containerEl, entry.isIntersecting ? "visible" : "hidden");
-      }
-      if (debounceVisibleElements.size > 0) {
-        clearTimeout(visibilityDebounceTimer);
-        visibilityDebounceTimer = setTimeout(processVisibleBatch, VISIBILITY_DEBOUNCE_MS);
-      }
-    },
-    { root: null, threshold: 0.1 }
-  );
-  return {
-    bind(rootElement) {
-      const containers = rootElement.querySelectorAll(`[partial_mode="sync"]:not([${SYNC_BOUND_MARKER}])`);
-      containers.forEach((containerEl) => {
-        const partialSrcAttr = containerEl.getAttribute("partial_src");
-        const partialSrc = extractPrimaryValue(partialSrcAttr);
-        if (!partialSrc) {
-          console.warn('SyncPartialManager: A sync container is missing its "partial_src" attribute.', containerEl);
-          return;
-        }
-        const binding = { containerEl, partialSrc, callbacks, debounceTimers: /* @__PURE__ */ new WeakMap() };
-        setupContainerEventListeners(binding);
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          visibilityState.set(containerEl, isElementVisible(containerEl) ? "visible" : "hidden");
-          observer.observe(containerEl);
-        }));
-        containerEl.setAttribute(SYNC_BOUND_MARKER, "true");
-      });
-    }
-  };
-}
 const OFFLINE_BANNER_ID = "ppf-offline-banner";
 function createOfflineBanner() {
   const banner = document.createElement("div");
@@ -5049,557 +2468,6 @@ function createNetworkStatus(deps) {
     }
   };
 }
-const ANNOUNCER_ID = "ppf-a11y-announcer";
-function createAnnouncerElement() {
-  const element = document.createElement("div");
-  element.id = ANNOUNCER_ID;
-  element.setAttribute("role", "status");
-  element.setAttribute("aria-live", "polite");
-  element.setAttribute("aria-atomic", "true");
-  element.style.cssText = [
-    "position:absolute",
-    "width:1px",
-    "height:1px",
-    "padding:0",
-    "margin:-1px",
-    "overflow:hidden",
-    "clip:rect(0,0,0,0)",
-    "white-space:nowrap",
-    "border:0"
-  ].join(";");
-  return element;
-}
-function createA11yAnnouncer() {
-  let element = document.getElementById(ANNOUNCER_ID);
-  if (!element) {
-    element = createAnnouncerElement();
-    document.body.appendChild(element);
-  }
-  const announce = (message, priority = "polite") => {
-    if (!element) {
-      return;
-    }
-    element.setAttribute("aria-live", priority);
-    element.textContent = "";
-    requestAnimationFrame(() => {
-      if (element) {
-        element.textContent = message;
-      }
-    });
-  };
-  return {
-    announce,
-    announceNavigation(pageTitle) {
-      announce(`Navigated to ${pageTitle}`);
-    },
-    announceLoading() {
-      announce("Loading page");
-    },
-    announceError(errorMessage) {
-      announce(errorMessage, "assertive");
-    },
-    destroy() {
-      element?.remove();
-      element = null;
-    }
-  };
-}
-const NO_TRACK_ATTR = "pk-no-track";
-const TRACKED_ATTR = "data-pk-tracked";
-const DEFERRED_SNAPSHOT_TIMEOUT_MS = 5e3;
-function getFormSnapshot(form) {
-  const data = new FormData(form);
-  const entries = [];
-  for (const [key, value] of data.entries()) {
-    if (typeof value === "string") {
-      entries.push([key, value]);
-    }
-  }
-  const checkboxes = form.querySelectorAll('input[type="checkbox"], input[type="radio"]');
-  for (const checkbox of checkboxes) {
-    if (checkbox.name) {
-      entries.push([`__checked_${checkbox.name}_${checkbox.value}`, String(checkbox.checked)]);
-    }
-  }
-  entries.sort((a, b) => a[0].localeCompare(b[0]));
-  return JSON.stringify(entries);
-}
-function getFormId(form) {
-  if (form.id) {
-    return form.id;
-  }
-  const action = form.action || "no-action";
-  const forms = document.querySelectorAll("form");
-  const index = Array.from(forms).indexOf(form);
-  return `form-${index}-${action.slice(-20)}`;
-}
-function diffSnapshots(initial, current) {
-  const initialEntries = JSON.parse(initial);
-  const currentEntries = JSON.parse(current);
-  const initialMap = new Map(initialEntries);
-  const currentMap = new Map(currentEntries);
-  const diffs = [];
-  for (const [key, value] of currentMap) {
-    const initialValue = initialMap.get(key);
-    if (initialValue === void 0) {
-      diffs.push({ field: key, initial: "(absent)", current: value });
-    } else if (initialValue !== value) {
-      diffs.push({ field: key, initial: initialValue, current: value });
-    }
-  }
-  for (const [key, value] of initialMap) {
-    if (!currentMap.has(key)) {
-      diffs.push({ field: key, initial: value, current: "(absent)" });
-    }
-  }
-  return diffs;
-}
-function updateDirtyState(form, trackedForms, hookManager) {
-  const tracked = trackedForms.get(form);
-  if (!tracked || tracked.snapshotPending) {
-    return;
-  }
-  const currentSnapshot = getFormSnapshot(form);
-  const wasDirty = tracked.isDirty;
-  tracked.isDirty = currentSnapshot !== tracked.initialSnapshot;
-  if (tracked.isDirty && !wasDirty) {
-    const diffs = diffSnapshots(tracked.initialSnapshot, currentSnapshot);
-    console.warn(
-      `[pk] Form "${getFormId(form)}" is now dirty. Changed fields:`,
-      diffs,
-      `
-
-If this form should not trigger unsaved changes warnings, add the "pk-no-track" attribute to the <form> element.
-If a custom element is incorrectly reporting a changed value, check that its setFormValue() call in connectedCallback matches the server-rendered initial state.`
-    );
-    hookManager.emit(HookEvent.FORM_DIRTY, { formId: getFormId(form), timestamp: Date.now() });
-  } else if (!tracked.isDirty && wasDirty) {
-    hookManager.emit(HookEvent.FORM_CLEAN, { formId: getFormId(form), timestamp: Date.now() });
-  }
-}
-function createFormInputHandler(trackedForms, hookManager) {
-  return (event) => {
-    const target = event.target;
-    if (!target) {
-      return;
-    }
-    const form = target.closest("form");
-    if (form instanceof HTMLFormElement && trackedForms.has(form)) {
-      updateDirtyState(form, trackedForms, hookManager);
-    }
-  };
-}
-function checkHasDirtyForms(trackedForms, hookManager) {
-  for (const tracked of trackedForms.values()) {
-    updateDirtyState(tracked.form, trackedForms, hookManager);
-    if (tracked.isDirty) {
-      return true;
-    }
-  }
-  return false;
-}
-function containsCustomElements(form) {
-  const allElements = form.querySelectorAll("*");
-  for (const el of allElements) {
-    if (el.localName.includes("-")) {
-      return true;
-    }
-  }
-  return false;
-}
-async function deferFormSnapshot(form, trackedForms) {
-  const undefinedElements = form.querySelectorAll(":not(:defined)");
-  if (undefinedElements.length > 0) {
-    const tagNames = /* @__PURE__ */ new Set();
-    for (const el of undefinedElements) {
-      tagNames.add(el.localName);
-    }
-    const timeout2 = new Promise(
-      (resolve) => setTimeout(() => resolve("timeout"), DEFERRED_SNAPSHOT_TIMEOUT_MS)
-    );
-    const result = await Promise.race([
-      Promise.all(
-        Array.from(tagNames).map((name) => customElements.whenDefined(name))
-      ).then(() => "defined"),
-      timeout2
-    ]);
-    if (result === "timeout") {
-      console.warn(
-        `[pk] Timed out waiting for custom elements in form "${getFormId(form)}":`,
-        Array.from(tagNames)
-      );
-    }
-  }
-  await new Promise((resolve) => requestAnimationFrame(() => {
-    requestAnimationFrame(() => resolve());
-  }));
-  const tracked = trackedForms.get(form);
-  if (!tracked) {
-    return;
-  }
-  tracked.initialSnapshot = getFormSnapshot(form);
-  tracked.snapshotPending = false;
-}
-function internalTrackForm(form, trackedForms) {
-  if (trackedForms.has(form) || form.hasAttribute(NO_TRACK_ATTR)) {
-    return;
-  }
-  if (containsCustomElements(form)) {
-    trackedForms.set(form, { form, initialSnapshot: "", isDirty: false, snapshotPending: true });
-    void deferFormSnapshot(form, trackedForms);
-  } else {
-    trackedForms.set(form, { form, initialSnapshot: getFormSnapshot(form), isDirty: false, snapshotPending: false });
-  }
-  form.setAttribute(TRACKED_ATTR, "true");
-}
-function collectForms(node) {
-  const forms = [];
-  if (node instanceof HTMLFormElement && !node.hasAttribute(NO_TRACK_ATTR)) {
-    forms.push(node);
-  }
-  if (node instanceof HTMLElement) {
-    const nested = node.querySelectorAll("form:not([pk-no-track])");
-    for (const form of nested) {
-      forms.push(form);
-    }
-  }
-  return forms;
-}
-function createFormObserver(trackedForms) {
-  return new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes) {
-        for (const form of collectForms(node)) {
-          internalTrackForm(form, trackedForms);
-        }
-      }
-      for (const node of mutation.removedNodes) {
-        for (const form of collectForms(node)) {
-          trackedForms.delete(form);
-          form.removeAttribute(TRACKED_ATTR);
-        }
-      }
-    }
-  });
-}
-function createFormSubmitHandler(trackedForms, hookManager) {
-  return (event) => {
-    const form = event.target;
-    if (!(form instanceof HTMLFormElement)) {
-      return;
-    }
-    const tracked = trackedForms.get(form);
-    if (!tracked) {
-      return;
-    }
-    tracked.initialSnapshot = getFormSnapshot(form);
-    tracked.snapshotPending = false;
-    const wasDirty = tracked.isDirty;
-    tracked.isDirty = false;
-    if (wasDirty) {
-      hookManager.emit(HookEvent.FORM_CLEAN, { formId: getFormId(form), timestamp: Date.now() });
-    }
-  };
-}
-function createBeforeUnloadHandler(hasDirtyForms) {
-  return (event) => {
-    if (hasDirtyForms()) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-  };
-}
-function setupFormListeners(trackedForms, handleFormInput, handleFormSubmit, handleBeforeUnload) {
-  const formObserver = createFormObserver(trackedForms);
-  formObserver.observe(document.body, { childList: true, subtree: true });
-  document.addEventListener("input", handleFormInput);
-  document.addEventListener("change", handleFormInput);
-  document.addEventListener("submit", handleFormSubmit);
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  return formObserver;
-}
-function createFormStateManager(deps) {
-  const { hookManager } = deps;
-  const confirmFn = deps.confirmFn ?? ((message) => window.confirm(message));
-  const trackedForms = /* @__PURE__ */ new Map();
-  const handleFormInput = createFormInputHandler(trackedForms, hookManager);
-  const hasDirtyForms = () => checkHasDirtyForms(trackedForms, hookManager);
-  const handleBeforeUnload = createBeforeUnloadHandler(hasDirtyForms);
-  const handleFormSubmit = createFormSubmitHandler(trackedForms, hookManager);
-  const formObserver = setupFormListeners(trackedForms, handleFormInput, handleFormSubmit, handleBeforeUnload);
-  return {
-    trackForm(form) {
-      internalTrackForm(form, trackedForms);
-    },
-    untrackForm(form) {
-      trackedForms.delete(form);
-      form.removeAttribute(TRACKED_ATTR);
-    },
-    markFormClean(form) {
-      const tracked = trackedForms.get(form);
-      if (!tracked) {
-        return;
-      }
-      tracked.initialSnapshot = getFormSnapshot(form);
-      tracked.snapshotPending = false;
-      const wasDirty = tracked.isDirty;
-      tracked.isDirty = false;
-      if (wasDirty) {
-        hookManager.emit(HookEvent.FORM_CLEAN, { formId: getFormId(form), timestamp: Date.now() });
-      }
-    },
-    hasDirtyForms,
-    getDirtyFormIds() {
-      const dirty = [];
-      for (const tracked of trackedForms.values()) {
-        updateDirtyState(tracked.form, trackedForms, hookManager);
-        if (tracked.isDirty) {
-          dirty.push(getFormId(tracked.form));
-        }
-      }
-      return dirty;
-    },
-    confirmNavigation: () => !hasDirtyForms() || confirmFn("You have unsaved changes. Leave anyway?"),
-    scanAndTrackForms(root = document.body) {
-      for (const form of trackedForms.keys()) {
-        if (!document.contains(form)) {
-          trackedForms.delete(form);
-        }
-      }
-      const forms = root.querySelectorAll("form:not([pk-no-track])");
-      for (const form of forms) {
-        internalTrackForm(form, trackedForms);
-      }
-    },
-    untrackAll() {
-      for (const form of trackedForms.keys()) {
-        form.removeAttribute(TRACKED_ATTR);
-      }
-      trackedForms.clear();
-    },
-    destroy() {
-      formObserver.disconnect();
-      document.removeEventListener("input", handleFormInput);
-      document.removeEventListener("change", handleFormInput);
-      document.removeEventListener("submit", handleFormSubmit);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      trackedForms.clear();
-    }
-  };
-}
-const browserDOMOperations = {
-  /** Creates an HTML element by tag name. */
-  createElement(tagName) {
-    return document.createElement(tagName);
-  },
-  /** Creates a text node. */
-  createTextNode(data) {
-    return document.createTextNode(data);
-  },
-  /** Creates a comment node. */
-  createComment(data) {
-    return document.createComment(data);
-  },
-  /** Creates a document fragment. */
-  createDocumentFragment() {
-    return document.createDocumentFragment();
-  },
-  /** Queries the document for the first element matching a selector. */
-  querySelector(selectors) {
-    return document.querySelector(selectors);
-  },
-  /** Queries the document for all elements matching a selector. */
-  querySelectorAll(selectors) {
-    return document.querySelectorAll(selectors);
-  },
-  /** Returns the element with the given ID. */
-  getElementById(elementId) {
-    return document.getElementById(elementId);
-  },
-  /** Returns the document head element. */
-  getHead() {
-    return document.head;
-  },
-  /** Returns the currently focused element. */
-  getActiveElement() {
-    return document.activeElement;
-  },
-  /** Parses an HTML string into a Document. */
-  parseHTML(html) {
-    const parser = new DOMParser();
-    return parser.parseFromString(html, "text/html");
-  }
-};
-const browserWindowOperations = {
-  /** Returns the current Location object. */
-  getLocation() {
-    return window.location;
-  },
-  /** Returns the location origin. */
-  getLocationOrigin() {
-    return window.location.origin;
-  },
-  /** Returns the location href. */
-  getLocationHref() {
-    return window.location.href;
-  },
-  /** Sets the location href, triggering a full page navigation. */
-  setLocationHref(href) {
-    window.location.href = href;
-  },
-  /** Reloads the current page. */
-  locationReload() {
-    window.location.reload();
-  },
-  /** Pushes a new entry onto the history stack. */
-  historyPushState(data, unused, url) {
-    window.history.pushState(data, unused, url);
-  },
-  /** Replaces the current history entry. */
-  historyReplaceState(data, unused, url) {
-    window.history.replaceState(data, unused, url);
-  },
-  /** Returns the current history state. */
-  getHistoryState() {
-    return window.history.state;
-  },
-  /** Adds an event listener to the window. */
-  addEventListener(type, listener) {
-    window.addEventListener(type, listener);
-  },
-  /** Removes an event listener from the window. */
-  removeEventListener(type, listener) {
-    window.removeEventListener(type, listener);
-  },
-  /** Returns the current vertical scroll position. */
-  getScrollY() {
-    return window.scrollY;
-  },
-  /** Scrolls the window to the specified position. */
-  scrollTo(x, y) {
-    window.scrollTo(x, y);
-  },
-  /** Sets the scroll restoration mode. */
-  setScrollRestoration(mode) {
-    if ("scrollRestoration" in history) {
-      history.scrollRestoration = mode;
-    }
-  },
-  /** Returns the current scroll restoration mode. */
-  getScrollRestoration() {
-    if ("scrollRestoration" in history) {
-      return history.scrollRestoration;
-    }
-    return "auto";
-  }
-};
-const browserHTTPOperations = {
-  /** Fetches a resource from the network. */
-  fetch(input, init) {
-    return fetch(input, init);
-  }
-};
-async function readWithProgress(response, onProgress) {
-  const lenHeader = response.headers.get("Content-Length");
-  if (!lenHeader) {
-    return response.text();
-  }
-  const totalSize = parseInt(lenHeader, 10);
-  if (isNaN(totalSize) || totalSize <= 0) {
-    return response.text();
-  }
-  const reader = response.body?.getReader();
-  if (!reader) {
-    return response.text();
-  }
-  let loaded = 0;
-  const chunks = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    if (!value) {
-      continue;
-    }
-    chunks.push(value);
-    loaded += value.length;
-    onProgress(loaded, totalSize);
-  }
-  const combined = new Uint8Array(loaded);
-  let position = 0;
-  for (const chunk of chunks) {
-    combined.set(chunk, position);
-    position += chunk.length;
-  }
-  return new TextDecoder("utf-8").decode(combined);
-}
-function createFetchClient(deps = {}) {
-  const http = deps.http ?? browserHTTPOperations;
-  let controller = null;
-  return {
-    /**
-     * Performs a GET request and returns the response as text.
-     *
-     * @param url - The URL to fetch.
-     * @param options - The optional fetch client options.
-     * @returns A tuple of [success, responseText].
-     */
-    async get(url, options = {}) {
-      try {
-        controller = new AbortController();
-        const response = await http.fetch(url, {
-          method: "GET",
-          credentials: "same-origin",
-          signal: controller.signal
-        });
-        if (!response.ok) {
-          return [false, null];
-        }
-        let text;
-        if (options.onProgress) {
-          text = await readWithProgress(response, options.onProgress);
-        } else {
-          text = await response.text();
-        }
-        return [true, text];
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          throw error;
-        }
-        console.error("FetchClient.get error:", error);
-        return [false, null];
-      }
-    },
-    /**
-     * Performs a POST request with optional body and headers.
-     *
-     * @param url - The URL to fetch.
-     * @param body - The optional request body.
-     * @param headers - The optional request headers.
-     * @returns The fetch Response.
-     */
-    async post(url, body, headers = {}) {
-      controller = new AbortController();
-      return http.fetch(url, {
-        method: "POST",
-        headers,
-        body,
-        credentials: "same-origin",
-        signal: controller.signal
-      });
-    },
-    /** Aborts any in-progress request. */
-    abort() {
-      controller?.abort();
-      controller = null;
-    },
-    /** Returns the current AbortController for external management. */
-    getController() {
-      return controller;
-    }
-  };
-}
 function addFragmentQuery(urlValue) {
   try {
     const parsedUrl = new URL(urlValue, window.location.origin);
@@ -5623,552 +2491,8 @@ function buildRemoteUrl(base, args) {
 function isSameDomain(loc) {
   return loc.hostname === window.location.hostname;
 }
-const PROGRESS_MAX = 100;
-function safeInvokeCallback(callback, url) {
-  if (!callback) {
-    return;
-  }
-  try {
-    callback(url);
-  } catch (error) {
-    console.warn("[Router] Error in navigation callback:", {
-      url,
-      callback: callback.name || "anonymous",
-      error
-    });
-  }
-}
-function emitNavigationError(deps, targetUrl, errorMessage, displayMessage) {
-  deps.errorDisplay.show(displayMessage ?? `Navigation to ${targetUrl} failed. Loading full page...`);
-  deps.a11yAnnouncer?.announceError("Navigation failed");
-  deps.hookManager?.emit(HookEvent.NAVIGATION_ERROR, {
-    url: targetUrl,
-    error: errorMessage,
-    timestamp: Date.now()
-  });
-  deps.windowOps.setLocationHref(targetUrl);
-}
-function updateHistoryState(windowOps, targetUrl, replaceHistory) {
-  const currentState = { scrollY: windowOps.getScrollY() };
-  windowOps.historyReplaceState(currentState, "", windowOps.getLocationHref());
-  const newState = { scrollY: 0 };
-  if (replaceHistory) {
-    windowOps.historyReplaceState(newState, "", targetUrl);
-  } else {
-    windowOps.historyPushState(newState, "", targetUrl);
-  }
-}
-function emitNavigationSuccess(deps, ctx, pageTitle) {
-  const duration = Date.now() - ctx.startTime;
-  deps.a11yAnnouncer?.announceNavigation(pageTitle);
-  deps.hookManager?.emit(HookEvent.NAVIGATION_COMPLETE, {
-    url: ctx.targetUrl,
-    previousUrl: ctx.previousUrl,
-    timestamp: Date.now(),
-    duration
-  });
-  deps.hookManager?.emit(HookEvent.PAGE_VIEW, {
-    url: ctx.targetUrl,
-    title: pageTitle,
-    referrer: ctx.previousUrl,
-    isInitialLoad: false,
-    timestamp: Date.now()
-  });
-  deps.formStateManager?.scanAndTrackForms();
-}
-function handleNavigationError(deps, targetUrl, error) {
-  if (error instanceof DOMException && error.name === "AbortError") {
-    console.warn("Fetch aborted:", targetUrl);
-    return;
-  }
-  console.error("navigateTo error:", error);
-  const errorMessage = error instanceof Error ? error.message : "Unknown error";
-  emitNavigationError(deps, targetUrl, errorMessage);
-}
-function shouldCancelNavigation(isPopNavigation, formStateManager) {
-  if (isPopNavigation) {
-    return false;
-  }
-  return Boolean(formStateManager?.hasDirtyForms() && !formStateManager.confirmNavigation());
-}
-function emitNavigationStart(deps, ctx, localBeforeNavigate) {
-  safeInvokeCallback(localBeforeNavigate, ctx.targetUrl);
-  deps.hookManager?.emit(HookEvent.NAVIGATION_START, {
-    url: ctx.targetUrl,
-    previousUrl: ctx.previousUrl,
-    timestamp: ctx.startTime
-  });
-  deps.a11yAnnouncer?.announceLoading();
-}
-function buildScrollOptions(ctx, options, windowOps) {
-  const hash = new URL(ctx.targetUrl, windowOps.getLocationOrigin()).hash;
-  return {
-    restoreScrollY: ctx.isPopNavigation ? options.restoreScrollY : void 0,
-    hash: !ctx.isPopNavigation || options.restoreScrollY === void 0 ? hash : void 0
-  };
-}
-async function performNavigation(state, deps, targetUrl, event, options) {
-  const { fetchClient, loader, onPageLoad, windowOps, domOps, formStateManager } = deps;
-  if (event) {
-    event.preventDefault();
-  }
-  const isPopNavigation = Boolean(options.isPopState);
-  if (shouldCancelNavigation(isPopNavigation, formStateManager)) {
-    return;
-  }
-  formStateManager?.untrackAll();
-  if (state.navigating) {
-    fetchClient.abort();
-  }
-  state.navigating = true;
-  loader.show();
-  const ctx = {
-    targetUrl,
-    previousUrl: windowOps.getLocationHref(),
-    startTime: Date.now(),
-    isPopNavigation,
-    options
-  };
-  const localBeforeNavigate = options.beforeNavigate ?? state.globalConfig.beforeNavigate;
-  const localAfterNavigate = options.afterNavigate ?? state.globalConfig.afterNavigate;
-  emitNavigationStart(deps, ctx, localBeforeNavigate);
-  try {
-    if (!isPopNavigation) {
-      updateHistoryState(windowOps, targetUrl, options.replaceHistory);
-    }
-    const [success, htmlString] = await fetchClient.get(addFragmentQuery(targetUrl), {
-      onProgress: (loaded, total) => loader.setProgress(loaded / total * PROGRESS_MAX)
-    });
-    if (!success || !htmlString) {
-      emitNavigationError(deps, targetUrl, "Fetch failed");
-      return;
-    }
-    const parsedDocument = domOps.parseHTML(htmlString);
-    if (!parsedDocument.querySelector("#app")) {
-      emitNavigationError(deps, targetUrl, "No #app in response", "No #app in fragment. Loading full page...");
-      return;
-    }
-    const scrollOptions = buildScrollOptions(ctx, options, windowOps);
-    await onPageLoad(parsedDocument, targetUrl, scrollOptions);
-    focusMainContent(domOps);
-    emitNavigationSuccess(deps, ctx, parsedDocument.title || document.title);
-  } catch (error) {
-    handleNavigationError(deps, targetUrl, error);
-  } finally {
-    state.navigating = false;
-    loader.hide();
-    safeInvokeCallback(localAfterNavigate, targetUrl);
-  }
-}
-function focusMainContent(domOps) {
-  const mainContent = domOps.querySelector('[role="main"], main, #app');
-  if (mainContent) {
-    const hadTabIndex = mainContent.hasAttribute("tabindex");
-    const originalTabIndex = mainContent.getAttribute("tabindex");
-    mainContent.setAttribute("tabindex", "-1");
-    mainContent.focus({ preventScroll: true });
-    if (hadTabIndex && originalTabIndex !== null) {
-      mainContent.setAttribute("tabindex", originalTabIndex);
-    } else if (!hadTabIndex) {
-      mainContent.removeAttribute("tabindex");
-    }
-  }
-}
-function createRouter(deps) {
-  const windowOps = deps.windowOps ?? browserWindowOperations;
-  const domOps = deps.domOps ?? browserDOMOperations;
-  const state = { navigating: false, globalConfig: {} };
-  windowOps.setScrollRestoration("manual");
-  const navDeps = {
-    fetchClient: deps.fetchClient,
-    loader: deps.loader,
-    errorDisplay: deps.errorDisplay,
-    onPageLoad: deps.onPageLoad,
-    windowOps,
-    domOps,
-    hookManager: deps.hookManager,
-    formStateManager: deps.formStateManager,
-    a11yAnnouncer: deps.a11yAnnouncer
-  };
-  const navigateTo = (targetUrl, event, options = {}) => performNavigation(state, navDeps, targetUrl, event, options);
-  const popstateHandler = () => {
-    const location = windowOps.getLocation();
-    if (!isSameDomain(location)) {
-      windowOps.locationReload();
-      return;
-    }
-    const historyState = windowOps.getHistoryState();
-    const restoreScrollY = historyState?.scrollY;
-    void navigateTo(windowOps.getLocationHref(), void 0, {
-      replaceHistory: true,
-      isPopState: true,
-      restoreScrollY
-    });
-  };
-  windowOps.addEventListener("popstate", popstateHandler);
-  return {
-    navigateTo,
-    isNavigating: () => state.navigating,
-    setConfig: (config) => {
-      state.globalConfig = config;
-    },
-    destroy: () => windowOps.removeEventListener("popstate", popstateHandler)
-  };
-}
-const HASH_SHIFT = 5;
-const HASH_RADIX = 36;
-function sha1(str) {
-  let h = 0;
-  const length = str.length;
-  for (let i = 0; i < length; i++) {
-    h = (h << HASH_SHIFT) - h + str.charCodeAt(i) | 0;
-  }
-  return h.toString(HASH_RADIX);
-}
-function buildFormData(input) {
-  if (input instanceof URLSearchParams) {
-    return input;
-  }
-  const params = new URLSearchParams();
-  if (input instanceof FormData) {
-    for (const [key, value] of input.entries()) {
-      if (typeof value === "string") {
-        params.append(key, value);
-      }
-    }
-    return params;
-  }
-  if (input instanceof Map || typeof input === "object") {
-    const entries = input instanceof Map ? input.entries() : Object.entries(input);
-    for (const [key, value] of entries) {
-      if (Array.isArray(value)) {
-        value.forEach((v) => {
-          if (v !== null && v !== void 0) {
-            params.append(key, String(v));
-          }
-        });
-      } else if (value !== null && value !== void 0) {
-        params.append(key, String(value));
-      }
-    }
-    return params;
-  }
-  console.warn("RemoteRenderer: `options.formData` was provided but is not a recognised type. Ignoring.");
-  return void 0;
-}
-function processStyleBlocks(parsedDoc, domOps) {
-  const styleBlocks = parsedDoc.querySelectorAll("style[pk-page]");
-  styleBlocks.forEach((srcStyleEl) => {
-    const cssText = srcStyleEl.textContent ?? "";
-    if (!cssText.trim()) {
-      return;
-    }
-    const pageId = parsedDoc.querySelector("#app")?.dataset.pageid;
-    const styleKey = pageId ?? sha1(cssText);
-    if (domOps.getHead().querySelector(`style[data-pk-style-key="${styleKey}"]`)) {
-      return;
-    }
-    const newStyleEl = domOps.createElement("style");
-    newStyleEl.setAttribute("pk-page", "");
-    newStyleEl.setAttribute("data-pk-style-key", styleKey);
-    newStyleEl.textContent = cssText;
-    domOps.getHead().appendChild(newStyleEl);
-  });
-}
-function getNodeKey(node) {
-  if (node.nodeType !== 1) {
-    return null;
-  }
-  const el = node;
-  return el.dataset.stableId ?? el.getAttribute("p-key") ?? (el.id || null);
-}
-function transformRelativeKeys(sourceEl, targetEl) {
-  const targetKey = targetEl.getAttribute("p-key");
-  const sourceKey = sourceEl.getAttribute("p-key");
-  if (!targetKey || !sourceKey) {
-    return;
-  }
-  const elementsWithKeys = [sourceEl, ...Array.from(sourceEl.querySelectorAll("[p-key]"))];
-  for (const el of elementsWithKeys) {
-    const currentKey = el.getAttribute("p-key");
-    if (!currentKey) {
-      continue;
-    }
-    if (currentKey === sourceKey) {
-      el.setAttribute("p-key", targetKey);
-    } else if (currentKey.startsWith(`${sourceKey}:`)) {
-      const suffix = currentKey.slice(sourceKey.length);
-      el.setAttribute("p-key", targetKey + suffix);
-    }
-  }
-}
-function syncPatchAttributes(target, sourceEl) {
-  if (!target.patchAttributes || !target.patchLocation) {
-    return;
-  }
-  for (const attr of Array.from(sourceEl.attributes)) {
-    const shouldSync = target.patchAttributes.includes(attr.name);
-    const isDifferent = target.patchLocation.getAttribute(attr.name) !== attr.value;
-    if (shouldSync && isDifferent) {
-      target.patchLocation.setAttribute(attr.name, attr.value);
-    }
-  }
-}
-function applyPatch(ctx) {
-  const { target, sourceEl, patchMethod, onDOMUpdated, domOps } = ctx;
-  const { patchLocation } = target;
-  if (patchLocation.hasAttribute("partial")) {
-    _executeBeforeRender(patchLocation);
-  }
-  if (patchMethod === "morph") {
-    fragmentMorpher(patchLocation, sourceEl, {
-      childrenOnly: target.childrenOnly,
-      preservePartialScopes: target.preservePartialScopes,
-      ownedAttributes: target.ownedAttributes,
-      getNodeKey,
-      onNodeAdded(node) {
-        if (node.nodeType === 1) {
-          onDOMUpdated(node);
-        }
-        return node;
-      },
-      onBeforeElUpdated(fromEl, toEl) {
-        return !fromEl.isEqualNode(toEl) && fromEl !== domOps.getActiveElement();
-      }
-    });
-  } else {
-    patchLocation.innerHTML = "";
-    Array.from(sourceEl.children).forEach((child) => {
-      patchLocation.appendChild(child.cloneNode(true));
-    });
-    onDOMUpdated(patchLocation);
-  }
-  syncPatchAttributes(target, sourceEl);
-  if (patchLocation.hasAttribute("partial")) {
-    _executeAfterRender(patchLocation);
-    _executeUpdated(patchLocation, { patchMethod });
-  }
-}
-function findSourceElement(rootEl, selector) {
-  if (!selector) {
-    return rootEl;
-  }
-  const matched = rootEl.querySelector(selector);
-  if (!matched) {
-    console.warn(`RemoteRenderer: selector "${selector}" not found`);
-  }
-  return matched ?? rootEl;
-}
-function buildTargetsList(options) {
-  const targets = options.targets ?? [];
-  if (options.querySelector ?? options.patchLocation) {
-    targets.push({
-      querySelector: options.querySelector ?? void 0,
-      patchLocation: options.patchLocation ?? void 0,
-      patchMethod: options.patchMethod ?? void 0,
-      patchAttributes: options.patchAttributes ?? void 0,
-      childrenOnly: options.childrenOnly ?? true,
-      preservePartialScopes: options.preservePartialScopes ?? void 0,
-      ownedAttributes: options.ownedAttributes ?? void 0
-    });
-  }
-  return targets;
-}
-async function fetchFragment(fullUrl, options, ctx) {
-  const fetchOptions = { method: "GET" };
-  if (options.formData) {
-    fetchOptions.method = "POST";
-    const body = buildFormData(options.formData);
-    if (body) {
-      fetchOptions.body = body.toString();
-      fetchOptions.headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-      };
-    }
-  }
-  const response = await ctx.http.fetch(fullUrl, fetchOptions);
-  if (!response.ok) {
-    console.error("RemoteRenderer: fetch failed", response.status, response.statusText);
-    return null;
-  }
-  const responseType = response.headers.get("X-PP-Response-Support");
-  if (responseType !== "fragment-patch") {
-    console.warn(`RemoteRenderer: expected 'fragment-patch' response but got '${responseType ?? "none"}'. Reloading page.`);
-    ctx.windowOps.locationReload();
-    return null;
-  }
-  const linkHeader = response.headers.get("Link");
-  if (linkHeader) {
-    ctx.linkHeaderParser.parseAndApply(linkHeader);
-  }
-  return response.text();
-}
-async function reloadCachedModules(parsedDoc, moduleLoader) {
-  const moduleScripts = parsedDoc.querySelectorAll('script[type="module"]');
-  const cachedScripts = [];
-  for (const scriptEl of Array.from(moduleScripts)) {
-    const src = scriptEl.getAttribute("src");
-    if (src && moduleLoader.hasLoaded(src)) {
-      cachedScripts.push(src);
-    }
-  }
-  await moduleLoader.loadFromDocumentAsync(parsedDoc);
-  if (cachedScripts.length > 0) {
-    const pageContext = getGlobalPageContext();
-    for (const src of cachedScripts) {
-      void pageContext.loadModule(src).catch((err) => {
-        console.error("[RemoteRenderer] Failed to reload cached module:", err);
-      });
-    }
-  }
-}
-function applyRenderTargets(targets, rootEl, options, deps) {
-  for (const target of targets) {
-    if (!target.patchLocation) {
-      console.warn("RemoteRenderer: target has no patchLocation");
-      continue;
-    }
-    const sourceEl = findSourceElement(rootEl, target.querySelector);
-    if (!sourceEl) {
-      console.warn("RemoteRenderer: no valid element in fetched HTML");
-      return;
-    }
-    transformRelativeKeys(sourceEl, target.patchLocation);
-    applyPatch({
-      target: { ...target, patchLocation: target.patchLocation },
-      sourceEl,
-      patchMethod: target.patchMethod ?? options.patchMethod ?? "replace",
-      onDOMUpdated: deps.onDOMUpdated,
-      domOps: deps.domOps
-    });
-    const patchLocationId = target.querySelector || target.patchLocation.id || "unknown";
-    deps.hookManager?.emit(HookEvent.PARTIAL_RENDER, {
-      src: options.src,
-      patchLocation: patchLocationId,
-      timestamp: Date.now()
-    });
-    _executeConnectedForPartials(target.patchLocation);
-  }
-}
-function createRemoteRenderer(deps) {
-  const { moduleLoader, spriteSheetManager, linkHeaderParser, onDOMUpdated, hookManager } = deps;
-  const domOps = deps.domOps ?? browserDOMOperations;
-  const windowOps = deps.windowOps ?? browserWindowOperations;
-  const http = deps.http ?? browserHTTPOperations;
-  const fetchCtx = { linkHeaderParser, http, windowOps };
-  const renderTargetDeps = { onDOMUpdated, domOps, hookManager };
-  async function render(options) {
-    const fullUrl = buildRemoteUrl(options.src, options.args ?? {});
-    let htmlContent = null;
-    try {
-      htmlContent = await fetchFragment(fullUrl, options, fetchCtx);
-    } catch (error) {
-      console.error("RemoteRenderer: network error:", error);
-      return;
-    }
-    if (!htmlContent) {
-      return;
-    }
-    const parsedDoc = domOps.parseHTML(htmlContent);
-    spriteSheetManager.merge(parsedDoc.getElementById("sprite"));
-    processStyleBlocks(parsedDoc, domOps);
-    await reloadCachedModules(parsedDoc, moduleLoader);
-    const rootEl = parsedDoc.querySelector("#app") ?? parsedDoc.documentElement;
-    const targets = buildTargetsList(options);
-    applyRenderTargets(targets, rootEl, options, renderTargetDeps);
-  }
-  function patchPartial(htmlString, cssSelector) {
-    const doc2 = domOps.parseHTML(htmlString);
-    const newPartialEl = doc2.querySelector(cssSelector);
-    if (!newPartialEl) {
-      return console.warn(`RemoteRenderer: patchPartial - no element found for selector ${cssSelector}`);
-    }
-    const currentEl = domOps.querySelector(cssSelector);
-    if (!currentEl) {
-      return console.warn(`RemoteRenderer: patchPartial - no existing element found for selector ${cssSelector}`);
-    }
-    currentEl.innerHTML = newPartialEl.innerHTML;
-    onDOMUpdated(currentEl);
-    hookManager?.emit(HookEvent.PARTIAL_RENDER, {
-      src: "inline",
-      patchLocation: cssSelector,
-      timestamp: Date.now()
-    });
-  }
-  return { render, patchPartial };
-}
-function createModalManager(deps = {}) {
-  const { hookManager } = deps;
-  return {
-    /**
-     * Opens a modal if available, dispatching a fallback event if not found.
-     *
-     * @param options - The modal request options.
-     */
-    async openIfAvailable(options) {
-      const {
-        selector: modalSelector,
-        params = /* @__PURE__ */ new Map(),
-        title: modalTitle = "",
-        message: modalMessage = "",
-        cancelLabel: modalCancelLabel = "",
-        confirmLabel: modalConfirmLabel = "",
-        confirmAction: modalConfirmAction = "",
-        triggerElement,
-        fallbackEventName = "modal-not-found"
-      } = options;
-      const modalElem = document.querySelector(modalSelector);
-      if (!modalElem) {
-        console.warn(`ModalManager: Could not find modal "${modalSelector}". Falling back to dispatch event.`);
-        triggerElement.dispatchEvent(new CustomEvent(fallbackEventName, { bubbles: true, composed: true }));
-        return;
-      }
-      const modalId = modalElem.id || modalSelector;
-      hookManager?.emit(HookEvent.MODAL_OPEN, {
-        modalId,
-        url: window.location.href,
-        timestamp: Date.now()
-      });
-      const requestFn = modalElem.request;
-      if (typeof requestFn === "function") {
-        const confirmed = await requestFn({
-          modal_title: modalTitle,
-          message: modalMessage,
-          cancel_label: modalCancelLabel,
-          confirm_label: modalConfirmLabel,
-          confirm_action: modalConfirmAction,
-          params: Object.fromEntries(params.entries())
-        });
-        hookManager?.emit(HookEvent.MODAL_CLOSE, {
-          modalId,
-          timestamp: Date.now()
-        });
-        if (confirmed) {
-          triggerElement.dispatchEvent(
-            new CustomEvent("modal-confirmed", {
-              detail: {},
-              bubbles: true,
-              composed: true
-            })
-          );
-        } else {
-          triggerElement.dispatchEvent(
-            new CustomEvent("modal-cancelled", {
-              detail: {},
-              bubbles: true,
-              composed: true
-            })
-          );
-        }
-      } else {
-        console.warn(`ModalManager: The modal "${modalSelector}" does not have a request() function. Trying open...`);
-        modalElem.setAttribute("open", "true");
-      }
-    }
-  };
-}
-function registerPartialInstancesFromDOM(doc2) {
-  const partials = doc2.querySelectorAll("[partial][data-partial-name]");
+function registerPartialInstancesFromDOM(doc) {
+  const partials = doc.querySelectorAll("[partial][data-partial-name]");
   const pageContext = getGlobalPageContext();
   for (const el of partials) {
     const partialId = el.getAttribute("partial");
@@ -6182,11 +2506,8 @@ const globalHelperRegistry = createHelperRegistry();
 function RegisterHelper(name, setupFunction) {
   globalHelperRegistry.register(name, setupFunction);
 }
-function getGlobalHelperRegistry() {
-  return globalHelperRegistry;
-}
-function loadPageScripts(doc2) {
-  const pageScriptMetas = doc2.querySelectorAll('meta[name="pk-script"]');
+function loadPageScripts(doc) {
+  const pageScriptMetas = doc.querySelectorAll('meta[name="pk-script"]');
   for (const meta of pageScriptMetas) {
     const scriptUrl = meta.getAttribute("content");
     const partialName = meta.getAttribute("data-partial-name");
@@ -6258,63 +2579,73 @@ async function handlePageLoad(deps, parsedDocument, _targetUrl, scrollOptions) {
     performDOMUpdate(domUpdateDeps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions);
   }
 }
-function initFrameworkServices(services, options, instance) {
+function initFrameworkServices(services, options, _instance) {
   services.globalConfig = options;
-  services.loader = createLoaderUI({ colour: options.loaderColour ?? "#29e" });
   services.errorDisplay = createErrorDisplay();
   services.networkStatus = createNetworkStatus({ hookManager: services.hookManager });
-  services.a11yAnnouncer = createA11yAnnouncer();
-  services.formStateManager = createFormStateManager({ hookManager: services.hookManager });
-  services.fetchClient = createFetchClient();
   const bindDOM = (root) => {
     services.domBinder?.bind(root);
-    services.syncPartialManager?.bind(root);
   };
-  registerDOMUpdater(bindDOM);
-  services.remoteRenderer = createRemoteRenderer({
-    moduleLoader: services.moduleLoader,
-    spriteSheetManager: services.spriteSheetManager,
-    linkHeaderParser: services.linkHeaderParser,
-    onDOMUpdated: bindDOM,
-    hookManager: services.hookManager
-  });
   const pageLoadDeps = {
     spriteSheetManager: services.spriteSheetManager,
     bindDOM,
     moduleLoader: services.moduleLoader
   };
-  services.router = createRouter({
-    fetchClient: services.fetchClient,
-    loader: services.loader,
-    errorDisplay: services.errorDisplay,
-    onPageLoad: (doc2, url, scroll) => handlePageLoad(pageLoadDeps, doc2, url, scroll),
-    hookManager: services.hookManager,
-    formStateManager: services.formStateManager,
-    a11yAnnouncer: services.a11yAnnouncer
+  _onCapabilityReady("navigation", (factory) => {
+    const createNav = factory;
+    services.navigation = createNav({
+      onPageLoad: (doc, url, scroll) => handlePageLoad(pageLoadDeps, doc, url, scroll),
+      hookManager: services.hookManager,
+      errorDisplay: services.errorDisplay,
+      formStateManager: null,
+      moduleLoader: services.moduleLoader,
+      spriteSheetManager: services.spriteSheetManager,
+      linkHeaderParser: services.linkHeaderParser,
+      getPageContext: () => getGlobalPageContext(),
+      onDOMUpdated: bindDOM,
+      runPageCleanup: _runPageCleanup,
+      executeConnectedForPartials: _executeConnectedForPartials,
+      executeBeforeRender: (id) => {
+      },
+      executeAfterRender: (id) => {
+      },
+      executeUpdated: (id) => {
+      },
+      addFragmentQuery,
+      isSameDomain,
+      buildRemoteUrl
+    });
   });
-  services.router.setConfig({
-    beforeNavigate: options.beforeNavigate,
-    afterNavigate: options.afterNavigate
+  _onCapabilityReady("actions", (factory) => {
+    const createActions = factory;
+    services.actions = createActions({
+      hookManager: services.hookManager,
+      formStateManager: null,
+      helperRegistry: services.helperRegistry
+    });
   });
   services.domBinder = createDOMBinder(services.helperRegistry, {
     onNavigate: (url, _event) => {
-      void instance.navigateTo(url);
+      if (services.navigation) {
+        void services.navigation.navigateTo(url);
+      } else {
+        window.location.href = url;
+      }
     },
     onOpenModal: (opts) => {
-      void services.modalManager.openIfAvailable({
-        selector: opts.selector,
-        params: opts.params,
-        title: opts.title,
-        message: opts.message,
-        cancelLabel: opts.cancelLabel,
-        confirmLabel: opts.confirmLabel,
-        confirmAction: opts.confirmAction,
-        triggerElement: opts.element
-      });
+      opts.element.dispatchEvent(new CustomEvent("pk-open-modal", {
+        bubbles: true,
+        detail: {
+          selector: opts.selector,
+          params: opts.params,
+          title: opts.title,
+          message: opts.message,
+          cancelLabel: opts.cancelLabel,
+          confirmLabel: opts.confirmLabel,
+          confirmAction: opts.confirmAction
+        }
+      }));
     }
-  });
-  services.syncPartialManager = createSyncPartialManager({
-    onRemoteRender: (renderOptions) => instance.remoteRender(renderOptions)
   });
 }
 function initFrameworkDOM(services) {
@@ -6326,9 +2657,7 @@ function initFrameworkDOM(services) {
   const appRoot = document.querySelector("#app");
   if (appRoot) {
     services.domBinder?.bind(appRoot);
-    services.syncPartialManager?.bind(appRoot);
   }
-  services.formStateManager?.scanAndTrackForms();
   services.hookManager.processQueue();
   services.hookManager.emit(HookEvent.FRAMEWORK_READY, {
     version: "1.0.0",
@@ -6350,18 +2679,12 @@ function createInitialServices() {
     spriteSheetManager: createSpriteSheetManager(),
     moduleLoader: createModuleLoader(),
     linkHeaderParser: createLinkHeaderParser(),
-    modalManager: createModalManager({ hookManager }),
     helperRegistry: globalHelperRegistry,
     networkStatus: null,
-    a11yAnnouncer: null,
-    formStateManager: null,
-    loader: null,
     errorDisplay: null,
-    fetchClient: null,
-    router: null,
-    remoteRenderer: null,
+    navigation: null,
+    actions: null,
     domBinder: null,
-    syncPartialManager: null,
     globalConfig: {},
     moduleConfigCache: null
   };
@@ -6374,7 +2697,7 @@ function buildFrameworkInstance(services) {
     },
     /** Gets whether a navigation is currently in progress. */
     get navigating() {
-      return services.router?.isNavigating() ?? false;
+      return services.navigation?.isNavigating() ?? false;
     },
     /** No-op setter retained for backwards compatibility. */
     set navigating(_value) {
@@ -6386,9 +2709,9 @@ function buildFrameworkInstance(services) {
     /** No-op setter retained for backwards compatibility. */
     set loaderElement(_value) {
     },
-    /** Gets the current AbortController from the fetch client. */
+    /** Gets the current AbortController -- no longer directly accessible. */
     get currentAbortController() {
-      return services.fetchClient?.getController() ?? null;
+      return null;
     },
     /** No-op setter retained for backwards compatibility. */
     set currentAbortController(_value) {
@@ -6397,10 +2720,9 @@ function buildFrameworkInstance(services) {
     get globalConfig() {
       return services.globalConfig;
     },
-    /** Sets the global configuration and updates the router. */
+    /** Sets the global configuration options. */
     set globalConfig(value) {
       services.globalConfig = value;
-      services.router?.setConfig({ beforeNavigate: value.beforeNavigate, afterNavigate: value.afterNavigate });
     },
     hooks: services.hookManager.api,
     emitHook: services.hookManager.emit,
@@ -6411,22 +2733,22 @@ function buildFrameworkInstance(services) {
     },
     getModuleConfig: (moduleName) => getModuleConfig(services, moduleName),
     init(options = {}) {
-      initFrameworkServices(services, options, instance);
+      initFrameworkServices(services, options);
       initFrameworkDOM(services);
     },
     async navigateTo(targetUrl, evt, options = {}) {
-      if (!services.router) {
-        console.warn("PPFramework: navigateTo called before init()");
+      if (!services.navigation) {
+        window.location.href = targetUrl;
         return;
       }
-      return services.router.navigateTo(targetUrl, evt, options);
+      return services.navigation.navigateTo(targetUrl, evt, options);
     },
     async remoteRender(options) {
-      if (!services.remoteRenderer) {
-        console.warn("PPFramework: remoteRender called before init()");
+      if (!services.navigation) {
+        console.warn("PPFramework: remoteRender requires navigation capability");
         return;
       }
-      return services.remoteRenderer.render(options);
+      return services.navigation.remoteRender(options);
     },
     dispatchAction: (actionName, element, event) => {
       dispatchActionImpl(actionName, element, event);
@@ -6435,36 +2757,23 @@ function buildFrameworkInstance(services) {
     addFragmentQuery,
     isSameDomain,
     assetSrc: (src, moduleName) => resolveAssetSrc(src, moduleName),
-    createLoaderIndicator(color) {
-      if (services.loader) {
-        services.loader.destroy();
-      }
-      services.loader = createLoaderUI({ colour: color });
+    createLoaderIndicator(colour) {
+      services.navigation?.createLoaderIndicator(colour);
     },
     toggleLoader(isVisible) {
-      if (!services.loader) {
-        return;
-      }
-      if (isVisible) {
-        services.loader.show();
-      } else {
-        services.loader.hide();
-      }
+      services.navigation?.toggleLoader(isVisible);
     },
     updateProgressBar(percentValue) {
-      services.loader?.setProgress(percentValue);
+      services.navigation?.updateProgressBar(percentValue);
     },
     displayError(message) {
       services.errorDisplay?.show(message);
     },
-    loadModuleScripts(doc2) {
-      services.moduleLoader.loadFromDocument(doc2);
+    loadModuleScripts(doc) {
+      services.moduleLoader.loadFromDocument(doc);
     },
     patchPartial(htmlString, cssSelector) {
-      services.remoteRenderer?.patchPartial(htmlString, cssSelector);
-    },
-    async openModalIfAvailable(options) {
-      return services.modalManager.openIfAvailable(options);
+      services.navigation?.patchPartial(htmlString, cssSelector);
     },
     executeHelper: (event, actionString, element) => {
       executeHelperImpl(event, actionString, element);
@@ -6503,19 +2812,22 @@ function dispatchActionImpl(actionName, element, event) {
   const actionFn = getActionFunction(actionName);
   if (actionFn) {
     const form = element.closest("form");
-    let formData2;
+    let formData;
     if (form) {
       const fd = new FormData(form);
-      formData2 = {};
+      formData = {};
       for (const [key, value] of fd.entries()) {
-        formData2[key] = value;
+        formData[key] = value;
       }
     }
-    const args = formData2 ? [formData2] : [];
+    const args = formData ? [formData] : [];
     const result = actionFn(...args);
-    handleAction(result, element, event).catch((err) => {
-      console.error(`[PPFramework] dispatchAction failed for "${actionName}":`, err);
-    });
+    const actionsApi = _getCapability("actions");
+    if (actionsApi) {
+      actionsApi.handleAction(result, element, event).catch((err) => {
+        console.error(`[PPFramework] dispatchAction failed for "${actionName}":`, err);
+      });
+    }
     return;
   }
   console.warn(`[PPFramework] Action function "${actionName}" not found in registry.`);
@@ -6543,8 +2855,6 @@ function resolveAssetSrc(src, moduleName) {
   return `/_piko/assets/${resolvedSrc}`;
 }
 const PPFramework = createPPFramework();
-document.addEventListener("DOMContentLoaded", () => {
-});
 const findForm = (element, helperName, formSelector) => {
   if (formSelector) {
     const form = document.querySelector(formSelector);
@@ -6626,7 +2936,11 @@ export {
   ActionBuilder,
   _createPKContext,
   createRefs as _createRefs,
+  _getCapability,
+  _hasCapability,
   _initCleanupObserver,
+  _onCapabilityReady,
+  _registerCapability,
   _registerLifecycle,
   _runPageCleanup,
   bus,

@@ -221,4 +221,16 @@ type InternalMetadata struct {
 	// Metadata is the embedded struct containing SEO and page-level information.
 	// The fields will be flattened into this object during JSON serialisation.
 	Metadata
+
+	// HasNavigation indicates the page uses piko:a elements (navigation capability).
+	HasNavigation bool `json:"hasNavigation,omitempty"`
+
+	// HasActions indicates the page uses p-on:/p-event: directives (actions capability).
+	HasActions bool `json:"hasActions,omitempty"`
+
+	// HasPartialSources indicates the page uses partial_src attributes (partials capability).
+	HasPartialSources bool `json:"hasPartialSources,omitempty"`
+
+	// HasForms indicates the page uses form elements or p-model (forms capability).
+	HasForms bool `json:"hasForms,omitempty"`
 }

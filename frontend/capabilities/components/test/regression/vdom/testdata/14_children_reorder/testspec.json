@@ -1,0 +1,121 @@
+{
+    "description": "Complex child reordering with keys should handle insert, remove, and swap correctly",
+    "initialState": {
+        "items": [
+            { "id": 1, "t": "A" },
+            { "id": 2, "t": "B" },
+            { "id": 3, "t": "C" }
+        ]
+    },
+    "initialVDOM": "dom.el('ul', 'list', {}, state.items.map((item) => dom.el('li', 'k-' + item.id, { 'data-id': String(item.id) }, [dom.txt(item.t, 'txt-' + item.id)])))",
+    "steps": [
+        {
+            "description": "Initial order A, B, C",
+            "assertions": [
+                {
+                    "selector": "li",
+                    "count": 3,
+                    "description": "Should have three list items"
+                },
+                {
+                    "selector": "li:first-child",
+                    "textContent": "A",
+                    "description": "First item should be A"
+                },
+                {
+                    "selector": "li:nth-child(2)",
+                    "textContent": "B",
+                    "description": "Second item should be B"
+                },
+                {
+                    "selector": "li:last-child",
+                    "textContent": "C",
+                    "description": "Last item should be C"
+                }
+            ]
+        },
+        {
+            "description": "Reverse order C, B, A",
+            "stateChanges": [
+                {
+                    "path": "items",
+                    "value": [
+                        { "id": 3, "t": "C" },
+                        { "id": 2, "t": "B" },
+                        { "id": 1, "t": "A" }
+                    ]
+                }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, state.items.map((item) => dom.el('li', 'k-' + item.id, { 'data-id': String(item.id) }, [dom.txt(item.t, 'txt-' + item.id)])))",
+            "assertions": [
+                {
+                    "selector": "li:first-child",
+                    "textContent": "C",
+                    "description": "First item should be C"
+                },
+                {
+                    "selector": "li:last-child",
+                    "textContent": "A",
+                    "description": "Last item should be A"
+                }
+            ]
+        },
+        {
+            "description": "Insert at start, D, C, B, A",
+            "stateChanges": [
+                {
+                    "path": "items",
+                    "value": [
+                        { "id": 4, "t": "D" },
+                        { "id": 3, "t": "C" },
+                        { "id": 2, "t": "B" },
+                        { "id": 1, "t": "A" }
+                    ]
+                }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, state.items.map((item) => dom.el('li', 'k-' + item.id, { 'data-id': String(item.id) }, [dom.txt(item.t, 'txt-' + item.id)])))",
+            "assertions": [
+                {
+                    "selector": "li",
+                    "count": 4,
+                    "description": "Should have four list items"
+                },
+                {
+                    "selector": "li:first-child",
+                    "textContent": "D",
+                    "description": "First item should be D"
+                }
+            ]
+        },
+        {
+            "description": "Remove middle items",
+            "stateChanges": [
+                {
+                    "path": "items",
+                    "value": [
+                        { "id": 4, "t": "D" },
+                        { "id": 1, "t": "A" }
+                    ]
+                }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, state.items.map((item) => dom.el('li', 'k-' + item.id, { 'data-id': String(item.id) }, [dom.txt(item.t, 'txt-' + item.id)])))",
+            "assertions": [
+                {
+                    "selector": "li",
+                    "count": 2,
+                    "description": "Should have two list items"
+                },
+                {
+                    "selector": "li:first-child",
+                    "textContent": "D",
+                    "description": "First item should be D"
+                },
+                {
+                    "selector": "li:last-child",
+                    "textContent": "A",
+                    "description": "Last item should be A"
+                }
+            ]
+        }
+    ]
+}

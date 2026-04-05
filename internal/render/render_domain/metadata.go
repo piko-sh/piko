@@ -33,6 +33,7 @@ import (
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/mem"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
@@ -64,6 +65,66 @@ type ParsedSvgData struct {
 
 	// Attributes holds the parsed SVG element attributes such as viewBox.
 	Attributes []ast_domain.HTMLAttribute
+}
+
+// detectCapabilitiesFromAST walks the template AST to detect which frontend
+// capabilities this page requires, populating the metadata flags. This
+// provides render-time detection independent of the generated Go code.
+//
+// Takes opts (RenderASTOptions) which contains the template AST and metadata
+// to populate.
+func detectCapabilitiesFromAST(opts RenderASTOptions) {
+	if opts.Template == nil || opts.Metadata == nil {
+		return
+	}
+
+	m := opts.Metadata
+	opts.Template.Walk(func(node *ast_domain.TemplateNode) bool {
+		if node.NodeType != ast_domain.NodeElement {
+			return true
+		}
+		if allCapabilitiesDetected(m) {
+			return false
+		}
+		updateMetadataCapabilities(m, node)
+		return true
+	})
+}
+
+// allCapabilitiesDetected reports whether all capability flags on the metadata
+// have been set, allowing the detection walk to terminate early.
+func allCapabilitiesDetected(m *templater_dto.InternalMetadata) bool {
+	return m.HasNavigation && m.HasActions && m.HasPartialSources && m.HasForms
+}
+
+// updateMetadataCapabilities inspects a single element node and sets the
+// matching capability flags on the metadata. Extracted from
+// detectCapabilitiesFromAST to keep the walk body small and its cognitive
+// complexity within limits.
+func updateMetadataCapabilities(m *templater_dto.InternalMetadata, node *ast_domain.TemplateNode) {
+	if strings.EqualFold(node.TagName, "piko:a") {
+		m.HasNavigation = true
+	}
+	if len(node.OnEvents) > 0 || len(node.CustomEvents) > 0 {
+		m.HasActions = true
+	}
+	if templateNodeHasPartialSrc(node) {
+		m.HasPartialSources = true
+	}
+	if node.DirModel != nil || strings.EqualFold(node.TagName, "form") {
+		m.HasForms = true
+	}
+}
+
+// templateNodeHasPartialSrc reports whether the element node declares a
+// partial_src attribute, indicating the page needs the partials capability.
+func templateNodeHasPartialSrc(node *ast_domain.TemplateNode) bool {
+	for i := range node.Attributes {
+		if node.Attributes[i].Name == "partial_src" {
+			return true
+		}
+	}
+	return false
 }
 
 // appendDevWidgetTag returns customTags with the dev widget tag appended when
@@ -156,6 +217,7 @@ func (ro *RenderOrchestrator) CollectMetadata(
 		ctx, appendDevWidgetTag(metadata.CustomTags), tempRenderCtx)
 	addStandardLinkHeaders(tempRenderCtx)
 	addComponentsExtensionLinkHeader(tempRenderCtx)
+	addCapabilityLinkHeaders(tempRenderCtx, metadata)
 	addJSLinkHeaders(metadata.JSScriptMetas, tempRenderCtx)
 
 	if siteConfig != nil {
@@ -438,6 +500,70 @@ func addComponentsExtensionLinkHeader(rctx *renderContext) {
 		Type:        "",
 		CrossOrigin: "",
 	})
+}
+
+// addCapabilityPreload adds a modulepreload link header for a capability module.
+//
+// Takes rctx (*renderContext) which accumulates link headers for the response.
+// Takes module (daemon_frontend.FrontendModule) which identifies the capability.
+func addCapabilityPreload(rctx *renderContext, module daemon_frontend.FrontendModule) {
+	url := module.ServeURL()
+	if url == "" {
+		return
+	}
+	rctx.addLinkHeaderIfUnique(render_dto.LinkHeader{
+		URL: url,
+		Rel: "modulepreload",
+		As:  "script",
+	})
+}
+
+// addCapabilityLinkHeaders adds HTTP 103 Early Hints for all capabilities
+// detected on the current page. This enables parallel downloads of capability
+// bundles before the main document finishes loading.
+//
+// Takes rctx (*renderContext) which accumulates link headers for the response.
+// Takes metadata (*templater_dto.InternalMetadata) which holds the capability flags.
+func addCapabilityLinkHeaders(rctx *renderContext, metadata *templater_dto.InternalMetadata) {
+	if metadata.HasNavigation {
+		addCapabilityPreload(rctx, daemon_frontend.ModuleNavigation)
+	}
+	if metadata.HasActions {
+		addCapabilityPreload(rctx, daemon_frontend.ModuleActions)
+	}
+	if metadata.HasPartialSources {
+		addCapabilityPreload(rctx, daemon_frontend.ModulePartials)
+	}
+	if metadata.HasForms {
+		addCapabilityPreload(rctx, daemon_frontend.ModuleForms)
+	}
+}
+
+// buildCapabilityScriptHTML generates <script type="module"> tags for all
+// capabilities detected on the current page.
+//
+// Takes metadata (*templater_dto.InternalMetadata) which holds the capability flags.
+//
+// Returns string which contains the generated HTML script tags.
+func buildCapabilityScriptHTML(metadata *templater_dto.InternalMetadata) string {
+	var buf strings.Builder
+	writeTag := func(module daemon_frontend.FrontendModule, needed bool) {
+		if !needed {
+			return
+		}
+		url := module.ServeURL()
+		sriHash := daemon_frontend.GetSRIHash(module.AssetPath())
+		if sriHash != "" {
+			_, _ = fmt.Fprintf(&buf, "<script type=\"module\" src=%q integrity=%q crossorigin=\"anonymous\"></script>", url, sriHash)
+		} else {
+			_, _ = fmt.Fprintf(&buf, "<script type=\"module\" src=%q></script>", url)
+		}
+	}
+	writeTag(daemon_frontend.ModuleNavigation, metadata.HasNavigation)
+	writeTag(daemon_frontend.ModuleActions, metadata.HasActions)
+	writeTag(daemon_frontend.ModulePartials, metadata.HasPartialSources)
+	writeTag(daemon_frontend.ModuleForms, metadata.HasForms)
+	return buf.String()
 }
 
 // addJSLinkHeaders adds modulepreload link headers for client-side JavaScript

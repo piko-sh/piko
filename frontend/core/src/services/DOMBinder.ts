@@ -18,9 +18,21 @@
 
 import type {HelperRegistry, PPHelper} from './HelperRegistry';
 import {findClosestMatch, getGlobalPageContext} from './PageContext';
-import {isActionDescriptor, getActionFunction} from '@/pk/action';
-import {handleAction} from '@/core/ActionExecutor';
-import {formData as createFormData} from '@/pk/form';
+import {isActionDescriptor, getActionFunction} from '@/pk/actionRegistry';
+import {_getCapability} from '@/core/CapabilityRegistry';
+
+/** Minimal form data wrapper for $form argument resolution. */
+function createFormData(form: HTMLFormElement): { toObject(): Record<string, unknown>; toJSON(): string } {
+    const fd = new FormData(form);
+    const obj: Record<string, unknown> = {};
+    for (const [key, value] of fd.entries()) {
+        obj[key] = value;
+    }
+    return {
+        toObject: () => ({...obj}),
+        toJSON: () => JSON.stringify(obj),
+    };
+}
 
 const BASE64_BLOCK_SIZE = 4;
 
@@ -335,16 +347,15 @@ function executeHelper(helper: PPHelper, ctx: ModifierContext): void {
     }
 }
 
-/**
- * Checks a function return value for an ActionDescriptor and dispatches it.
- * Handles both synchronous returns and Promises, since the Go code generator wraps
- * all exported .pk functions as async.
- * @param result - The return value to check.
- * @param el - The element that triggered the action.
- * @param event - The browser event.
- * @param errorPrefix - The prefix for error log messages.
- * @param fnName - The function name for error reporting.
- */
+/** Dispatches an action descriptor through the actions capability. */
+function executeViaCapability(descriptor: unknown, el: HTMLElement, event: Event): Promise<void> | undefined {
+    const api = _getCapability<{ handleAction(d: unknown, el: HTMLElement, ev?: Event): Promise<void> }>('actions');
+    if (api) {
+        return api.handleAction(descriptor, el, event);
+    }
+    return undefined;
+}
+
 function dispatchIfActionDescriptor(
     result: unknown,
     el: HTMLElement,
@@ -353,7 +364,7 @@ function dispatchIfActionDescriptor(
     fnName: string
 ): void {
     if (isActionDescriptor(result)) {
-        handleAction(result, el, event).catch((err: unknown) => {
+        executeViaCapability(result, el, event)?.catch((err: unknown) => {
             console.error(`${errorPrefix} Action execution failed for "${fnName}":`, err);
         });
         return;
@@ -362,7 +373,7 @@ function dispatchIfActionDescriptor(
     if (result instanceof Promise) {
         result.then((resolved: unknown) => {
             if (isActionDescriptor(resolved)) {
-                return handleAction(resolved, el, event);
+                return executeViaCapability(resolved, el, event);
             }
             return undefined;
         }).catch((err: unknown) => {

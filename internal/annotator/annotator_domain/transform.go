@@ -572,6 +572,21 @@ func (ac *assetCollectionContext) addDiagnostic(node *ast_domain.TemplateNode, m
 	))
 }
 
+// pageCapabilities captures which frontend capabilities a page requires,
+// derived from the elements and directives present in its template.
+type pageCapabilities struct {
+	hasNav      bool
+	hasActions  bool
+	hasPartials bool
+	hasForms    bool
+}
+
+// allDetected reports whether every capability flag has been set, allowing
+// the detection walk to terminate early once nothing more can be learned.
+func (c pageCapabilities) allDetected() bool {
+	return c.hasNav && c.hasActions && c.hasPartials && c.hasForms
+}
+
 // performFinalTransformations runs all transformation passes after semantic
 // analysis. It adds optimisation flags and runtime metadata to the AST.
 //
@@ -586,6 +601,8 @@ func (ac *assetCollectionContext) addDiagnostic(node *ast_domain.TemplateNode, m
 // Returns []*annotator_dto.StaticAssetDependency which contains the expanded
 // static asset dependencies.
 // Returns []string which contains the custom tags found in the template.
+// Returns pageCapabilities which indicates which frontend capabilities the
+// page requires.
 // Returns []*ast_domain.Diagnostic which contains any diagnostics collected
 // during transformation.
 func performFinalTransformations(
@@ -596,14 +613,14 @@ func performFinalTransformations(
 	assetsConfig *config.AssetsConfig,
 	fsReader FSReaderPort,
 	componentRegistry ComponentRegistryPort,
-) ([]*annotator_dto.StaticAssetDependency, []string, []*ast_domain.Diagnostic) {
+) ([]*annotator_dto.StaticAssetDependency, []string, pageCapabilities, []*ast_domain.Diagnostic) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "performFinalTransformations")
 	defer span.End()
 
 	if templateAst == nil {
 		l.Trace("Template AST is nil, nothing to transform")
-		return nil, nil, nil
+		return nil, nil, pageCapabilities{}, nil
 	}
 
 	l.Internal("Starting Static Analysis pass...")
@@ -613,6 +630,10 @@ func performFinalTransformations(
 	l.Internal("Starting Custom Tag Collection pass...")
 	customTags := collectCustomTags(templateAst, componentRegistry)
 	l.Internal("Finished Custom Tag Collection pass.", logger_domain.Int("tags_found", len(customTags)))
+
+	l.Internal("Starting Page Capability Detection pass...")
+	capabilities := detectPageCapabilities(templateAst)
+	l.Internal("Finished Page Capability Detection pass.")
 
 	l.Internal("Starting Static Asset Dependency Collection pass...")
 	dependencies, diagnostics := collectStaticAssetDependencies(ctx, templateAst, resolver, pathsConfig, assetsConfig, fsReader)
@@ -624,7 +645,7 @@ func performFinalTransformations(
 		logger_domain.Int("original_count", len(dependencies)),
 		logger_domain.Int("expanded_count", len(expandedDeps)))
 
-	return expandedDeps, customTags, diagnostics
+	return expandedDeps, customTags, capabilities, diagnostics
 }
 
 // performStaticAnalysis walks the AST in post-order to mark which nodes are
@@ -959,4 +980,56 @@ func collectCustomTags(templateAST *ast_domain.TemplateAST, registry ComponentRe
 	slices.Sort(sortedTags)
 
 	return sortedTags
+}
+
+// detectPageCapabilities walks the template AST and detects which frontend
+// capabilities are required by this page, based on the elements and
+// directives present in the template.
+func detectPageCapabilities(templateAST *ast_domain.TemplateAST) pageCapabilities {
+	var capabilities pageCapabilities
+	if templateAST == nil {
+		return capabilities
+	}
+
+	templateAST.Walk(func(node *ast_domain.TemplateNode) bool {
+		if node.NodeType != ast_domain.NodeElement {
+			return true
+		}
+		if capabilities.allDetected() {
+			return false
+		}
+		updatePageCapabilities(&capabilities, node)
+		return true
+	})
+
+	return capabilities
+}
+
+// updatePageCapabilities inspects a single element node and sets the matching
+// capability flags on the accumulator. Extracted from detectPageCapabilities
+// to keep the walk body small and its cognitive complexity within limits.
+func updatePageCapabilities(capabilities *pageCapabilities, node *ast_domain.TemplateNode) {
+	if strings.EqualFold(node.TagName, "piko:a") {
+		capabilities.hasNav = true
+	}
+	if len(node.OnEvents) > 0 || len(node.CustomEvents) > 0 {
+		capabilities.hasActions = true
+	}
+	if nodeHasPartialSrc(node) {
+		capabilities.hasPartials = true
+	}
+	if node.DirModel != nil || strings.EqualFold(node.TagName, "form") {
+		capabilities.hasForms = true
+	}
+}
+
+// nodeHasPartialSrc reports whether the element node declares a partial_src
+// attribute, which indicates the page requires the partials capability.
+func nodeHasPartialSrc(node *ast_domain.TemplateNode) bool {
+	for i := range node.Attributes {
+		if node.Attributes[i].Name == "partial_src" {
+			return true
+		}
+	}
+	return false
 }

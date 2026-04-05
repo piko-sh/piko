@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {partial as _partial} from './partial';
 import {bus as _bus} from './bus';
 
 import {
@@ -32,12 +31,6 @@ import {
     extractParams as _extractParams,
 } from './navigation';
 
-import {
-    formData as _formData,
-    validate as _validate,
-    resetForm as _resetForm,
-    setFormValues as _setFormValues,
-} from './form';
 
 import {
     loading as _loading,
@@ -55,18 +48,6 @@ import {
 } from './events';
 
 import {debounce as _debounce, throttle as _throttle} from './utils';
-
-import {
-    reloadPartial as _reloadPartial,
-    reloadGroup as _reloadGroup,
-    autoRefresh as _autoRefresh,
-    reloadCascade as _reloadCascade,
-} from './coordination';
-
-import {
-    subscribeToUpdates as _subscribeToUpdates,
-    createSSESubscription as _createSSESubscription,
-} from './sse';
 
 import {
     whenVisible as _whenVisible,
@@ -87,27 +68,16 @@ import {
     traceAsync as _traceAsync,
 } from './trace';
 
-import {
-    initAutoRefreshObserver as _initAutoRefreshObserver,
-    stopAllAutoRefreshers as _stopAllAutoRefreshers,
-    getActiveRefresherCount as _getActiveRefresherCount,
-} from './autoRefreshObserver';
-
 import {getGlobalPageContext as _getGlobalPageContext} from '../services/PageContext';
 
 import {PPFramework as _PPFramework} from '../core/PPFramework';
 import type {PPHelper} from '../services';
-import type {ModalRequestOptions} from '../core/ModalManager';
-import type {RemoteRenderOptions} from '../core/RemoteRenderer';
+import type {RemoteRenderOptions} from '../core/PPFramework';
 import {HookEvent as _HookEvent, type HookEventType, type HookCallback, type HookOptions} from '../services/HookManager';
 
-export type {PartialHandle, PartialReloadOptions} from './partial';
 export type {NavigateOptions, RouteInfo, NavigationGuard} from './navigation';
-export type {FormDataHandle, ValidationRule, ValidationRules, ValidationResult} from './form';
 export type {LoadingOptions, RetryOptions, RetryResult} from './ui';
 export type {DispatchOptions, EventListener} from './events';
-export type {ReloadOptions, ReloadGroupOptions, AutoRefreshOptions, CascadeNode, CascadeOptions} from './coordination';
-export type {SSEOptions, SSESubscription} from './sse';
 export type {WhenVisibleOptions, AbortableOperation, PollingOptions, MutationWatchOptions} from './advanced';
 export type {TraceConfig, TraceEntry, TraceMetrics} from './trace';
 
@@ -129,7 +99,7 @@ export namespace piko {
      * @param nameOrElement - The partial name or a partial root element.
      * @returns A handle for reloading the partial.
      */
-    export const partial = _partial;
+    export function partial(_nameOrElement: string | Element): unknown { return null; }
 
     /**
      * Event bus for cross-component communication.
@@ -205,27 +175,14 @@ export namespace piko {
         }
     }
 
-    /** Form handling and validation utilities. */
+    /** Form handling and validation utilities. Provided by forms capability. */
     export namespace form {
         /**
-         * Creates a FormDataHandle for easy form data access.
+         * Creates a form data handle.
+         *
+         * @param _selector - Form selector or element.
          */
-        export const data = _formData;
-
-        /**
-         * Validates a form against a set of rules.
-         */
-        export const validate = _validate;
-
-        /**
-         * Resets a form to its initial state.
-         */
-        export const reset = _resetForm;
-
-        /**
-         * Sets form field values programmatically.
-         */
-        export const setValues = _setFormValues;
+        export function data(_selector: string | HTMLFormElement): unknown { return null; }
     }
 
     /** UI state management utilities for loading states and retry logic. */
@@ -269,33 +226,18 @@ export namespace piko {
         export const waitFor = _waitForEvent;
     }
 
-    /** Partial reload coordination utilities. */
+    /** Partial reload coordination utilities. Provided by partials capability. */
     export namespace partials {
         /**
-         * Reloads a single partial with retry and debounce support.
+         * Reloads a named partial.
+         *
+         * @param _name - Partial name.
+         * @param _options - Reload options.
          */
-        export const reload = _reloadPartial;
-
-        /**
-         * Reloads multiple partials in parallel or sequential order.
-         */
-        export const reloadGroup = _reloadGroup;
-
-        /**
-         * Reloads partials in dependency order (cascade).
-         */
-        export const reloadCascade = _reloadCascade;
-
-        /**
-         * Sets up automatic refresh for a partial at specified intervals.
-         */
-        export const autoRefresh = _autoRefresh;
+        export function reload(_name: string, _options?: unknown): Promise<void> { return Promise.resolve(); }
 
         /**
          * Performs a remote render/partial reload with full options.
-         *
-         * This is the low-level render API that accepts full RemoteRenderOptions.
-         * For simple partial reloads, prefer `piko.partials.reload()`.
          *
          * @param options - The remote render options.
          * @returns Promise that resolves when the render completes.
@@ -305,17 +247,15 @@ export namespace piko {
         }
     }
 
-    /** Server-Sent Events (SSE) utilities. */
+    /** Server-Sent Events (SSE) utilities. Provided by actions capability. */
     export namespace sse {
         /**
          * Subscribes to server-sent events.
+         *
+         * @param _url - SSE endpoint URL.
+         * @param _callback - Event callback.
          */
-        export const subscribe = _subscribeToUpdates;
-
-        /**
-         * Creates an SSE subscription with state tracking.
-         */
-        export const create = _createSSESubscription;
+        export function subscribe(_url: string, _callback: (data: unknown) => void): unknown { return null; }
     }
 
     /** Timing utilities for rate limiting and scheduling. */
@@ -443,22 +383,14 @@ export namespace piko {
         }
     }
 
-    /** Declarative auto-refresh management for data-auto-refresh elements. */
+    /** Declarative auto-refresh management. Provided by partials capability. */
     export namespace autoRefreshObserver {
-        /**
-         * Initialises the auto-refresh observer.
-         */
-        export const init = _initAutoRefreshObserver;
-
-        /**
-         * Stops all active auto-refreshers.
-         */
-        export const stopAll = _stopAllAutoRefreshers;
-
-        /**
-         * Gets the count of active auto-refreshers.
-         */
-        export const getActiveCount = _getActiveRefresherCount;
+        /** Initialises the auto-refresh observer. */
+        export function init(): void { /* provided by partials capability */ }
+        /** Stops all active auto-refreshers. */
+        export function stopAll(): void { /* provided by partials capability */ }
+        /** Gets the count of active auto-refreshers. */
+        export function getActiveCount(): number { return 0; }
     }
 
     /** Page context access utilities. */
@@ -526,35 +458,16 @@ export namespace piko {
         export const events = _HookEvent;
     }
 
-    /** Analytics tracking utilities for custom event reporting. */
+    /** Analytics tracking utilities. Provided by analytics extension. */
     export namespace analytics {
         /**
-         * Sends a custom analytics event to GA4 and/or GTM.
+         * Sends a custom analytics event.
          *
-         * This fires an `analytics:track` hook event. If the analytics
-         * extension is loaded, it dispatches the event to the configured
-         * providers. If analytics is not loaded, the call is silently
-         * ignored (graceful degradation).
-         *
-         * @param eventName - The event name (e.g. "purchase", "sign_up").
-         *   For GA4, use recommended event names where possible.
-         * @param params - Optional key-value parameters for the event.
-         *
-         * @example
-         * ```ts
-         * piko.analytics.track('purchase', {
-         *     transaction_id: 'T12345',
-         *     value: 99.99,
-         *     currency: 'GBP',
-         * });
-         * ```
+         * @param _eventName - The event name.
+         * @param _params - Optional event parameters.
          */
-        export function track(eventName: string, params?: Record<string, string | number | boolean>): void {
-            _PPFramework.emitHook(_HookEvent.ANALYTICS_TRACK, {
-                eventName,
-                params: params ?? {},
-                timestamp: Date.now(),
-            });
+        export function track(_eventName: string, _params?: Record<string, string | number | boolean>): void {
+            /* provided by analytics extension */
         }
     }
 
@@ -612,23 +525,10 @@ export namespace piko {
         /**
          * Creates a custom loader indicator with the specified colour.
          *
-         * @param color - The CSS colour value for the loader.
+         * @param colour - The CSS colour value for the loader.
          */
-        export function create(color: string): void {
-            _PPFramework.createLoaderIndicator(color);
-        }
-    }
-
-    /** Modal management. */
-    export namespace modal {
-        /**
-         * Opens a modal by selector with the given options.
-         *
-         * @param options - The modal configuration options.
-         * @returns Promise that resolves when the modal opens.
-         */
-        export function open(options: ModalRequestOptions): Promise<void> {
-            return _PPFramework.openModalIfAvailable(options);
+        export function create(colour: string): void {
+            _PPFramework.createLoaderIndicator(colour);
         }
     }
 
@@ -668,6 +568,19 @@ export namespace piko {
             return;
         }
         _readyCallbacks?.push(callback);
+    }
+
+    /**
+     * Emits a hook event to all registered listeners. Intended for trusted
+     * extensions (e.g. modals, toasts) that surface analytics events without
+     * being given the full internal HookManager. `piko.hooks` itself stays
+     * listener-only by design; this is the controlled escape hatch.
+     *
+     * @param hookEvent - Hook event to emit.
+     * @param payload - Payload to pass to registered callbacks.
+     */
+    export function _emitHook(hookEvent: HookEventType, payload: unknown): void {
+        _PPFramework._emitHook(hookEvent, payload as never);
     }
 
     /**

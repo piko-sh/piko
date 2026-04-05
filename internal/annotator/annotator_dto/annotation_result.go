@@ -76,4 +76,23 @@ type AnnotationResult struct {
 
 	// AssetDependencies lists the static assets that this component needs.
 	AssetDependencies []*StaticAssetDependency
+
+	// HasNavigation is true when the template contains piko:a elements
+	// that require the navigation capability (SPA routing, DOM morphing).
+	HasNavigation bool
+
+	// HasActions is true when the template contains p-on: or p-event:
+	// directives that require the actions capability (server action
+	// execution, SSE streaming).
+	HasActions bool
+
+	// HasPartialSources is true when the template contains elements
+	// with partial_src attributes that require the partials capability
+	// (partial reloading, auto-refresh).
+	HasPartialSources bool
+
+	// HasForms is true when the template contains form elements or
+	// p-model directives that require the forms capability (form state
+	// management, validation).
+	HasForms bool
 }

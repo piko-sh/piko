@@ -147,7 +147,7 @@ export default defineConfig({
               toplevel: true,
               properties: {
                 regex: /^_/,
-                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type']
+                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type', '_emitHook', '_registerCapability', '_onCapabilityReady', '_getCapability', '_hasCapability', '_clearCapabilities', '_markReady', '_registerDOMUpdater', '_runPageCleanup', '_executeConnectedForPartials']
               }
             },
             format: {
@@ -186,7 +186,7 @@ export default defineConfig({
               toplevel: true,
               properties: {
                 regex: /^_/,
-                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type']
+                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type', '_emitHook', '_registerCapability', '_onCapabilityReady', '_getCapability', '_hasCapability', '_clearCapabilities', '_markReady', '_registerDOMUpdater', '_runPageCleanup', '_executeConnectedForPartials']
               }
             },
             format: {

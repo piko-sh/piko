@@ -1,0 +1,43 @@
+{
+    "description": "Whitespace nodes should render correctly between elements",
+    "initialState": {
+        "text": "Hello"
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.el('span', 's1', {}, [dom.txt(state.text, 'txt')]), dom.ws('ws1'), dom.el('span', 's2', {}, [dom.txt('World', 'txt2')])])",
+    "steps": [
+        {
+            "description": "Initial render with whitespace between spans",
+            "assertions": [
+                {
+                    "selector": "span:first-child",
+                    "textContent": "Hello",
+                    "description": "First span should say Hello"
+                },
+                {
+                    "selector": "span:last-child",
+                    "textContent": "World",
+                    "description": "Last span should say World"
+                },
+                {
+                    "selector": "span",
+                    "count": 2,
+                    "description": "Should have two spans"
+                }
+            ]
+        },
+        {
+            "description": "Update first text",
+            "stateChanges": [
+                { "path": "text", "value": "Goodbye" }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('span', 's1', {}, [dom.txt(state.text, 'txt')]), dom.ws('ws1'), dom.el('span', 's2', {}, [dom.txt('World', 'txt2')])])",
+            "assertions": [
+                {
+                    "selector": "span:first-child",
+                    "textContent": "Goodbye",
+                    "description": "First span should say Goodbye"
+                }
+            ]
+        }
+    ]
+}

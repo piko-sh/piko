@@ -477,6 +477,8 @@ func (ro *RenderOrchestrator) RenderAST(
 
 	customTags := appendDevWidgetTag(opts.Metadata.CustomTags)
 	populateTagMap(renderCtx.customTags, customTags)
+
+	detectCapabilitiesFromAST(opts)
 	if opts.ProbeData != nil && opts.ProbeData.ComponentMetadata != nil {
 		renderCtx.componentMetadata = opts.ProbeData.ComponentMetadata
 		renderCtx.probeData = opts.ProbeData
@@ -674,8 +676,9 @@ func (ro *RenderOrchestrator) renderFullPage(
 	modulePreloadHTML := getModulePreloadHTML()
 	moduleConfigHTML := getModuleConfigHTML()
 	moduleScriptHTML := getModuleScriptHTML()
+	capabilityScriptHTML := buildCapabilityScriptHTML(opts.Metadata)
 	fullPreloadHTML := modulePreloadHTML + preloadHTML
-	fullScriptHTML := moduleConfigHTML + scriptHTML + moduleScriptHTML
+	fullScriptHTML := moduleConfigHTML + scriptHTML + moduleScriptHTML + capabilityScriptHTML
 
 	csrfPair := ro.ensureCSRFForMeta(rctx)
 

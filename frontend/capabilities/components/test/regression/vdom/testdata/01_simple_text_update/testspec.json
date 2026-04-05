@@ -1,0 +1,47 @@
+{
+    "description": "Text content should update when state changes",
+    "initialState": {
+        "message": "Hello"
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.txt(state.message, 'msg')])",
+    "steps": [
+        {
+            "description": "Initial render shows Hello",
+            "assertions": [
+                {
+                    "selector": "div",
+                    "textContent": "Hello",
+                    "description": "Should show initial message"
+                }
+            ]
+        },
+        {
+            "description": "Update message to World",
+            "stateChanges": [
+                { "path": "message", "value": "World" }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.txt(state.message, 'msg')])",
+            "assertions": [
+                {
+                    "selector": "div",
+                    "textContent": "World",
+                    "description": "Should show updated message"
+                }
+            ]
+        },
+        {
+            "description": "Update message to empty string",
+            "stateChanges": [
+                { "path": "message", "value": "" }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.txt(state.message, 'msg')])",
+            "assertions": [
+                {
+                    "selector": "div",
+                    "textContent": "",
+                    "description": "Should show empty content"
+                }
+            ]
+        }
+    ]
+}

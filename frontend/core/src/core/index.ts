@@ -17,51 +17,8 @@
 // strip others of their rights and dignity.
 
 export {PPFramework, RegisterHelper} from './PPFramework';
-export type {PPFrameworkOptions, PPHelper} from './PPFramework';
-
-export {
-    browserAPIs,
-    browserDOMOperations,
-    browserWindowOperations,
-    browserHTTPOperations,
-    createBrowserAPIs
-} from './BrowserAPIs';
-export type {
-    BrowserAPIs,
-    DOMOperations,
-    WindowOperations,
-    HTTPOperations
-} from './BrowserAPIs';
-
-export {default as fragmentMorpher} from './fragmentMorpher';
-export type {MorphOptions, NodeKey} from './fragmentMorpher';
-
-export {createFetchClient} from './FetchClient';
-export type {FetchClient, FetchClientOptions, FetchClientDependencies, FetchResult} from './FetchClient';
-
-export {createRouter} from './Router';
-export type {Router, RouterConfig, RouterDependencies, NavigateOptions} from './Router';
-
-export {createRemoteRenderer} from './RemoteRenderer';
-export type {RemoteRenderer, RemoteRendererDependencies, RemoteRenderOptions, PatchTarget} from './RemoteRenderer';
-
-export {createModalManager} from './ModalManager';
-export type {ModalManager, ModalRequestOptions} from './ModalManager';
+export type {PPFrameworkOptions, PPHelper, NavigateOptions, RemoteRenderOptions, PatchTarget, FetchResult} from './PPFramework';
 
 export {addFragmentQuery, buildRemoteUrl, isSameDomain} from './URLUtils';
 
-export {
-    handleAction,
-    onActionError,
-    clearGlobalErrorHandler,
-    clearAllDebounceTimers,
-    callServerActionDirect
-} from './ActionExecutor';
-export type {
-    GlobalActionErrorHandler,
-    DirectCallOptions,
-    DirectCallResponse
-} from './ActionExecutor';
-
-export {readSSEStream} from './SSEStreamReader';
-export type {SSEStreamCallbacks} from './SSEStreamReader';
+export {_registerCapability, _getCapability, _hasCapability, _onCapabilityReady} from './CapabilityRegistry';

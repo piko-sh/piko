@@ -1,0 +1,67 @@
+{
+    "description": "The _class object and static class string should combine correctly",
+    "initialState": {
+        "active": true,
+        "error": false
+    },
+    "initialVDOM": "dom.el('div', 'root', {}, [dom.el('button', 'btn', { class: 'btn', _class: { active: state.active, error: state.error } }, [dom.txt('Click me', 'txt')])])",
+    "steps": [
+        {
+            "description": "Initial render with active class",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "exists": true,
+                    "description": "Button should exist"
+                },
+                {
+                    "selector": "button",
+                    "attributes": { "class": "btn active" },
+                    "description": "Button should have btn and active classes"
+                }
+            ]
+        },
+        {
+            "description": "Toggle active off",
+            "stateChanges": [
+                { "path": "active", "value": false }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('button', 'btn', { class: 'btn', _class: { active: state.active, error: state.error } }, [dom.txt('Click me', 'txt')])])",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "attributes": { "class": "btn" },
+                    "description": "Button should only have btn class"
+                }
+            ]
+        },
+        {
+            "description": "Toggle error on",
+            "stateChanges": [
+                { "path": "error", "value": true }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('button', 'btn', { class: 'btn', _class: { active: state.active, error: state.error } }, [dom.txt('Click me', 'txt')])])",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "attributes": { "class": "btn error" },
+                    "description": "Button should have btn and error classes"
+                }
+            ]
+        },
+        {
+            "description": "Both active and error on",
+            "stateChanges": [
+                { "path": "active", "value": true }
+            ],
+            "newVDOM": "dom.el('div', 'root', {}, [dom.el('button', 'btn', { class: 'btn', _class: { active: state.active, error: state.error } }, [dom.txt('Click me', 'txt')])])",
+            "assertions": [
+                {
+                    "selector": "button",
+                    "attributes": { "class": "btn active error" },
+                    "description": "Button should have btn, active, and error classes"
+                }
+            ]
+        }
+    ]
+}
