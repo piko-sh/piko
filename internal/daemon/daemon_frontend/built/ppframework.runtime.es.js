@@ -1553,6 +1553,9 @@ function isActionDescriptor(value) {
   return value !== null && typeof value === "object" && typeof value.action === "string";
 }
 const actionFunctionRegistry = /* @__PURE__ */ new Map();
+function registerActionFunction(name, actionFactory) {
+  actionFunctionRegistry.set(name, actionFactory);
+}
 function getActionFunction(name) {
   return actionFunctionRegistry.get(name);
 }
@@ -1783,6 +1786,16 @@ function createLinkHeaderParser() {
 }
 const capabilities = /* @__PURE__ */ new Map();
 const pendingCallbacks = /* @__PURE__ */ new Map();
+function _registerCapability(name, impl) {
+  capabilities.set(name, impl);
+  const callbacks = pendingCallbacks.get(name);
+  if (callbacks) {
+    pendingCallbacks.delete(name);
+    for (const cb of callbacks) {
+      cb(impl);
+    }
+  }
+}
 function _getCapability(name) {
   return capabilities.get(name);
 }
@@ -2752,7 +2765,14 @@ function upgradeFromShim() {
     shimData.helpers.forEach((fn, name) => {
       RegisterHelper(name, fn);
     });
+    shimData.capabilities.forEach((impl, name) => {
+      _registerCapability(name, impl);
+    });
+    shimData.actionRegistry.forEach((factory, name) => {
+      registerActionFunction(name, factory);
+    });
   }
+  removeShimLinkHandlers();
   PPFramework.init();
   if (shimData) {
     shimData.hookListeners.forEach((listeners2, event) => {
@@ -2760,8 +2780,21 @@ function upgradeFromShim() {
         PPFramework.hooks.on(event, cb);
       });
     });
+    const pageContext = getGlobalPageContext();
+    shimData.globalExports.forEach((fn, name) => {
+      pageContext.setExports({ [name]: fn });
+    });
   }
   upgradePikoNamespace();
+}
+function removeShimLinkHandlers() {
+  document.querySelectorAll("a[piko\\:a]").forEach((link) => {
+    const nav = link.__pkNav;
+    if (nav) {
+      link.removeEventListener("click", nav);
+      delete link.__pkNav;
+    }
+  });
 }
 function upgradePikoNamespace() {
   const piko2 = window.piko;
@@ -2815,6 +2848,10 @@ function upgradePikoNamespace() {
     create: (colour) => PPFramework.createLoaderIndicator(colour)
   };
   piko2.context = { get: getGlobalPageContext };
+  piko2.hooks = PPFramework.hooks;
+  piko2.registerHelper = (name, fn) => RegisterHelper(name, fn);
+  piko2._registerCapability = _registerCapability;
+  piko2.getModuleConfig = PPFramework.getModuleConfig;
   piko2._emitHook = (event, payload) => PPFramework._emitHook(event, payload);
 }
 upgradeFromShim();

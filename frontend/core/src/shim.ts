@@ -464,7 +464,10 @@ registerHelper('resetForm', (el) => {
 
 registerHelper('redirect', (_el, _event, ...args) => {
     const url = args[0];
-    if (url) { window.location.href = url; }
+    if (!url) { return; }
+    const lower = url.toLowerCase();
+    if (BLOCKED_SCHEMES.some(s => lower.startsWith(s))) { return; }
+    window.location.href = url;
 });
 
 registerHelper('emitEvent', (el, _event, ...args) => {
@@ -552,9 +555,9 @@ function unwrapArgWithInjection(arg: unknown, el: HTMLElement, event: Event): un
         if (encoded.t === 'e') { return event; }
         if (encoded.t === 'f') {
             const form = el.closest('form');
-            if (!form) { return {}; }
+            if (!form) { return Object.create(null) as Record<string, unknown>; }
             const fd = new FormData(form);
-            const obj: Record<string, unknown> = {};
+            const obj = Object.create(null) as Record<string, unknown>;
             for (const [k, v] of fd.entries()) { obj[k] = v; }
             return obj;
         }
@@ -594,6 +597,27 @@ function tryInvokeActionFn(fnName: string, encodedArgs: unknown[] | undefined, e
 }
 
 /**
+ * Resolves a `@partialName.fn` qualified reference by walking every registered
+ * instance of the named partial until a scoped export matches.
+ *
+ * @param fnName - The qualified function name, starting with '@'.
+ * @returns The bare function name and its resolved function, or null for invalid input.
+ */
+function resolveQualifiedPartialFn(fnName: string): { bareName: string; fn: PageFn | undefined } | null {
+    const dotIdx = fnName.indexOf('.');
+    if (dotIdx <= 1) { return null; }
+    const partialName = fnName.slice(1, dotIdx);
+    const bareName = fnName.slice(dotIdx + 1);
+    const ids = partialInstances.get(partialName);
+    if (!ids) { return { bareName, fn: undefined }; }
+    for (const id of ids) {
+        const fn = getScopedFunction(bareName, id);
+        if (fn) { return { bareName, fn }; }
+    }
+    return { bareName, fn: undefined };
+}
+
+/**
  * Attempts to resolve and invoke a page-exported function.
  *
  * @param fnName - The function name to look up.
@@ -603,13 +627,31 @@ function tryInvokeActionFn(fnName: string, encodedArgs: unknown[] | undefined, e
  * @returns True if a matching page function was found and invoked.
  */
 function tryInvokePageFn(fnName: string, encodedArgs: unknown[] | undefined, el: HTMLElement, event: Event): boolean {
-    const scopeId = el.closest('[partial]')?.getAttribute('partial') ?? '';
-    const pageFn = getFunction(fnName) ?? getScopedFunction(fnName, scopeId);
+    let resolvedName = fnName;
+    let pageFn: PageFn | undefined;
+
+    if (fnName.startsWith('@')) {
+        const qualified = resolveQualifiedPartialFn(fnName);
+        if (qualified) {
+            resolvedName = qualified.bareName;
+            pageFn = qualified.fn;
+        }
+    }
+
+    if (!pageFn) {
+        const scopeId = el.closest('[partial]')?.getAttribute('partial') ?? '';
+        pageFn = getScopedFunction(resolvedName, scopeId) ?? getFunction(resolvedName);
+    }
     if (!pageFn) { return false; }
-    const args = encodedArgs?.map(a => (a as EncodedArg).v) ?? [];
+
+    const args = encodedArgs?.map(a => unwrapArgWithInjection(a, el, event)) ?? [];
     const result = pageFn(event, ...args);
     if (result instanceof Promise) {
-        void result.then((resolved: unknown) => { dispatchActionDescriptor(resolved, el, event); });
+        void result.then((resolved: unknown) => {
+            dispatchActionDescriptor(resolved, el, event);
+        }).catch((err: unknown) => {
+            console.error('[piko] Async handler error:', err);
+        });
     } else {
         dispatchActionDescriptor(result, el, event);
     }
@@ -618,6 +660,11 @@ function tryInvokePageFn(fnName: string, encodedArgs: unknown[] | undefined, el:
 
 /**
  * Attempts to resolve and invoke a registered helper by name.
+ *
+ * Helpers receive stringified arguments: $event becomes the event type
+ * string, $form becomes a JSON-serialised form-data object, and plain
+ * values are coerced via String(). This matches the helper signature
+ * which expects variadic string arguments only.
  *
  * @param fnName - The helper name to look up.
  * @param encodedArgs - The encoded argument list from the payload.
@@ -628,7 +675,18 @@ function tryInvokePageFn(fnName: string, encodedArgs: unknown[] | undefined, el:
 function tryInvokeHelper(fnName: string, encodedArgs: unknown[] | undefined, el: HTMLElement, event: Event): boolean {
     const helper = helpers.get(fnName);
     if (!helper) { return false; }
-    const args = encodedArgs?.map(a => String((a as EncodedArg).v)) ?? [];
+    const args = encodedArgs?.map(a => {
+        const encoded = a as EncodedArg;
+        if (encoded.t === 'e') { return event.type; }
+        if (encoded.t === 'f') {
+            const form = el.closest('form');
+            if (!form) { return ''; }
+            const obj = Object.create(null) as Record<string, unknown>;
+            for (const [k, v] of new FormData(form).entries()) { obj[k] = v; }
+            return JSON.stringify(obj);
+        }
+        return String(encoded.v);
+    }) ?? [];
     void Promise.resolve(helper(el, event, ...args));
     return true;
 }
@@ -636,21 +694,32 @@ function tryInvokeHelper(fnName: string, encodedArgs: unknown[] | undefined, el:
 /**
  * Resolves a base64-encoded action payload and dispatches it.
  *
- * Walks the action registry, page-exported functions, and helper registry
- * in order, invoking the first match with unwrapped arguments (including
- * $event and $form placeholder injection).
+ * Looks the handler name up in the action registry, the page-exported
+ * function registry, and the helper registry, invoking the first match
+ * with unwrapped arguments (including $event and $form placeholder
+ * injection). Custom events (p-event:*) prefer page functions over action
+ * factories so user-defined handlers shadow generated ones; native events
+ * (p-on:*) prefer action factories so declarative server actions bind
+ * directly without needing a wrapper.
  *
  * @param payload - The base64-encoded JSON action payload.
  * @param el - The element that triggered the event.
  * @param event - The browser event.
+ * @param isCustomEvent - True when the binding comes from a p-event:* attribute.
  */
-function resolveAndDispatch(payload: string, el: HTMLElement, event: Event): void {
+function resolveAndDispatch(payload: string, el: HTMLElement, event: Event, isCustomEvent: boolean): void {
     try {
         const decoded = JSON.parse(b64Decode(payload)) as { f: string; a?: unknown[] };
         const fnName = decoded.f;
-        if (tryInvokeActionFn(fnName, decoded.a, el, event)) { return; }
-        if (tryInvokePageFn(fnName, decoded.a, el, event)) { return; }
-        if (tryInvokeHelper(fnName, decoded.a, el, event)) { return; }
+        if (isCustomEvent) {
+            if (tryInvokePageFn(fnName, decoded.a, el, event)) { return; }
+            if (tryInvokeHelper(fnName, decoded.a, el, event)) { return; }
+            if (tryInvokeActionFn(fnName, decoded.a, el, event)) { return; }
+        } else {
+            if (tryInvokeActionFn(fnName, decoded.a, el, event)) { return; }
+            if (tryInvokePageFn(fnName, decoded.a, el, event)) { return; }
+            if (tryInvokeHelper(fnName, decoded.a, el, event)) { return; }
+        }
         console.warn(`[piko] Handler "${fnName}" not found.`);
     } catch (e) {
         console.error('[piko] Failed to resolve action payload:', e);
@@ -680,31 +749,48 @@ function bindActions(root: HTMLElement): void {
                 const eventName = parts[0].trim();
                 if (!eventName) { continue; }
                 const modifiers = new Set(parts.slice(1));
+                const listenerOptions: AddEventListenerOptions = {};
+                if (modifiers.has('capture')) { listenerOptions.capture = true; }
+                if (modifiers.has('passive')) { listenerOptions.passive = true; }
 
                 const boundEl = el;
                 const payload = attrValue;
+                const isCustomEvent = isCustom;
+                let firedOnce = false;
                 el.addEventListener(eventName, (event) => {
                     if (modifiers.has('self') && event.target !== event.currentTarget) { return; }
                     if (modifiers.has('prevent')) { event.preventDefault(); }
                     if (modifiers.has('stop')) { event.stopPropagation(); }
+                    if (modifiers.has('once')) {
+                        if (firedOnce) { return; }
+                        firedOnce = true;
+                    }
 
-                    resolveAndDispatch(payload, boundEl, event);
-                });
+                    resolveAndDispatch(payload, boundEl, event, isCustomEvent);
+                }, listenerOptions);
                 hasBound = true;
             }
         }
 
         if (el.hasAttribute('p-modal:selector')) {
             el.addEventListener('click', () => {
+                const params = new Map<string, string>();
+                for (const {name, value} of Array.from(el.attributes)) {
+                    if (name.startsWith('p-modal-param:')) {
+                        params.set(name.slice('p-modal-param:'.length).trim(), value.trim());
+                    }
+                }
                 el.dispatchEvent(new CustomEvent('pk-open-modal', {
                     bubbles: true,
                     detail: {
                         selector: el.getAttribute('p-modal:selector')?.trim() ?? '',
+                        params,
                         title: el.getAttribute('p-modal:title')?.trim() ?? '',
                         message: el.getAttribute('p-modal:message')?.trim() ?? '',
                         cancelLabel: el.getAttribute('p-modal:cancel_label')?.trim() ?? '',
                         confirmLabel: el.getAttribute('p-modal:confirm_label')?.trim() ?? '',
                         confirmAction: el.getAttribute('p-modal:confirm_action')?.trim() ?? '',
+                        element: el,
                     }
                 }));
             });
@@ -764,7 +850,7 @@ const pikoNamespace = {
         isReady = true;
         const cbs = readyCallbacks;
         readyCallbacks = null;
-        if (cbs) { for (const cb of cbs) { cb(); } }
+        if (cbs) { for (const cb of cbs) { try { cb(); } catch (e) { console.error('[piko] Ready callback error:', e); } } }
     },
     registerHelper,
     getModuleConfig,
@@ -772,6 +858,10 @@ const pikoNamespace = {
     _emitHook: emitHook,
     hooks: {
         on: hooksOn,
+        once(event: string, cb: HookCb): () => void {
+            const unsub = hooksOn(event, (payload) => { unsub(); cb(payload); });
+            return unsub;
+        },
         off: hooksOff,
         clear: hooksClear,
         events: {
@@ -792,23 +882,29 @@ const pikoNamespace = {
             ERROR: 'error',
         },
     },
-    bus: {
-        _listeners: new Map<string, Set<(data: unknown) => void>>(),
-        on(event: string, cb: (data: unknown) => void): () => void {
-            let set = this._listeners.get(event);
-            if (!set) { set = new Set(); this._listeners.set(event, set); }
-            set.add(cb);
-            return () => { set.delete(cb); };
-        },
-        off(event: string, cb: (data: unknown) => void): void {
-            this._listeners.get(event)?.delete(cb);
-        },
-        emit(event: string, data?: unknown): void {
-            this._listeners.get(event)?.forEach(cb => {
-                try { cb(data); } catch (e) { console.error(`[pk] Bus error for "${event}":`, e); }
-            });
-        },
-    },
+    bus: (() => {
+        const listeners = new Map<string, Set<(data: unknown) => void>>();
+        return {
+            on(event: string, cb: (data: unknown) => void): () => void {
+                let set = listeners.get(event);
+                if (!set) { set = new Set(); listeners.set(event, set); }
+                set.add(cb);
+                return () => { set.delete(cb); };
+            },
+            once(event: string, cb: (data: unknown) => void): () => void {
+                const wrapper = (data: unknown) => { listeners.get(event)?.delete(wrapper); cb(data); };
+                return this.on(event, wrapper);
+            },
+            off(event?: string): void {
+                if (event) { listeners.delete(event); } else { listeners.clear(); }
+            },
+            emit(event: string, data?: unknown): void {
+                listeners.get(event)?.forEach(cb => {
+                    try { cb(data); } catch (e) { console.error(`[pk] Bus error for "${event}":`, e); }
+                });
+            },
+        };
+    })(),
     nav: {
         navigate(url: string): void {
             const nav = _getCapability<{ navigateTo(url: string): Promise<void> }>('navigation');
@@ -816,6 +912,7 @@ const pikoNamespace = {
         },
         back(): void { window.history.back(); },
         forward(): void { window.history.forward(); },
+        go(delta: number): void { window.history.go(delta); },
     },
     context: {
         get: getGlobalPageContext,
@@ -824,9 +921,6 @@ const pikoNamespace = {
 
 if (typeof window !== 'undefined') {
     (window as unknown as { piko: typeof pikoNamespace }).piko = pikoNamespace;
-}
-
-if (typeof window !== 'undefined') {
     (window as unknown as { __pikoShimData__: unknown }).__pikoShimData__ = {
         hookListeners, helpers, capabilities, capabilityPending,
         globalExports, scopedExports, partialInstances,
@@ -836,16 +930,20 @@ if (typeof window !== 'undefined') {
     };
 }
 
-const appRoot = document.querySelector('#app') as HTMLElement | null;
-if (appRoot) {
-    bindLinks(appRoot, (url) => {
-        pikoNamespace.nav.navigate(url);
-    });
-    bindActions(appRoot);
+if (typeof document !== 'undefined') {
+    const appRoot = document.querySelector('#app') as HTMLElement | null;
+    if (appRoot) {
+        bindLinks(appRoot, (url) => {
+            pikoNamespace.nav.navigate(url);
+        });
+        bindActions(appRoot);
+    }
 }
 
 pikoNamespace._markReady();
 
+/** Re-exported event bus for generated code and cross-component messaging. */
 export const bus = pikoNamespace.bus;
 
+/** Re-exported refs factory for generated page scripts that import _createRefs. */
 export { createRefs as _createRefs };

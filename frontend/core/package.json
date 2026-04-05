@@ -5,7 +5,7 @@
   "scripts": {
     "build": "vite build --config vite.shim.config.ts --mode production && vite build --config vite.runtime.config.ts --mode production",
     "build:dev": "vite build --config vite.shim.config.ts --mode development && vite build --config vite.runtime.config.ts --mode development",
-    "analyze": "ANALYZE=true vite build --mode production",
+    "analyze": "ANALYZE=true vite build --config vite.shim.config.ts --mode production",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "coverage": "vitest run --coverage",

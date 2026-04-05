@@ -19,6 +19,8 @@
 import {PPFramework, RegisterHelper} from '@/core/PPFramework';
 import {_initCleanupObserver} from '@/pk/lifecycle';
 import {getGlobalPageContext} from '@/services/PageContext';
+import {_registerCapability} from '@/core/CapabilityRegistry';
+import {registerActionFunction} from '@/pk/actionRegistry';
 
 import {bus as _bus} from '@/pk/bus';
 import {
@@ -33,23 +35,29 @@ import {debounce as _debounce, throttle as _throttle} from '@/pk/utils';
 import {whenVisible as _whenVisible, withAbortSignal as _withAbortSignal, timeout as _timeout, poll as _poll, watchMutations as _watchMutations, whenIdle as _whenIdle, nextFrame as _nextFrame, waitFrames as _waitFrames, deferred as _deferred, once as _once} from '@/pk/advanced';
 import {trace as _trace, traceLog as _traceLog} from '@/pk/trace';
 
-/** State published by shim.ts on window.__pikoShimData__. */
+/** State handed off from shim.ts via window.__pikoShimData__. */
 interface ShimData {
-    /** Hook listeners registered before this module loaded. */
+    /** Pre-registered hook listeners keyed by event name. */
     hookListeners: Map<string, Set<(payload: unknown) => void>>;
-    /** Helpers registered before this module loaded. */
+    /** Pre-registered helper functions keyed by name. */
     helpers: Map<string, (...args: unknown[]) => void>;
+    /** Pre-registered capability implementations keyed by name. */
+    capabilities: Map<string, unknown>;
+    /** Globally exported page functions keyed by name. */
+    globalExports: Map<string, (...args: unknown[]) => unknown>;
+    /** Registered action factories keyed by name. */
+    actionRegistry: Map<string, (...args: unknown[]) => unknown>;
 }
 
 /**
- * Initialises PPFramework and replays any state that accumulated in
- * window.__pikoShimData__ before this module loaded.
+ * Initialises PPFramework and replays any state accumulated in
+ * window.__pikoShimData__.
  *
- * Re-registers helpers into PPFramework's HelperRegistry, starts the
- * lifecycle MutationObserver, calls PPFramework.init() (which creates
- * services, wires DOMBinder, and emits ready hooks), rebinds any
- * pre-existing hook listeners onto PPFramework's HookManager, and then
- * replaces window.piko with the complete namespace API.
+ * Replays helpers, hook listeners, capabilities, page exports, and action
+ * factories into PPFramework's services. Detaches the pre-existing link
+ * click handlers before calling PPFramework.init() so the DOMBinder can
+ * re-scan without double-binding, then upgrades window.piko with the
+ * complete namespace API.
  */
 function upgradeFromShim(): void {
     const shimData = (window as unknown as { __pikoShimData__?: ShimData }).__pikoShimData__;
@@ -60,7 +68,17 @@ function upgradeFromShim(): void {
         shimData.helpers.forEach((fn, name) => {
             RegisterHelper(name, fn as (el: HTMLElement, event: Event, ...args: string[]) => void | Promise<void>);
         });
+
+        shimData.capabilities.forEach((impl, name) => {
+            _registerCapability(name, impl);
+        });
+
+        shimData.actionRegistry.forEach((factory, name) => {
+            registerActionFunction(name, factory as (...args: unknown[]) => { action: string; args?: unknown[] });
+        });
     }
+
+    removeShimLinkHandlers();
 
     PPFramework.init();
 
@@ -70,12 +88,36 @@ function upgradeFromShim(): void {
                 PPFramework.hooks.on(event as never, cb as never);
             });
         });
+
+        const pageContext = getGlobalPageContext();
+        shimData.globalExports.forEach((fn, name) => {
+            pageContext.setExports({ [name]: fn });
+        });
     }
 
     upgradePikoNamespace();
 }
 
-/** Replaces window.piko with the complete namespace API backed by PPFramework. */
+/**
+ * Detaches any pre-existing click handler from piko:a anchors so the
+ * DOMBinder's subsequent scan does not leave two listeners attached.
+ */
+function removeShimLinkHandlers(): void {
+    document.querySelectorAll<HTMLAnchorElement>('a[piko\\:a]').forEach(link => {
+        const nav = (link as unknown as { __pkNav?: EventListener }).__pkNav;
+        if (nav) {
+            link.removeEventListener('click', nav);
+            delete (link as unknown as { __pkNav?: EventListener }).__pkNav;
+        }
+    });
+}
+
+/**
+ * Replaces window.piko with the complete namespace API backed by PPFramework.
+ *
+ * Rebinds every entry, including hooks, registerHelper, and _registerCapability,
+ * so that all live calls route through PPFramework's services.
+ */
 function upgradePikoNamespace(): void {
     const piko = (window as unknown as { piko: Record<string, unknown> }).piko;
     piko.bus = _bus;
@@ -109,6 +151,10 @@ function upgradePikoNamespace(): void {
         create: (colour: string) => PPFramework.createLoaderIndicator(colour),
     };
     piko.context = { get: getGlobalPageContext };
+    piko.hooks = PPFramework.hooks;
+    piko.registerHelper = (name: string, fn: unknown) => RegisterHelper(name, fn as (el: HTMLElement, event: Event, ...args: string[]) => void | Promise<void>);
+    piko._registerCapability = _registerCapability;
+    piko.getModuleConfig = PPFramework.getModuleConfig;
     piko._emitHook = (event: string, payload: unknown) => PPFramework._emitHook(event as never, payload as never);
 }
 

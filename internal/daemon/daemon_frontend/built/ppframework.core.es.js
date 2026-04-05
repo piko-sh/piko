@@ -233,9 +233,14 @@ registerHelper("resetForm", (el) => {
 });
 registerHelper("redirect", (_el, _event, ...args) => {
   const url = args[0];
-  if (url) {
-    window.location.href = url;
+  if (!url) {
+    return;
   }
+  const lower = url.toLowerCase();
+  if (BLOCKED_SCHEMES.some((s) => lower.startsWith(s))) {
+    return;
+  }
+  window.location.href = url;
 });
 registerHelper("emitEvent", (el, _event, ...args) => {
   const eventName = args[0];
@@ -296,10 +301,10 @@ function unwrapArgWithInjection(arg, el, event) {
     if (encoded.t === "f") {
       const form = el.closest("form");
       if (!form) {
-        return {};
+        return /* @__PURE__ */ Object.create(null);
       }
       const fd = new FormData(form);
-      const obj = {};
+      const obj = /* @__PURE__ */ Object.create(null);
       for (const [k, v] of fd.entries()) {
         obj[k] = v;
       }
@@ -327,17 +332,49 @@ function tryInvokeActionFn(fnName, encodedArgs, el, event) {
   dispatchActionDescriptor(actionFn(...args), el, event);
   return true;
 }
+function resolveQualifiedPartialFn(fnName) {
+  const dotIdx = fnName.indexOf(".");
+  if (dotIdx <= 1) {
+    return null;
+  }
+  const partialName = fnName.slice(1, dotIdx);
+  const bareName = fnName.slice(dotIdx + 1);
+  const ids = partialInstances.get(partialName);
+  if (!ids) {
+    return { bareName, fn: void 0 };
+  }
+  for (const id of ids) {
+    const fn = getScopedFunction(bareName, id);
+    if (fn) {
+      return { bareName, fn };
+    }
+  }
+  return { bareName, fn: void 0 };
+}
 function tryInvokePageFn(fnName, encodedArgs, el, event) {
-  const scopeId = el.closest("[partial]")?.getAttribute("partial") ?? "";
-  const pageFn = getFunction(fnName) ?? getScopedFunction(fnName, scopeId);
+  let resolvedName = fnName;
+  let pageFn;
+  if (fnName.startsWith("@")) {
+    const qualified = resolveQualifiedPartialFn(fnName);
+    if (qualified) {
+      resolvedName = qualified.bareName;
+      pageFn = qualified.fn;
+    }
+  }
+  if (!pageFn) {
+    const scopeId = el.closest("[partial]")?.getAttribute("partial") ?? "";
+    pageFn = getScopedFunction(resolvedName, scopeId) ?? getFunction(resolvedName);
+  }
   if (!pageFn) {
     return false;
   }
-  const args = encodedArgs?.map((a) => a.v) ?? [];
+  const args = encodedArgs?.map((a) => unwrapArgWithInjection(a, el, event)) ?? [];
   const result = pageFn(event, ...args);
   if (result instanceof Promise) {
     void result.then((resolved) => {
       dispatchActionDescriptor(resolved, el, event);
+    }).catch((err) => {
+      console.error("[piko] Async handler error:", err);
     });
   } else {
     dispatchActionDescriptor(result, el, event);
@@ -349,22 +386,51 @@ function tryInvokeHelper(fnName, encodedArgs, el, event) {
   if (!helper) {
     return false;
   }
-  const args = encodedArgs?.map((a) => String(a.v)) ?? [];
+  const args = encodedArgs?.map((a) => {
+    const encoded = a;
+    if (encoded.t === "e") {
+      return event.type;
+    }
+    if (encoded.t === "f") {
+      const form = el.closest("form");
+      if (!form) {
+        return "";
+      }
+      const obj = /* @__PURE__ */ Object.create(null);
+      for (const [k, v] of new FormData(form).entries()) {
+        obj[k] = v;
+      }
+      return JSON.stringify(obj);
+    }
+    return String(encoded.v);
+  }) ?? [];
   void Promise.resolve(helper(el, event, ...args));
   return true;
 }
-function resolveAndDispatch(payload, el, event) {
+function resolveAndDispatch(payload, el, event, isCustomEvent) {
   try {
     const decoded = JSON.parse(b64Decode(payload));
     const fnName = decoded.f;
-    if (tryInvokeActionFn(fnName, decoded.a, el, event)) {
-      return;
-    }
-    if (tryInvokePageFn(fnName, decoded.a, el, event)) {
-      return;
-    }
-    if (tryInvokeHelper(fnName, decoded.a, el, event)) {
-      return;
+    if (isCustomEvent) {
+      if (tryInvokePageFn(fnName, decoded.a, el, event)) {
+        return;
+      }
+      if (tryInvokeHelper(fnName, decoded.a, el, event)) {
+        return;
+      }
+      if (tryInvokeActionFn(fnName, decoded.a, el, event)) {
+        return;
+      }
+    } else {
+      if (tryInvokeActionFn(fnName, decoded.a, el, event)) {
+        return;
+      }
+      if (tryInvokePageFn(fnName, decoded.a, el, event)) {
+        return;
+      }
+      if (tryInvokeHelper(fnName, decoded.a, el, event)) {
+        return;
+      }
     }
     console.warn(`[piko] Handler "${fnName}" not found.`);
   } catch (e) {
@@ -388,8 +454,17 @@ function bindActions(root) {
           continue;
         }
         const modifiers = new Set(parts.slice(1));
+        const listenerOptions = {};
+        if (modifiers.has("capture")) {
+          listenerOptions.capture = true;
+        }
+        if (modifiers.has("passive")) {
+          listenerOptions.passive = true;
+        }
         const boundEl = el;
         const payload = attrValue;
+        const isCustomEvent = isCustom;
+        let firedOnce = false;
         el.addEventListener(eventName, (event) => {
           if (modifiers.has("self") && event.target !== event.currentTarget) {
             return;
@@ -400,22 +475,36 @@ function bindActions(root) {
           if (modifiers.has("stop")) {
             event.stopPropagation();
           }
-          resolveAndDispatch(payload, boundEl, event);
-        });
+          if (modifiers.has("once")) {
+            if (firedOnce) {
+              return;
+            }
+            firedOnce = true;
+          }
+          resolveAndDispatch(payload, boundEl, event, isCustomEvent);
+        }, listenerOptions);
         hasBound = true;
       }
     }
     if (el.hasAttribute("p-modal:selector")) {
       el.addEventListener("click", () => {
+        const params = /* @__PURE__ */ new Map();
+        for (const { name, value } of Array.from(el.attributes)) {
+          if (name.startsWith("p-modal-param:")) {
+            params.set(name.slice("p-modal-param:".length).trim(), value.trim());
+          }
+        }
         el.dispatchEvent(new CustomEvent("pk-open-modal", {
           bubbles: true,
           detail: {
             selector: el.getAttribute("p-modal:selector")?.trim() ?? "",
+            params,
             title: el.getAttribute("p-modal:title")?.trim() ?? "",
             message: el.getAttribute("p-modal:message")?.trim() ?? "",
             cancelLabel: el.getAttribute("p-modal:cancel_label")?.trim() ?? "",
             confirmLabel: el.getAttribute("p-modal:confirm_label")?.trim() ?? "",
-            confirmAction: el.getAttribute("p-modal:confirm_action")?.trim() ?? ""
+            confirmAction: el.getAttribute("p-modal:confirm_action")?.trim() ?? "",
+            element: el
           }
         }));
       });
@@ -458,7 +547,11 @@ const pikoNamespace = {
     readyCallbacks = null;
     if (cbs) {
       for (const cb of cbs) {
-        cb();
+        try {
+          cb();
+        } catch (e) {
+          console.error("[piko] Ready callback error:", e);
+        }
       }
     }
   },
@@ -468,6 +561,13 @@ const pikoNamespace = {
   _emitHook: emitHook,
   hooks: {
     on: hooksOn,
+    once(event, cb) {
+      const unsub = hooksOn(event, (payload) => {
+        unsub();
+        cb(payload);
+      });
+      return unsub;
+    },
     off: hooksOff,
     clear: hooksClear,
     events: {
@@ -488,32 +588,45 @@ const pikoNamespace = {
       ERROR: "error"
     }
   },
-  bus: {
-    _listeners: /* @__PURE__ */ new Map(),
-    on(event, cb) {
-      let set = this._listeners.get(event);
-      if (!set) {
-        set = /* @__PURE__ */ new Set();
-        this._listeners.set(event, set);
-      }
-      set.add(cb);
-      return () => {
-        set.delete(cb);
-      };
-    },
-    off(event, cb) {
-      this._listeners.get(event)?.delete(cb);
-    },
-    emit(event, data) {
-      this._listeners.get(event)?.forEach((cb) => {
-        try {
-          cb(data);
-        } catch (e) {
-          console.error(`[pk] Bus error for "${event}":`, e);
+  bus: /* @__PURE__ */ (() => {
+    const listeners = /* @__PURE__ */ new Map();
+    return {
+      on(event, cb) {
+        let set = listeners.get(event);
+        if (!set) {
+          set = /* @__PURE__ */ new Set();
+          listeners.set(event, set);
         }
-      });
-    }
-  },
+        set.add(cb);
+        return () => {
+          set.delete(cb);
+        };
+      },
+      once(event, cb) {
+        const wrapper = (data) => {
+          listeners.get(event)?.delete(wrapper);
+          cb(data);
+        };
+        return this.on(event, wrapper);
+      },
+      off(event) {
+        if (event) {
+          listeners.delete(event);
+        } else {
+          listeners.clear();
+        }
+      },
+      emit(event, data) {
+        listeners.get(event)?.forEach((cb) => {
+          try {
+            cb(data);
+          } catch (e) {
+            console.error(`[pk] Bus error for "${event}":`, e);
+          }
+        });
+      }
+    };
+  })(),
   nav: {
     navigate(url) {
       const nav = _getCapability("navigation");
@@ -528,6 +641,9 @@ const pikoNamespace = {
     },
     forward() {
       window.history.forward();
+    },
+    go(delta) {
+      window.history.go(delta);
     }
   },
   context: {
@@ -536,8 +652,6 @@ const pikoNamespace = {
 };
 if (typeof window !== "undefined") {
   window.piko = pikoNamespace;
-}
-if (typeof window !== "undefined") {
   window.__pikoShimData__ = {
     hookListeners,
     helpers,
@@ -554,12 +668,14 @@ if (typeof window !== "undefined") {
     moduleConfigCache: () => moduleConfigCache
   };
 }
-const appRoot = document.querySelector("#app");
-if (appRoot) {
-  bindLinks(appRoot, (url) => {
-    pikoNamespace.nav.navigate(url);
-  });
-  bindActions(appRoot);
+if (typeof document !== "undefined") {
+  const appRoot = document.querySelector("#app");
+  if (appRoot) {
+    bindLinks(appRoot, (url) => {
+      pikoNamespace.nav.navigate(url);
+    });
+    bindActions(appRoot);
+  }
 }
 pikoNamespace._markReady();
 const bus = pikoNamespace.bus;
