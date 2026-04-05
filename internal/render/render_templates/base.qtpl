@@ -28,7 +28,12 @@
 
     {%- if len(p.FontsHTML) > 0 -%}{%z= p.FontsHTML -%}{%- endif -%}
 
+    {%- if p.NeedsJS -%}
     <link rel="modulepreload" href="/_piko/dist/ppframework.core.es.js"{%- if p.CoreJSSRIHash != "" -%}{% space %}integrity="{%s= p.CoreJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}>
+    {%- if p.NeedsRuntime -%}
+    <link rel="modulepreload" href="/_piko/dist/ppframework.runtime.min.es.js"{%- if p.RuntimeJSSRIHash != "" -%}{% space %}integrity="{%s= p.RuntimeJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}>
+    {%- endif -%}
+    {%- endif -%}
     {%- if p.PreloadURLS != "" -%}{%s= p.PreloadURLS -%}{%- endif -%}
 
     <link rel="preload" href="/theme.css" as="style"{%- if p.ThemeCSSSRIHash != "" -%}{% space %}integrity="{%s= p.ThemeCSSSRIHash -%}" crossorigin="anonymous"{%- endif -%}>
@@ -47,8 +52,13 @@
         {%s= p.SvgSpriteSheet %}
     {%- endif -%}
 
+    {%- if p.NeedsJS -%}
     <script type="module" src="/_piko/dist/ppframework.core.es.js"{%- if p.CoreJSSRIHash != "" -%}{% space %}integrity="{%s= p.CoreJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
     <script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"{%- if p.ActionsJSSRIHash != "" -%}{% space %}integrity="{%s= p.ActionsJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
+    {%- if p.NeedsRuntime -%}
+    <script type="module" src="/_piko/dist/ppframework.runtime.min.es.js"{%- if p.RuntimeJSSRIHash != "" -%}{% space %}integrity="{%s= p.RuntimeJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
+    {%- endif -%}
+    {%- endif -%}
     {%- if p.ModuleScripts != "" -%}{%s= p.ModuleScripts -%}{%- endif -%}
     {%- for _, meta := range p.PKScriptMetas -%}<script type="module" src="{%s= meta.URL -%}"{%- if meta.SRIHash != "" -%}{% space %}integrity="{%s= meta.SRIHash -%}" crossorigin="anonymous"{%- endif -%}></script><meta name="pk-script" content="{%s= meta.URL -%}"{%- if meta.PartialName != "" -%}{% space %}data-partial-name="{%s= meta.PartialName -%}"{%- endif -%}>{%- endfor -%}
     {%- if p.DevWidgetHTML != "" -%}{%s= p.DevWidgetHTML -%}{%- endif -%}

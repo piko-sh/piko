@@ -103,6 +103,9 @@ type BasePageData struct {
 	// ActionsJSSRIHash is the SRI integrity hash for the actions JS module.
 	ActionsJSSRIHash string
 
+	// RuntimeJSSRIHash is the SRI integrity hash for the runtime JS module.
+	RuntimeJSSRIHash string
+
 	// ThemeCSSSRIHash is the SRI integrity hash for the theme CSS stylesheet.
 	ThemeCSSSRIHash string
 
@@ -111,6 +114,14 @@ type BasePageData struct {
 	// partials. Each script is loaded as an ES module to enable p-on:* handlers.
 	// Each entry includes the URL and optional partial name for function scoping.
 	PKScriptMetas []templater_dto.JSScriptMeta
+
+	// NeedsJS indicates whether any JavaScript should be emitted for this page.
+	// False for pure static pages with no framework features.
+	NeedsJS bool
+
+	// NeedsRuntime indicates whether the full runtime module is needed.
+	// True when the page has client scripts, PKC components, or extensions.
+	NeedsRuntime bool
 }
 
 // FragmentPageData holds the data needed to render partial page fragments.

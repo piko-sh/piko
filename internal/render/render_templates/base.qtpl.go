@@ -175,258 +175,306 @@ func StreamBasePageHeader(qw422016 *qt422016.Writer, p *BasePageData) {
 		qw422016.N().Z(p.FontsHTML)
 //line base.qtpl:29
 	}
-//line base.qtpl:29
-	qw422016.N().S(`<link rel="modulepreload" href="/_piko/dist/ppframework.core.es.js"`)
 //line base.qtpl:31
-	if p.CoreJSSRIHash != "" {
+	if p.NeedsJS {
 //line base.qtpl:31
-		qw422016.N().S(` `)
-//line base.qtpl:31
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:31
-		qw422016.N().S(p.CoreJSSRIHash)
-//line base.qtpl:31
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:31
-	}
-//line base.qtpl:31
-	qw422016.N().S(`>`)
+		qw422016.N().S(`<link rel="modulepreload" href="/_piko/dist/ppframework.core.es.js"`)
 //line base.qtpl:32
-	if p.PreloadURLS != "" {
+		if p.CoreJSSRIHash != "" {
 //line base.qtpl:32
-		qw422016.N().S(p.PreloadURLS)
-//line base.qtpl:32
-	}
-//line base.qtpl:32
-	qw422016.N().S(`<link rel="preload" href="/theme.css" as="style"`)
-//line base.qtpl:34
-	if p.ThemeCSSSRIHash != "" {
-//line base.qtpl:34
-		qw422016.N().S(` `)
-//line base.qtpl:34
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:34
-		qw422016.N().S(p.ThemeCSSSRIHash)
-//line base.qtpl:34
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:34
-	}
-//line base.qtpl:34
-	qw422016.N().S(`><link rel="stylesheet" href="/theme.css"`)
-//line base.qtpl:35
-	if p.ThemeCSSSRIHash != "" {
-//line base.qtpl:35
-		qw422016.N().S(` `)
-//line base.qtpl:35
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:35
-		qw422016.N().S(p.ThemeCSSSRIHash)
-//line base.qtpl:35
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:35
-	}
-//line base.qtpl:35
-	qw422016.N().S(`>`)
-//line base.qtpl:36
-	if p.Styling != "" {
-//line base.qtpl:36
-		qw422016.N().S(`<style pk-page>`)
-//line base.qtpl:36
-		qw422016.N().S(p.Styling)
-//line base.qtpl:36
-		qw422016.N().S(`</style>`)
-//line base.qtpl:36
-	}
-//line base.qtpl:36
-	qw422016.N().S(`</head><body`)
-//line base.qtpl:38
-	if p.Aesthetic != "" {
-//line base.qtpl:38
-		qw422016.N().S(` `)
-//line base.qtpl:38
-		qw422016.N().S(`data-aesthetic="`)
-//line base.qtpl:38
-		qw422016.N().S(p.Aesthetic)
-//line base.qtpl:38
-		qw422016.N().S(`"`)
-//line base.qtpl:38
-	}
-//line base.qtpl:38
-	if p.Style != "" {
-//line base.qtpl:38
-		qw422016.N().S(` `)
-//line base.qtpl:38
-		qw422016.N().S(`data-style="`)
-//line base.qtpl:38
-		qw422016.N().S(p.Style)
-//line base.qtpl:38
-		qw422016.N().S(`"`)
-//line base.qtpl:38
-	}
-//line base.qtpl:38
-	if p.PageID != "" {
-//line base.qtpl:38
-		qw422016.N().S(` `)
-//line base.qtpl:38
-		qw422016.N().S(`data-pageid="`)
-//line base.qtpl:38
-		qw422016.N().S(p.PageID)
-//line base.qtpl:38
-		qw422016.N().S(`"`)
-//line base.qtpl:38
-	}
-//line base.qtpl:38
-	qw422016.N().S(`><div id="app">`)
-//line base.qtpl:41
-}
-
-//line base.qtpl:41
-func WriteBasePageHeader(qq422016 qtio422016.Writer, p *BasePageData) {
-//line base.qtpl:41
-	qw422016 := qt422016.AcquireWriter(qq422016)
-//line base.qtpl:41
-	StreamBasePageHeader(qw422016, p)
-//line base.qtpl:41
-	qt422016.ReleaseWriter(qw422016)
-//line base.qtpl:41
-}
-
-//line base.qtpl:41
-func BasePageHeader(p *BasePageData) string {
-//line base.qtpl:41
-	qb422016 := qt422016.AcquireByteBuffer()
-//line base.qtpl:41
-	WriteBasePageHeader(qb422016, p)
-//line base.qtpl:41
-	qs422016 := string(qb422016.B)
-//line base.qtpl:41
-	qt422016.ReleaseByteBuffer(qb422016)
-//line base.qtpl:41
-	return qs422016
-//line base.qtpl:41
-}
-
-//line base.qtpl:43
-func StreamBasePageFooter(qw422016 *qt422016.Writer, p *BasePageData) {
-//line base.qtpl:43
-	qw422016.N().S(`    </div>`)
-//line base.qtpl:46
-	if p.SvgSpriteSheet != "" {
-//line base.qtpl:47
-		qw422016.N().S(p.SvgSpriteSheet)
-//line base.qtpl:48
-	}
-//line base.qtpl:48
-	qw422016.N().S(`<script type="module" src="/_piko/dist/ppframework.core.es.js"`)
-//line base.qtpl:50
-	if p.CoreJSSRIHash != "" {
-//line base.qtpl:50
-		qw422016.N().S(` `)
-//line base.qtpl:50
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:50
-		qw422016.N().S(p.CoreJSSRIHash)
-//line base.qtpl:50
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:50
-	}
-//line base.qtpl:50
-	qw422016.N().S(`></script><script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"`)
-//line base.qtpl:51
-	if p.ActionsJSSRIHash != "" {
-//line base.qtpl:51
-		qw422016.N().S(` `)
-//line base.qtpl:51
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:51
-		qw422016.N().S(p.ActionsJSSRIHash)
-//line base.qtpl:51
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:51
-	}
-//line base.qtpl:51
-	qw422016.N().S(`></script>`)
-//line base.qtpl:52
-	if p.ModuleScripts != "" {
-//line base.qtpl:52
-		qw422016.N().S(p.ModuleScripts)
-//line base.qtpl:52
-	}
-//line base.qtpl:53
-	for _, meta := range p.PKScriptMetas {
-//line base.qtpl:53
-		qw422016.N().S(`<script type="module" src="`)
-//line base.qtpl:53
-		qw422016.N().S(meta.URL)
-//line base.qtpl:53
-		qw422016.N().S(`"`)
-//line base.qtpl:53
-		if meta.SRIHash != "" {
-//line base.qtpl:53
 			qw422016.N().S(` `)
-//line base.qtpl:53
+//line base.qtpl:32
 			qw422016.N().S(`integrity="`)
-//line base.qtpl:53
-			qw422016.N().S(meta.SRIHash)
-//line base.qtpl:53
+//line base.qtpl:32
+			qw422016.N().S(p.CoreJSSRIHash)
+//line base.qtpl:32
 			qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:53
+//line base.qtpl:32
 		}
-//line base.qtpl:53
-		qw422016.N().S(`></script><meta name="pk-script" content="`)
-//line base.qtpl:53
-		qw422016.N().S(meta.URL)
-//line base.qtpl:53
-		qw422016.N().S(`"`)
-//line base.qtpl:53
-		if meta.PartialName != "" {
-//line base.qtpl:53
-			qw422016.N().S(` `)
-//line base.qtpl:53
-			qw422016.N().S(`data-partial-name="`)
-//line base.qtpl:53
-			qw422016.N().S(meta.PartialName)
-//line base.qtpl:53
-			qw422016.N().S(`"`)
-//line base.qtpl:53
-		}
-//line base.qtpl:53
+//line base.qtpl:32
 		qw422016.N().S(`>`)
+//line base.qtpl:33
+		if p.NeedsRuntime {
+//line base.qtpl:33
+			qw422016.N().S(`<link rel="modulepreload" href="/_piko/dist/ppframework.runtime.min.es.js"`)
+//line base.qtpl:34
+			if p.RuntimeJSSRIHash != "" {
+//line base.qtpl:34
+				qw422016.N().S(` `)
+//line base.qtpl:34
+				qw422016.N().S(`integrity="`)
+//line base.qtpl:34
+				qw422016.N().S(p.RuntimeJSSRIHash)
+//line base.qtpl:34
+				qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:34
+			}
+//line base.qtpl:34
+			qw422016.N().S(`>`)
+//line base.qtpl:35
+		}
+//line base.qtpl:36
+	}
+//line base.qtpl:37
+	if p.PreloadURLS != "" {
+//line base.qtpl:37
+		qw422016.N().S(p.PreloadURLS)
+//line base.qtpl:37
+	}
+//line base.qtpl:37
+	qw422016.N().S(`<link rel="preload" href="/theme.css" as="style"`)
+//line base.qtpl:39
+	if p.ThemeCSSSRIHash != "" {
+//line base.qtpl:39
+		qw422016.N().S(` `)
+//line base.qtpl:39
+		qw422016.N().S(`integrity="`)
+//line base.qtpl:39
+		qw422016.N().S(p.ThemeCSSSRIHash)
+//line base.qtpl:39
+		qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:39
+	}
+//line base.qtpl:39
+	qw422016.N().S(`><link rel="stylesheet" href="/theme.css"`)
+//line base.qtpl:40
+	if p.ThemeCSSSRIHash != "" {
+//line base.qtpl:40
+		qw422016.N().S(` `)
+//line base.qtpl:40
+		qw422016.N().S(`integrity="`)
+//line base.qtpl:40
+		qw422016.N().S(p.ThemeCSSSRIHash)
+//line base.qtpl:40
+		qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:40
+	}
+//line base.qtpl:40
+	qw422016.N().S(`>`)
+//line base.qtpl:41
+	if p.Styling != "" {
+//line base.qtpl:41
+		qw422016.N().S(`<style pk-page>`)
+//line base.qtpl:41
+		qw422016.N().S(p.Styling)
+//line base.qtpl:41
+		qw422016.N().S(`</style>`)
+//line base.qtpl:41
+	}
+//line base.qtpl:41
+	qw422016.N().S(`</head><body`)
+//line base.qtpl:43
+	if p.Aesthetic != "" {
+//line base.qtpl:43
+		qw422016.N().S(` `)
+//line base.qtpl:43
+		qw422016.N().S(`data-aesthetic="`)
+//line base.qtpl:43
+		qw422016.N().S(p.Aesthetic)
+//line base.qtpl:43
+		qw422016.N().S(`"`)
+//line base.qtpl:43
+	}
+//line base.qtpl:43
+	if p.Style != "" {
+//line base.qtpl:43
+		qw422016.N().S(` `)
+//line base.qtpl:43
+		qw422016.N().S(`data-style="`)
+//line base.qtpl:43
+		qw422016.N().S(p.Style)
+//line base.qtpl:43
+		qw422016.N().S(`"`)
+//line base.qtpl:43
+	}
+//line base.qtpl:43
+	if p.PageID != "" {
+//line base.qtpl:43
+		qw422016.N().S(` `)
+//line base.qtpl:43
+		qw422016.N().S(`data-pageid="`)
+//line base.qtpl:43
+		qw422016.N().S(p.PageID)
+//line base.qtpl:43
+		qw422016.N().S(`"`)
+//line base.qtpl:43
+	}
+//line base.qtpl:43
+	qw422016.N().S(`><div id="app">`)
+//line base.qtpl:46
+}
+
+//line base.qtpl:46
+func WriteBasePageHeader(qq422016 qtio422016.Writer, p *BasePageData) {
+//line base.qtpl:46
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line base.qtpl:46
+	StreamBasePageHeader(qw422016, p)
+//line base.qtpl:46
+	qt422016.ReleaseWriter(qw422016)
+//line base.qtpl:46
+}
+
+//line base.qtpl:46
+func BasePageHeader(p *BasePageData) string {
+//line base.qtpl:46
+	qb422016 := qt422016.AcquireByteBuffer()
+//line base.qtpl:46
+	WriteBasePageHeader(qb422016, p)
+//line base.qtpl:46
+	qs422016 := string(qb422016.B)
+//line base.qtpl:46
+	qt422016.ReleaseByteBuffer(qb422016)
+//line base.qtpl:46
+	return qs422016
+//line base.qtpl:46
+}
+
+//line base.qtpl:48
+func StreamBasePageFooter(qw422016 *qt422016.Writer, p *BasePageData) {
+//line base.qtpl:48
+	qw422016.N().S(`    </div>`)
+//line base.qtpl:51
+	if p.SvgSpriteSheet != "" {
+//line base.qtpl:52
+		qw422016.N().S(p.SvgSpriteSheet)
 //line base.qtpl:53
 	}
-//line base.qtpl:54
-	if p.DevWidgetHTML != "" {
-//line base.qtpl:54
-		qw422016.N().S(p.DevWidgetHTML)
-//line base.qtpl:54
+//line base.qtpl:55
+	if p.NeedsJS {
+//line base.qtpl:55
+		qw422016.N().S(`<script type="module" src="/_piko/dist/ppframework.core.es.js"`)
+//line base.qtpl:56
+		if p.CoreJSSRIHash != "" {
+//line base.qtpl:56
+			qw422016.N().S(` `)
+//line base.qtpl:56
+			qw422016.N().S(`integrity="`)
+//line base.qtpl:56
+			qw422016.N().S(p.CoreJSSRIHash)
+//line base.qtpl:56
+			qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:56
+		}
+//line base.qtpl:56
+		qw422016.N().S(`></script><script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"`)
+//line base.qtpl:57
+		if p.ActionsJSSRIHash != "" {
+//line base.qtpl:57
+			qw422016.N().S(` `)
+//line base.qtpl:57
+			qw422016.N().S(`integrity="`)
+//line base.qtpl:57
+			qw422016.N().S(p.ActionsJSSRIHash)
+//line base.qtpl:57
+			qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:57
+		}
+//line base.qtpl:57
+		qw422016.N().S(`></script>`)
+//line base.qtpl:58
+		if p.NeedsRuntime {
+//line base.qtpl:58
+			qw422016.N().S(`<script type="module" src="/_piko/dist/ppframework.runtime.min.es.js"`)
+//line base.qtpl:59
+			if p.RuntimeJSSRIHash != "" {
+//line base.qtpl:59
+				qw422016.N().S(` `)
+//line base.qtpl:59
+				qw422016.N().S(`integrity="`)
+//line base.qtpl:59
+				qw422016.N().S(p.RuntimeJSSRIHash)
+//line base.qtpl:59
+				qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:59
+			}
+//line base.qtpl:59
+			qw422016.N().S(`></script>`)
+//line base.qtpl:60
+		}
+//line base.qtpl:61
 	}
-//line base.qtpl:54
+//line base.qtpl:62
+	if p.ModuleScripts != "" {
+//line base.qtpl:62
+		qw422016.N().S(p.ModuleScripts)
+//line base.qtpl:62
+	}
+//line base.qtpl:63
+	for _, meta := range p.PKScriptMetas {
+//line base.qtpl:63
+		qw422016.N().S(`<script type="module" src="`)
+//line base.qtpl:63
+		qw422016.N().S(meta.URL)
+//line base.qtpl:63
+		qw422016.N().S(`"`)
+//line base.qtpl:63
+		if meta.SRIHash != "" {
+//line base.qtpl:63
+			qw422016.N().S(` `)
+//line base.qtpl:63
+			qw422016.N().S(`integrity="`)
+//line base.qtpl:63
+			qw422016.N().S(meta.SRIHash)
+//line base.qtpl:63
+			qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:63
+		}
+//line base.qtpl:63
+		qw422016.N().S(`></script><meta name="pk-script" content="`)
+//line base.qtpl:63
+		qw422016.N().S(meta.URL)
+//line base.qtpl:63
+		qw422016.N().S(`"`)
+//line base.qtpl:63
+		if meta.PartialName != "" {
+//line base.qtpl:63
+			qw422016.N().S(` `)
+//line base.qtpl:63
+			qw422016.N().S(`data-partial-name="`)
+//line base.qtpl:63
+			qw422016.N().S(meta.PartialName)
+//line base.qtpl:63
+			qw422016.N().S(`"`)
+//line base.qtpl:63
+		}
+//line base.qtpl:63
+		qw422016.N().S(`>`)
+//line base.qtpl:63
+	}
+//line base.qtpl:64
+	if p.DevWidgetHTML != "" {
+//line base.qtpl:64
+		qw422016.N().S(p.DevWidgetHTML)
+//line base.qtpl:64
+	}
+//line base.qtpl:64
 	qw422016.N().S(`</body></html>`)
-//line base.qtpl:58
+//line base.qtpl:68
 }
 
-//line base.qtpl:58
+//line base.qtpl:68
 func WriteBasePageFooter(qq422016 qtio422016.Writer, p *BasePageData) {
-//line base.qtpl:58
+//line base.qtpl:68
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line base.qtpl:58
+//line base.qtpl:68
 	StreamBasePageFooter(qw422016, p)
-//line base.qtpl:58
+//line base.qtpl:68
 	qt422016.ReleaseWriter(qw422016)
-//line base.qtpl:58
+//line base.qtpl:68
 }
 
-//line base.qtpl:58
+//line base.qtpl:68
 func BasePageFooter(p *BasePageData) string {
-//line base.qtpl:58
+//line base.qtpl:68
 	qb422016 := qt422016.AcquireByteBuffer()
-//line base.qtpl:58
+//line base.qtpl:68
 	WriteBasePageFooter(qb422016, p)
-//line base.qtpl:58
+//line base.qtpl:68
 	qs422016 := string(qb422016.B)
-//line base.qtpl:58
+//line base.qtpl:68
 	qt422016.ReleaseByteBuffer(qb422016)
-//line base.qtpl:58
+//line base.qtpl:68
 	return qs422016
-//line base.qtpl:58
+//line base.qtpl:68
 }

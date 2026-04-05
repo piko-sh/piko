@@ -71,6 +71,12 @@ const (
 	// ModuleForms provides form state management and validation.
 	// Loaded on demand when a page contains form elements or p-model directives.
 	ModuleForms
+
+	// ModuleRuntime provides the full Piko runtime (HookManager, lifecycle
+	// observer, full DOMBinder, PPFramework orchestrator, namespace utilities).
+	// Loaded on demand when a page has client scripts, PKC components, or
+	// extensions.
+	ModuleRuntime
 )
 
 // AnalyticsConfig holds settings for the analytics module.
@@ -163,6 +169,8 @@ func (m FrontendModule) String() string {
 		return "partials"
 	case ModuleForms:
 		return "forms"
+	case ModuleRuntime:
+		return "runtime"
 	default:
 		return "unknown"
 	}
@@ -193,6 +201,8 @@ func (m FrontendModule) AssetPath() string {
 		return "built/ppframework.partials.min.es.js"
 	case ModuleForms:
 		return "built/ppframework.forms.min.es.js"
+	case ModuleRuntime:
+		return "built/ppframework.runtime.min.es.js"
 	default:
 		return ""
 	}
@@ -222,6 +232,8 @@ func (m FrontendModule) ServeURL() string {
 		return "/_piko/dist/ppframework.partials.min.es.js"
 	case ModuleForms:
 		return "/_piko/dist/ppframework.forms.min.es.js"
+	case ModuleRuntime:
+		return "/_piko/dist/ppframework.runtime.min.es.js"
 	default:
 		return ""
 	}

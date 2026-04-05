@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -139,5 +140,47 @@ func TestStderrWriter(t *testing.T) {
 		t.Parallel()
 
 		assert.NotNil(t, logger_domain.StderrWriter())
+	})
+}
+
+func TestStdoutWriter(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ReturnsSameInstance", func(t *testing.T) {
+		t.Parallel()
+
+		writer1 := logger_domain.StdoutWriter()
+		writer2 := logger_domain.StdoutWriter()
+
+		assert.Same(t, writer1, writer2)
+	})
+
+	t.Run("IsNotNil", func(t *testing.T) {
+		t.Parallel()
+
+		assert.NotNil(t, logger_domain.StdoutWriter())
+	})
+
+	t.Run("SharesMutexWithStderrWriter", func(t *testing.T) {
+		// Holding the stderr writer's lock must block a stdout write. This
+		// guarantees the startup banner (stderr) cannot be interleaved with
+		// log output (stdout) at the kernel TTY level.
+		release := logger_domain.StderrWriter().HoldWrites()
+
+		done := make(chan struct{})
+		go func() {
+			_, _ = logger_domain.StdoutWriter().Write([]byte{})
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			release()
+			t.Fatal("stdout write completed while stderr HoldWrites was active; mutex is not shared")
+		case <-time.After(50 * time.Millisecond):
+		}
+
+		release()
+		<-done
 	})
 }

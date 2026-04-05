@@ -125,7 +125,7 @@ func AddPrettyOutput(opts ...OutputOption) {
 	}
 	level := config.resolveLevel()
 
-	handler := driver_handlers.NewPrettyHandler(os.Stdout, &driver_handlers.Options{
+	handler := driver_handlers.NewPrettyHandler(logger_domain.StdoutWriter(), &driver_handlers.Options{
 		Level:     level,
 		AddSource: true,
 		NoColour:  config.noColour,
@@ -148,7 +148,7 @@ func AddJSONOutput(opts ...OutputOption) {
 	}
 	level := config.resolveLevel()
 
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	handler := slog.NewJSONHandler(logger_domain.StdoutWriter(), &slog.HandlerOptions{
 		Level:       level,
 		AddSource:   true,
 		ReplaceAttr: logger_domain.ReplaceLevelAttr,

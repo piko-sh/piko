@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/json"
 	qt "github.com/valyala/quicktemplate"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -650,6 +651,65 @@ func (ro *RenderOrchestrator) renderFragment(
 	return nil
 }
 
+// needsJS determines whether any JavaScript should be emitted for this page.
+// Returns false only for pure static pages with no framework features.
+//
+// Takes opts (RenderASTOptions) which contains the page metadata.
+// Takes customTags ([]string) which lists custom element tags on the page.
+//
+// Returns bool which is true if any JavaScript is required.
+func needsJS(opts RenderASTOptions, customTags []string) bool {
+	if opts.Metadata == nil {
+		return false
+	}
+	m := opts.Metadata
+	if m.HasNavigation || m.HasActions || m.HasPartialSources || m.HasForms {
+		return true
+	}
+	if len(customTags) > 0 {
+		return true
+	}
+	if len(m.JSScriptMetas) > 0 {
+		return true
+	}
+	if getModuleScriptHTML() != "" {
+		return true
+	}
+	return false
+}
+
+// needsRuntime determines whether the full runtime module is needed.
+// True when the page has client scripts, PKC components, or site-wide extensions.
+//
+// This is a strict subset of needsJS: every page that needs the runtime also
+// needs the core shim. Callers in base.qtpl nest the runtime conditional inside
+// the NeedsJS conditional, so needsRuntime is never checked in isolation.
+//
+// Takes opts (RenderASTOptions) which contains the page metadata.
+// Takes customTags ([]string) which lists custom element tags on the page.
+//
+// Returns bool which is true if the runtime module should be loaded.
+func needsRuntime(opts RenderASTOptions, customTags []string) bool {
+	if opts.Metadata == nil {
+		return false
+	}
+	if len(customTags) > 0 {
+		return true
+	}
+	if len(opts.Metadata.JSScriptMetas) > 0 {
+		return true
+	}
+	if getModuleScriptHTML() != "" {
+		return true
+	}
+	return false
+}
+
+// getRuntimeJSSRIHash returns the SRI hash for the runtime JS module.
+func getRuntimeJSSRIHash() string {
+	return daemon_frontend.GetSRIHash(daemon_frontend.ModuleRuntime.AssetPath())
+}
+
 // renderFullPage renders a complete HTML page with header, content, and footer.
 //
 // Takes qw (*qt.Writer) which receives the streamed HTML output.
@@ -705,6 +765,9 @@ func (ro *RenderOrchestrator) renderFullPage(
 		TwitterCards:     opts.Metadata.TwitterCards,
 		StructuredData:   filterValidJSON(ctx, opts.Metadata.StructuredData),
 		DevWidgetHTML:    getDevWidgetHTML(),
+		NeedsJS:          needsJS(opts, opts.Metadata.CustomTags),
+		NeedsRuntime:     needsRuntime(opts, opts.Metadata.CustomTags),
+		RuntimeJSSRIHash: getRuntimeJSSRIHash(),
 		CoreJSSRIHash:    getCoreJSSRIHash(),
 		ActionsJSSRIHash: getActionsJSSRIHash(),
 		ThemeCSSSRIHash:  getThemeCSSSRIHash(),

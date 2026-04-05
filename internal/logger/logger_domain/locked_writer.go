@@ -76,19 +76,36 @@ func (lw *LockedWriter) HoldWrites() func() {
 }
 
 var (
-	// stderrMu is the shared mutex that serialises all writes to os.Stderr.
-	stderrMu sync.Mutex
+	// terminalMu serialises writes to both os.Stdout and os.Stderr. A single
+	// mutex is shared across both streams because they usually point at the
+	// same TTY in interactive terminals; independent mutexes would allow log
+	// output on one fd to interleave with banner output on the other at the
+	// kernel TTY level, corrupting multi-line output.
+	terminalMu sync.Mutex
 
-	// stderrWriter is the shared LockedWriter that serialises stderr output across goroutines.
-	stderrWriter = &LockedWriter{w: os.Stderr, mu: &stderrMu}
+	stderrWriter = &LockedWriter{w: os.Stderr, mu: &terminalMu}
+
+	stdoutWriter = &LockedWriter{w: os.Stdout, mu: &terminalMu}
 )
 
 // StderrWriter returns a shared LockedWriter that serialises writes to
 // os.Stderr. All callers receive the same instance, so log handlers and
 // other stderr writers (such as the startup banner) automatically
-// serialise against each other.
+// serialise against each other and against stdout writers returned by
+// [StdoutWriter].
 //
-// Returns *LockedWriter which wraps os.Stderr with a shared mutex.
+// Returns *LockedWriter which wraps os.Stderr with the shared terminal mutex.
 func StderrWriter() *LockedWriter {
 	return stderrWriter
+}
+
+// StdoutWriter returns a shared LockedWriter that serialises writes to
+// os.Stdout using the same mutex as [StderrWriter]. Routing stdout-bound
+// handlers through this writer prevents log output from interleaving with
+// stderr-bound output (such as the startup banner) at the kernel TTY level
+// when both streams share a terminal.
+//
+// Returns *LockedWriter which wraps os.Stdout with the shared terminal mutex.
+func StdoutWriter() *LockedWriter {
+	return stdoutWriter
 }
