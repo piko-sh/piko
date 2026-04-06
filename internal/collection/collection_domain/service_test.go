@@ -338,7 +338,10 @@ func TestProcessCollectionDirective_ProviderNotFound(t *testing.T) {
 
 	_, err := service.ProcessCollectionDirective(context.Background(), directive)
 	if err == nil {
-		t.Error("Expected error for nonexistent provider")
+		t.Fatal("expected error for nonexistent provider")
+	}
+	if !errors.Is(err, collection_dto.ErrProviderNotFound) {
+		t.Errorf("expected error to wrap collection_dto.ErrProviderNotFound, got: %v", err)
 	}
 }
 
@@ -659,7 +662,10 @@ func TestLookupProvider_NotFound(t *testing.T) {
 
 	_, err := service.lookupProvider("nonexistent")
 	if err == nil {
-		t.Error("Expected error for nonexistent provider")
+		t.Fatal("expected error for nonexistent provider")
+	}
+	if !errors.Is(err, collection_dto.ErrProviderNotFound) {
+		t.Errorf("expected error to wrap collection_dto.ErrProviderNotFound, got: %v", err)
 	}
 }
 

@@ -16,28 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package collection
+package collection_dto
 
-import (
-	"errors"
-
-	"piko.sh/piko/internal/collection/collection_dto"
-)
+import "errors"
 
 var (
-	// ErrCodeGenerationNotSupported is returned when a provider does not
-	// support AST-based code generation for runtime fetching.
-	ErrCodeGenerationNotSupported = errors.New("code generation not supported by this provider")
-
-	// ErrProviderNotFound is returned when a requested provider is not
-	// registered.
-	ErrProviderNotFound = collection_dto.ErrProviderNotFound
-
-	// ErrCollectionNotFound is returned when a requested collection does not
-	// exist.
-	ErrCollectionNotFound = errors.New("collection not found")
-
-	// ErrETagNotSupported is returned when a provider does not support ETag
-	// operations.
-	ErrETagNotSupported = errors.New("ETag operations not supported by this provider")
+	// ErrProviderNotFound is returned when a requested collection provider is
+	// not registered.
+	ErrProviderNotFound = errors.New("collection provider not found")
 )

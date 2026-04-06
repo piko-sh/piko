@@ -677,7 +677,8 @@ func (s *AnnotatorService) runPhase1Introspection(
 		return newPhase1Result(componentGraph, nil, nil, allDiagnostics), err
 	}
 
-	expandedEntryPoints, expandErr := s.expandCollectionDirectives(ctx, componentGraph, entryPoints, options)
+	expandedEntryPoints, collectionDiags, expandErr := s.expandCollectionDirectives(ctx, componentGraph, entryPoints, options)
+	allDiagnostics = append(allDiagnostics, collectionDiags...)
 	if expandErr != nil {
 		return newPhase1Result(componentGraph, nil, nil, allDiagnostics), expandErr
 	}
@@ -881,23 +882,27 @@ func (*AnnotatorService) convertCollectionToAnnotatorEntryPointsWithResolver(
 // Takes options (*annotationOptions) which provides the resolver override.
 //
 // Returns []annotator_dto.EntryPoint which contains the expanded entry points.
-// Returns error when expanding a collection component fails.
+// Returns []*ast_domain.Diagnostic which contains any warning diagnostics for
+// skipped collection components.
+// Returns error when expanding a collection component fails for a reason other
+// than a missing provider.
 func (s *AnnotatorService) expandCollectionDirectives(
 	ctx context.Context,
 	componentGraph *annotator_dto.ComponentGraph,
 	entryPoints []annotator_dto.EntryPoint,
 	options *annotationOptions,
-) ([]annotator_dto.EntryPoint, error) {
+) ([]annotator_dto.EntryPoint, []*ast_domain.Diagnostic, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("--- [STAGE 1.5/9] Starting: Collection Directive Expansion ---")
 
 	if s.collectionService == nil {
 		l.Internal("No collection service configured, skipping collection expansion")
-		return entryPoints, nil
+		return entryPoints, nil, nil
 	}
 
 	resolver := s.getEffectiveResolver(options)
 	var expandedEntryPoints []annotator_dto.EntryPoint
+	var diagnostics []*ast_domain.Diagnostic
 	collectionComponentPaths := make(map[string]bool)
 
 	for _, parsedComp := range componentGraph.Components {
@@ -907,7 +912,19 @@ func (s *AnnotatorService) expandCollectionDirectives(
 
 		componentEPs, err := s.expandSingleCollectionComponent(ctx, parsedComp, options)
 		if err != nil {
-			return nil, fmt.Errorf("expanding collection component %q: %w", parsedComp.SourcePath, err)
+			if errors.Is(err, collection_dto.ErrProviderNotFound) {
+				l.Warn("Skipping collection component: provider not registered",
+					logger_domain.String(logKeyPath, parsedComp.SourcePath),
+					logger_domain.String("provider", parsedComp.CollectionProvider),
+					logger_domain.String("collection", parsedComp.CollectionName))
+
+				diagnostics = append(diagnostics, providerNotFoundDiagnostic(parsedComp))
+				collectionComponentPaths[parsedComp.SourcePath] = true
+
+				continue
+			}
+
+			return nil, nil, fmt.Errorf("expanding collection component %q: %w", parsedComp.SourcePath, err)
 		}
 		expandedEntryPoints = append(expandedEntryPoints, componentEPs...)
 		collectionComponentPaths[parsedComp.SourcePath] = true
@@ -924,7 +941,47 @@ func (s *AnnotatorService) expandCollectionDirectives(
 		logger_domain.Int("original_count", len(entryPoints)),
 		logger_domain.Int("expanded_count", len(expandedEntryPoints)))
 
-	return expandedEntryPoints, nil
+	return expandedEntryPoints, diagnostics, nil
+}
+
+// providerNotFoundDiagnostic builds a warning diagnostic for a collection
+// component whose provider is not registered.
+//
+// Takes comp (*annotator_dto.ParsedComponent) which provides the source path
+// and provider name for the diagnostic.
+//
+// Returns *ast_domain.Diagnostic which is a warning-severity diagnostic with
+// code T153.
+func providerNotFoundDiagnostic(comp *annotator_dto.ParsedComponent) *ast_domain.Diagnostic {
+	return ast_domain.NewDiagnosticWithCode(
+		ast_domain.Warning,
+		fmt.Sprintf(
+			"Collection provider %q is not registered. "+
+				"Pages using p-collection with this provider will not be available. "+
+				"To enable it, %s",
+			comp.CollectionProvider,
+			providerEnableHint(comp.CollectionProvider),
+		),
+		fmt.Sprintf("p-collection provider=%q", comp.CollectionProvider),
+		annotator_dto.CodeCollectionProviderNotFound,
+		ast_domain.Location{},
+		comp.SourcePath,
+	)
+}
+
+// providerEnableHint returns a user-facing hint for how to enable a given
+// collection provider.
+//
+// Takes providerName (string) which is the name of the missing provider.
+//
+// Returns string which is the hint text.
+func providerEnableHint(providerName string) string {
+	switch providerName {
+	case "markdown":
+		return "pass piko.WithMarkdownParser(...) to piko.New()."
+	default:
+		return fmt.Sprintf("register a provider named %q with piko.New().", providerName)
+	}
 }
 
 // discoverActions scans the actions/ directory and discovers action structs

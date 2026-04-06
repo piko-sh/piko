@@ -235,4 +235,8 @@ const (
 	// CodeSuggestedPropName indicates an unknown prop name that is similar
 	// to an existing prop (typo suggestion).
 	CodeSuggestedPropName = "T152"
+
+	// CodeCollectionProviderNotFound indicates a p-collection directive
+	// references a provider that is not registered.
+	CodeCollectionProviderNotFound = "T153"
 )

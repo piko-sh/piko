@@ -111,7 +111,8 @@ func (s *collectionService) ProcessCollectionDirective(
 	if !ok {
 		availableProviders := s.registry.List()
 		return nil, fmt.Errorf(
-			"unknown collection provider '%s'; available providers: %v",
+			"%w: unknown collection provider '%s'; available providers: %v",
+			collection_dto.ErrProviderNotFound,
 			directive.ProviderName,
 			availableProviders,
 		)
@@ -438,7 +439,8 @@ func (s *collectionService) lookupProvider(providerName string) (CollectionProvi
 	if !ok {
 		availableProviders := s.registry.List()
 		return nil, fmt.Errorf(
-			"unknown collection provider '%s'; available providers: %v",
+			"%w: unknown collection provider '%s'; available providers: %v",
+			collection_dto.ErrProviderNotFound,
 			providerName,
 			availableProviders,
 		)
