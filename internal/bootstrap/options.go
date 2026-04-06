@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
 	"piko.sh/piko/internal/collection/collection_domain"
@@ -1176,6 +1177,23 @@ func WithSRI(enabled bool) Option {
 func WithAuthProvider(provider daemon_dto.AuthProvider) Option {
 	return func(c *Container) {
 		c.authProvider = provider
+	}
+}
+
+// WithBackendAnalytics registers one or more backend analytics
+// collectors. Events are fired automatically for page views via
+// middleware. Multiple collectors can be registered; each receives
+// every event.
+//
+// Takes collectors (...analytics_domain.Collector) which handle event
+// delivery.
+//
+// Returns Option which registers the collectors.
+func WithBackendAnalytics(collectors ...analytics_domain.Collector) Option {
+	return func(c *Container) {
+		for _, collector := range collectors {
+			c.AddAnalyticsCollector(collector)
+		}
 	}
 }
 

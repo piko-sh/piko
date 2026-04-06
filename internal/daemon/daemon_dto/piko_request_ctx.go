@@ -20,6 +20,7 @@ package daemon_dto
 
 import (
 	"context"
+	"net/http"
 	"sync"
 )
 
@@ -39,25 +40,29 @@ type PikoRequestCtx struct {
 	// Nil when no provider is registered or the request is unauthenticated.
 	CachedAuth any
 
+	// ResponseWriter holds the original http.ResponseWriter for the
+	// current request. Nil when analytics is not enabled.
+	ResponseWriter http.ResponseWriter
+
 	// ErrorPage holds error page context on the error path. Nil for normal
 	// requests.
 	ErrorPage *ErrorPageContext
 
-	// ClientIP is the real client IP address, extracted using trusted proxy
-	// rules. Set by the RealIP middleware.
-	ClientIP string
-
-	// ForwardedRequestID holds a request ID forwarded from a trusted proxy via
-	// the X-Request-Id header. Only set when RequestIDCounter is zero.
-	ForwardedRequestID string
+	// Locale is the current route locale (e.g., "en", "de"). Set by the route
+	// handler closure.
+	Locale string
 
 	// CSPToken holds the per-request CSP nonce token. Set by the
 	// SecurityHeaders middleware when CSP request tokens are enabled.
 	CSPToken string
 
-	// Locale is the current route locale (e.g., "en", "de"). Set by the route
-	// handler closure.
-	Locale string
+	// ForwardedRequestID holds a request ID forwarded from a trusted proxy via
+	// the X-Request-Id header. Only set when RequestIDCounter is zero.
+	ForwardedRequestID string
+
+	// ClientIP is the real client IP address, extracted using trusted proxy
+	// rules. Set by the RealIP middleware.
+	ClientIP string
 
 	// MatchedPattern is the route pattern that matched the request
 	// (e.g., "/blog/{slug}"). Set by the route handler closure.
@@ -70,6 +75,11 @@ type PikoRequestCtx struct {
 	// Counter values start at 1 (via NextRequestIDCounter), so zero
 	// is never a valid generated ID.
 	RequestIDCounter uint64
+
+	// ResponseStatusCode is the HTTP status code written by downstream
+	// handlers. Set by WriteHeader when ResponseWriter is non-nil.
+	// Zero means WriteHeader was not called explicitly.
+	ResponseStatusCode int
 
 	// FromTrustedProxy indicates whether the connection originated from a
 	// trusted proxy CIDR range, allowing downstream code to trust forwarding
@@ -97,6 +107,53 @@ func (p *PikoRequestCtx) RequestID() string {
 		return FormatRequestID(p.RequestIDCounter)
 	}
 	return p.ForwardedRequestID
+}
+
+// Header delegates to the underlying ResponseWriter.
+//
+// Returns http.Header which is the response header map.
+func (p *PikoRequestCtx) Header() http.Header {
+	return p.ResponseWriter.Header()
+}
+
+// Write delegates to the underlying ResponseWriter, defaulting the
+// status to 200 if WriteHeader was not called.
+//
+// Takes b ([]byte) which is the data to write.
+//
+// Returns int which is the number of bytes written.
+// Returns error when the underlying writer fails.
+func (p *PikoRequestCtx) Write(b []byte) (int, error) {
+	if p.ResponseStatusCode == 0 {
+		p.ResponseStatusCode = http.StatusOK
+	}
+	return p.ResponseWriter.Write(b)
+}
+
+// WriteHeader captures the status code and delegates to the
+// underlying ResponseWriter.
+//
+// Takes code (int) which is the HTTP status code.
+func (p *PikoRequestCtx) WriteHeader(code int) {
+	p.ResponseStatusCode = code
+	p.ResponseWriter.WriteHeader(code)
+}
+
+// Flush delegates to the underlying ResponseWriter if it implements
+// http.Flusher.
+func (p *PikoRequestCtx) Flush() {
+	if f, ok := p.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap returns the underlying ResponseWriter so that middleware
+// further down the chain can access optional interfaces (Hijacker,
+// Pusher, etc.) via http.ResponseController.
+//
+// Returns http.ResponseWriter which is the wrapped response writer.
+func (p *PikoRequestCtx) Unwrap() http.ResponseWriter {
+	return p.ResponseWriter
 }
 
 // ctxKeyPikoRequestCtx is the context key for the per-request carrier.
@@ -131,6 +188,7 @@ func ReleasePikoRequestCtx(pctx *PikoRequestCtx) {
 	pctx.ErrorPage = nil
 	pctx.CachedLogger = nil
 	pctx.CachedAuth = nil
+	pctx.ResponseWriter = nil
 	pikoRequestCtxPool.Put(pctx)
 }
 

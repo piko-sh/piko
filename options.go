@@ -2571,3 +2571,17 @@ func IsAuthenticated(r *RequestData) bool {
 	auth := r.Auth()
 	return auth != nil && auth.IsAuthenticated()
 }
+
+// WithBackendAnalytics registers one or more backend analytics
+// collectors. When at least one collector is registered, the analytics
+// middleware is automatically installed in the HTTP request chain
+// (after auth, before rate limiting) and fires page view events for
+// every request.
+//
+// Takes collectors (...AnalyticsCollector) which handle event delivery
+// to external analytics backends.
+//
+// Returns Option which registers the collectors.
+func WithBackendAnalytics(collectors ...AnalyticsCollector) Option {
+	return bootstrap.WithBackendAnalytics(collectors...)
+}

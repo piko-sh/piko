@@ -263,6 +263,7 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 			RateLimitService:       op.rateLimitService,
 			AuthProvider:           op.container.authProvider,
 			AuthGuardConfig:        op.container.authGuardConfig,
+			AnalyticsService:       op.container.GetAnalyticsService(),
 		},
 	)
 	if err != nil {

@@ -55,6 +55,7 @@ import (
 	"sync"
 	"time"
 
+	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
@@ -475,6 +476,10 @@ type Container struct {
 	// authProvider resolves authentication state from HTTP requests.
 	// Nil means no auth middleware is installed.
 	authProvider daemon_dto.AuthProvider
+
+	// analyticsCollectors holds user-registered backend analytics
+	// collectors. Empty means no analytics middleware is installed.
+	analyticsCollectors []analytics_domain.Collector
 
 	// sandboxFactoryInstance is the lazily-created, cached safedisk.Factory
 	// built from the server config. All production sandbox creation goes

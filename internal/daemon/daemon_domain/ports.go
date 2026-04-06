@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -129,6 +130,10 @@ type RouterDependencies struct {
 	// CSPConfig provides the computed CSP settings for security headers
 	// middleware.
 	CSPConfig security_dto.CSPRuntimeConfig
+
+	// AnalyticsService distributes analytics events to registered
+	// collectors. Nil means no analytics middleware is installed.
+	AnalyticsService *analytics_domain.Service
 }
 
 // RouterConfig holds the exact fields the HTTP router needs from the server
