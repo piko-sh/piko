@@ -266,10 +266,33 @@ jobs:
             echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate release notes from commits
+        id: notes
+        run: |
+          previous_tag=$(git tag --list 'v*' --sort=-v:refname | grep -v "^${{ github.ref_name }}$" | head -1)
+          if [ -n "$previous_tag" ]; then
+            range="${previous_tag}..${{ github.ref_name }}"
+          else
+            range="${{ github.ref_name }}"
+          fi
+
+          {
+            echo 'body<<RELEASE_NOTES_EOF'
+            echo "## Commits"
+            echo ""
+            git log --no-merges --format="- %s (%h)" "$range"
+            echo ""
+            if [ -n "$previous_tag" ]; then
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${previous_tag}...${{ github.ref_name }}"
+            fi
+            echo 'RELEASE_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           name: Piko ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}
           generate_release_notes: true
           prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
           files: release/*
