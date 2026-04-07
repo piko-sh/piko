@@ -30,9 +30,6 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// providerCategoryCount is the amount of providers to refresh
-const providerCategoryCount = 6
-
 // refreshOrchestrator manages the refresh loop for all providers.
 type refreshOrchestrator struct {
 	// service holds the parent service for access to configuration and state.
@@ -97,14 +94,12 @@ func (r *refreshOrchestrator) loop(ctx context.Context) {
 func (r *refreshOrchestrator) refreshAll(ctx context.Context) {
 	var wg sync.WaitGroup
 
-	wg.Add(providerCategoryCount)
-
-	go func() { defer wg.Done(); r.refreshResourceProviders(ctx) }()
-	go func() { defer wg.Done(); r.refreshMetricsProviders(ctx) }()
-	go func() { defer wg.Done(); r.refreshTracesProviders(ctx) }()
-	go func() { defer wg.Done(); r.refreshHealthProviders(ctx) }()
-	go func() { defer wg.Done(); r.refreshSystemProviders(ctx) }()
-	go func() { defer wg.Done(); r.refreshFDsProviders(ctx) }()
+	wg.Go(func() { r.refreshResourceProviders(ctx) })
+	wg.Go(func() { r.refreshMetricsProviders(ctx) })
+	wg.Go(func() { r.refreshTracesProviders(ctx) })
+	wg.Go(func() { r.refreshHealthProviders(ctx) })
+	wg.Go(func() { r.refreshSystemProviders(ctx) })
+	wg.Go(func() { r.refreshFDsProviders(ctx) })
 
 	wg.Wait()
 

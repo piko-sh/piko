@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/email/email_dto"
 )
 
@@ -61,9 +62,7 @@ func TestNewMultiError_NonEmpty(t *testing.T) {
 		{Error: errors.New("err1"), Attempt: 1},
 	}
 	me := newMultiError(errs)
-	if me == nil {
-		t.Fatal("expected non-nil MultiError")
-	}
+	require.NotNil(t, me, "expected non-nil MultiError")
 	if len(me.Errors) != 1 {
 		t.Errorf("expected 1 error, got %d", len(me.Errors))
 	}

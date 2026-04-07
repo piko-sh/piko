@@ -31,9 +31,7 @@ import (
 func TestNewPartialExpander(t *testing.T) {
 	expander := NewPartialExpander(nil, nil, nil)
 
-	if expander == nil {
-		t.Fatal("Expected NewPartialExpander to return non-nil expander")
-	}
+	require.NotNil(t, expander, "Expected NewPartialExpander to return non-nil expander")
 	if expander.resolver != nil {
 		t.Error("Expected resolver to be nil when passed nil")
 	}
@@ -282,9 +280,7 @@ func TestFinaliseAST(t *testing.T) {
 				},
 			},
 			validateAST: func(t *testing.T, ast *ast_domain.TemplateAST) {
-				if ast == nil {
-					t.Fatal("Expected non-nil AST")
-				}
+				require.NotNil(t, ast, "Expected non-nil AST")
 				if len(ast.RootNodes) != 1 {
 					t.Errorf("Expected 1 root node, got %d", len(ast.RootNodes))
 				}
@@ -303,9 +299,7 @@ func TestFinaliseAST(t *testing.T) {
 				},
 			},
 			validateAST: func(t *testing.T, ast *ast_domain.TemplateAST) {
-				if ast == nil {
-					t.Fatal("Expected non-nil AST")
-				}
+				require.NotNil(t, ast, "Expected non-nil AST")
 				if len(ast.RootNodes) != 0 {
 					t.Errorf("Expected 0 root nodes, got %d", len(ast.RootNodes))
 				}
@@ -325,9 +319,7 @@ func TestFinaliseAST(t *testing.T) {
 				},
 			},
 			validateAST: func(t *testing.T, ast *ast_domain.TemplateAST) {
-				if ast == nil {
-					t.Fatal("Expected non-nil AST")
-				}
+				require.NotNil(t, ast, "Expected non-nil AST")
 				if len(ast.RootNodes) != 3 {
 					t.Errorf("Expected 3 root nodes, got %d", len(ast.RootNodes))
 				}

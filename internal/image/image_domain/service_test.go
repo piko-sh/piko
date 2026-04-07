@@ -449,9 +449,7 @@ func TestTransformStream(t *testing.T) {
 				if err != nil {
 					t.Errorf("TransformStream() unexpected error = %v", err)
 				}
-				if result == nil {
-					t.Fatal("TransformStream() returned nil result")
-				}
+				require.NotNil(t, result, "TransformStream() returned nil result")
 				if result.Body == nil {
 					t.Errorf("TransformStream() result.Body is nil")
 				}

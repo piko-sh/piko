@@ -38,9 +38,7 @@ func TestNewRegisterEmitter(t *testing.T) {
 	mockWriter := &generator_domain.MockFSWriter{}
 	emitter := NewRegisterEmitter(mockWriter)
 
-	if emitter == nil {
-		t.Fatal("NewRegisterEmitter returned nil")
-	}
+	require.NotNil(t, emitter, "NewRegisterEmitter returned nil")
 
 	if emitter.fsWriter != mockWriter {
 		t.Error("FSWriter was not properly injected")
@@ -260,9 +258,7 @@ func TestCreateRegisterFileAST(t *testing.T) {
 
 	fileAST := createRegisterFileAST(packages)
 
-	if fileAST == nil {
-		t.Fatal("createRegisterFileAST returned nil")
-	}
+	require.NotNil(t, fileAST, "createRegisterFileAST returned nil")
 
 	if fileAST.Name.Name != "dist" {
 		t.Errorf("Expected package name 'dist', got: %s", fileAST.Name.Name)

@@ -23,6 +23,7 @@ import (
 	goast "go/ast"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
@@ -97,9 +98,7 @@ func TestBuildASTFunction_EmptyAST(t *testing.T) {
 
 	funcDecl, diagnostics := builder.buildASTFunction(ctx, request, result)
 
-	if funcDecl == nil {
-		t.Fatal("Expected function declaration, got nil")
-	}
+	require.NotNil(t, funcDecl, "Expected function declaration, got nil")
 
 	if funcDecl.Name.Name != "BuildAST" {
 		t.Errorf("Expected function name 'BuildAST', got %q", funcDecl.Name.Name)
@@ -162,9 +161,7 @@ func TestBuildASTFunction_WithRootNodes(t *testing.T) {
 
 	funcDecl, diagnostics := builder.buildASTFunction(ctx, request, result)
 
-	if funcDecl == nil {
-		t.Fatal("Expected function declaration, got nil")
-	}
+	require.NotNil(t, funcDecl, "Expected function declaration, got nil")
 
 	if len(diagnostics) != 0 {
 		t.Errorf("Expected no diagnostics, got %d", len(diagnostics))
@@ -831,9 +828,7 @@ func TestBuildLocalTranslationsMapLiteral_Empty(t *testing.T) {
 	translations := i18n_domain.Translations{}
 	mapExpr := builder.buildLocalTranslationsMapLiteral(translations)
 
-	if mapExpr == nil {
-		t.Fatal("Expected map expression, got nil")
-	}
+	require.NotNil(t, mapExpr, "Expected map expression, got nil")
 
 	mapLit, ok := mapExpr.(*goast.CompositeLit)
 	if !ok {
@@ -863,9 +858,7 @@ func TestBuildLocalTranslationsMapLiteral_WithTranslations(t *testing.T) {
 
 	mapExpr := builder.buildLocalTranslationsMapLiteral(translations)
 
-	if mapExpr == nil {
-		t.Fatal("Expected map expression, got nil")
-	}
+	require.NotNil(t, mapExpr, "Expected map expression, got nil")
 
 	mapLit, ok := mapExpr.(*goast.CompositeLit)
 	if !ok {

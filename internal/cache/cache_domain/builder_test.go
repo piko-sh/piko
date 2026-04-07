@@ -25,6 +25,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/cache/cache_dto"
 )
 
@@ -33,9 +35,7 @@ func TestNewCacheBuilder(t *testing.T) {
 
 	builder := NewCacheBuilder[string, string](service)
 
-	if builder == nil {
-		t.Fatal("expected non-nil builder")
-	}
+	require.NotNil(t, builder, "expected non-nil builder")
 
 	if builder.service != service {
 		t.Error("builder should reference the provided service")
@@ -61,9 +61,7 @@ func TestCacheBuilder_MethodChaining(t *testing.T) {
 		MaximumSize(1000).
 		InitialCapacity(100)
 
-	if builder == nil {
-		t.Fatal("method chaining should return non-nil builder")
-	}
+	require.NotNil(t, builder, "method chaining should return non-nil builder")
 }
 
 func TestCacheBuilder_MaximumSize(t *testing.T) {
@@ -214,9 +212,7 @@ func TestCacheBuilder_MultipleTransformers(t *testing.T) {
 		Transformer("compress").
 		Transformer("encrypt")
 
-	if builder == nil {
-		t.Fatal("expected non-nil builder after adding multiple transformers")
-	}
+	require.NotNil(t, builder, "expected non-nil builder after adding multiple transformers")
 }
 
 func TestCacheBuilder_MultipleEncoders(t *testing.T) {
@@ -229,9 +225,7 @@ func TestCacheBuilder_MultipleEncoders(t *testing.T) {
 		Encoder(userEncoder).
 		Encoder(productEncoder)
 
-	if builder == nil {
-		t.Fatal("expected non-nil builder after adding multiple encoders")
-	}
+	require.NotNil(t, builder, "expected non-nil builder after adding multiple encoders")
 }
 
 func TestCacheBuilder_Clone(t *testing.T) {
@@ -244,9 +238,7 @@ func TestCacheBuilder_Clone(t *testing.T) {
 
 	clone := original.Clone()
 
-	if clone == nil {
-		t.Fatal("expected non-nil cloned builder")
-	}
+	require.NotNil(t, clone, "expected non-nil cloned builder")
 
 	if clone == original {
 		t.Error("cloned builder should be a different instance")
@@ -272,9 +264,7 @@ func TestCacheBuilder_BuildWithMockProvider(t *testing.T) {
 		t.Fatalf("build failed: %v", err)
 	}
 
-	if cache == nil {
-		t.Fatal("expected non-nil cache")
-	}
+	require.NotNil(t, cache, "expected non-nil cache")
 
 	defer func() { _ = cache.Close(context.Background()) }()
 }
@@ -367,9 +357,7 @@ func TestCacheBuilder_ComplexConfiguration(t *testing.T) {
 		t.Fatalf("build failed with complex config: %v", err)
 	}
 
-	if cache == nil {
-		t.Fatal("expected non-nil cache from complex config")
-	}
+	require.NotNil(t, cache, "expected non-nil cache from complex config")
 
 	defer func() { _ = cache.Close(context.Background()) }()
 }
@@ -397,9 +385,7 @@ func TestRegisterTransformerBlueprint(t *testing.T) {
 	if !exists {
 		t.Error("expected blueprint to be registered")
 	}
-	if retrieved == nil {
-		t.Error("expected non-nil factory")
-	}
+	require.NotNil(t, retrieved, "expected non-nil factory")
 }
 
 func Test_getTransformerBlueprint_NotFound(t *testing.T) {
@@ -438,9 +424,7 @@ func TestCacheBuilder_ExpiryCalculator(t *testing.T) {
 	builder := NewCacheBuilder[string, string](service).
 		ExpiryCalculator(expiryCalc)
 
-	if builder == nil {
-		t.Fatal("expected non-nil builder after WithExpiryCalculator")
-	}
+	require.NotNil(t, builder, "expected non-nil builder after WithExpiryCalculator")
 }
 
 func TestCacheBuilder_RefreshCalculator(t *testing.T) {
@@ -451,9 +435,7 @@ func TestCacheBuilder_RefreshCalculator(t *testing.T) {
 	builder := NewCacheBuilder[string, string](service).
 		RefreshCalculator(refreshCalc)
 
-	if builder == nil {
-		t.Fatal("expected non-nil builder after WithRefreshCalculator")
-	}
+	require.NotNil(t, builder, "expected non-nil builder after WithRefreshCalculator")
 }
 
 type mockExpiryCalculator[K comparable, V any] struct{}
@@ -500,9 +482,7 @@ func TestCacheBuilder_OnDeletion(t *testing.T) {
 	builder := NewCacheBuilder[string, string](service).
 		OnDeletion(onDeletion)
 
-	if builder == nil {
-		t.Fatal("expected non-nil builder after WithOnDeletion")
-	}
+	require.NotNil(t, builder, "expected non-nil builder after WithOnDeletion")
 }
 
 func TestCacheBuilder_ProviderErrorPropagation(t *testing.T) {
@@ -957,9 +937,7 @@ func TestCacheBuilder_BuildFromBlueprint_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cache == nil {
-		t.Fatal("expected non-nil cache")
-	}
+	require.NotNil(t, cache, "expected non-nil cache")
 	defer func() { _ = cache.Close(context.Background()) }()
 }
 
@@ -1020,9 +998,7 @@ func TestCacheBuilder_BuildWrappedCache_WithEncoder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cache == nil {
-		t.Fatal("expected non-nil cache")
-	}
+	require.NotNil(t, cache, "expected non-nil cache")
 	defer func() { _ = cache.Close(context.Background()) }()
 }
 
@@ -1041,9 +1017,7 @@ func TestCacheBuilder_BuildWrappedCache_WithDefaultEncoder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cache == nil {
-		t.Fatal("expected non-nil cache")
-	}
+	require.NotNil(t, cache, "expected non-nil cache")
 	defer func() { _ = cache.Close(context.Background()) }()
 }
 
@@ -1076,9 +1050,7 @@ func TestCacheBuilder_BuildWrappedCache_WithTransformer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cache == nil {
-		t.Fatal("expected non-nil cache")
-	}
+	require.NotNil(t, cache, "expected non-nil cache")
 	defer func() { _ = cache.Close(context.Background()) }()
 }
 
@@ -1209,9 +1181,7 @@ func TestSetupEncoderRegistry_WithEncoders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if registry == nil {
-		t.Fatal("expected non-nil registry")
-	}
+	require.NotNil(t, registry, "expected non-nil registry")
 	if registry.Count() != 1 {
 		t.Errorf("expected 1 encoder, got %d", registry.Count())
 	}
@@ -1224,9 +1194,7 @@ func TestSetupEncoderRegistry_WithDefaultOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if registry == nil {
-		t.Fatal("expected non-nil registry")
-	}
+	require.NotNil(t, registry, "expected non-nil registry")
 	if !registry.HasDefault() {
 		t.Error("expected registry to have default encoder")
 	}

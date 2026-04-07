@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/google/flatbuffers/go"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/generator/generator_schema/generator_schema_gen"
 	"piko.sh/piko/internal/i18n/i18n_domain"
@@ -35,9 +36,7 @@ func TestNewFlatBufferManifestProvider(t *testing.T) {
 	t.Parallel()
 
 	provider := NewFlatBufferManifestProvider("/test/path/manifest.bin")
-	if provider == nil {
-		t.Fatal("NewFlatBufferManifestProvider returned nil")
-	}
+	require.NotNil(t, provider, "NewFlatBufferManifestProvider returned nil")
 
 	if provider.manifestFileName != "manifest.bin" {
 		t.Errorf("Expected manifestFileName 'manifest.bin', got: %s", provider.manifestFileName)
@@ -73,9 +72,7 @@ func TestLoad_EmptyManifest(t *testing.T) {
 		t.Fatalf("Load failed: %v", err)
 	}
 
-	if loaded == nil {
-		t.Fatal("Load returned nil manifest")
-	}
+	require.NotNil(t, loaded, "Load returned nil manifest")
 
 	if len(loaded.Pages) != 0 {
 		t.Error("Pages should be empty or nil")
@@ -660,9 +657,7 @@ func TestUnpackManifest(t *testing.T) {
 	fbManifest := generator_schema_gen.GetRootAsManifestFB(data, 0)
 	manifest := unpackManifest(fbManifest)
 
-	if manifest == nil {
-		t.Fatal("unpackManifest returned nil")
-	}
+	require.NotNil(t, manifest, "unpackManifest returned nil")
 
 	if len(manifest.Pages) != 0 {
 		t.Error("Pages should be empty or nil")

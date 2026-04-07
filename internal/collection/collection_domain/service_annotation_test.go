@@ -24,6 +24,8 @@ import (
 	"go/ast"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/collection/collection_dto"
 )
 
@@ -365,9 +367,7 @@ func TestCreateSliceTypeInfo(t *testing.T) {
 
 	resolvedType := service.createSliceTypeInfo(targetType)
 
-	if resolvedType == nil {
-		t.Fatal("expected non-nil ResolvedTypeInfo")
-	}
+	require.NotNil(t, resolvedType, "expected non-nil ResolvedTypeInfo")
 	arrayType, ok := resolvedType.TypeExpression.(*ast.ArrayType)
 	if !ok {
 		t.Fatal("expected ArrayType expression")

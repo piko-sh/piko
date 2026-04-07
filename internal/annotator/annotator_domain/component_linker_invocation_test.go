@@ -51,9 +51,7 @@ func TestNewInvocationLinker(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got: %v", err)
 		}
-		if linker == nil {
-			t.Fatal("Expected non-nil linker")
-		}
+		require.NotNil(t, linker, "Expected non-nil linker")
 		if linker.typeResolver != resolver {
 			t.Error("Expected resolver to be set")
 		}
@@ -259,9 +257,7 @@ func TestInvocationLinker_TryCoerce(t *testing.T) {
 		if _, ok := resultExpr.(*ast_domain.BooleanLiteral); !ok {
 			t.Errorf("Expected BooleanLiteral after coercion, got %T", resultExpr)
 		}
-		if resultAnn == nil {
-			t.Error("Expected non-nil annotation after coercion")
-		}
+		require.NotNil(t, resultAnn, "Expected non-nil annotation after coercion")
 	})
 
 	t.Run("FailedCoercion", func(t *testing.T) {
@@ -1047,9 +1043,7 @@ func TestInvocationLinkerPool(t *testing.T) {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		if linker == nil {
-			t.Fatal("Expected non-nil linker")
-		}
+		require.NotNil(t, linker, "Expected non-nil linker")
 		if linker.canonicalProps == nil {
 			t.Error("Expected canonicalProps to be initialised")
 		}

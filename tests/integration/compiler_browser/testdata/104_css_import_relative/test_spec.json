@@ -1,0 +1,19 @@
+[
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-import-relative >>> .imported-rule",
+    "name": "color",
+    "expected": "rgb(255, 0, 0)"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-import-relative >>> .local-rule",
+    "name": "color",
+    "expected": "rgb(0, 128, 0)"
+  },
+  {
+    "action": "checkText",
+    "selector": "css-import-relative >>> .imported-rule",
+    "expected": "Styled via import"
+  }
+]

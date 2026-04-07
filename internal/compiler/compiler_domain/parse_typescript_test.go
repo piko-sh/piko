@@ -180,7 +180,7 @@ let v = 2;
 </script>
 <template name="bad-component"><div>Test</div></template>`)
 
-		artefact, err := compileSFC(ctx, "bad-component.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "bad-component.pkc", rawSFC, "", nil)
 
 		require.Error(t, err)
 		assert.Nil(t, artefact)
@@ -195,7 +195,7 @@ const x = "world";
 </script>
 <template name="dup-test"><div>Test</div></template>`)
 
-		artefact, err := compileSFC(ctx, "dup-test.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "dup-test.pkc", rawSFC, "", nil)
 
 		require.Error(t, err)
 		assert.Nil(t, artefact)
@@ -211,7 +211,7 @@ class GoodComponentElement extends PPElement {
 </script>
 <template name="good-component"><div>Works</div></template>`)
 
-		artefact, err := compileSFC(ctx, "good-component.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "good-component.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)

@@ -28,10 +28,6 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// moduleNameKey is the context key for storing the module name during
-// compilation.
-type moduleNameKey struct{}
-
 // compilerOrchestrator coordinates the SFC compilation pipeline.
 // It implements CompilerService.
 type compilerOrchestrator struct {
@@ -44,6 +40,10 @@ type compilerOrchestrator struct {
 	// moduleName is the Go module name from go.mod, such as
 	// "github.com/org/repo". Used to resolve @/ aliases in asset paths.
 	moduleName string
+
+	// cssPreProcessor resolves CSS @import statements before CSS is embedded
+	// into compiled output. When nil, raw CSS is used as-is.
+	cssPreProcessor CSSPreProcessorPort
 
 	// transformSteps holds the ordered list of transformations to apply to
 	// compiled artefacts.
@@ -118,11 +118,6 @@ func (o *compilerOrchestrator) CompileSFCBytes(ctx context.Context, sourceID str
 
 	l.Trace("Compiling SFC bytes")
 
-	if o.moduleName != "" {
-		ctx = WithModuleName(ctx, o.moduleName)
-		l.Trace("Added module name to context", logger_domain.String("moduleName", o.moduleName))
-	}
-
 	artefact, err := o.sfcCompiler.CompileSFC(ctx, sourceID, rawSFC)
 	if err != nil {
 		l.Trace("Failed to compile SFC", logger_domain.Error(err))
@@ -181,27 +176,6 @@ func (o *compilerOrchestrator) applyTransformationSteps(ctx context.Context, spa
 	return artefact, nil
 }
 
-// WithModuleName returns a new context with the module name attached.
-//
-// Takes moduleName (string) which is the name of the Go module.
-//
-// Returns context.Context which contains the module name value.
-func WithModuleName(ctx context.Context, moduleName string) context.Context {
-	return context.WithValue(ctx, moduleNameKey{}, moduleName)
-}
-
-// GetModuleName returns the module name stored in the context.
-//
-// Returns string which is the module name, or empty if not set.
-func GetModuleName(ctx context.Context) string {
-	if v := ctx.Value(moduleNameKey{}); v != nil {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
-}
-
 // WithSFCCompiler sets a custom SFCCompiler for the orchestrator. This is
 // useful for testing with mock compilers.
 //
@@ -229,6 +203,20 @@ func WithOrchestratorModuleName(moduleName string) OrchestratorOption {
 	}
 }
 
+// WithOrchestratorCSSPreProcessor sets an optional CSS pre-processor that
+// resolves @import statements before CSS is embedded into compiled output.
+// When not set, raw CSS from style blocks is used as-is.
+//
+// Takes p (CSSPreProcessorPort) which resolves @import statements in CSS.
+//
+// Returns OrchestratorOption which configures the orchestrator to use the
+// given pre-processor.
+func WithOrchestratorCSSPreProcessor(p CSSPreProcessorPort) OrchestratorOption {
+	return func(o *compilerOrchestrator) {
+		o.cssPreProcessor = p
+	}
+}
+
 // NewCompilerOrchestrator creates a new compiler orchestrator with the given
 // input reader and transformation steps.
 //
@@ -240,11 +228,13 @@ func WithOrchestratorModuleName(moduleName string) OrchestratorOption {
 func NewCompilerOrchestrator(inputReader InputReaderPort, transformSteps []TransformationPort, opts ...OrchestratorOption) CompilerService {
 	o := &compilerOrchestrator{
 		inputReader:    inputReader,
-		sfcCompiler:    NewSFCCompiler(),
 		transformSteps: transformSteps,
 	}
 	for _, opt := range opts {
 		opt(o)
+	}
+	if o.sfcCompiler == nil {
+		o.sfcCompiler = NewSFCCompiler(o.moduleName, o.cssPreProcessor)
 	}
 	return o
 }

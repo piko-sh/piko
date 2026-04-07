@@ -335,7 +335,7 @@ func TestVdomConditional_buildConditionalChainAST(t *testing.T) {
 	t.Run("empty chain returns null literal", func(t *testing.T) {
 		events := newTestEvents()
 
-		result, err := buildConditionalChainAST(ctx, nil, events, nil, nil)
+		result, err := buildConditionalChainAST(ctx, nil, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -350,7 +350,7 @@ func TestVdomConditional_buildConditionalChainAST(t *testing.T) {
 
 		chain := []*ast_domain.TemplateNode{ifNode}
 
-		result, err := buildConditionalChainAST(ctx, chain, events, nil, nil)
+		result, err := buildConditionalChainAST(ctx, chain, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -373,7 +373,7 @@ func TestVdomConditional_buildConditionalChainAST(t *testing.T) {
 
 		chain := []*ast_domain.TemplateNode{ifNode, elseNode}
 
-		result, err := buildConditionalChainAST(ctx, chain, events, nil, nil)
+		result, err := buildConditionalChainAST(ctx, chain, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -399,7 +399,7 @@ func TestVdomConditional_buildConditionalChainAST(t *testing.T) {
 
 		chain := []*ast_domain.TemplateNode{ifNode, elseIfNode, elseNode}
 
-		result, err := buildConditionalChainAST(ctx, chain, events, nil, nil)
+		result, err := buildConditionalChainAST(ctx, chain, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -422,7 +422,7 @@ func TestVdomConditional_buildSingleConditional(t *testing.T) {
 		events := newTestEvents()
 		node := makeElementNode("div", "0")
 
-		result, err := buildSingleConditional(ctx, node, events, nil, nil)
+		result, err := buildSingleConditional(ctx, node, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.True(t, isNull(result))
@@ -434,7 +434,7 @@ func TestVdomConditional_buildSingleConditional(t *testing.T) {
 		node := makeElementNode("div", "0")
 		node.DirIf = makeDirective("show")
 
-		result, err := buildSingleConditional(ctx, node, events, nil, nil)
+		result, err := buildSingleConditional(ctx, node, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -454,7 +454,7 @@ func TestVdomConditional_buildSingleConditional(t *testing.T) {
 
 		loopVars := map[string]bool{"item": true}
 
-		result, err := buildSingleConditional(ctx, node, events, loopVars, nil)
+		result, err := buildSingleConditional(ctx, node, &nodeBuildContext{events: events, loopVars: loopVars})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -478,7 +478,7 @@ func TestVdomConditional_buildChainedConditional(t *testing.T) {
 
 		chain := []*ast_domain.TemplateNode{ifNode, elseNode}
 
-		result, err := buildChainedConditional(ctx, chain, events, nil, nil)
+		result, err := buildChainedConditional(ctx, chain, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -499,7 +499,7 @@ func TestVdomConditional_buildChainedConditional(t *testing.T) {
 
 		chain := []*ast_domain.TemplateNode{ifNode, elseIfNode}
 
-		result, err := buildChainedConditional(ctx, chain, events, nil, nil)
+		result, err := buildChainedConditional(ctx, chain, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -526,7 +526,7 @@ func TestVdomConditional_buildChainedConditional(t *testing.T) {
 
 		chain := []*ast_domain.TemplateNode{ifNode, elseIf1, elseIf2, elseNode}
 
-		result, err := buildChainedConditional(ctx, chain, events, nil, nil)
+		result, err := buildChainedConditional(ctx, chain, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 
@@ -553,7 +553,7 @@ func TestVdomConditional_wrapNodeInTernary(t *testing.T) {
 		node := makeElementNode("div", "0")
 		node.DirIf = makeDirective("show")
 
-		result, err := wrapNodeInTernary(ctx, node, alternate, events, nil, nil)
+		result, err := wrapNodeInTernary(ctx, node, alternate, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -572,7 +572,7 @@ func TestVdomConditional_wrapNodeInTernary(t *testing.T) {
 		node := makeElementNode("span", "1")
 		node.DirElseIf = makeDirective("other")
 
-		result, err := wrapNodeInTernary(ctx, node, alternate, events, nil, nil)
+		result, err := wrapNodeInTernary(ctx, node, alternate, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
@@ -588,7 +588,7 @@ func TestVdomConditional_wrapNodeInTernary(t *testing.T) {
 
 		node := makeElementNode("div", "0")
 
-		result, err := wrapNodeInTernary(ctx, node, alternate, events, nil, nil)
+		result, err := wrapNodeInTernary(ctx, node, alternate, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.True(t, isNull(result), "should return the alternate when no conditional directive")
@@ -598,13 +598,13 @@ func TestVdomConditional_wrapNodeInTernary(t *testing.T) {
 		events := newTestEvents()
 
 		alternateNode := makeElementNode("footer", "alt")
-		alternateExpr, err := buildNodeAST(ctx, alternateNode, events, nil, nil)
+		alternateExpr, err := buildNodeAST(ctx, alternateNode, &nodeBuildContext{events: events})
 		require.NoError(t, err)
 
 		node := makeElementNode("div", "0")
 		node.DirIf = makeDirective("show")
 
-		result, err := wrapNodeInTernary(ctx, node, alternateExpr, events, nil, nil)
+		result, err := wrapNodeInTernary(ctx, node, alternateExpr, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 
@@ -620,7 +620,7 @@ func TestVdomConditional_wrapNodeInTernary(t *testing.T) {
 		node := makeElementNode("div", "0")
 		node.DirElse = makeElseDirective()
 
-		result, err := wrapNodeInTernary(ctx, node, alternate, events, nil, nil)
+		result, err := wrapNodeInTernary(ctx, node, alternate, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.True(t, isNull(result), "DirElse only node should return alternate (no test condition)")
@@ -633,7 +633,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 	t.Run("nil children returns nil", func(t *testing.T) {
 		events := newTestEvents()
 
-		result, err := processChainAwareChildren(ctx, nil, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, nil, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Nil(t, result)
@@ -642,7 +642,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 	t.Run("empty children returns nil", func(t *testing.T) {
 		events := newTestEvents()
 
-		result, err := processChainAwareChildren(ctx, []*ast_domain.TemplateNode{}, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, []*ast_domain.TemplateNode{}, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Nil(t, result)
@@ -654,7 +654,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 		node := makeElementNode("div", "0")
 		children := []*ast_domain.TemplateNode{node}
 
-		result, err := processChainAwareChildren(ctx, children, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, children, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Len(t, result, 1)
@@ -671,7 +671,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 
 		children := []*ast_domain.TemplateNode{ifNode, elseNode}
 
-		result, err := processChainAwareChildren(ctx, children, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, children, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Len(t, result, 1, "if/else should be collapsed into a single expression")
@@ -688,7 +688,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 
 		children := []*ast_domain.TemplateNode{orphanElseIf}
 
-		result, err := processChainAwareChildren(ctx, children, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, children, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Empty(t, result, "orphan else-if should be skipped")
@@ -702,7 +702,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 
 		children := []*ast_domain.TemplateNode{orphanElse}
 
-		result, err := processChainAwareChildren(ctx, children, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, children, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Empty(t, result, "orphan else should be skipped")
@@ -723,7 +723,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 
 		children := []*ast_domain.TemplateNode{leading, ifNode, elseNode, trailing}
 
-		result, err := processChainAwareChildren(ctx, children, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, children, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Len(t, result, 3, "should have leading + ternary + trailing")
@@ -737,7 +737,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 
 		children := []*ast_domain.TemplateNode{ws}
 
-		result, err := processChainAwareChildren(ctx, children, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, children, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 
@@ -760,7 +760,7 @@ func TestVdomConditional_processChainAwareChildren(t *testing.T) {
 
 		children := []*ast_domain.TemplateNode{if1, else1, separator, if2}
 
-		result, err := processChainAwareChildren(ctx, children, events, nil, nil)
+		result, err := processChainAwareChildren(ctx, children, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.Len(t, result, 3, "two conditional chains + separator = 3 expressions")
@@ -774,7 +774,7 @@ func TestVdomConditional_processChildNode(t *testing.T) {
 		events := newTestEvents()
 		node := makeElementNode("div", "0")
 		children := []*ast_domain.TemplateNode{node}
-		expression, skip, err := processChildNode(ctx, node, children, new(0), events, nil, nil)
+		expression, skip, err := processChildNode(ctx, node, children, new(int), &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.False(t, skip)
@@ -793,7 +793,7 @@ func TestVdomConditional_processChildNode(t *testing.T) {
 		children := []*ast_domain.TemplateNode{ifNode, elseNode}
 		index := 0
 
-		expression, skip, err := processChildNode(ctx, ifNode, children, &index, events, nil, nil)
+		expression, skip, err := processChildNode(ctx, ifNode, children, &index, &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.False(t, skip, "conditional chain should not be skipped")
@@ -809,7 +809,7 @@ func TestVdomConditional_processChildNode(t *testing.T) {
 		node := makeElementNode("div", "0")
 		node.DirElseIf = makeDirective("x")
 		children := []*ast_domain.TemplateNode{node}
-		expression, skip, err := processChildNode(ctx, node, children, new(0), events, nil, nil)
+		expression, skip, err := processChildNode(ctx, node, children, new(int), &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.True(t, skip)
@@ -821,7 +821,7 @@ func TestVdomConditional_processChildNode(t *testing.T) {
 		node := makeElementNode("div", "0")
 		node.DirElse = makeElseDirective()
 		children := []*ast_domain.TemplateNode{node}
-		expression, skip, err := processChildNode(ctx, node, children, new(0), events, nil, nil)
+		expression, skip, err := processChildNode(ctx, node, children, new(int), &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.True(t, skip)
@@ -832,7 +832,7 @@ func TestVdomConditional_processChildNode(t *testing.T) {
 		events := newTestEvents()
 		node := makeTextNode("hello", "t")
 		children := []*ast_domain.TemplateNode{node}
-		expression, skip, err := processChildNode(ctx, node, children, new(0), events, nil, nil)
+		expression, skip, err := processChildNode(ctx, node, children, new(int), &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.False(t, skip)
@@ -843,7 +843,7 @@ func TestVdomConditional_processChildNode(t *testing.T) {
 		events := newTestEvents()
 		node := makeCommentNode("my comment")
 		children := []*ast_domain.TemplateNode{node}
-		expression, skip, err := processChildNode(ctx, node, children, new(0), events, nil, nil)
+		expression, skip, err := processChildNode(ctx, node, children, new(int), &nodeBuildContext{events: events})
 
 		require.NoError(t, err)
 		assert.False(t, skip)

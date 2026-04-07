@@ -350,9 +350,7 @@ func TestEncodeActionPayloadBytes_FixedArityEquivalence(t *testing.T) {
 				Function: tc.function,
 				Args:     tc.arguments,
 			})
-			if expectedBuf == nil {
-				t.Fatal("expected buffer is nil")
-			}
+			require.NotNil(t, expectedBuf, "expected buffer is nil")
 			expected := string(*expectedBuf)
 			ast_domain.PutByteBuf(expectedBuf)
 
@@ -372,9 +370,7 @@ func TestEncodeActionPayloadBytes_FixedArityEquivalence(t *testing.T) {
 				t.Fatalf("unsupported argument count: %d", len(tc.arguments))
 			}
 
-			if actualBuf == nil {
-				t.Fatal("actual buffer is nil")
-			}
+			require.NotNil(t, actualBuf, "actual buffer is nil")
 			actual := string(*actualBuf)
 			ast_domain.PutByteBuf(actualBuf)
 

@@ -22,6 +22,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/interp/interp_domain"
 )
 
@@ -52,9 +54,7 @@ func run() int {
 	}()
 
 	snap := dbg.WaitForPause()
-	if snap == nil {
-		t.Fatal("expected pause snapshot")
-	}
+	require.NotNil(t, snap, "expected pause snapshot")
 	if len(snap.StackTrace) == 0 {
 		t.Fatal("expected non-empty stack trace")
 	}
@@ -104,9 +104,7 @@ func run() int {
 	}()
 
 	snap := dbg.WaitForPause()
-	if snap == nil {
-		t.Fatal("expected pause snapshot")
-	}
+	require.NotNil(t, snap, "expected pause snapshot")
 
 	if len(snap.StackTrace) < 3 {
 		t.Errorf("expected at least 3 stack frames, got %d", len(snap.StackTrace))

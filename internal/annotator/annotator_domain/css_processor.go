@@ -35,25 +35,21 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	es_ast "piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/config"
+	"piko.sh/piko/internal/cssinliner"
 	"piko.sh/piko/internal/esbuild/css_ast"
 	"piko.sh/piko/internal/esbuild/css_lexer"
-	"piko.sh/piko/internal/esbuild/css_parser"
 	"piko.sh/piko/internal/esbuild/css_printer"
 	es_logger "piko.sh/piko/internal/esbuild/logger"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-// CSSProcessor handles CSS scoping and processing using esbuild.
+// CSSProcessor handles CSS scoping and processing using esbuild. It wraps
+// a shared cssinliner.Processor for @import inlining and adds
+// annotator-specific selector scoping on top.
 type CSSProcessor struct {
-	// resolver provides path resolution for @import statements in CSS files.
-	resolver resolver_domain.ResolverPort
-
-	// options holds options for CSS output formatting.
-	options *config.Options
-
-	// parseOpts holds the CSS parser settings.
-	parseOpts css_parser.Options
+	// processor provides CSS @import inlining and printing.
+	processor *cssinliner.Processor
 }
 
 // NewCSSProcessor creates a new CSS processor with the given settings.
@@ -68,13 +64,13 @@ func NewCSSProcessor(
 	options *config.Options,
 	resolver resolver_domain.ResolverPort,
 ) *CSSProcessor {
-	if options == nil {
-		options = &config.Options{}
-	}
 	return &CSSProcessor{
-		parseOpts: css_parser.OptionsFromConfig(loader, options),
-		options:   options,
-		resolver:  resolver,
+		processor: cssinliner.NewProcessor(cssinliner.ProcessorConfig{
+			Resolver:       resolver,
+			Loader:         loader,
+			Options:        options,
+			DiagnosticCode: annotator_dto.CodeCSSProcessingError,
+		}),
 	}
 }
 
@@ -83,7 +79,7 @@ func NewCSSProcessor(
 //
 // Takes resolver (resolver_domain.ResolverPort) which provides path resolution.
 func (cp *CSSProcessor) SetResolver(resolver resolver_domain.ResolverPort) {
-	cp.resolver = resolver
+	cp.processor.SetResolver(resolver)
 }
 
 // WithResolver returns a shallow copy of the CSSProcessor that uses the given
@@ -95,9 +91,7 @@ func (cp *CSSProcessor) SetResolver(resolver resolver_domain.ResolverPort) {
 // Returns *CSSProcessor which is a new processor with the given resolver.
 func (cp *CSSProcessor) WithResolver(resolver resolver_domain.ResolverPort) *CSSProcessor {
 	return &CSSProcessor{
-		resolver:  resolver,
-		options:   cp.options,
-		parseOpts: cp.parseOpts,
+		processor: cp.processor.WithResolver(resolver),
 	}
 }
 
@@ -120,48 +114,17 @@ func (cp *CSSProcessor) Process(
 	startLocation ast_domain.Location,
 	fsReader FSReaderPort,
 ) (string, []*ast_domain.Diagnostic, error) {
-	ctx, l := logger_domain.From(ctx, log)
-	ctx, span, l := l.Span(ctx, "CSSProcessor.Process")
-	defer span.End()
-
 	CSSProcessCount.Add(ctx, 1)
 	startTime := time.Now()
 	defer func() {
-		duration := time.Since(startTime)
-		CSSProcessDuration.Record(ctx, float64(duration.Milliseconds()))
+		CSSProcessDuration.Record(ctx, float64(time.Since(startTime).Milliseconds()))
 	}()
 
-	trimmed := strings.TrimSpace(cssBlock)
-	if trimmed == "" {
-		return "", nil, nil
-	}
-
-	inliner := getCSSInliner(cp, fsReader)
-	defer putCSSInliner(inliner)
-	tree, inlinerDiags := inliner.InlineAndParse(ctx, trimmed, sourcePath, startLocation)
-
-	if tree == nil {
+	result, diags, err := cp.processor.Process(ctx, cssBlock, sourcePath, startLocation, fsReader)
+	if err != nil {
 		CSSProcessErrorCount.Add(ctx, 1)
-		l.Error("Failed to process CSS with fatal error during import resolution")
-		return "", inlinerDiags, nil
 	}
-
-	tree.Rules = cleanCSSTree(tree.Rules)
-
-	symMap := es_ast.NewSymbolMap(1)
-	symMap.SymbolsForSource[0] = tree.Symbols
-	printOpts := css_printer.Options{
-		MinifyWhitespace: cp.options.MinifyWhitespace,
-		ASCIIOnly:        cp.options.ASCIIOnly,
-	}
-	printed := css_printer.Print(*tree, symMap, printOpts)
-	result := string(printed.CSS)
-
-	l.Trace("CSS processed and bundled successfully",
-		logger_domain.Int("inputSize", len(trimmed)),
-		logger_domain.Int("outputSize", len(result)),
-	)
-	return result, inlinerDiags, nil
+	return result, diags, err
 }
 
 // processAndScopeParams holds the parameters for CSS scoping operations.
@@ -220,9 +183,7 @@ func (cp *CSSProcessor) ProcessAndScope(ctx context.Context, params *processAndS
 
 	preprocessed, markers := preprocessScopingPseudoClasses(trimmed)
 
-	inliner := getCSSInliner(cp, params.fsReader)
-	defer putCSSInliner(inliner)
-	tree, inlinerDiags := inliner.InlineAndParse(ctx, preprocessed, params.sourcePath, params.startLocation)
+	tree, inlinerDiags, _ := cp.processor.InlineToAST(ctx, preprocessed, params.sourcePath, params.startLocation, params.fsReader)
 
 	if tree == nil {
 		CSSScopeErrorCount.Add(ctx, 1)
@@ -272,13 +233,14 @@ func (cp *CSSProcessor) transformAndPrintCSS(tree *css_ast.AST, scopeID string, 
 	transformer := newCSSScopeTransformer(scopeID, template, tree.Symbols)
 	transformer.markers = markers
 	transformer.transform(tree.Rules)
-	tree.Rules = cleanCSSTree(tree.Rules)
+	tree.Rules = cssinliner.CleanCSSTree(tree.Rules)
 
+	options := cp.processor.GetOptions()
 	symMap := es_ast.NewSymbolMap(1)
 	symMap.SymbolsForSource[0] = tree.Symbols
 	printOpts := css_printer.Options{
-		MinifyWhitespace: cp.options.MinifyWhitespace,
-		ASCIIOnly:        cp.options.ASCIIOnly,
+		MinifyWhitespace: options.MinifyWhitespace,
+		ASCIIOnly:        options.ASCIIOnly,
 	}
 
 	return css_printer.Print(*tree, symMap, printOpts).CSS
@@ -301,109 +263,6 @@ var (
 	// deepPseudoRegex matches the :deep() pseudo-class in CSS selectors.
 	deepPseudoRegex = regexp.MustCompile(`:deep\s*\(([^)]+)\)`)
 )
-
-// cleanCSSTree walks the CSS AST and removes any rules where Data is nil.
-// This is needed because the esbuild minifier can leave empty rules in nested
-// blocks (such as @media) that the printer cannot handle.
-//
-// Takes rules ([]css_ast.Rule) which is the slice of CSS rules to clean.
-//
-// Returns []css_ast.Rule which is the filtered slice with nil rules removed.
-func cleanCSSTree(rules []css_ast.Rule) []css_ast.Rule {
-	if rules == nil {
-		return nil
-	}
-
-	n := 0
-	for i := range len(rules) {
-		rule := &rules[i]
-		if rule.Data == nil {
-			continue
-		}
-
-		switch r := rule.Data.(type) {
-		case *css_ast.RAtKeyframes:
-			for j := range r.Blocks {
-				r.Blocks[j].Rules = cleanCSSTree(r.Blocks[j].Rules)
-			}
-		case *css_ast.RKnownAt:
-			r.Rules = cleanCSSTree(r.Rules)
-		case *css_ast.RAtMedia:
-			r.Rules = cleanCSSTree(r.Rules)
-		case *css_ast.RAtLayer:
-			r.Rules = cleanCSSTree(r.Rules)
-		case *css_ast.RSelector:
-			r.Rules = cleanCSSTree(r.Rules)
-		}
-
-		rules[n] = *rule
-		n++
-	}
-	return rules[:n]
-}
-
-// convertESBuildMessagesToDiagnostics converts esbuild log messages into
-// diagnostic objects for the domain layer.
-//
-// When messages is empty, returns nil.
-//
-// Takes messages ([]es_logger.Msg) which contains the esbuild log messages to
-// convert.
-// Takes sourcePath (string) which identifies the source file for diagnostics.
-// Takes startLocation (ast_domain.Location) which provides the offset for
-// line and column values.
-//
-// Returns []*ast_domain.Diagnostic which contains the converted diagnostics.
-func convertESBuildMessagesToDiagnostics(messages []es_logger.Msg, sourcePath string, startLocation ast_domain.Location) []*ast_domain.Diagnostic {
-	if len(messages) == 0 {
-		return nil
-	}
-
-	diagnostics := make([]*ast_domain.Diagnostic, 0, len(messages))
-	for _, message := range messages {
-		var severity ast_domain.Severity
-		switch message.Kind {
-		case es_logger.Error:
-			severity = ast_domain.Error
-		case es_logger.Warning:
-			severity = ast_domain.Warning
-		case es_logger.Info:
-			severity = ast_domain.Info
-		default:
-			continue
-		}
-
-		var finalLocation ast_domain.Location
-		var expression string
-		if message.Data.Location != nil {
-			messageLocation := message.Data.Location
-			line := messageLocation.Line + 1
-			column := messageLocation.Column + 1
-
-			if line == 1 {
-				finalLocation.Line = startLocation.Line
-				finalLocation.Column = startLocation.Column + column - 1
-			} else {
-				finalLocation.Line = startLocation.Line + line - 1
-				finalLocation.Column = column
-			}
-			expression = messageLocation.LineText
-		}
-
-		diagnostics = append(diagnostics, &ast_domain.Diagnostic{
-			Data:         nil,
-			Message:      message.Data.Text,
-			Expression:   expression,
-			SourcePath:   sourcePath,
-			Code:         annotator_dto.CodeCSSProcessingError,
-			RelatedInfo:  nil,
-			Location:     finalLocation,
-			SourceLength: 0,
-			Severity:     severity,
-		})
-	}
-	return diagnostics
-}
 
 // scopeDescendant adds a scope attribute selector to the start of a complex
 // selector.

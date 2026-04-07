@@ -21,6 +21,8 @@ package ast_domain
 import (
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestDirectWriter_WriteTo_String(t *testing.T) {
@@ -223,10 +225,7 @@ func TestDirectWriter_Part(t *testing.T) {
 
 	for _, tc := range tests {
 		part := dw.Part(tc.index)
-		if part == nil {
-			t.Errorf("Part(%d) = nil, want non-nil", tc.index)
-			continue
-		}
+		require.NotNilf(t, part, "Part(%d) = nil, want non-nil", tc.index)
 		if part.Type != tc.wantType {
 			t.Errorf("Part(%d).Type = %v, want %v", tc.index, part.Type, tc.wantType)
 		}
@@ -720,9 +719,7 @@ func TestDirectWriter_AppendEscapeString(t *testing.T) {
 	}
 
 	part := dw.Part(0)
-	if part == nil {
-		t.Fatal("Part(0) returned nil")
-	}
+	require.NotNil(t, part, "Part(0) returned nil")
 	if part.Type != WriterPartEscapeString {
 		t.Errorf("Part(0).Type = %v, want WriterPartEscapeString", part.Type)
 	}
@@ -979,9 +976,7 @@ func TestDirectWriter_AppendFNVString(t *testing.T) {
 	}
 
 	part := dw.Part(0)
-	if part == nil {
-		t.Fatal("Part(0) returned nil")
-	}
+	require.NotNil(t, part, "Part(0) returned nil")
 	if part.Type != WriterPartFNVString {
 		t.Errorf("Part(0).Type = %v, want WriterPartFNVString", part.Type)
 	}

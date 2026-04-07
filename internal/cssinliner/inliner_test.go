@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package annotator_domain
+package cssinliner
 
 import (
 	"context"
@@ -31,23 +31,66 @@ import (
 	"piko.sh/piko/internal/esbuild/css_ast"
 	"piko.sh/piko/internal/esbuild/css_lexer"
 	es_logger "piko.sh/piko/internal/esbuild/logger"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 )
+
+type testFSReader struct {
+	files map[string]string
+}
+
+func newTestFSReader() *testFSReader {
+	return &testFSReader{
+		files: make(map[string]string),
+	}
+}
+
+func (r *testFSReader) addFile(path, content string) {
+	r.files[path] = content
+}
+
+func (r *testFSReader) ReadFile(_ context.Context, path string) ([]byte, error) {
+	content, exists := r.files[path]
+	if !exists {
+		return nil, fmt.Errorf("file not found: %s", path)
+	}
+	return []byte(content), nil
+}
+
+func newPassthroughResolver() *resolver_domain.MockResolver {
+	return &resolver_domain.MockResolver{
+		ResolveCSSPathFunc: func(_ context.Context, importPath, _ string) (string, error) {
+			return importPath, nil
+		},
+	}
+}
+
+func newTestProcessor(resolver resolver_domain.ResolverPort) *Processor {
+	return NewProcessor(ProcessorConfig{
+		Resolver: resolver,
+		Loader:   config.LoaderLocalCSS,
+		Options: &config.Options{
+			MinifyWhitespace: true,
+			MinifySyntax:     true,
+		},
+	})
+}
+
+func newTestInliner(processor *Processor, fsReader FSReaderPort) *Inliner {
+	return GetInliner(processor.GetResolver(), processor.GetParserOptions(), fsReader, "TEST")
+}
 
 func TestCSSInliner_BasicImport(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should inline a single @import statement", func(t *testing.T) {
 		fsReader.addFile("/test/base.css", `body { margin: 0; padding: 0; }`)
 
 		css := `@import "/test/base.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -64,7 +107,8 @@ func TestCSSInliner_BasicImport(t *testing.T) {
 			@import "/test/reset.css";
 			@import "/test/base.css";
 		`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -80,7 +124,8 @@ func TestCSSInliner_BasicImport(t *testing.T) {
 			@import "/test/base.css";
 			.container { padding: 10px; }
 		`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -93,12 +138,8 @@ func TestCSSInliner_BasicImport(t *testing.T) {
 func TestCSSInliner_ImportChain(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should resolve linear import chain A → B → C", func(t *testing.T) {
 		fsReader.addFile("/test/c.css", `h3 { font-size: 1em; }`)
@@ -106,7 +147,8 @@ func TestCSSInliner_ImportChain(t *testing.T) {
 		fsReader.addFile("/test/a.css", `@import "/test/b.css"; h1 { font-size: 2em; }`)
 
 		css := `@import "/test/a.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -122,7 +164,8 @@ func TestCSSInliner_ImportChain(t *testing.T) {
 		fsReader.addFile("/test/a.css", `@import "/test/b.css"; @import "/test/c.css";`)
 
 		css := `@import "/test/a.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -135,19 +178,16 @@ func TestCSSInliner_ImportChain(t *testing.T) {
 func TestCSSInliner_CircularDependencies(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should detect simple circular import A → B → A", func(t *testing.T) {
 		fsReader.addFile("/test/a.css", `@import "/test/b.css"; .a { color: red; }`)
 		fsReader.addFile("/test/b.css", `@import "/test/a.css"; .b { color: blue; }`)
 
 		css := `@import "/test/a.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		assert.Nil(t, tree)
@@ -162,7 +202,8 @@ func TestCSSInliner_CircularDependencies(t *testing.T) {
 		fsReader.addFile("/test/c.css", `@import "/test/a.css"; .c { color: green; }`)
 
 		css := `@import "/test/a.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		assert.Nil(t, tree)
@@ -175,7 +216,8 @@ func TestCSSInliner_CircularDependencies(t *testing.T) {
 		fsReader.addFile("/test/a.css", `@import "/test/a.css"; .a { color: red; }`)
 
 		css := `@import "/test/a.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		assert.Nil(t, tree)
@@ -188,21 +230,17 @@ func TestCSSInliner_CircularDependencies(t *testing.T) {
 func TestCSSInliner_Caching(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should cache imported files to avoid re-parsing", func(t *testing.T) {
-
 		fsReader.addFile("/test/d.css", `p { color: black; }`)
 		fsReader.addFile("/test/b.css", `@import "/test/d.css"; .b { font-weight: bold; }`)
 		fsReader.addFile("/test/c.css", `@import "/test/d.css"; .c { font-style: italic; }`)
 
 		css := `@import "/test/b.css"; @import "/test/c.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -217,7 +255,8 @@ func TestCSSInliner_Caching(t *testing.T) {
 		fsReader.addFile("/test/shared.css", `.shared { margin: 0; }`)
 
 		css1 := `@import "/test/shared.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree1, _ := inliner.InlineAndParse(ctx, css1, "main1.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		css2 := `@import "/test/shared.css";`
@@ -233,16 +272,13 @@ func TestCSSInliner_Caching(t *testing.T) {
 func TestCSSInliner_ErrorHandling(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should report diagnostic for missing import file", func(t *testing.T) {
 		css := `@import "/nonexistent.css"; .local { color: red; }`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -254,19 +290,16 @@ func TestCSSInliner_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("should handle resolver errors gracefully", func(t *testing.T) {
-
-		failingResolver := newTestResolver()
-		failingResolver.resolveCSSFunc = func(ctx context.Context, importPath, fromDir string) (string, error) {
-			return "", fmt.Errorf("resolver error: cannot resolve %s", importPath)
+		failingResolver := &resolver_domain.MockResolver{
+			ResolveCSSPathFunc: func(_ context.Context, importPath, _ string) (string, error) {
+				return "", fmt.Errorf("resolver error: cannot resolve %s", importPath)
+			},
 		}
-
-		failingProcessor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-			MinifyWhitespace: true,
-			MinifySyntax:     true,
-		}, failingResolver)
+		failingProcessor := newTestProcessor(failingResolver)
 
 		css := `@import "./some.css"; .local { color: red; }`
-		inliner := newCSSInliner(failingProcessor, fsReader)
+		inliner := newTestInliner(failingProcessor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -284,7 +317,8 @@ func TestCSSInliner_ErrorHandling(t *testing.T) {
 			@import "/missing2.css";
 			.local { color: blue; }
 		`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -300,20 +334,16 @@ func TestCSSInliner_ErrorHandling(t *testing.T) {
 func TestCSSInliner_SymbolReIndexing(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should correctly re-index symbols when merging ASTs", func(t *testing.T) {
-
 		fsReader.addFile("/test/a.css", `.class-a { color: red; }`)
 		fsReader.addFile("/test/b.css", `.class-b { color: blue; }`)
 
 		css := `@import "/test/a.css"; @import "/test/b.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -328,7 +358,8 @@ func TestCSSInliner_SymbolReIndexing(t *testing.T) {
 		fsReader.addFile("/test/top.css", `@import "/test/middle.css"; .class-top { border: 0; }`)
 
 		css := `@import "/test/top.css";`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -341,12 +372,8 @@ func TestCSSInliner_SymbolReIndexing(t *testing.T) {
 func TestCSSInliner_ASTMerging(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should preserve rule order when merging", func(t *testing.T) {
 		fsReader.addFile("/test/first.css", `/* First */ .first { color: red; }`)
@@ -359,7 +386,8 @@ func TestCSSInliner_ASTMerging(t *testing.T) {
 			/* After imports */
 			.third { color: green; }
 		`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -372,7 +400,8 @@ func TestCSSInliner_ASTMerging(t *testing.T) {
 		fsReader.addFile("/test/imported.css", `.imported { color: purple; }`)
 
 		css := `@import "/test/imported.css"; .local { color: orange; }`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -387,18 +416,15 @@ func TestCSSInliner_ASTMerging(t *testing.T) {
 func TestCSSInliner_EdgeCases(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should handle empty imported file", func(t *testing.T) {
 		fsReader.addFile("/test/empty.css", ``)
 
 		css := `@import "/test/empty.css"; .local { color: red; }`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -411,7 +437,8 @@ func TestCSSInliner_EdgeCases(t *testing.T) {
 		fsReader.addFile("/test/comments.css", `/* This is just a comment */`)
 
 		css := `@import "/test/comments.css"; .local { color: red; }`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -420,7 +447,8 @@ func TestCSSInliner_EdgeCases(t *testing.T) {
 
 	t.Run("should handle CSS with no imports", func(t *testing.T) {
 		css := `.local { color: red; }`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -430,7 +458,8 @@ func TestCSSInliner_EdgeCases(t *testing.T) {
 
 	t.Run("should handle whitespace-only CSS", func(t *testing.T) {
 		css := `   \n\t   `
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -439,24 +468,42 @@ func TestCSSInliner_EdgeCases(t *testing.T) {
 	})
 }
 
-func TestCloneRAtImport(t *testing.T) {
+func TestCloneR(t *testing.T) {
 	t.Parallel()
 
-	t.Run("clones import without conditions", func(t *testing.T) {
+	t.Run("returns nil for nil input", func(t *testing.T) {
+		t.Parallel()
+		result := cloneR(nil)
+		assert.Nil(t, result)
+	})
+
+	t.Run("clones RAtCharset", func(t *testing.T) {
+		t.Parallel()
+		original := &css_ast.RAtCharset{Encoding: "UTF-8"}
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RAtCharset)
+		require.True(t, ok)
+		assert.Equal(t, "UTF-8", cloned.Encoding)
+		assert.NotSame(t, original, cloned)
+	})
+
+	t.Run("clones RAtImport without conditions", func(t *testing.T) {
 		t.Parallel()
 		original := &css_ast.RAtImport{
 			ImportRecordIndex: 42,
 			ImportConditions:  nil,
 		}
-		clone := cloneRAtImport(original)
-
-		require.NotNil(t, clone)
-		assert.NotSame(t, original, clone)
-		assert.Equal(t, uint32(42), clone.ImportRecordIndex)
-		assert.Nil(t, clone.ImportConditions)
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RAtImport)
+		require.True(t, ok)
+		assert.NotSame(t, original, cloned)
+		assert.Equal(t, uint32(42), cloned.ImportRecordIndex)
+		assert.Nil(t, cloned.ImportConditions)
 	})
 
-	t.Run("clones import with conditions", func(t *testing.T) {
+	t.Run("clones RAtImport with conditions", func(t *testing.T) {
 		t.Parallel()
 		conditions := &css_ast.ImportConditions{
 			Layers: []css_ast.Token{
@@ -467,73 +514,123 @@ func TestCloneRAtImport(t *testing.T) {
 			ImportRecordIndex: 7,
 			ImportConditions:  conditions,
 		}
-		clone := cloneRAtImport(original)
-
-		require.NotNil(t, clone)
-		assert.NotSame(t, original, clone)
-		assert.Equal(t, uint32(7), clone.ImportRecordIndex)
-		require.NotNil(t, clone.ImportConditions)
-		assert.NotSame(t, original.ImportConditions, clone.ImportConditions)
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RAtImport)
+		require.True(t, ok)
+		assert.NotSame(t, original, cloned)
+		assert.Equal(t, uint32(7), cloned.ImportRecordIndex)
+		require.NotNil(t, cloned.ImportConditions)
+		assert.NotSame(t, original.ImportConditions, cloned.ImportConditions)
 	})
-}
 
-func TestCloneRUnknownAt(t *testing.T) {
-	t.Parallel()
+	t.Run("clones RComment", func(t *testing.T) {
+		t.Parallel()
+		original := &css_ast.RComment{Text: "test comment"}
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RComment)
+		require.True(t, ok)
+		assert.Equal(t, "test comment", cloned.Text)
+		assert.NotSame(t, original, cloned)
+	})
 
-	t.Run("clones unknown at-rule with prelude and block", func(t *testing.T) {
+	t.Run("clones RComment with empty text", func(t *testing.T) {
+		t.Parallel()
+		original := &css_ast.RComment{Text: ""}
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RComment)
+		require.True(t, ok)
+		assert.NotSame(t, original, cloned)
+		assert.Equal(t, "", cloned.Text)
+	})
+
+	t.Run("clones RUnknownAt with prelude and block", func(t *testing.T) {
 		t.Parallel()
 		original := &css_ast.RUnknownAt{
 			AtToken: "@custom",
 			Prelude: []css_ast.Token{{Kind: css_lexer.TIdent, Text: "foo"}},
 			Block:   []css_ast.Token{{Kind: css_lexer.TIdent, Text: "bar"}},
 		}
-		clone := cloneRUnknownAt(original)
-
-		require.NotNil(t, clone)
-		assert.NotSame(t, original, clone)
-		assert.Equal(t, "@custom", clone.AtToken)
-		require.Len(t, clone.Prelude, 1)
-		assert.Equal(t, "foo", clone.Prelude[0].Text)
-		require.Len(t, clone.Block, 1)
-		assert.Equal(t, "bar", clone.Block[0].Text)
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RUnknownAt)
+		require.True(t, ok)
+		assert.NotSame(t, original, cloned)
+		assert.Equal(t, "@custom", cloned.AtToken)
+		require.Len(t, cloned.Prelude, 1)
+		assert.Equal(t, "foo", cloned.Prelude[0].Text)
+		require.Len(t, cloned.Block, 1)
+		assert.Equal(t, "bar", cloned.Block[0].Text)
 	})
 
-	t.Run("clones unknown at-rule with empty prelude and block", func(t *testing.T) {
+	t.Run("clones RUnknownAt with empty prelude and block", func(t *testing.T) {
 		t.Parallel()
 		original := &css_ast.RUnknownAt{
 			AtToken: "@empty",
 		}
-		clone := cloneRUnknownAt(original)
-
-		require.NotNil(t, clone)
-		assert.NotSame(t, original, clone)
-		assert.Equal(t, "@empty", clone.AtToken)
-		assert.Nil(t, clone.Prelude)
-		assert.Nil(t, clone.Block)
-	})
-}
-
-func TestCloneRComment(t *testing.T) {
-	t.Parallel()
-
-	t.Run("clones comment with text", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RComment{Text: "/* hello world */"}
-		clone := cloneRComment(original)
-
-		require.NotNil(t, clone)
-		assert.NotSame(t, original, clone)
-		assert.Equal(t, "/* hello world */", clone.Text)
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RUnknownAt)
+		require.True(t, ok)
+		assert.NotSame(t, original, cloned)
+		assert.Equal(t, "@empty", cloned.AtToken)
+		assert.Nil(t, cloned.Prelude)
+		assert.Nil(t, cloned.Block)
 	})
 
-	t.Run("clones comment with empty text", func(t *testing.T) {
+	t.Run("clones RDeclaration", func(t *testing.T) {
 		t.Parallel()
-		original := &css_ast.RComment{Text: ""}
-		clone := cloneRComment(original)
+		original := &css_ast.RDeclaration{
+			KeyText: "color",
+			Value:   []css_ast.Token{{Kind: css_lexer.TIdent, Text: "red"}},
+		}
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RDeclaration)
+		require.True(t, ok)
+		assert.Equal(t, "color", cloned.KeyText)
+		assert.NotSame(t, original, cloned)
+	})
 
-		require.NotNil(t, clone)
-		assert.NotSame(t, original, clone)
-		assert.Equal(t, "", clone.Text)
+	t.Run("clones RBadDeclaration", func(t *testing.T) {
+		t.Parallel()
+		original := &css_ast.RBadDeclaration{
+			Tokens: []css_ast.Token{{Kind: css_lexer.TIdent, Text: "bad"}},
+		}
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RBadDeclaration)
+		require.True(t, ok)
+		require.Len(t, cloned.Tokens, 1)
+		assert.NotSame(t, original, cloned)
+	})
+
+	t.Run("clones RAtLayer", func(t *testing.T) {
+		t.Parallel()
+		original := &css_ast.RAtLayer{
+			Names: [][]string{{"base", "theme"}},
+			Rules: []css_ast.Rule{},
+		}
+		result := cloneR(original)
+		require.NotNil(t, result)
+		cloned, ok := result.(*css_ast.RAtLayer)
+		require.True(t, ok)
+		require.Len(t, cloned.Names, 1)
+		assert.Equal(t, []string{"base", "theme"}, cloned.Names[0])
+		assert.NotSame(t, original, cloned)
+	})
+
+	t.Run("clones RAtMedia", func(t *testing.T) {
+		t.Parallel()
+		original := &css_ast.RAtMedia{
+			Rules: []css_ast.Rule{},
+		}
+		result := cloneR(original)
+		require.NotNil(t, result)
+		_, ok := result.(*css_ast.RAtMedia)
+		assert.True(t, ok)
 	})
 }
 
@@ -627,113 +724,6 @@ func TestReIndexRule(t *testing.T) {
 		}
 		reIndexRule(&rule, 7, 8)
 		require.NotNil(t, rule.Data)
-	})
-}
-
-func TestCloneR(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns nil for nil input", func(t *testing.T) {
-		t.Parallel()
-		result := cloneR(nil)
-		assert.Nil(t, result)
-	})
-
-	t.Run("clones RAtCharset", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RAtCharset{Encoding: "UTF-8"}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		cloned, ok := result.(*css_ast.RAtCharset)
-		require.True(t, ok)
-		assert.Equal(t, "UTF-8", cloned.Encoding)
-		assert.NotSame(t, original, cloned)
-	})
-
-	t.Run("clones RAtImport", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RAtImport{ImportRecordIndex: 5}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		cloned, ok := result.(*css_ast.RAtImport)
-		require.True(t, ok)
-		assert.Equal(t, uint32(5), cloned.ImportRecordIndex)
-		assert.NotSame(t, original, cloned)
-	})
-
-	t.Run("clones RComment", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RComment{Text: "test comment"}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		cloned, ok := result.(*css_ast.RComment)
-		require.True(t, ok)
-		assert.Equal(t, "test comment", cloned.Text)
-		assert.NotSame(t, original, cloned)
-	})
-
-	t.Run("clones RUnknownAt", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RUnknownAt{AtToken: "@test"}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		cloned, ok := result.(*css_ast.RUnknownAt)
-		require.True(t, ok)
-		assert.Equal(t, "@test", cloned.AtToken)
-		assert.NotSame(t, original, cloned)
-	})
-
-	t.Run("clones RDeclaration", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RDeclaration{
-			KeyText: "color",
-			Value:   []css_ast.Token{{Kind: css_lexer.TIdent, Text: "red"}},
-		}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		cloned, ok := result.(*css_ast.RDeclaration)
-		require.True(t, ok)
-		assert.Equal(t, "color", cloned.KeyText)
-		assert.NotSame(t, original, cloned)
-	})
-
-	t.Run("clones RBadDeclaration", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RBadDeclaration{
-			Tokens: []css_ast.Token{{Kind: css_lexer.TIdent, Text: "bad"}},
-		}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		cloned, ok := result.(*css_ast.RBadDeclaration)
-		require.True(t, ok)
-		require.Len(t, cloned.Tokens, 1)
-		assert.NotSame(t, original, cloned)
-	})
-
-	t.Run("clones RAtLayer", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RAtLayer{
-			Names: [][]string{{"base", "theme"}},
-			Rules: []css_ast.Rule{},
-		}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		cloned, ok := result.(*css_ast.RAtLayer)
-		require.True(t, ok)
-		require.Len(t, cloned.Names, 1)
-		assert.Equal(t, []string{"base", "theme"}, cloned.Names[0])
-		assert.NotSame(t, original, cloned)
-	})
-
-	t.Run("clones RAtMedia", func(t *testing.T) {
-		t.Parallel()
-		original := &css_ast.RAtMedia{
-			Rules: []css_ast.Rule{},
-		}
-		result := cloneR(original)
-		require.NotNil(t, result)
-		_, ok := result.(*css_ast.RAtMedia)
-		assert.True(t, ok)
 	})
 }
 
@@ -862,7 +852,7 @@ func TestWrapImportedASTWithConditions(t *testing.T) {
 				{Data: &css_ast.RComment{Text: "test"}},
 			},
 		}
-		result := wrapImportedASTWithConditions(original, nil, es_logger.Loc{})
+		result := WrapImportedASTWithConditions(original, nil, es_logger.Loc{})
 		assert.Same(t, original, result)
 	})
 
@@ -881,7 +871,7 @@ func TestWrapImportedASTWithConditions(t *testing.T) {
 				{Kind: css_lexer.TFunction, Text: "layer", Children: &children},
 			},
 		}
-		result := wrapImportedASTWithConditions(original, conditions, es_logger.Loc{})
+		result := WrapImportedASTWithConditions(original, conditions, es_logger.Loc{})
 		require.NotNil(t, result)
 		require.Len(t, result.Rules, 1)
 		layer, ok := result.Rules[0].Data.(*css_ast.RAtLayer)
@@ -902,7 +892,7 @@ func TestWrapImportedASTWithConditions(t *testing.T) {
 				{Kind: css_lexer.TIdent, Text: "display: grid"},
 			},
 		}
-		result := wrapImportedASTWithConditions(original, conditions, es_logger.Loc{})
+		result := WrapImportedASTWithConditions(original, conditions, es_logger.Loc{})
 		require.NotNil(t, result)
 		require.Len(t, result.Rules, 1)
 		knownAt, ok := result.Rules[0].Data.(*css_ast.RKnownAt)
@@ -922,7 +912,7 @@ func TestWrapImportedASTWithConditions(t *testing.T) {
 				{Loc: es_logger.Loc{}},
 			},
 		}
-		result := wrapImportedASTWithConditions(original, conditions, es_logger.Loc{})
+		result := WrapImportedASTWithConditions(original, conditions, es_logger.Loc{})
 		require.NotNil(t, result)
 		require.Len(t, result.Rules, 1)
 		media, ok := result.Rules[0].Data.(*css_ast.RAtMedia)
@@ -936,7 +926,7 @@ func TestCloneAST(t *testing.T) {
 
 	t.Run("returns nil for nil input", func(t *testing.T) {
 		t.Parallel()
-		result := cloneAST(nil)
+		result := CloneAST(nil)
 		assert.Nil(t, result)
 	})
 
@@ -954,7 +944,7 @@ func TestCloneAST(t *testing.T) {
 			},
 			ApproximateLineCount: 42,
 		}
-		clone := cloneAST(original)
+		clone := CloneAST(original)
 
 		require.NotNil(t, clone)
 		assert.NotSame(t, original, clone)
@@ -969,7 +959,7 @@ func TestCloneAST(t *testing.T) {
 		original := &css_ast.AST{
 			ApproximateLineCount: 0,
 		}
-		clone := cloneAST(original)
+		clone := CloneAST(original)
 
 		require.NotNil(t, clone)
 		assert.NotSame(t, original, clone)
@@ -979,20 +969,20 @@ func TestCloneAST(t *testing.T) {
 	})
 }
 
-func TestGetCSSInliner(t *testing.T) {
+func TestGetInliner(t *testing.T) {
 	t.Run("returns configured inliner from pool", func(t *testing.T) {
 		fsReader := newTestFSReader()
-		resolver := newTestResolver()
-		processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{}, resolver)
+		resolver := newPassthroughResolver()
+		processor := newTestProcessor(resolver)
 
-		ci := getCSSInliner(processor, fsReader)
+		ci := GetInliner(processor.GetResolver(), processor.GetParserOptions(), fsReader, "TEST")
 
 		require.NotNil(t, ci)
-		assert.Same(t, processor, ci.cp)
+		assert.Same(t, resolver, ci.resolver)
 		assert.NotNil(t, ci.cache)
 		assert.Nil(t, ci.diagnostics)
 
-		putCSSInliner(ci)
+		PutInliner(ci)
 	})
 }
 
@@ -1013,7 +1003,7 @@ func TestMergeASTs(t *testing.T) {
 			ImportRecords: []es_ast.ImportRecord{},
 		}
 
-		mergeASTs(parent, child)
+		MergeASTs(parent, child)
 
 		require.Len(t, parent.Rules, 2)
 
@@ -1029,18 +1019,15 @@ func TestMergeASTs(t *testing.T) {
 func TestCSSInliner_ConditionalImports(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
-	resolver := newTestResolver()
-
-	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
-		MinifyWhitespace: true,
-		MinifySyntax:     true,
-	}, resolver)
+	resolver := newPassthroughResolver()
+	processor := newTestProcessor(resolver)
 
 	t.Run("should handle import with layer condition", func(t *testing.T) {
 		fsReader.addFile("/test/layered.css", `.layered { display: block; }`)
 
 		css := `@import "/test/layered.css" layer(base);`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -1052,7 +1039,8 @@ func TestCSSInliner_ConditionalImports(t *testing.T) {
 		fsReader.addFile("/test/responsive.css", `.responsive { width: 100%; }`)
 
 		css := `@import "/test/responsive.css" screen and (min-width: 768px);`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)
@@ -1064,7 +1052,8 @@ func TestCSSInliner_ConditionalImports(t *testing.T) {
 		fsReader.addFile("/test/modern.css", `.modern { display: grid; }`)
 
 		css := `@import "/test/modern.css" supports(display: grid);`
-		inliner := newCSSInliner(processor, fsReader)
+		inliner := newTestInliner(processor, fsReader)
+		defer PutInliner(inliner)
 		tree, diagnostics := inliner.InlineAndParse(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 
 		require.NotNil(t, tree)

@@ -32,11 +32,8 @@ import (
 //
 // Takes children ([]*ast_domain.TemplateNode) which contains the sibling nodes
 // to process.
-// Takes events (*eventBindingCollection) which collects event bindings found
-// during processing.
-// Takes loopVars (map[string]bool) which tracks variables defined in enclosing
-// loops.
-// Takes booleanProps ([]string) which lists property names to treat as boolean.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns []js_ast.Expr which contains the JavaScript AST expressions for each
 // processed child.
@@ -44,9 +41,7 @@ import (
 func processChainAwareChildren(
 	ctx context.Context,
 	children []*ast_domain.TemplateNode,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) ([]js_ast.Expr, error) {
 	if len(children) == 0 {
 		return nil, nil
@@ -57,7 +52,7 @@ func processChainAwareChildren(
 	for i := 0; i < len(children); i++ {
 		child := children[i]
 
-		expression, skip, err := processChildNode(ctx, child, children, &i, events, loopVars, booleanProps)
+		expression, skip, err := processChildNode(ctx, child, children, &i, buildContext)
 		if err != nil {
 			return nil, fmt.Errorf("processing child node: %w", err)
 		}
@@ -79,9 +74,8 @@ func processChainAwareChildren(
 // Takes children ([]*ast_domain.TemplateNode) which is the full list of sibling
 // nodes, needed to handle conditional chains.
 // Takes index (*int) which tracks the current position in the children list.
-// Takes events (*eventBindingCollection) which gathers event bindings.
-// Takes loopVars (map[string]bool) which tracks active loop variables.
-// Takes booleanProps ([]string) which lists properties to treat as boolean.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the built AST expression for the node.
 // Returns bool which shows whether the node should be skipped.
@@ -91,19 +85,17 @@ func processChildNode(
 	child *ast_domain.TemplateNode,
 	children []*ast_domain.TemplateNode,
 	index *int,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, bool, error) {
 	if child.DirIf != nil {
-		return processConditionalChain(ctx, child, children, index, events, loopVars, booleanProps)
+		return processConditionalChain(ctx, child, children, index, buildContext)
 	}
 
 	if child.DirElseIf != nil || child.DirElse != nil {
 		return js_ast.Expr{}, true, nil
 	}
 
-	nodeExpr, err := buildNodeAST(ctx, child, events, loopVars, booleanProps)
+	nodeExpr, err := buildNodeAST(ctx, child, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, false, err
 	}
@@ -120,9 +112,8 @@ func processChildNode(
 // Takes children ([]*ast_domain.TemplateNode) which contains sibling nodes to
 // scan for else-if/else.
 // Takes index (*int) which points to the current index, updated after processing.
-// Takes events (*eventBindingCollection) which collects event bindings found.
-// Takes loopVars (map[string]bool) which tracks variables from enclosing loops.
-// Takes booleanProps ([]string) which lists properties to treat as boolean.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the conditional chain as a ternary expression.
 // Returns bool which is always false for conditional chains.
@@ -132,13 +123,11 @@ func processConditionalChain(
 	ifNode *ast_domain.TemplateNode,
 	children []*ast_domain.TemplateNode,
 	index *int,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, bool, error) {
 	chain, nextIndex := collectConditionalChain(ifNode, children, *index)
 
-	chainExpr, err := buildConditionalChainAST(ctx, chain, events, loopVars, booleanProps)
+	chainExpr, err := buildConditionalChainAST(ctx, chain, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, false, err
 	}
@@ -208,60 +197,52 @@ func isChainContinuation(node *ast_domain.TemplateNode) bool {
 //
 // Takes chain ([]*ast_domain.TemplateNode) which contains the conditional
 // nodes to process.
-// Takes events (*eventBindingCollection) which collects event bindings found
-// during processing.
-// Takes loopVars (map[string]bool) which tracks variables defined in parent
-// loops.
-// Takes booleanProps ([]string) which lists properties to treat as booleans.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the nested ternary expression.
 // Returns error when building any conditional in the chain fails.
 func buildConditionalChainAST(
 	ctx context.Context,
 	chain []*ast_domain.TemplateNode,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, error) {
 	if len(chain) == 0 {
 		return newNullLiteral(), nil
 	}
 
 	if len(chain) == 1 {
-		return buildSingleConditional(ctx, chain[0], events, loopVars, booleanProps)
+		return buildSingleConditional(ctx, chain[0], buildContext)
 	}
 
-	return buildChainedConditional(ctx, chain, events, loopVars, booleanProps)
+	return buildChainedConditional(ctx, chain, buildContext)
 }
 
 // buildSingleConditional handles a standalone p-if directive.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
-// Takes events (*eventBindingCollection) which tracks event bindings.
-// Takes loopVars (map[string]bool) which contains loop variable names in scope.
-// Takes booleanProps ([]string) which lists properties to treat as boolean.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the conditional expression for the virtual DOM.
 // Returns error when expression transformation or node building fails.
 func buildSingleConditional(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, error) {
 	if node.DirIf == nil {
 		return newNullLiteral(), nil
 	}
 
-	condJS, err := transformOurASTtoJSAST(node.DirIf.Expression, events.getRegistry())
+	condJS, err := transformOurASTtoJSAST(node.DirIf.Expression, buildContext.events.getRegistry())
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
 
 	clone := cloneNode(node)
 	clone.DirIf = nil
-	consequentExpr, err := buildNodeAST(ctx, clone, events, loopVars, booleanProps)
+	consequentExpr, err := buildNodeAST(ctx, clone, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
@@ -277,21 +258,15 @@ func buildSingleConditional(
 //
 // Takes chain ([]*ast_domain.TemplateNode) which contains the conditional nodes
 // to chain together.
-// Takes events (*eventBindingCollection) which collects event bindings found
-// during processing.
-// Takes loopVars (map[string]bool) which tracks variables defined in enclosing
-// loops.
-// Takes booleanProps ([]string) which lists properties that should be treated
-// as booleans.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the chained ternary expression.
 // Returns error when building any node in the chain fails.
 func buildChainedConditional(
 	ctx context.Context,
 	chain []*ast_domain.TemplateNode,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, error) {
 	lastNode := chain[len(chain)-1]
 	var ternaryExpr js_ast.Expr
@@ -299,7 +274,7 @@ func buildChainedConditional(
 	if lastNode.DirElse != nil {
 		clone := cloneNode(lastNode)
 		clone.DirElse = nil
-		elseExpr, err := buildNodeAST(ctx, clone, events, loopVars, booleanProps)
+		elseExpr, err := buildNodeAST(ctx, clone, buildContext)
 		if err != nil {
 			return js_ast.Expr{}, err
 		}
@@ -311,7 +286,7 @@ func buildChainedConditional(
 	for i := len(chain) - 2; i >= 0; i-- {
 		node := chain[i]
 		var err error
-		ternaryExpr, err = wrapNodeInTernary(ctx, node, ternaryExpr, events, loopVars, booleanProps)
+		ternaryExpr, err = wrapNodeInTernary(ctx, node, ternaryExpr, buildContext)
 		if err != nil {
 			return js_ast.Expr{}, err
 		}
@@ -325,10 +300,8 @@ func buildChainedConditional(
 // Takes node (*ast_domain.TemplateNode) which is the template node to wrap.
 // Takes alternate (js_ast.Expr) which is the fallback expression for the else
 // branch.
-// Takes events (*eventBindingCollection) which tracks event bindings during
-// transformation.
-// Takes loopVars (map[string]bool) which contains loop variable names in scope.
-// Takes booleanProps ([]string) which lists property names to treat as boolean.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the resulting ternary expression.
 // Returns error when the conditional expression cannot be transformed.
@@ -336,9 +309,7 @@ func wrapNodeInTernary(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
 	alternate js_ast.Expr,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, error) {
 	var condDirective *ast_domain.Directive
 
@@ -350,7 +321,7 @@ func wrapNodeInTernary(
 		return alternate, nil
 	}
 
-	condJS, err := transformOurASTtoJSAST(condDirective.Expression, events.getRegistry())
+	condJS, err := transformOurASTtoJSAST(condDirective.Expression, buildContext.events.getRegistry())
 	if err != nil {
 		return js_ast.Expr{}, fmt.Errorf("failed to transform conditional expression '%s': %w", condDirective.RawExpression, err)
 	}
@@ -358,7 +329,7 @@ func wrapNodeInTernary(
 	clone := cloneNode(node)
 	clone.DirIf = nil
 	clone.DirElseIf = nil
-	consequentExpr, err := buildNodeAST(ctx, clone, events, loopVars, booleanProps)
+	consequentExpr, err := buildNodeAST(ctx, clone, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, err
 	}

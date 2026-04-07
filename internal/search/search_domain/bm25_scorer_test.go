@@ -25,6 +25,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/search/search_dto"
 	"piko.sh/piko/internal/search/search_schema/search_schema_gen"
 )
@@ -544,9 +546,7 @@ func TestBM25Scorer_ScoreWithExplanation(t *testing.T) {
 		t.Errorf("Expected positive score, got %.4f", score)
 	}
 
-	if explanation == nil {
-		t.Fatal("Expected explanation, got nil")
-	}
+	require.NotNil(t, explanation, "Expected explanation, got nil")
 
 	if explanation.DocumentID != 0 {
 		t.Errorf("Expected DocumentID 0, got %d", explanation.DocumentID)
@@ -630,9 +630,7 @@ func TestBM25Scorer_ScoreWithExplanation_MissingTerm(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if explanation == nil {
-		t.Fatal("Expected explanation, got nil")
-	}
+	require.NotNil(t, explanation, "Expected explanation, got nil")
 
 	if len(explanation.TermScores) != 2 {
 		t.Errorf("Expected 2 term scores, got %d", len(explanation.TermScores))

@@ -36,9 +36,7 @@ func TestNewStaticEmitter(t *testing.T) {
 	em := &emitter{}
 	se := newStaticEmitter(em, "")
 
-	if se == nil {
-		t.Fatal("newStaticEmitter returned nil")
-	}
+	require.NotNil(t, se, "newStaticEmitter returned nil")
 
 	if se.emitter != em {
 		t.Error("Static emitter not linked to parent emitter")
@@ -70,9 +68,7 @@ func TestRegisterStaticNode_SimpleTextNode(t *testing.T) {
 
 	identifier, diagnostics := se.registerStaticNode(ctx, node, "")
 
-	if identifier == nil {
-		t.Fatal("registerStaticNode returned nil identifier")
-	}
+	require.NotNil(t, identifier, "registerStaticNode returned nil identifier")
 
 	if len(diagnostics) > 0 {
 		t.Errorf("Expected no diagnostics, got: %d", len(diagnostics))
@@ -166,9 +162,7 @@ func TestRegisterStaticNode_ElementWithAttributes(t *testing.T) {
 
 	identifier, diagnostics := se.registerStaticNode(ctx, node, "")
 
-	if identifier == nil {
-		t.Fatal("registerStaticNode returned nil identifier")
-	}
+	require.NotNil(t, identifier, "registerStaticNode returned nil identifier")
 
 	if len(diagnostics) > 0 {
 		t.Errorf("Unexpected diagnostics: %v", diagnostics)
@@ -213,9 +207,7 @@ func TestRegisterStaticNode_ElementWithChildren(t *testing.T) {
 
 	identifier, diagnostics := se.registerStaticNode(ctx, node, "")
 
-	if identifier == nil {
-		t.Fatal("registerStaticNode returned nil identifier")
-	}
+	require.NotNil(t, identifier, "registerStaticNode returned nil identifier")
 
 	if len(diagnostics) > 0 {
 		t.Errorf("Unexpected diagnostics: %v", diagnostics)
@@ -247,9 +239,7 @@ func TestRegisterStaticNode_WithKey(t *testing.T) {
 
 	identifier, diagnostics := se.registerStaticNode(ctx, node, "")
 
-	if identifier == nil {
-		t.Fatal("registerStaticNode returned nil identifier")
-	}
+	require.NotNil(t, identifier, "registerStaticNode returned nil identifier")
 
 	if len(diagnostics) > 0 {
 		t.Errorf("Unexpected diagnostics: %v", diagnostics)
@@ -330,9 +320,7 @@ func TestBuildDeclarations(t *testing.T) {
 
 	declaration := se.buildDeclarations()
 
-	if declaration == nil {
-		t.Fatal("buildDeclarations returned nil")
-	}
+	require.NotNil(t, declaration, "buildDeclarations returned nil")
 
 	genDecl, ok := declaration.(*goast.GenDecl)
 	if !ok {
@@ -375,9 +363,7 @@ func TestBuildInitFunction(t *testing.T) {
 
 	initFunc := se.buildInitFunction()
 
-	if initFunc == nil {
-		t.Fatal("buildInitFunction returned nil")
-	}
+	require.NotNil(t, initFunc, "buildInitFunction returned nil")
 
 	funcDecl, ok := initFunc.(*goast.FuncDecl)
 	if !ok {

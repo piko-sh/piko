@@ -21,6 +21,8 @@ package collection_dto
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func createTestItem(id string, metadata map[string]any) *ContentItem {
@@ -507,9 +509,7 @@ func TestToFloat64(t *testing.T) {
 				}
 				return
 			}
-			if got == nil {
-				t.Fatalf("toFloat64(%v) = nil, want %v", tt.input, tt.wantVal)
-			}
+			require.NotNil(t, got, "toFloat64(%v) = nil, want %v", tt.input, tt.wantVal)
 
 			diff := *got - tt.wantVal
 			if diff < -0.01 || diff > 0.01 {

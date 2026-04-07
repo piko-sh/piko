@@ -71,8 +71,6 @@ func TestIsPikoSvg(t *testing.T) {
 }
 
 func TestTransformAssetSrc(t *testing.T) {
-	ctx := context.Background()
-
 	testCases := []struct {
 		name     string
 		input    string
@@ -122,19 +120,18 @@ func TestTransformAssetSrc(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := transformAssetSrc(ctx, tc.input)
+			result := transformAssetSrc(tc.input, "")
 			assert.Equal(t, tc.expected, result)
 		})
 	}
 
-	t.Run("resolves @/ alias when module name in context", func(t *testing.T) {
-		ctxWithModule := WithModuleName(context.Background(), "testmodule")
-		result := transformAssetSrc(ctxWithModule, "@/lib/images/hero.png")
+	t.Run("resolves @/ alias when module name provided", func(t *testing.T) {
+		result := transformAssetSrc("@/lib/images/hero.png", "testmodule")
 		assert.Equal(t, "/_piko/assets/testmodule/lib/images/hero.png", result)
 	})
 
-	t.Run("keeps @/ when no module name in context", func(t *testing.T) {
-		result := transformAssetSrc(ctx, "@/lib/images/hero.png")
+	t.Run("keeps @/ when no module name provided", func(t *testing.T) {
+		result := transformAssetSrc("@/lib/images/hero.png", "")
 		assert.Equal(t, "/_piko/assets/@/lib/images/hero.png", result)
 	})
 }
@@ -358,7 +355,7 @@ func TestBuildPikoImgAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("img0")
-		result, err := buildPikoImgAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildPikoImgAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 
 		call, ok := result.Data.(*js_ast.ECall)
@@ -389,7 +386,7 @@ func TestBuildPikoImgAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("img0")
-		result, err := buildPikoImgAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildPikoImgAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -413,7 +410,7 @@ func TestBuildPikoSvgAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("svg0")
-		result, err := buildPikoSvgAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildPikoSvgAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 
 		call, ok := result.Data.(*js_ast.ECall)
@@ -454,7 +451,7 @@ func TestBuildPikoPictureAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("pic0")
-		result, err := buildPikoPictureAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildPikoPictureAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 
 		call, ok := result.Data.(*js_ast.ECall)
@@ -486,7 +483,7 @@ func TestBuildPikoPictureAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("pic0")
-		result, err := buildPikoPictureAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildPikoPictureAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 
@@ -519,7 +516,7 @@ func TestBuildAssetElementNodeAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("0")
-		result, err := buildAssetElementNodeAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildAssetElementNodeAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -538,7 +535,7 @@ func TestBuildAssetElementNodeAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("0")
-		result, err := buildAssetElementNodeAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildAssetElementNodeAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 
@@ -563,7 +560,7 @@ func TestBuildAssetElementNodeAST(t *testing.T) {
 		}
 
 		keyExpr := newStringLiteral("0")
-		result, err := buildAssetElementNodeAST(ctx, node, events, keyExpr, nil, nil)
+		result, err := buildAssetElementNodeAST(ctx, node, &nodeBuildContext{events: events}, keyExpr)
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -571,9 +568,8 @@ func TestBuildAssetElementNodeAST(t *testing.T) {
 
 func TestBuildAssetSrcTransformCall(t *testing.T) {
 	t.Run("wraps expression with piko.assets.resolve without module name", func(t *testing.T) {
-		ctx := context.Background()
 		srcExpr := newIdentifier("imagePath")
-		result := buildAssetSrcTransformCall(ctx, srcExpr)
+		result := buildAssetSrcTransformCall(srcExpr, "")
 
 		call, ok := result.Data.(*js_ast.ECall)
 		require.True(t, ok)
@@ -586,9 +582,8 @@ func TestBuildAssetSrcTransformCall(t *testing.T) {
 	})
 
 	t.Run("includes module name as second argument when present", func(t *testing.T) {
-		ctx := WithModuleName(context.Background(), "testmodule")
 		srcExpr := newIdentifier("imagePath")
-		result := buildAssetSrcTransformCall(ctx, srcExpr)
+		result := buildAssetSrcTransformCall(srcExpr, "testmodule")
 
 		call, ok := result.Data.(*js_ast.ECall)
 		require.True(t, ok)

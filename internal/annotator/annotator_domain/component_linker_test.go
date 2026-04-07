@@ -42,9 +42,7 @@ func TestNewComponentLinker(t *testing.T) {
 		}
 		linker := NewComponentLinker(resolver)
 
-		if linker == nil {
-			t.Fatal("Expected non-nil linker")
-		}
+		require.NotNil(t, linker, "Expected non-nil linker")
 		if linker.typeResolver != resolver {
 			t.Error("Expected resolver to be set")
 		}
@@ -74,9 +72,7 @@ func TestComponentLinker_Link(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error for empty AST, got: %v", err)
 		}
-		if result == nil {
-			t.Fatal("Expected non-nil result")
-		}
+		require.NotNil(t, result, "Expected non-nil result")
 		if len(diagnostics) != 0 {
 			t.Errorf("Expected no diagnostics for empty AST, got %d", len(diagnostics))
 		}
@@ -104,9 +100,7 @@ func TestComponentLinker_Link(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error for nil AST, got: %v", err)
 		}
-		if result == nil {
-			t.Fatal("Expected non-nil result")
-		}
+		require.NotNil(t, result, "Expected non-nil result")
 		if len(diagnostics) != 0 {
 			t.Errorf("Expected no diagnostics, got %d", len(diagnostics))
 		}
@@ -450,9 +444,7 @@ func TestParseDefaultValue(t *testing.T) {
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
-			if result == nil {
-				t.Fatal("Expected non-nil result")
-			}
+			require.NotNil(t, result, "Expected non-nil result")
 
 			resultType := getExpressionTypeName(result)
 			if resultType != tt.expectType {
@@ -672,9 +664,7 @@ func TestCreateEmptyLinkingResult(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got: %v", err)
 		}
-		if result == nil {
-			t.Fatal("Expected non-nil result")
-		}
+		require.NotNil(t, result, "Expected non-nil result")
 		if result.LinkedAST != ast {
 			t.Error("Expected LinkedAST to be the same as input")
 		}
@@ -700,9 +690,7 @@ func TestCreateEmptyLinkingResult(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got: %v", err)
 		}
-		if result == nil {
-			t.Fatal("Expected non-nil result")
-		}
+		require.NotNil(t, result, "Expected non-nil result")
 		if result.LinkedAST != nil {
 			t.Error("Expected nil LinkedAST")
 		}

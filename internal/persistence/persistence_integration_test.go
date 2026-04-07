@@ -217,9 +217,7 @@ func TestIntegration_PersistenceRecovery(t *testing.T) {
 			}
 		}
 
-		if foundTask == nil {
-			t.Fatalf("task not recovered from WAL")
-		}
+		require.NotNil(t, foundTask, "task not recovered from WAL")
 		if foundTask.WorkflowID != testTask.WorkflowID {
 			t.Errorf("task WorkflowID mismatch: got %q, want %q", foundTask.WorkflowID, testTask.WorkflowID)
 		}

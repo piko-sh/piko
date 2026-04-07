@@ -111,7 +111,6 @@ func (n *MockSignalNotifier) WasTriggered() bool {
 // Returns <-chan struct{} which is closed once NotifyContext has been called.
 func (n *MockSignalNotifier) AwaitNotifyContext() <-chan struct{} {
 	if n.notifyContextCalled == nil {
-
 		ch := make(chan struct{})
 		go func() {
 			for !n.NotifyContextCalled() {

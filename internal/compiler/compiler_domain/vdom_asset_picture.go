@@ -35,22 +35,19 @@ import (
 // Takes ctx (context.Context) which carries the module name.
 // Takes n (*ast_domain.TemplateNode) which is the piko:picture element to
 // process.
-// Takes events (*eventBindingCollection) which collects event bindings.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression for the element.
-// Takes loopVars (map[string]bool) which tracks loop variables in scope.
-// Takes booleanProps ([]string) which lists boolean property names.
 //
 // Returns js_ast.Expr which is the JavaScript AST for the picture element.
 // Returns error when building the element fails.
 func buildPikoPictureAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
+	buildContext *nodeBuildContext,
 	keyJSExpr js_ast.Expr,
-	loopVars map[string]bool,
-	booleanProps []string,
 ) (js_ast.Expr, error) {
-	registry := events.getRegistry()
+	registry := buildContext.events.getRegistry()
 	imgAttrs := extractPikoImgAttrs(n)
 
 	formats := []string{"webp"}
@@ -61,7 +58,7 @@ func buildPikoPictureAST(
 
 	var transformedSrc string
 	if imgAttrs.source != "" {
-		transformedSrc = transformAssetSrc(ctx, imgAttrs.source)
+		transformedSrc = transformAssetSrc(imgAttrs.source, buildContext.moduleName)
 	}
 
 	children := buildPictureSourceElements(transformedSrc, imgAttrs, formats)
@@ -69,12 +66,12 @@ func buildPikoPictureAST(
 	imgProperties := make(map[string]js_ast.Expr)
 	multiValueProps := make(map[string][]js_ast.Expr)
 
-	populateImgSrcProperties(ctx, imgAttrs, transformedSrc, fallbackFormat, imgProperties, registry)
+	populateImgSrcProperties(imgAttrs, transformedSrc, fallbackFormat, imgProperties, registry, buildContext.moduleName)
 
 	collectDirectiveProps(n, imgProperties, registry)
 	collectPikoImgStaticAttrs(n, imgProperties, imgAttrs)
-	collectPikoAssetDynamicAttrs(n, imgProperties, booleanProps, registry)
-	collectEventHandlers(ctx, n, events, loopVars, multiValueProps)
+	collectPikoAssetDynamicAttrs(n, imgProperties, buildContext.booleanProps, registry)
+	collectEventHandlers(ctx, n, buildContext.events, buildContext.loopVars, multiValueProps)
 	mergeMultiValueProps(imgProperties, multiValueProps)
 
 	imgEl := buildDOMCall("el",
@@ -145,19 +142,19 @@ func buildPictureSourceElements(transformedSrc string, imgAttrs pikoImgAttrs, fo
 // element based on whether the image has a static src with profiles, a plain
 // static src, or a dynamic src expression.
 //
-// Takes ctx (context.Context) which provides the module name for asset
-// transforms.
 // Takes imgAttrs (pikoImgAttrs) which provides the image attributes.
 // Takes transformedSrc (string) which is the transformed source URL.
 // Takes fallbackFormat (string) which is the fallback image format.
 // Takes imgProperties (map[string]js_ast.Expr) which receives the properties.
 // Takes registry (*RegistryContext) which provides event binding state.
+// Takes moduleName (string) which is the Go module name for @/ alias
+// resolution.
 func populateImgSrcProperties(
-	ctx context.Context,
 	imgAttrs pikoImgAttrs,
 	transformedSrc, fallbackFormat string,
 	imgProperties map[string]js_ast.Expr,
 	registry *RegistryContext,
+	moduleName string,
 ) {
 	switch {
 	case imgAttrs.source != "" && imgAttrs.hasProfile():
@@ -175,7 +172,7 @@ func populateImgSrcProperties(
 	case imgAttrs.dynamicSource != nil:
 		jsExpr, err := transformOurASTtoJSAST(imgAttrs.dynamicSource, registry)
 		if err == nil && jsExpr.Data != nil {
-			transformedExpr := buildAssetSrcTransformCall(ctx, jsExpr)
+			transformedExpr := buildAssetSrcTransformCall(jsExpr, moduleName)
 			imgProperties[attributeSrc] = js_ast.Expr{Data: &js_ast.EUnary{Op: js_ast.UnOpPos, Value: transformedExpr}}
 		}
 	}

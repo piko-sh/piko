@@ -44,7 +44,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 		registry := NewRegistryContext()
 		events := newEventBindingCollection(registry)
 
-		result, err := builder.BuildRenderVDOM(ctx, nil, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, nil, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.NotNil(t, result.Fn.Body.Block.Stmts)
@@ -59,7 +59,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			RootNodes: []*ast_domain.TemplateNode{},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -79,7 +79,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Len(t, result.Fn.Body.Block.Stmts, 1)
@@ -104,7 +104,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -131,7 +131,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -156,7 +156,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Len(t, result.Fn.Body.Block.Stmts, 1)
@@ -182,7 +182,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -208,7 +208,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -232,7 +232,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -255,7 +255,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{"disabled"})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{"disabled"}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -296,7 +296,7 @@ func TestVDOMBuilder_BuildRenderVDOM(t *testing.T) {
 			},
 		}
 
-		result, err := builder.BuildRenderVDOM(ctx, tmplAST, events, []string{})
+		result, err := builder.BuildRenderVDOM(ctx, tmplAST, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -345,7 +345,7 @@ func TestBuildNodeAST(t *testing.T) {
 			Key:         &ast_domain.StringLiteral{Value: "0"},
 		}
 
-		result, err := buildNodeAST(ctx, node, events, nil, []string{})
+		result, err := buildNodeAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 		_, ok := result.Data.(*js_ast.ECall)
@@ -362,7 +362,7 @@ func TestBuildNodeAST(t *testing.T) {
 			Key:         &ast_domain.StringLiteral{Value: "0"},
 		}
 
-		result, err := buildNodeAST(ctx, node, events, nil, []string{})
+		result, err := buildNodeAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -377,7 +377,7 @@ func TestBuildNodeAST(t *testing.T) {
 			Key:         &ast_domain.StringLiteral{Value: "0"},
 		}
 
-		result, err := buildNodeAST(ctx, node, events, nil, []string{})
+		result, err := buildNodeAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -392,7 +392,7 @@ func TestBuildNodeAST(t *testing.T) {
 			Key:      &ast_domain.StringLiteral{Value: "0"},
 		}
 
-		result, err := buildNodeAST(ctx, node, events, nil, []string{})
+		result, err := buildNodeAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -407,7 +407,7 @@ func TestBuildNodeAST(t *testing.T) {
 			Children: []*ast_domain.TemplateNode{},
 		}
 
-		result, err := buildNodeAST(ctx, node, events, nil, []string{})
+		result, err := buildNodeAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -421,7 +421,7 @@ func TestBuildNodeAST(t *testing.T) {
 			Key:      &ast_domain.StringLiteral{Value: "0"},
 		}
 
-		result, err := buildNodeAST(ctx, node, events, nil, []string{})
+		result, err := buildNodeAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 		_, ok := result.Data.(*js_ast.ENull)
@@ -450,7 +450,7 @@ func TestBuildForLoopAST(t *testing.T) {
 			},
 		}
 
-		result, err := buildForLoopAST(ctx, node, events, nil, []string{})
+		result, err := buildForLoopAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 		_, ok := result.Data.(*js_ast.ECall)
@@ -479,7 +479,7 @@ func TestBuildForLoopAST(t *testing.T) {
 			},
 		}
 
-		result, err := buildForLoopAST(ctx, node, events, outerVars, []string{})
+		result, err := buildForLoopAST(ctx, node, &nodeBuildContext{events: events, loopVars: outerVars, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -501,7 +501,7 @@ func TestBuildForLoopAST(t *testing.T) {
 			},
 		}
 
-		result, err := buildForLoopAST(ctx, node, events, nil, []string{})
+		result, err := buildForLoopAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		require.NoError(t, err)
 		require.NotNil(t, result.Data)
 	})
@@ -520,7 +520,7 @@ func TestBuildForLoopAST(t *testing.T) {
 			},
 		}
 
-		_, err := buildForLoopAST(ctx, node, events, nil, []string{})
+		_, err := buildForLoopAST(ctx, node, &nodeBuildContext{events: events, booleanProps: []string{}})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "ForInExpr")
 	})

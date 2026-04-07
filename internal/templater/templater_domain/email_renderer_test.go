@@ -25,6 +25,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/email/email_dto"
 	"piko.sh/piko/internal/premailer"
@@ -99,9 +101,7 @@ func TestEmailTemplateService_Render_Success(t *testing.T) {
 	result, err := service.Render(ctx, request, templatePath, props, premailerOpts, false)
 
 	AssertNoError(t, err)
-	if result == nil {
-		t.Fatal("expected result to not be nil")
-	}
+	require.NotNil(t, result, "expected result to not be nil")
 	if result.HTML != "<html><body>Welcome, Alice!</body></html>" {
 		t.Errorf("expected HTML %q, got %q", "<html><body>Welcome, Alice!</body></html>", result.HTML)
 	}
@@ -217,9 +217,7 @@ func TestEmailTemplateService_Render_PlainTextError(t *testing.T) {
 	result, err := service.Render(ctx, request, templatePath, nil, nil, false)
 
 	AssertNoError(t, err)
-	if result == nil {
-		t.Fatal("expected result to not be nil")
-	}
+	require.NotNil(t, result, "expected result to not be nil")
 	if result.HTML != "<html>content</html>" {
 		t.Errorf("expected HTML %q, got %q", "<html>content</html>", result.HTML)
 	}
@@ -307,9 +305,7 @@ func TestEmailTemplateService_Render_NoAssets(t *testing.T) {
 	result, err := service.Render(ctx, request, templatePath, nil, nil, false)
 
 	AssertNoError(t, err)
-	if result == nil {
-		t.Fatal("expected result to not be nil")
-	}
+	require.NotNil(t, result, "expected result to not be nil")
 	if result.AttachmentRequests != nil {
 		t.Error("expected AttachmentRequests to be nil")
 	}

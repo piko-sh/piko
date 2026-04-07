@@ -33,7 +33,7 @@ import (
 
 func TestNewSFCCompiler(t *testing.T) {
 	t.Run("creates SFC compiler", func(t *testing.T) {
-		compiler := NewSFCCompiler()
+		compiler := NewSFCCompiler("", nil)
 
 		require.NotNil(t, compiler)
 		_, ok := compiler.(*sfcCompiler)
@@ -41,7 +41,7 @@ func TestNewSFCCompiler(t *testing.T) {
 	})
 
 	t.Run("implements SFCCompiler interface", func(t *testing.T) {
-		compiler := NewSFCCompiler()
+		compiler := NewSFCCompiler("", nil)
 
 		assert.NotNil(t, compiler)
 	})
@@ -372,7 +372,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 	t.Run("compiles minimal SFC", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template name="my-counter"><div>Hello</div></template>`)
 
-		artefact, err := compileSFC(ctx, "my-counter.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "my-counter.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -387,7 +387,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 <style>.container { color: red; }</style>
 `)
 
-		artefact, err := compileSFC(ctx, "styled-component.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "styled-component.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -399,7 +399,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 	t.Run("generates scaffold HTML", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template name="test-scaffold"><p>Scaffold content</p></template>`)
 
-		artefact, err := compileSFC(ctx, "test-scaffold.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "test-scaffold.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -410,7 +410,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 	t.Run("handles empty template", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template name="no-template"></template>`)
 
-		artefact, err := compileSFC(ctx, "no-template.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "no-template.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -420,7 +420,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 	t.Run("falls back to filename for unnamed component", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template><div>Unnamed</div></template>`)
 
-		artefact, err := compileSFC(ctx, "my-widget.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "my-widget.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -430,7 +430,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 	t.Run("returns error when name has no hyphen", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template><div>Bad</div></template>`)
 
-		_, err := compileSFC(ctx, "widget.pkc", rawSFC)
+		_, err := compileSFC(ctx, "widget.pkc", rawSFC, "", nil)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "require a '-' in their name")
@@ -439,7 +439,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 	t.Run("extracts enabled behaviours", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template name="behaviour-test" enable="draggable resizable"><div>Test</div></template>`)
 
-		artefact, err := compileSFC(ctx, "behaviour-test.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "behaviour-test.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -453,7 +453,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 <style>.second { color: blue; }</style>
 `)
 
-		artefact, err := compileSFC(ctx, "multi-style.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "multi-style.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -467,7 +467,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 <style aesthetic>.aesthetic-only { display: none; }</style>
 `)
 
-		artefact, err := compileSFC(ctx, "aesthetic-test.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "aesthetic-test.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -477,7 +477,7 @@ func TestCompileSFC_Integration(t *testing.T) {
 	t.Run("returns error for template with syntax errors", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template name="bad-template"><div p-if></div></template>`)
 
-		artefact, err := compileSFC(ctx, "bad-template.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "bad-template.pkc", rawSFC, "", nil)
 
 		if err != nil {
 			assert.Contains(t, err.Error(), "syntax error")
@@ -506,7 +506,7 @@ class CounterComponentElement extends PPElement {
 </template>
 `)
 
-		artefact, err := compileSFC(ctx, "counter-component.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "counter-component.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -530,7 +530,7 @@ class ImportTestElement extends PPElement {
 <template name="import-test"><div>Import Test</div></template>
 `)
 
-		artefact, err := compileSFC(ctx, "import-test.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "import-test.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -539,7 +539,7 @@ class ImportTestElement extends PPElement {
 	t.Run("adds customElements.define", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template name="define-test"><div>Test</div></template>`)
 
-		artefact, err := compileSFC(ctx, "define-test.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "define-test.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
@@ -583,7 +583,7 @@ func TestPrintTdewolffAST(t *testing.T) {
 
 func TestSFCCompiler_CompileSFC(t *testing.T) {
 	ctx := context.Background()
-	compiler := NewSFCCompiler()
+	compiler := NewSFCCompiler("", nil)
 
 	t.Run("compiles valid SFC", func(t *testing.T) {
 		rawSFC := []byte(`<script></script><template name="test-component"><div>Test</div></template>`)
@@ -714,7 +714,7 @@ p { font-size: 16px; }
 
 	b.ResetTimer()
 	for b.Loop() {
-		_, _ = compileSFC(ctx, "bench-component.pkc", rawSFC)
+		_, _ = compileSFC(ctx, "bench-component.pkc", rawSFC, "", nil)
 	}
 }
 
@@ -755,7 +755,7 @@ class StructureTestElement extends PPElement {
 <template name="structure-test"><div>{{ value }}</div></template>
 `)
 
-		artefact, err := compileSFC(ctx, "structure-test.pkc", rawSFC)
+		artefact, err := compileSFC(ctx, "structure-test.pkc", rawSFC, "", nil)
 
 		require.NoError(t, err)
 		jsContent := artefact.Files["structure-test.js"]

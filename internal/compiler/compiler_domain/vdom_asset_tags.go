@@ -161,66 +161,60 @@ func isPikoSvg(tagName string) bool {
 //
 // Takes n (*ast_domain.TemplateNode) which is the asset element node to
 // process.
-// Takes events (*eventBindingCollection) which collects event bindings.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression for the element.
-// Takes loopVars (map[string]bool) which tracks loop variables in scope.
-// Takes booleanProps ([]string) which lists boolean property names.
 //
 // Returns js_ast.Expr which is the JavaScript AST for the element.
 // Returns error when building the element fails.
 func buildAssetElementNodeAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
+	buildContext *nodeBuildContext,
 	keyJSExpr js_ast.Expr,
-	loopVars map[string]bool,
-	booleanProps []string,
 ) (js_ast.Expr, error) {
 	if isPikoImg(n.TagName) {
-		return buildPikoImgAST(ctx, n, events, keyJSExpr, loopVars, booleanProps)
+		return buildPikoImgAST(ctx, n, buildContext, keyJSExpr)
 	}
 	if isPikoPicture(n.TagName) {
-		return buildPikoPictureAST(ctx, n, events, keyJSExpr, loopVars, booleanProps)
+		return buildPikoPictureAST(ctx, n, buildContext, keyJSExpr)
 	}
 	if isPikoSvg(n.TagName) {
-		return buildPikoSvgAST(ctx, n, events, keyJSExpr, loopVars, booleanProps)
+		return buildPikoSvgAST(ctx, n, buildContext, keyJSExpr)
 	}
-	return buildElementNodeAST(ctx, n, events, keyJSExpr, loopVars, booleanProps)
+	return buildElementNodeAST(ctx, n, buildContext, keyJSExpr)
 }
 
 // buildPikoImgAST builds the JavaScript AST for a piko:img element.
 // Transforms piko:img to an img tag with transformed src and srcset attributes.
 //
 // Takes n (*ast_domain.TemplateNode) which is the piko:img element to process.
-// Takes events (*eventBindingCollection) which collects event bindings.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression for the element.
-// Takes loopVars (map[string]bool) which tracks loop variables in scope.
-// Takes booleanProps ([]string) which lists boolean property names.
 //
 // Returns js_ast.Expr which is the JavaScript AST for the img element.
 // Returns error when building the element fails.
 func buildPikoImgAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
+	buildContext *nodeBuildContext,
 	keyJSExpr js_ast.Expr,
-	loopVars map[string]bool,
-	booleanProps []string,
 ) (js_ast.Expr, error) {
-	registry := events.getRegistry()
+	registry := buildContext.events.getRegistry()
 	properties := make(map[string]js_ast.Expr)
 	multiValueProps := make(map[string][]js_ast.Expr)
 
 	imgAttrs := extractPikoImgAttrs(n)
-	handlePikoImgSrcAttr(ctx, imgAttrs, properties, registry)
+	handlePikoImgSrcAttr(imgAttrs, properties, registry, buildContext.moduleName)
 
 	collectDirectiveProps(n, properties, registry)
 	collectPikoImgStaticAttrs(n, properties, imgAttrs)
-	collectPikoAssetDynamicAttrs(n, properties, booleanProps, registry)
-	collectEventHandlers(ctx, n, events, loopVars, multiValueProps)
+	collectPikoAssetDynamicAttrs(n, properties, buildContext.booleanProps, registry)
+	collectEventHandlers(ctx, n, buildContext.events, buildContext.loopVars, multiValueProps)
 	mergeMultiValueProps(properties, multiValueProps)
 
-	childrenExpr, err := buildChildFragmentAST(ctx, n, events, loopVars, booleanProps)
+	childrenExpr, err := buildChildFragmentAST(ctx, n, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
@@ -243,9 +237,11 @@ func buildPikoImgAST(
 // attributes.
 // Takes properties (map[string]js_ast.Expr) which receives the src properties.
 // Takes registry (*RegistryContext) which provides compilation context.
-func handlePikoImgSrcAttr(ctx context.Context, imgAttrs pikoImgAttrs, properties map[string]js_ast.Expr, registry *RegistryContext) {
+// Takes moduleName (string) which is the Go module name for @/ alias
+// resolution.
+func handlePikoImgSrcAttr(imgAttrs pikoImgAttrs, properties map[string]js_ast.Expr, registry *RegistryContext, moduleName string) {
 	if imgAttrs.source != "" {
-		transformedSrc := transformAssetSrc(ctx, imgAttrs.source)
+		transformedSrc := transformAssetSrc(imgAttrs.source, moduleName)
 		properties[attributeSrc] = newStringLiteral(transformedSrc)
 
 		if imgAttrs.hasProfile() {
@@ -269,7 +265,7 @@ func handlePikoImgSrcAttr(ctx context.Context, imgAttrs pikoImgAttrs, properties
 		return
 	}
 
-	transformedExpr := buildAssetSrcTransformCall(ctx, jsExpr)
+	transformedExpr := buildAssetSrcTransformCall(jsExpr, moduleName)
 	properties[attributeSrc] = js_ast.Expr{Data: &js_ast.EUnary{Op: js_ast.UnOpPos, Value: transformedExpr}}
 }
 
@@ -278,10 +274,9 @@ func handlePikoImgSrcAttr(ctx context.Context, imgAttrs pikoImgAttrs, properties
 // at runtime, allowing CSS styling of SVG internals.
 //
 // Takes n (*ast_domain.TemplateNode) which is the piko:svg element to process.
-// Takes events (*eventBindingCollection) which collects event bindings.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression for the element.
-// Takes loopVars (map[string]bool) which tracks loop variables in scope.
-// Takes booleanProps ([]string) which lists boolean property names.
 //
 // Returns js_ast.Expr which is the JavaScript AST for the piko-svg-inline
 // element.
@@ -289,24 +284,22 @@ func handlePikoImgSrcAttr(ctx context.Context, imgAttrs pikoImgAttrs, properties
 func buildPikoSvgAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
+	buildContext *nodeBuildContext,
 	keyJSExpr js_ast.Expr,
-	loopVars map[string]bool,
-	booleanProps []string,
 ) (js_ast.Expr, error) {
-	registry := events.getRegistry()
+	registry := buildContext.events.getRegistry()
 	properties := make(map[string]js_ast.Expr)
 	multiValueProps := make(map[string][]js_ast.Expr)
 
 	svgAttrs := extractPikoSvgAttrs(n)
 
 	if svgAttrs.source != "" {
-		transformedSrc := transformAssetSrc(ctx, svgAttrs.source)
+		transformedSrc := transformAssetSrc(svgAttrs.source, buildContext.moduleName)
 		properties[attributeSrc] = newStringLiteral(transformedSrc)
 	} else if svgAttrs.dynamicSource != nil {
 		jsExpr, err := transformOurASTtoJSAST(svgAttrs.dynamicSource, registry)
 		if err == nil && jsExpr.Data != nil {
-			transformedExpr := buildAssetSrcTransformCall(ctx, jsExpr)
+			transformedExpr := buildAssetSrcTransformCall(jsExpr, buildContext.moduleName)
 			properties[attributeSrc] = js_ast.Expr{Data: &js_ast.EUnary{Op: js_ast.UnOpPos, Value: transformedExpr}}
 		}
 	}
@@ -315,13 +308,13 @@ func buildPikoSvgAST(
 
 	collectPikoSvgStaticAttrs(n, properties, svgAttrs)
 
-	collectPikoAssetDynamicAttrs(n, properties, booleanProps, registry)
+	collectPikoAssetDynamicAttrs(n, properties, buildContext.booleanProps, registry)
 
-	collectEventHandlers(ctx, n, events, loopVars, multiValueProps)
+	collectEventHandlers(ctx, n, buildContext.events, buildContext.loopVars, multiValueProps)
 
 	mergeMultiValueProps(properties, multiValueProps)
 
-	childrenExpr, err := buildChildFragmentAST(ctx, n, events, loopVars, booleanProps)
+	childrenExpr, err := buildChildFragmentAST(ctx, n, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
@@ -403,15 +396,15 @@ func extractPikoSvgAttrs(n *ast_domain.TemplateNode) pikoSvgAttrs {
 }
 
 // transformAssetSrc transforms an asset source path by prepending the asset
-// serve path. Delegates to assetpath.Transform with the module name from
-// context.
+// serve path. Delegates to assetpath.Transform with the given module name.
 //
-// Takes ctx (context.Context) which carries the module name.
 // Takes src (string) which is the original source path.
+// Takes moduleName (string) which is the Go module name for @/ alias
+// resolution.
 //
 // Returns string which is the transformed source path.
-func transformAssetSrc(ctx context.Context, src string) string {
-	return assetpath.Transform(src, GetModuleName(ctx), assetpath.DefaultServePath)
+func transformAssetSrc(src string, moduleName string) string {
+	return assetpath.Transform(src, moduleName, assetpath.DefaultServePath)
 }
 
 // buildSrcsetValue builds a srcset value from responsive image attributes.
@@ -504,12 +497,14 @@ func parseIntList(s string) []int {
 // transformation. Generates: piko.assets.resolve(expr, moduleName).
 //
 // Takes srcExpr (js_ast.Expr) which is the dynamic src expression.
+// Takes moduleName (string) which is the Go module name for @/ alias
+// resolution.
 //
 // Returns js_ast.Expr which is the wrapped transformation call.
-func buildAssetSrcTransformCall(ctx context.Context, srcExpr js_ast.Expr) js_ast.Expr {
+func buildAssetSrcTransformCall(srcExpr js_ast.Expr, moduleName string) js_ast.Expr {
 	arguments := []js_ast.Expr{srcExpr}
 
-	if moduleName := GetModuleName(ctx); moduleName != "" {
+	if moduleName != "" {
 		arguments = append(arguments, newStringLiteral(moduleName))
 	}
 

@@ -41,13 +41,12 @@ import (
 // needed.
 // Returns *compiler_dto.JSDependency which is the dependency if the path was
 // transformed, or nil otherwise.
-func TransformJSImportPath(ctx context.Context, importPath string) (string, *compiler_dto.JSDependency) {
+func TransformJSImportPath(ctx context.Context, importPath string, moduleName string) (string, *compiler_dto.JSDependency) {
 	ctx, l := logger_domain.From(ctx, log)
 	if !strings.HasPrefix(importPath, "@/") {
 		return importPath, nil
 	}
 
-	moduleName := GetModuleName(ctx)
 	if moduleName == "" {
 		l.Warn("Cannot transform @/ import: no module name in context",
 			logger_domain.String("importPath", importPath))

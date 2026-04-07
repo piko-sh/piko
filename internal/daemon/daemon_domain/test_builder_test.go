@@ -23,6 +23,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 type daemonTestBuilder struct {
@@ -134,9 +136,7 @@ func TestNewDaemonTestBuilder_ReturnsBuilder(t *testing.T) {
 
 	builder := newDaemonTestBuilder()
 
-	if builder == nil {
-		t.Fatal("Expected non-nil builder")
-	}
+	require.NotNil(t, builder, "Expected non-nil builder")
 	if builder.mockSignalNotifier != nil {
 		t.Error("Expected mockSignalNotifier to be nil initially")
 	}

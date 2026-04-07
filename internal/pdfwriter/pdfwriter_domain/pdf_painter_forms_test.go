@@ -23,6 +23,8 @@ package pdfwriter_domain
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
@@ -93,9 +95,7 @@ func TestBuildFormField_TextInput(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldText {
 		t.Errorf("expected FormFieldText, got %v", field.FieldType)
 	}
@@ -122,9 +122,7 @@ func TestBuildFormField_TextInputDefaultType(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 
 	if field.FieldType != FormFieldText {
 		t.Errorf("expected FormFieldText for default type, got %v", field.FieldType)
@@ -143,9 +141,7 @@ func TestBuildFormField_PasswordInput(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldText {
 		t.Errorf("expected FormFieldText, got %v", field.FieldType)
 	}
@@ -166,9 +162,7 @@ func TestBuildFormField_CheckboxUnchecked(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldCheckbox {
 		t.Errorf("expected FormFieldCheckbox, got %v", field.FieldType)
 	}
@@ -192,9 +186,7 @@ func TestBuildFormField_CheckboxChecked(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.Value != "Yes" {
 		t.Errorf("expected value 'Yes', got %q", field.Value)
 	}
@@ -212,9 +204,7 @@ func TestBuildFormField_RadioUnchecked(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldRadio {
 		t.Errorf("expected FormFieldRadio, got %v", field.FieldType)
 	}
@@ -238,9 +228,7 @@ func TestBuildFormField_RadioChecked(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.Value != "blue" {
 		t.Errorf("expected value 'blue', got %q", field.Value)
 	}
@@ -258,9 +246,7 @@ func TestBuildFormField_RadioDefaultExportValue(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.ExportValue != "on" {
 		t.Errorf("expected default export value 'on', got %q", field.ExportValue)
 	}
@@ -278,9 +264,7 @@ func TestBuildFormField_Textarea(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldText {
 		t.Errorf("expected FormFieldText, got %v", field.FieldType)
 	}
@@ -307,9 +291,7 @@ func TestBuildFormField_SelectDropdown(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldDropdown {
 		t.Errorf("expected FormFieldDropdown, got %v", field.FieldType)
 	}
@@ -344,9 +326,7 @@ func TestBuildFormField_SelectMultiple(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldListBox {
 		t.Errorf("expected FormFieldListBox, got %v", field.FieldType)
 	}
@@ -372,9 +352,7 @@ func TestBuildFormField_SelectDefaultsToFirstOption(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.Value != "Red" {
 		t.Errorf("expected first option 'Red', got %q", field.Value)
 	}
@@ -392,9 +370,7 @@ func TestBuildFormField_Button(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldPushButton {
 		t.Errorf("expected FormFieldPushButton, got %v", field.FieldType)
 	}
@@ -415,9 +391,7 @@ func TestBuildFormField_SubmitButton(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FieldType != FormFieldPushButton {
 		t.Errorf("expected FormFieldPushButton, got %v", field.FieldType)
 	}
@@ -435,9 +409,7 @@ func TestBuildFormField_ReadonlyFlag(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.Flags&FormFlagReadOnly == 0 {
 		t.Error("expected FormFlagReadOnly to be set")
 	}
@@ -455,9 +427,7 @@ func TestBuildFormField_DisabledSetsReadonly(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.Flags&FormFlagReadOnly == 0 {
 		t.Error("expected FormFlagReadOnly to be set for disabled")
 	}
@@ -475,9 +445,7 @@ func TestBuildFormField_RequiredFlag(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.Flags&FormFlagRequired == 0 {
 		t.Error("expected FormFlagRequired to be set")
 	}
@@ -495,9 +463,7 @@ func TestBuildFormField_MaxLength(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.MaxLen != 10 {
 		t.Errorf("expected MaxLen 10, got %d", field.MaxLen)
 	}
@@ -515,9 +481,7 @@ func TestBuildFormField_InvalidMaxLengthDefaultsToZero(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.MaxLen != 0 {
 		t.Errorf("expected MaxLen 0 for invalid value, got %d", field.MaxLen)
 	}
@@ -551,9 +515,7 @@ func TestBuildFormField_AutoGeneratedName(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 
 	if field.Name != "field_1" {
 		t.Errorf("expected auto-generated name 'field_1', got %q", field.Name)
@@ -653,9 +615,7 @@ func TestBuildFormField_SetsRectFromBorderBox(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 
 	borderX := box.BorderBoxX()
 	borderBoxWidth := box.BorderBoxWidth()
@@ -737,9 +697,7 @@ func TestBuildFormField_DefaultFontSize(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if field.FontSize != defaultFormFontSize {
 		t.Errorf("expected default font size %v, got %v", defaultFormFontSize, field.FontSize)
 	}
@@ -762,9 +720,7 @@ func TestBuildFormField_SelectIgnoresNonOptionChildren(t *testing.T) {
 
 	field := painter.buildFormField(box)
 
-	if field == nil {
-		t.Fatal("expected non-nil field")
-	}
+	require.NotNil(t, field, "expected non-nil field")
 	if len(field.Options) != 1 {
 		t.Errorf("expected 1 option (skipping optgroup), got %d", len(field.Options))
 	}

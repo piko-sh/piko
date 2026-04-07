@@ -647,3 +647,78 @@ import { parse } from '@/lib/parser.js';
 		})
 	}
 }
+
+type mockCSSPreProcessor struct {
+	result    string
+	err       error
+	called    bool
+	gotCSS    string
+	gotSource string
+}
+
+func (m *mockCSSPreProcessor) InlineImports(_ context.Context, cssContent string, sourcePath string) (string, error) {
+	m.called = true
+	m.gotCSS = cssContent
+	m.gotSource = sourcePath
+	return m.result, m.err
+}
+
+func TestWithOrchestratorCSSPreProcessor(t *testing.T) {
+	t.Run("stores pre-processor on orchestrator", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{}
+		o := NewCompilerOrchestrator(nil, nil, WithOrchestratorCSSPreProcessor(preProcessor))
+		orch, ok := o.(*compilerOrchestrator)
+		require.True(t, ok)
+		assert.NotNil(t, orch.cssPreProcessor)
+	})
+
+	t.Run("nil by default", func(t *testing.T) {
+		o := NewCompilerOrchestrator(nil, nil)
+		orch, ok := o.(*compilerOrchestrator)
+		require.True(t, ok)
+		assert.Nil(t, orch.cssPreProcessor)
+	})
+}
+
+func TestPreProcessStyles(t *testing.T) {
+	t.Run("no-op when styles are empty", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{result: "should not be used"}
+		ctx := context.Background()
+		cc := &sfcCompilationContext{stylesDefault: "", cssPreProcessor: preProcessor}
+		cc.preProcessStyles(ctx)
+		assert.Equal(t, "", cc.stylesDefault)
+		assert.False(t, preProcessor.called)
+	})
+
+	t.Run("no-op when no pre-processor set", func(t *testing.T) {
+		ctx := context.Background()
+		cc := &sfcCompilationContext{stylesDefault: "@import './foo.css';"}
+		cc.preProcessStyles(ctx)
+		assert.Equal(t, "@import './foo.css';", cc.stylesDefault)
+	})
+
+	t.Run("replaces styles with pre-processed result", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{result: ".foo{color:red}"}
+		ctx := context.Background()
+		cc := &sfcCompilationContext{
+			stylesDefault:   "@import './foo.css';",
+			sourceFilename:  "components/widget.pkc",
+			cssPreProcessor: preProcessor,
+		}
+		cc.preProcessStyles(ctx)
+		assert.Equal(t, ".foo{color:red}", cc.stylesDefault)
+		assert.True(t, preProcessor.called)
+		assert.Equal(t, "@import './foo.css';", preProcessor.gotCSS)
+		assert.Equal(t, "components/widget.pkc", preProcessor.gotSource)
+	})
+
+	t.Run("keeps raw CSS on pre-processor error", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{err: errors.New("resolve failed")}
+		ctx := context.Background()
+		original := "@import './missing.css'; .local { color: blue; }"
+		cc := &sfcCompilationContext{stylesDefault: original, cssPreProcessor: preProcessor}
+		cc.preProcessStyles(ctx)
+		assert.Equal(t, original, cc.stylesDefault)
+		assert.True(t, preProcessor.called)
+	})
+}

@@ -56,7 +56,15 @@ type SFCCompiler interface {
 }
 
 // sfcCompiler implements SFCCompiler with a separate registry for each build.
-type sfcCompiler struct{}
+type sfcCompiler struct {
+	// cssPreProcessor resolves CSS @import statements before CSS is embedded
+	// into compiled output. When nil, raw CSS is used as-is.
+	cssPreProcessor CSSPreProcessorPort
+
+	// moduleName is the Go module name from go.mod, such as
+	// "github.com/org/repo". Used to resolve @/ aliases in asset paths.
+	moduleName string
+}
 
 var _ SFCCompiler = (*sfcCompiler)(nil)
 
@@ -67,14 +75,22 @@ var _ SFCCompiler = (*sfcCompiler)(nil)
 //
 // Returns *compiler_dto.CompiledArtefact which contains the compiled output.
 // Returns error when compilation fails.
-func (*sfcCompiler) CompileSFC(ctx context.Context, sourceID string, rawSFC []byte) (*compiler_dto.CompiledArtefact, error) {
-	return compileSFC(ctx, sourceID, rawSFC)
+func (c *sfcCompiler) CompileSFC(ctx context.Context, sourceID string, rawSFC []byte) (*compiler_dto.CompiledArtefact, error) {
+	return compileSFC(ctx, sourceID, rawSFC, c.moduleName, c.cssPreProcessor)
 }
 
 // sfcCompilationContext holds the state needed during SFC compilation.
 type sfcCompilationContext struct {
 	// registry holds the component registry for tracking dependencies.
 	registry *RegistryContext
+
+	// moduleName is the Go module name from go.mod, such as
+	// "github.com/org/repo". Used to resolve @/ aliases in asset paths.
+	moduleName string
+
+	// cssPreProcessor resolves CSS @import statements before CSS is embedded
+	// into compiled output. When nil, raw CSS is used as-is.
+	cssPreProcessor CSSPreProcessorPort
 
 	// jsParseResult holds the parsed JavaScript AST and type assertions.
 	jsParseResult *ParseJSResult
@@ -175,6 +191,27 @@ func (cc *sfcCompilationContext) extractScriptAndStyles() {
 		stylesBuilder.WriteString(style.Content)
 	}
 	cc.stylesDefault = stylesBuilder.String()
+}
+
+// preProcessStyles resolves CSS @import statements in the concatenated style
+// content using the CSSPreProcessorPort stored on the compilation context.
+// When no pre-processor is available or processing fails, the raw CSS is kept
+// as-is.
+func (cc *sfcCompilationContext) preProcessStyles(ctx context.Context) {
+	if cc.stylesDefault == "" {
+		return
+	}
+	preProcessor := cc.cssPreProcessor
+	if preProcessor == nil {
+		return
+	}
+	processed, err := preProcessor.InlineImports(ctx, cc.stylesDefault, cc.sourceFilename)
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("CSS import inlining failed, using raw CSS", logger_domain.Error(err))
+		return
+	}
+	cc.stylesDefault = processed
 }
 
 // extractTimeline parses the piko:timeline blocks, if present, and stores the
@@ -407,7 +444,7 @@ func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
 	}
 
 	cc.buildScaffoldHTML(ctx, tAST)
-	return cc.buildVDOMRenderMethod(ctx, tAST)
+	return cc.buildVDOMRenderMethod(ctx, tAST, cc.moduleName)
 }
 
 // buildScaffoldHTML creates the static HTML scaffold for server-side
@@ -436,14 +473,22 @@ func (cc *sfcCompilationContext) buildScaffoldHTML(ctx context.Context, tAST *as
 //
 // Takes tAST (*ast_domain.TemplateAST) which provides the parsed template
 // structure.
+// Takes moduleName (string) which is the Go module name for @/ alias
+// resolution.
 //
 // Returns error when building fails, though currently returns nil after
 // logging a warning.
-func (cc *sfcCompilationContext) buildVDOMRenderMethod(ctx context.Context, tAST *ast_domain.TemplateAST) error {
+func (cc *sfcCompilationContext) buildVDOMRenderMethod(ctx context.Context, tAST *ast_domain.TemplateAST, moduleName string) error {
 	ctx, l := logger_domain.From(ctx, log)
 	events := newEventBindingCollection(cc.registry)
 	vdomBuilder := NewVDOMBuilder()
-	renderMethod, vdomErr := vdomBuilder.BuildRenderVDOM(ctx, tAST, events, cc.reactiveTransformResult.BooleanProperties)
+	buildContext := &nodeBuildContext{
+		events:       events,
+		loopVars:     nil,
+		booleanProps: cc.reactiveTransformResult.BooleanProperties,
+		moduleName:   moduleName,
+	}
+	renderMethod, vdomErr := vdomBuilder.BuildRenderVDOM(ctx, tAST, buildContext)
 	if vdomErr != nil {
 		l.Warn("BuildRenderVDOM error", logger_domain.String(logKeyError, vdomErr.Error()))
 		return nil
@@ -475,7 +520,7 @@ func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) {
 	}
 
 	l.Trace("Prepending preamble to AST")
-	cc.jsDependencies = prependPreambleToAST(ctx, cc.jsAST, cc.scriptCode, cc.enabledBehaviours)
+	cc.jsDependencies = prependPreambleToAST(ctx, cc.jsAST, cc.scriptCode, cc.enabledBehaviours, cc.moduleName)
 
 	if len(cc.jsDependencies) > 0 {
 		l.Trace("Collected JS dependencies", logger_domain.Int("count", len(cc.jsDependencies)))
@@ -525,9 +570,14 @@ func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) *compiler_dt
 
 // NewSFCCompiler creates a new compiler for single-file components.
 //
+// Takes moduleName (string) which is the Go module name for @/ alias
+// resolution.
+// Takes cssPreProcessor (CSSPreProcessorPort) which resolves CSS @import
+// statements, or nil when not needed.
+//
 // Returns SFCCompiler which is ready to compile single-file components.
-func NewSFCCompiler() SFCCompiler {
-	return &sfcCompiler{}
+func NewSFCCompiler(moduleName string, cssPreProcessor CSSPreProcessorPort) SFCCompiler {
+	return &sfcCompiler{moduleName: moduleName, cssPreProcessor: cssPreProcessor}
 }
 
 // getStmtsFromAST extracts all statements from an esbuild AST.
@@ -588,10 +638,14 @@ func appendStatementToAST(tree *js_ast.AST, statement js_ast.Stmt) {
 //
 // Takes sourceID (string) which identifies the source file being compiled.
 // Takes rawSFC ([]byte) which contains the raw SFC content to compile.
+// Takes moduleName (string) which is the Go module name for @/ alias
+// resolution.
+// Takes cssPreProcessor (CSSPreProcessorPort) which resolves CSS @import
+// statements, or nil when not needed.
 //
 // Returns *compiler_dto.CompiledArtefact which contains the compiled output.
 // Returns error when SFC parsing or template processing fails.
-func compileSFC(ctx context.Context, sourceID string, rawSFC []byte) (*compiler_dto.CompiledArtefact, error) {
+func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName string, cssPreProcessor CSSPreProcessorPort) (*compiler_dto.CompiledArtefact, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "compileSFC",
 		logger_domain.Int("rawSFCSize", len(rawSFC)),
@@ -603,8 +657,10 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte) (*compiler_
 	l.Trace("Starting SFC compilation")
 
 	cc := &sfcCompilationContext{
-		registry:       NewRegistryContext(),
-		sourceFilename: sourceID,
+		registry:        NewRegistryContext(),
+		moduleName:      moduleName,
+		cssPreProcessor: cssPreProcessor,
+		sourceFilename:  sourceID,
 	}
 
 	ccCtx := logger_domain.WithLogger(ctx, l)
@@ -618,6 +674,7 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte) (*compiler_
 	}
 
 	cc.extractScriptAndStyles()
+	cc.preProcessStyles(ccCtx)
 	cc.extractTimeline(ccCtx)
 
 	ccCtx, err = cc.setupNamingAndContext(ccCtx, span)
@@ -762,12 +819,12 @@ func buildClassName(rawTag string) string {
 //
 // Returns []compiler_dto.JSDependency which contains dependencies that need
 // registry registration.
-func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode string, enabledBehaviours []string) []compiler_dto.JSDependency {
+func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode string, enabledBehaviours []string, moduleName string) []compiler_dto.JSDependency {
 	existingStmts := getStmtsFromAST(tree)
 
 	_, nonImportStmts := separateImportsFromAST(existingStmts)
 
-	userImportStmts, dependencies := buildImportStatementsFromSource(ctx, tree, sourceCode)
+	userImportStmts, dependencies := buildImportStatementsFromSource(ctx, tree, sourceCode, moduleName)
 
 	iifeStatement := buildIIFEWrapper(nonImportStmts)
 	coreImport := buildCoreImport(tree)
@@ -816,7 +873,7 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 // Returns []js_ast.Stmt which holds the built import statements.
 // Returns []compiler_dto.JSDependency which holds dependencies for the
 // registry.
-func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sourceCode string) ([]js_ast.Stmt, []compiler_dto.JSDependency) {
+func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sourceCode string, moduleName string) ([]js_ast.Stmt, []compiler_dto.JSDependency) {
 	ctx, l := logger_domain.From(ctx, log)
 	if tree == nil || len(tree.ImportRecords) == 0 {
 		return nil, nil
@@ -844,7 +901,7 @@ func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sour
 
 		if simport, ok := statement.Data.(*js_ast.SImport); ok && len(statementAST.ImportRecords) > 0 {
 			originalPath := statementAST.ImportRecords[0].Path.Text
-			transformedPath, dependency := TransformJSImportPath(ctx, originalPath)
+			transformedPath, dependency := TransformJSImportPath(ctx, originalPath, moduleName)
 			if dependency != nil {
 				statementAST.ImportRecords[0].Path.Text = transformedPath
 				dependencies = append(dependencies, *dependency)

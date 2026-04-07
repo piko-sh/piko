@@ -28,6 +28,7 @@ import (
 	goast "go/ast"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/cssinliner"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
@@ -135,15 +136,7 @@ type ActionParamProvider interface {
 }
 
 // FSReaderPort defines the contract for a file system reader, abstracting I/O.
-type FSReaderPort interface {
-	// ReadFile reads the contents of the file at the given path.
-	//
-	// Takes filePath (string) which is the path to the file to read.
-	//
-	// Returns []byte which contains the file contents.
-	// Returns error when the file cannot be read.
-	ReadFile(ctx context.Context, filePath string) ([]byte, error)
-}
+type FSReaderPort = cssinliner.FSReaderPort
 
 // ComponentRegistryPort defines the contract for looking up registered PKC
 // components. This port allows the annotator to check if a tag name is a known

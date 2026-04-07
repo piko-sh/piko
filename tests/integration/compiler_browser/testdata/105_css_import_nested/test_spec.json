@@ -1,0 +1,37 @@
+[
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-import-nested >>> .base-rule",
+    "name": "color",
+    "expected": "rgb(255, 0, 0)"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-import-nested >>> .base-rule",
+    "name": "font-size",
+    "expected": "20px"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-import-nested >>> .themed",
+    "name": "background-color",
+    "expected": "rgb(0, 0, 255)"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-import-nested >>> .themed",
+    "name": "color",
+    "expected": "rgb(255, 255, 255)"
+  },
+  {
+    "action": "checkComputedStyle",
+    "selector": "css-import-nested >>> .local",
+    "name": "margin-top",
+    "expected": "10px"
+  },
+  {
+    "action": "checkText",
+    "selector": "css-import-nested >>> .base-rule",
+    "expected": "Base styles"
+  }
+]

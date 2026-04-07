@@ -21,6 +21,8 @@ package orchestrator_domain
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_newScheduledTaskHeap(t *testing.T) {
@@ -105,9 +107,7 @@ func Test_scheduledTaskHeap_PushAndPop(t *testing.T) {
 
 			for i, expectedID := range tc.expectedOrder {
 				task := heap.Pop()
-				if task == nil {
-					t.Fatalf("pop %d: expected task, got nil", i)
-				}
+				require.NotNil(t, task, "pop %d: expected task, got nil", i)
 				if task.ID != expectedID {
 					t.Errorf("pop %d: expected ID=%s, got ID=%s", i, expectedID, task.ID)
 				}
@@ -257,9 +257,7 @@ func Test_scheduledTaskHeap_ManyTasks(t *testing.T) {
 	var lastTime time.Time
 	for i := range 100 {
 		task := heap.Pop()
-		if task == nil {
-			t.Fatalf("pop %d: unexpected nil", i)
-		}
+		require.NotNil(t, task, "pop %d: unexpected nil", i)
 		if !lastTime.IsZero() && task.ScheduledExecuteAt.Before(lastTime) {
 			t.Errorf("pop %d: task time %v is before previous time %v",
 				i, task.ScheduledExecuteAt, lastTime)
@@ -278,9 +276,7 @@ func Test_scheduledTaskHeap_InterleavedPushPop(t *testing.T) {
 	heap.Push(&Task{ID: "task-1", ScheduledExecuteAt: baseTime})
 
 	task := heap.Pop()
-	if task == nil {
-		t.Fatal("first pop: expected task-1, got nil")
-	}
+	require.NotNil(t, task, "first pop: expected task-1, got nil")
 	if task.ID != "task-1" {
 		t.Errorf("first pop: expected task-1, got %s", task.ID)
 	}
@@ -289,25 +285,19 @@ func Test_scheduledTaskHeap_InterleavedPushPop(t *testing.T) {
 	heap.Push(&Task{ID: "task-0", ScheduledExecuteAt: baseTime.Add(-1 * time.Hour)})
 
 	task = heap.Pop()
-	if task == nil {
-		t.Fatal("second pop: expected task-0, got nil")
-	}
+	require.NotNil(t, task, "second pop: expected task-0, got nil")
 	if task.ID != "task-0" {
 		t.Errorf("second pop: expected task-0, got %s", task.ID)
 	}
 
 	task = heap.Pop()
-	if task == nil {
-		t.Fatal("third pop: expected task-2, got nil")
-	}
+	require.NotNil(t, task, "third pop: expected task-2, got nil")
 	if task.ID != "task-2" {
 		t.Errorf("third pop: expected task-2, got %s", task.ID)
 	}
 
 	task = heap.Pop()
-	if task == nil {
-		t.Fatal("fourth pop: expected task-3, got nil")
-	}
+	require.NotNil(t, task, "fourth pop: expected task-3, got nil")
 	if task.ID != "task-3" {
 		t.Errorf("fourth pop: expected task-3, got %s", task.ID)
 	}

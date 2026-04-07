@@ -24,6 +24,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/fonts"
 )
 
@@ -171,9 +173,7 @@ func TestExtractFontDescriptor(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if info == nil {
-			t.Fatal("expected non-nil descriptor")
-		}
+		require.NotNil(t, info, "expected non-nil descriptor")
 		if info.UnitsPerEm != 1000 {
 			t.Errorf("UnitsPerEm = %d, want 1000", info.UnitsPerEm)
 		}

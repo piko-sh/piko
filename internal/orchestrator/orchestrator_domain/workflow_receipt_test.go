@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewWorkflowReceipt(t *testing.T) {
@@ -32,9 +34,7 @@ func TestNewWorkflowReceipt(t *testing.T) {
 	workflowID := "workflow-123"
 	receipt := newWorkflowReceipt(workflowID)
 
-	if receipt == nil {
-		t.Fatal("newWorkflowReceipt returned nil")
-	}
+	require.NotNil(t, receipt, "newWorkflowReceipt returned nil")
 	if receipt.WorkflowID != workflowID {
 		t.Errorf("WorkflowID: expected %s, got %s", workflowID, receipt.WorkflowID)
 	}

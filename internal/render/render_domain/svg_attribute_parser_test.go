@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
 )
 
@@ -158,9 +159,7 @@ func Test_parseSVGTagAttributes(t *testing.T) {
 				return
 			}
 
-			if attrs == nil {
-				t.Fatalf("expected %v, got nil", tt.expected)
-			}
+			require.NotNilf(t, attrs, "expected %v, got nil", tt.expected)
 
 			if len(*attrs) != len(tt.expected) {
 				t.Fatalf("expected %d attributes, got %d: %v", len(tt.expected), len(*attrs), *attrs)

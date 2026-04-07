@@ -17,13 +17,13 @@ package layouter_domain
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNew_ParsesPatterns(t *testing.T) {
 	h := NewHyphenator("hy1p\n.al3t\n")
-	if h == nil {
-		t.Fatal("expected non-nil Hyphenator")
-	}
+	require.NotNil(t, h, "expected non-nil Hyphenator")
 	if h.trie == nil {
 		t.Fatal("expected non-nil trie root")
 	}
@@ -32,9 +32,7 @@ func TestNew_ParsesPatterns(t *testing.T) {
 func TestNew_SkipsCommentsAndEmptyLines(t *testing.T) {
 	patterns := "% this is a comment\n\nhy1p\n% another comment\n"
 	h := NewHyphenator(patterns)
-	if h == nil {
-		t.Fatal("expected non-nil Hyphenator")
-	}
+	require.NotNil(t, h, "expected non-nil Hyphenator")
 }
 
 func TestHyphenate_ShortWords(t *testing.T) {

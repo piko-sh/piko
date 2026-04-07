@@ -21,6 +21,8 @@ package orchestrator_domain
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTaskPriorityOrder(t *testing.T) {
@@ -65,9 +67,7 @@ func TestTaskPool_GetReturnsTask(t *testing.T) {
 	if !ok {
 		t.Fatal("TaskPool.Get() did not return a *Task")
 	}
-	if task == nil {
-		t.Fatal("TaskPool.Get() returned nil")
-	}
+	require.NotNil(t, task, "TaskPool.Get() returned nil")
 
 	if task.Payload == nil {
 		t.Error("Payload map should be initialised")

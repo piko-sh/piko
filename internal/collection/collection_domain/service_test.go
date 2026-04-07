@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
@@ -147,9 +149,7 @@ func TestNewCollectionService(t *testing.T) {
 	registry := newTestProviderRegistry()
 
 	service := NewCollectionService(context.Background(), registry)
-	if service == nil {
-		t.Fatal("NewCollectionService() returned nil")
-	}
+	require.NotNil(t, service, "NewCollectionService() returned nil")
 }
 
 func TestNewCollectionService_withHybridRegistry(t *testing.T) {
@@ -157,9 +157,7 @@ func TestNewCollectionService_withHybridRegistry(t *testing.T) {
 	hybridRegistry := newTestHybridRegistry()
 
 	service := NewCollectionService(context.Background(), registry, withHybridRegistry(hybridRegistry))
-	if service == nil {
-		t.Fatal("NewCollectionService() returned nil")
-	}
+	require.NotNil(t, service, "NewCollectionService() returned nil")
 
 	s := mustCastToCollectionService(t, service)
 	if s.hybridRegistry != hybridRegistry {
@@ -172,9 +170,7 @@ func TestNewCollectionService_withEncoder(t *testing.T) {
 	encoder := &MockEncoder{}
 
 	service := NewCollectionService(context.Background(), registry, withEncoder(encoder))
-	if service == nil {
-		t.Fatal("NewCollectionService() returned nil")
-	}
+	require.NotNil(t, service, "NewCollectionService() returned nil")
 
 	s := mustCastToCollectionService(t, service)
 	if s.encoder != encoder {
@@ -189,9 +185,7 @@ func TestNewCollectionService_withServiceClock(t *testing.T) {
 	mockClock := clock.NewMockClock(baseTime)
 
 	service := NewCollectionService(context.Background(), registry, withServiceClock(mockClock))
-	if service == nil {
-		t.Fatal("NewCollectionService() returned nil")
-	}
+	require.NotNil(t, service, "NewCollectionService() returned nil")
 
 	s := mustCastToCollectionService(t, service)
 
@@ -802,9 +796,7 @@ func TestProcessGetCollectionCall(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if annotation == nil {
-			t.Fatal("expected non-nil annotation")
-		}
+		require.NotNil(t, annotation, "expected non-nil annotation")
 		if !annotation.IsStatic {
 			t.Error("expected IsStatic=true for static provider")
 		}
@@ -834,9 +826,7 @@ func TestProcessGetCollectionCall(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if annotation == nil {
-			t.Fatal("expected non-nil annotation")
-		}
+		require.NotNil(t, annotation, "expected non-nil annotation")
 		if annotation.IsStatic {
 			t.Error("expected IsStatic=false for dynamic provider")
 		}
@@ -874,9 +864,7 @@ func TestProcessGetCollectionCall(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if annotation == nil {
-			t.Fatal("expected non-nil annotation")
-		}
+		require.NotNil(t, annotation, "expected non-nil annotation")
 		if !annotation.IsHybridCollection {
 			t.Error("expected IsHybridCollection=true for hybrid provider")
 		}
@@ -901,9 +889,7 @@ func TestProcessGetCollectionCall(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if annotation == nil {
-			t.Fatal("expected non-nil annotation")
-		}
+		require.NotNil(t, annotation, "expected non-nil annotation")
 	})
 
 	t.Run("InvalidOptionsType", func(t *testing.T) {

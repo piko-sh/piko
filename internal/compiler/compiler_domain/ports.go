@@ -47,6 +47,24 @@ type TransformationPort interface {
 	Transform(ctx context.Context, artefact *compiler_dto.CompiledArtefact) (*compiler_dto.CompiledArtefact, error)
 }
 
+// CSSPreProcessorPort resolves CSS @import statements before CSS is embedded
+// into compiled component output. When provided to the compiler orchestrator,
+// raw style block content is pre-processed to inline external CSS references
+// (e.g. @import url('./theme.css') or @import url('@/styles/base.css')).
+type CSSPreProcessorPort interface {
+	// InlineImports resolves @import statements in the given CSS content,
+	// reads the imported files, and returns a single merged CSS string.
+	//
+	// Takes cssContent (string) which is the raw CSS with potential @import
+	// rules.
+	// Takes sourcePath (string) which identifies the source file for resolving
+	// relative imports.
+	//
+	// Returns string which is the CSS with all imports inlined.
+	// Returns error when import resolution or file reading fails.
+	InlineImports(ctx context.Context, cssContent string, sourcePath string) (string, error)
+}
+
 // CompilerService defines the interface for compiling single-file components.
 type CompilerService interface {
 	// CompileSingle compiles a single source file and returns the result.

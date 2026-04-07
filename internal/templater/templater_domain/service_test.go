@@ -27,6 +27,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/render/render_dto"
@@ -526,9 +528,7 @@ func TestTemplaterService_ProbePage_Success(t *testing.T) {
 	result, err := fixture.Service.ProbePage(ctx, page, request, websiteConfig)
 
 	AssertNoError(t, err)
-	if result == nil {
-		t.Fatal("expected result to not be nil")
-	}
+	require.NotNil(t, result, "expected result to not be nil")
 	if len(result.LinkHeaders) != 1 {
 		t.Fatalf("expected 1 link header, got %d", len(result.LinkHeaders))
 	}

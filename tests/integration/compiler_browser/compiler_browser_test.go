@@ -38,9 +38,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
+	"piko.sh/piko/internal/compiler/compiler_adapters"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/compiler/compiler_dto"
+	"piko.sh/piko/internal/cssinliner"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
+	"piko.sh/piko/internal/esbuild/compat"
+	esbuildconfig "piko.sh/piko/internal/esbuild/config"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/testutil/leakcheck"
 	browserpkg "piko.sh/piko/wdk/browser"
 	"piko.sh/piko/wdk/safedisk"
@@ -144,7 +149,8 @@ func TestCompiler_Functional(t *testing.T) {
 			pkcContent, err := os.ReadFile(pkcPath)
 			require.NoError(t, err)
 
-			compilerService := compiler_domain.NewCompilerOrchestrator(nil, nil)
+			compilerOpts := buildCompilerOpts(t, testDir)
+			compilerService := compiler_domain.NewCompilerOrchestrator(nil, nil, compilerOpts...)
 			artefact, err := compilerService.CompileSFCBytes(context.Background(), pkcPath, pkcContent)
 			require.NoError(t, err)
 
@@ -181,6 +187,8 @@ func TestCompiler_Functional(t *testing.T) {
 					if content, err := os.ReadFile(testFilePath); err == nil {
 						if strings.HasSuffix(requestedPath, ".js") {
 							w.Header().Set("Content-Type", "application/javascript")
+						} else if strings.HasSuffix(requestedPath, ".css") {
+							w.Header().Set("Content-Type", "text/css")
 						}
 						_, _ = fmt.Fprint(w, string(content))
 					} else {
@@ -568,6 +576,53 @@ func TestCompiler_Functional(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+type testFSReader struct{}
+
+func (r *testFSReader) ReadFile(_ context.Context, path string) ([]byte, error) {
+	return os.ReadFile(path)
+}
+
+func hasCSSFiles(testDir string) bool {
+	entries, err := os.ReadDir(testDir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".css") {
+			return true
+		}
+	}
+	return false
+}
+
+func buildCompilerOpts(t *testing.T, testDir string) []compiler_domain.OrchestratorOption {
+	t.Helper()
+	if !hasCSSFiles(testDir) {
+		return nil
+	}
+	mockResolver := &resolver_domain.MockResolver{
+		ResolveCSSPathFunc: func(_ context.Context, importPath string, containingDir string) (string, error) {
+			if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
+				return filepath.Join(containingDir, filepath.FromSlash(importPath)), nil
+			}
+			return "", fmt.Errorf("unsupported CSS import path in test: %s", importPath)
+		},
+	}
+	processor := cssinliner.NewProcessor(cssinliner.ProcessorConfig{
+		Resolver: mockResolver,
+		Loader:   esbuildconfig.LoaderLocalCSS,
+		Options: &esbuildconfig.Options{
+			MinifyWhitespace:       true,
+			MinifySyntax:           true,
+			UnsupportedCSSFeatures: compat.Nesting,
+		},
+	})
+	preProcessor := compiler_adapters.NewCSSPreProcessor(processor, &testFSReader{}, "", "")
+	return []compiler_domain.OrchestratorOption{
+		compiler_domain.WithOrchestratorCSSPreProcessor(preProcessor),
 	}
 }
 

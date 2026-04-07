@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -43,9 +44,7 @@ func TestNewOnDemandVariantGenerator_UsesRealClock_WhenNil(t *testing.T) {
 
 	generator := NewOnDemandVariantGenerator(mockRegistry, mockCapability, config)
 
-	if generator == nil {
-		t.Fatal("NewOnDemandVariantGenerator returned nil")
-	}
+	require.NotNil(t, generator, "NewOnDemandVariantGenerator returned nil")
 
 	impl := mustAsGeneratorImpl(t, generator)
 	if impl.clock == nil {
@@ -218,9 +217,7 @@ func TestParseProfileName(t *testing.T) {
 				return
 			}
 
-			if result == nil {
-				t.Fatalf("Expected non-nil result for profileName %q", tc.profileName)
-			}
+			require.NotNil(t, result, "Expected non-nil result for profileName %q", tc.profileName)
 
 			if result.Width != tc.expectedWidth {
 				t.Errorf("Width = %d, want %d", result.Width, tc.expectedWidth)
@@ -289,9 +286,7 @@ func TestGenerateVariant_ReturnsExisting_WhenAlreadyGenerated(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
+	require.NotNil(t, result, "Expected non-nil result")
 	if result.VariantID != existingVariant.VariantID {
 		t.Errorf("Expected to return existing variant, got %+v", result)
 	}
@@ -424,9 +419,7 @@ func TestGenerateVariant_GeneratesNewVariant_Successfully(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
+	require.NotNil(t, result, "Expected non-nil result")
 	if result.VariantID != "image_w240_webp" {
 		t.Errorf("VariantID = %q, want %q", result.VariantID, "image_w240_webp")
 	}
@@ -533,9 +526,7 @@ func TestFindSourceVariant_ReturnsSourceVariant(t *testing.T) {
 
 	result := generator.findSourceVariant(artefact)
 
-	if result == nil {
-		t.Fatal("Expected to find source variant")
-	}
+	require.NotNil(t, result, "Expected to find source variant")
 	if result.VariantID != "source" {
 		t.Errorf("VariantID = %q, want %q", result.VariantID, "source")
 	}

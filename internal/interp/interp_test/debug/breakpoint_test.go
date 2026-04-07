@@ -22,6 +22,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/interp/interp_domain"
 )
 
@@ -53,9 +55,7 @@ func run() int {
 	}()
 
 	snap := dbg.WaitForPause()
-	if snap == nil {
-		t.Fatal("expected pause snapshot")
-	}
+	require.NotNil(t, snap, "expected pause snapshot")
 	if snap.Line != 5 {
 		t.Errorf("expected breakpoint at line 5, got line %d", snap.Line)
 	}
@@ -101,9 +101,7 @@ func run() int {
 	hitCount := 0
 	for range 3 {
 		snap := dbg.WaitForPause()
-		if snap == nil {
-			t.Fatal("expected pause snapshot")
-		}
+		require.NotNil(t, snap, "expected pause snapshot")
 		if snap.Line != 6 {
 			t.Errorf("iteration %d: expected line 6, got %d", hitCount, snap.Line)
 		}

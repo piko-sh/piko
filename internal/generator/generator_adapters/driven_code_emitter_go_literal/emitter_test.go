@@ -231,9 +231,7 @@ func TestBuildImportBlock(t *testing.T) {
 
 	genDecl := em.buildImportBlock(result, mainComponent)
 
-	if genDecl == nil {
-		t.Fatal("buildImportBlock returned nil")
-	}
+	require.NotNil(t, genDecl, "buildImportBlock returned nil")
 
 	if genDecl.Tok != token.IMPORT {
 		t.Error("Import declaration has wrong token type")
@@ -362,9 +360,7 @@ func TestBuildRegistrationInitFunction(t *testing.T) {
 		t.Fatalf("buildRegistrationInitFunction failed: %v", err)
 	}
 
-	if initFunc == nil {
-		t.Fatal("Expected non-nil init function")
-	}
+	require.NotNil(t, initFunc, "Expected non-nil init function")
 
 	funcDecl, ok := initFunc.(*goast.FuncDecl)
 	if !ok {

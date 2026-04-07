@@ -56,15 +56,9 @@ func TestNewExpansionContext(t *testing.T) {
 			entryPointHashedName: "main_hash",
 			expectError:          false,
 			validateContext: func(t *testing.T, ec *expansionContext, comp *annotator_dto.ParsedComponent, ast *ast_domain.TemplateAST) {
-				if ec == nil {
-					t.Fatal("Expected non-nil expansion context")
-				}
-				if comp == nil {
-					t.Fatal("Expected non-nil component")
-				}
-				if ast == nil {
-					t.Fatal("Expected non-nil AST")
-				}
+				require.NotNil(t, ec, "Expected non-nil expansion context")
+				require.NotNil(t, comp, "Expected non-nil component")
+				require.NotNil(t, ast, "Expected non-nil AST")
 				if len(ast.RootNodes) != 1 {
 					t.Errorf("Expected 1 root node in cloned AST, got %d", len(ast.RootNodes))
 				}
@@ -100,9 +94,7 @@ func TestNewExpansionContext(t *testing.T) {
 				if ec != nil {
 					t.Error("Expected nil expansion context when component has no template")
 				}
-				if comp == nil {
-					t.Fatal("Expected non-nil component")
-				}
+				require.NotNil(t, comp, "Expected non-nil component")
 				if ast != nil {
 					t.Error("Expected nil AST when component has no template")
 				}

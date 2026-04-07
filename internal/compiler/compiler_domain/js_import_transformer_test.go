@@ -86,11 +86,8 @@ func TestTransformJSImportPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			if tt.moduleName != "" {
-				ctx = WithModuleName(ctx, tt.moduleName)
-			}
 
-			gotPath, gotDep := TransformJSImportPath(ctx, tt.importPath)
+			gotPath, gotDep := TransformJSImportPath(ctx, tt.importPath, tt.moduleName)
 
 			assert.Equal(t, tt.wantPath, gotPath)
 

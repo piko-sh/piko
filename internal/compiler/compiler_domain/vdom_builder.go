@@ -31,6 +31,22 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
+// nodeBuildContext holds shared state passed through the VDOM node building
+// functions.
+type nodeBuildContext struct {
+	// events collects event bindings discovered during template traversal.
+	events *eventBindingCollection
+
+	// loopVars tracks variable names introduced by enclosing p-for loops.
+	loopVars map[string]bool
+
+	// moduleName is the Go module name for resolving @/ aliases in asset paths.
+	moduleName string
+
+	// booleanProps lists component properties that should be treated as boolean.
+	booleanProps []string
+}
+
 // VDOMBuilder defines the interface for building VDOM render functions from
 // template ASTs.
 type VDOMBuilder interface {
@@ -38,14 +54,13 @@ type VDOMBuilder interface {
 	//
 	// Takes tmplAST (*ast_domain.TemplateAST) which is the parsed template to
 	// render.
-	// Takes events (*eventBindingCollection) which contains event handler
-	// bindings.
-	// Takes booleanProps ([]string) which lists properties to treat as boolean.
+	// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+	// properties, and the module name for the build.
 	//
 	// Returns *js_ast.EFunction which is the generated render function.
 	// Returns error when the template cannot be converted to a virtual DOM.
 	BuildRenderVDOM(ctx context.Context, tmplAST *ast_domain.TemplateAST,
-		events *eventBindingCollection, booleanProps []string) (*js_ast.EFunction, error)
+		buildContext *nodeBuildContext) (*js_ast.EFunction, error)
 }
 
 // vdomBuilder builds a virtual DOM for rendering components.
@@ -61,17 +76,15 @@ var _ VDOMBuilder = (*vdomBuilder)(nil)
 //
 // Takes tmplAST (*ast_domain.TemplateAST) which provides the parsed template
 // structure.
-// Takes events (*eventBindingCollection) which tracks event bindings for the
-// template.
-// Takes booleanProps ([]string) which lists properties to treat as booleans.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns *js_ast.EFunction which is the generated renderVDOM method.
 // Returns error when processing the root nodes fails.
 func (*vdomBuilder) BuildRenderVDOM(
 	ctx context.Context,
 	tmplAST *ast_domain.TemplateAST,
-	events *eventBindingCollection,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (*js_ast.EFunction, error) {
 	var body js_ast.SBlock
 
@@ -81,7 +94,7 @@ func (*vdomBuilder) BuildRenderVDOM(
 		}}
 		body = js_ast.SBlock{Stmts: []js_ast.Stmt{returnStmt}}
 	} else {
-		topLevelExprs, err := processChainAwareChildren(ctx, tmplAST.RootNodes, events, nil, booleanProps)
+		topLevelExprs, err := processChainAwareChildren(ctx, tmplAST.RootNodes, buildContext)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build VDOM for root nodes: %w", err)
 		}
@@ -129,42 +142,39 @@ func buildFinalExpr(topLevelExprs []js_ast.Expr) js_ast.Expr {
 // buildNodeAST builds a JavaScript AST expression from a template node.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node to convert.
-// Takes events (*eventBindingCollection) which tracks event bindings.
-// Takes loopVars (map[string]bool) which holds loop variable names in scope.
-// Takes booleanProps ([]string) which lists properties to treat as boolean.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the JavaScript AST expression for the node.
 // Returns error when the key cannot be resolved or child nodes fail to build.
 func buildNodeAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, error) {
-	keyJSExpr, err := getKeyJSExpr(n, events.getRegistry())
+	keyJSExpr, err := getKeyJSExpr(n, buildContext.events.getRegistry())
 	if err != nil {
 		return js_ast.Expr{}, fmt.Errorf("could not resolve key for node <%s>: %w", n.TagName, err)
 	}
 
 	if n.DirFor != nil {
-		return buildForLoopAST(ctx, n, events, loopVars, booleanProps)
+		return buildForLoopAST(ctx, n, buildContext)
 	}
 
 	var nodeJSExpr js_ast.Expr
 	switch n.NodeType {
 	case ast_domain.NodeText:
 		if len(n.RichText) > 0 {
-			nodeJSExpr, err = buildRichTextNodeAST(n, keyJSExpr, events.getRegistry())
+			nodeJSExpr, err = buildRichTextNodeAST(n, keyJSExpr, buildContext.events.getRegistry())
 		} else {
 			nodeJSExpr, err = buildTextNodeAST(n, keyJSExpr)
 		}
 	case ast_domain.NodeComment:
 		nodeJSExpr = buildDOMCall("cmt", newStringLiteral(n.TextContent), keyJSExpr)
 	case ast_domain.NodeElement:
-		nodeJSExpr, err = buildElementNodeAST(ctx, n, events, keyJSExpr, loopVars, booleanProps)
+		nodeJSExpr, err = buildElementNodeAST(ctx, n, buildContext, keyJSExpr)
 	case ast_domain.NodeFragment:
-		nodeJSExpr, err = buildChildFragmentAST(ctx, n, events, loopVars, booleanProps)
+		nodeJSExpr, err = buildChildFragmentAST(ctx, n, buildContext)
 	default:
 		nodeJSExpr = newNullLiteral()
 	}
@@ -191,19 +201,15 @@ func getKeyJSExpr(n *ast_domain.TemplateNode, registry *RegistryContext) (js_ast
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node containing the
 // p-for directive.
-// Takes events (*eventBindingCollection) which tracks event bindings.
-// Takes outerVars (map[string]bool) which contains variable names from outer
-// scopes.
-// Takes booleanProps ([]string) which lists boolean property names.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the JavaScript AST for the map call.
 // Returns error when the p-for expression is not valid or node building fails.
 func buildForLoopAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
-	outerVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, error) {
 	forIn, ok := n.DirFor.Expression.(*ast_domain.ForInExpression)
 	if !ok {
@@ -220,7 +226,7 @@ func buildForLoopAST(
 		idxName = forIn.IndexVariable.Name
 	}
 
-	registry := events.getRegistry()
+	registry := buildContext.events.getRegistry()
 	collectionExpr, err := transformOurASTtoJSAST(forIn.Collection, registry)
 	if err != nil {
 		return js_ast.Expr{}, fmt.Errorf("invalid collection expression in p-for: %w", err)
@@ -229,8 +235,14 @@ func buildForLoopAST(
 	clone := cloneNode(n)
 	clone.DirFor = nil
 
-	loopScope := copyLoopVarsWith(outerVars, itemName, idxName)
-	mapBodyExpr, err := buildNodeAST(ctx, clone, events, loopScope, booleanProps)
+	loopScope := copyLoopVarsWith(buildContext.loopVars, itemName, idxName)
+	innerBuildContext := &nodeBuildContext{
+		events:       buildContext.events,
+		loopVars:     loopScope,
+		booleanProps: buildContext.booleanProps,
+		moduleName:   buildContext.moduleName,
+	}
+	mapBodyExpr, err := buildNodeAST(ctx, clone, innerBuildContext)
 	if err != nil {
 		return js_ast.Expr{}, fmt.Errorf("failed to build node inside p-for loop: %w", err)
 	}
@@ -362,44 +374,41 @@ func getLoopVarNames(loopVars map[string]bool) []string {
 // buildElementNodeAST builds a JavaScript AST expression for an element node.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node to convert.
-// Takes events (*eventBindingCollection) which collects event bindings.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which provides the key expression for the
 // element.
-// Takes loopVars (map[string]bool) which tracks variables from enclosing loops.
-// Takes booleanProps ([]string) which lists properties to treat as booleans.
 //
 // Returns js_ast.Expr which is the constructed element call expression.
 // Returns error when property or child AST building fails.
 func buildElementNodeAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
+	buildContext *nodeBuildContext,
 	keyJSExpr js_ast.Expr,
-	loopVars map[string]bool,
-	booleanProps []string,
 ) (js_ast.Expr, error) {
 	if strings.EqualFold(n.TagName, "piko:element") {
-		return buildPikoElementNodeAST(ctx, n, events, keyJSExpr, loopVars, booleanProps)
+		return buildPikoElementNodeAST(ctx, n, buildContext, keyJSExpr)
 	}
 
 	if isAssetTag(n.TagName) {
-		return buildAssetElementNodeAST(ctx, n, events, keyJSExpr, loopVars, booleanProps)
+		return buildAssetElementNodeAST(ctx, n, buildContext, keyJSExpr)
 	}
 
 	isLink := strings.EqualFold(n.TagName, "piko:a")
 
-	propsExpr, err := buildPropsAST(ctx, n, events, isLink, loopVars, booleanProps)
+	propsExpr, err := buildPropsAST(ctx, n, buildContext.events, isLink, buildContext.loopVars, buildContext.booleanProps)
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
 
 	var childrenExpr js_ast.Expr
 	if n.DirText != nil {
-		childrenExpr, err = dirTextDynamicExpr(n.DirText.Expression, keyJSExpr, events.getRegistry())
+		childrenExpr, err = dirTextDynamicExpr(n.DirText.Expression, keyJSExpr, buildContext.events.getRegistry())
 	} else if n.DirHTML != nil {
-		childrenExpr, err = dirHTMLDynamicExpr(n.DirHTML.Expression, keyJSExpr, events.getRegistry())
+		childrenExpr, err = dirHTMLDynamicExpr(n.DirHTML.Expression, keyJSExpr, buildContext.events.getRegistry())
 	} else {
-		childrenExpr, err = buildChildFragmentAST(ctx, n, events, loopVars, booleanProps)
+		childrenExpr, err = buildChildFragmentAST(ctx, n, buildContext)
 	}
 	if err != nil {
 		return js_ast.Expr{}, err
@@ -420,22 +429,19 @@ func buildElementNodeAST(
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes n (*ast_domain.TemplateNode) which is the piko:element node.
-// Takes events (*eventBindingCollection) which collects event bindings.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression.
-// Takes loopVars (map[string]bool) which tracks loop variables.
-// Takes booleanProps ([]string) which lists boolean properties.
 //
 // Returns js_ast.Expr which is the dom.el() call with dynamic tag.
 // Returns error when expression compilation or child building fails.
 func buildPikoElementNodeAST(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
-	events *eventBindingCollection,
+	buildContext *nodeBuildContext,
 	keyJSExpr js_ast.Expr,
-	loopVars map[string]bool,
-	booleanProps []string,
 ) (js_ast.Expr, error) {
-	registry := events.getRegistry()
+	registry := buildContext.events.getRegistry()
 
 	var rawIsExpr js_ast.Expr
 	var isDynamic bool
@@ -460,7 +466,7 @@ func buildPikoElementNodeAST(
 		}
 	}
 
-	propsExpr, err := buildPikoElementPropsAST(ctx, n, events, loopVars, booleanProps)
+	propsExpr, err := buildPikoElementPropsAST(ctx, n, buildContext.events, buildContext.loopVars, buildContext.booleanProps)
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
@@ -471,7 +477,7 @@ func buildPikoElementNodeAST(
 	} else if n.DirHTML != nil {
 		childrenExpr, err = dirHTMLDynamicExpr(n.DirHTML.Expression, keyJSExpr, registry)
 	} else {
-		childrenExpr, err = buildChildFragmentAST(ctx, n, events, loopVars, booleanProps)
+		childrenExpr, err = buildChildFragmentAST(ctx, n, buildContext)
 	}
 	if err != nil {
 		return js_ast.Expr{}, err
@@ -479,7 +485,7 @@ func buildPikoElementNodeAST(
 
 	var elementCall js_ast.Expr
 	if isDynamic {
-		moduleNameExpr := newStringLiteral(GetModuleName(ctx))
+		moduleNameExpr := newStringLiteral(buildContext.moduleName)
 		elementCall = buildDOMCall("pikoEl", rawIsExpr, keyJSExpr, propsExpr, childrenExpr, moduleNameExpr)
 	} else {
 		elementCall = buildDOMCall("el", tagExpr, keyJSExpr, propsExpr, childrenExpr)
@@ -569,11 +575,8 @@ func pickTagName(n *ast_domain.TemplateNode, isLink bool) string {
 //
 // Takes parentNode (*ast_domain.TemplateNode) which provides the parent
 // element and its children to process.
-// Takes events (*eventBindingCollection) which collects event bindings found
-// during processing.
-// Takes loopVars (map[string]bool) which tracks variables defined in loops.
-// Takes booleanProps ([]string) which lists properties that should be treated
-// as boolean attributes.
+// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
+// properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the JavaScript AST expression for the children.
 // Returns error when child processing fails or the fragment key cannot be
@@ -581,11 +584,9 @@ func pickTagName(n *ast_domain.TemplateNode, isLink bool) string {
 func buildChildFragmentAST(
 	ctx context.Context,
 	parentNode *ast_domain.TemplateNode,
-	events *eventBindingCollection,
-	loopVars map[string]bool,
-	booleanProps []string,
+	buildContext *nodeBuildContext,
 ) (js_ast.Expr, error) {
-	childExprs, err := processChainAwareChildren(ctx, parentNode.Children, events, loopVars, booleanProps)
+	childExprs, err := processChainAwareChildren(ctx, parentNode.Children, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
@@ -597,7 +598,7 @@ func buildChildFragmentAST(
 		return childExprs[0], nil
 	}
 
-	parentKeyJS, err := transformOurASTtoJSAST(parentNode.Key, events.getRegistry())
+	parentKeyJS, err := transformOurASTtoJSAST(parentNode.Key, buildContext.events.getRegistry())
 	if err != nil {
 		return js_ast.Expr{}, fmt.Errorf("could not get parent key to derive fragment key: %w", err)
 	}

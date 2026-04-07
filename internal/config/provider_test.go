@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/config/config_domain"
 )
 
@@ -92,9 +93,7 @@ func (m *MockFileInfo) Sys() any           { return nil }
 func TestNewConfigProvider(t *testing.T) {
 	provider := NewConfigProvider()
 
-	if provider == nil {
-		t.Fatal("NewConfigProvider returned nil")
-	}
+	require.NotNil(t, provider, "NewConfigProvider returned nil")
 
 	if provider.ServerConfig.Paths.BaseDir != nil {
 		t.Errorf("Expected zero ServerConfig, but BaseDir was: %q", *provider.ServerConfig.Paths.BaseDir)

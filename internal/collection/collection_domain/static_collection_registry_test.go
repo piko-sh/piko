@@ -23,6 +23,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/collection/collection_adapters"
 	"piko.sh/piko/internal/collection/collection_dto"
 )
@@ -87,9 +89,7 @@ func TestHasStaticCollection_Found(t *testing.T) {
 
 func TestNewDefaultStaticCollectionRegistry(t *testing.T) {
 	registry := NewDefaultStaticCollectionRegistry()
-	if registry == nil {
-		t.Fatal("NewDefaultStaticCollectionRegistry() returned nil")
-	}
+	require.NotNil(t, registry, "NewDefaultStaticCollectionRegistry() returned nil")
 }
 
 func TestDefaultStaticCollectionRegistry_Register(t *testing.T) {
@@ -524,9 +524,7 @@ func TestResetStaticCollectionRegistry(t *testing.T) {
 
 func TestNewDefaultASTDecoder(t *testing.T) {
 	decoder := NewDefaultASTDecoder()
-	if decoder == nil {
-		t.Fatal("NewDefaultASTDecoder() returned nil")
-	}
+	require.NotNil(t, decoder, "NewDefaultASTDecoder() returned nil")
 }
 
 func TestGetStaticCollectionNavigation_NotFound(t *testing.T) {
@@ -603,9 +601,7 @@ func TestGetStaticCollectionNavigation_BuildsTree(t *testing.T) {
 		t.Fatalf("GetStaticCollectionNavigation() failed: %v", err)
 	}
 
-	if groups == nil {
-		t.Fatal("Expected non-nil navigation groups")
-	}
+	require.NotNil(t, groups, "Expected non-nil navigation groups")
 
 	if _, ok := groups.Groups["sidebar"]; !ok {
 		t.Error("Expected navigation groups to contain 'sidebar'")

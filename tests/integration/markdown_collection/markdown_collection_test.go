@@ -37,7 +37,7 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-func createProvider(t *testing.T, testdataDir string) *driver_markdown.MarkdownProvider {
+func createProvider(t *testing.T, testdataDir string) (*driver_markdown.MarkdownProvider, collection_dto.ContentSource) {
 	t.Helper()
 
 	parser := markdown_provider_goldmark.NewParser()
@@ -47,7 +47,12 @@ func createProvider(t *testing.T, testdataDir string) *driver_markdown.MarkdownP
 	require.NoError(t, err, "Failed to create sandbox for %s", testdataDir)
 	t.Cleanup(func() { _ = sandbox.Close() })
 
-	return driver_markdown.NewMarkdownProvider("markdown", sandbox, service, nil)
+	source := collection_dto.ContentSource{
+		Sandbox:  sandbox,
+		BasePath: testdataDir,
+	}
+
+	return driver_markdown.NewMarkdownProvider("markdown", sandbox, service, nil), source
 }
 
 func TestMarkdownCollection(t *testing.T) {
@@ -59,7 +64,7 @@ func TestMarkdownCollection(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			provider := createProvider(t, tc.Path)
+			provider, source := createProvider(t, tc.Path)
 
 			config := collection_dto.ProviderConfig{
 				BasePath:      tc.Path,
@@ -72,7 +77,7 @@ func TestMarkdownCollection(t *testing.T) {
 
 			var allItems []collection_dto.ContentItem
 			for _, col := range collections {
-				items, fetchErr := provider.FetchStaticContent(ctx, col.Name)
+				items, fetchErr := provider.FetchStaticContent(ctx, col.Name, source)
 				require.NoError(t, fetchErr, "FetchStaticContent failed for collection %q", col.Name)
 				allItems = append(allItems, items...)
 			}

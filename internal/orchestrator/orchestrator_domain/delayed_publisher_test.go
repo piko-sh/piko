@@ -27,6 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	clockpkg "piko.sh/piko/wdk/clock"
 )
 
@@ -50,9 +52,7 @@ func TestNewDelayedTaskPublisherForTesting(t *testing.T) {
 
 	publisher := NewDelayedTaskPublisherForTesting(clock, dispatchFunc)
 
-	if publisher == nil {
-		t.Fatal("NewDelayedTaskPublisherForTesting returned nil")
-	}
+	require.NotNil(t, publisher, "NewDelayedTaskPublisherForTesting returned nil")
 	if publisher.clock != clock {
 		t.Error("clock not set correctly")
 	}

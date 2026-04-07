@@ -32,17 +32,21 @@ import (
 	"piko.sh/piko/internal/capabilities"
 	"piko.sh/piko/internal/compiler/compiler_adapters"
 	"piko.sh/piko/internal/compiler/compiler_domain"
+	"piko.sh/piko/internal/cssinliner"
+	"piko.sh/piko/internal/esbuild/compat"
+	esbuildconfig "piko.sh/piko/internal/esbuild/config"
+	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/image/image_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator"
-	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
 	orchestrator_querier_adapter "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_adapter"
+	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/video/video_domain"
 	"piko.sh/piko/wdk/safedisk"
-
-	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
 )
 
 // GetCapabilityService returns the capability detection service, creating it
@@ -99,7 +103,8 @@ func (c *Container) createDefaultCapabilityService() {
 		return
 	}
 
-	c.capabilityService, c.capabilityErr = c.createCapabilityWithCompiler(imageService, videoService, componentsDir, localDirExists)
+	baseDir := deref(serverConfig.Paths.BaseDir, ".")
+	c.capabilityService, c.capabilityErr = c.createCapabilityWithCompiler(imageService, videoService, baseDir, componentsDir, localDirExists)
 }
 
 // createCapabilityWithCompiler sets up the compiler and creates the capability
@@ -107,13 +112,21 @@ func (c *Container) createDefaultCapabilityService() {
 //
 // Takes imageService (any) which is the image service to register.
 // Takes videoService (any) which is the video service to register.
+// Takes baseDir (string) which is the project root directory for CSS import
+// resolution.
 // Takes componentsDir (string) which is the path to the local components
 // directory.
 // Takes localDirExists (bool) which indicates whether the directory exists.
 //
 // Returns capabilities.Service which is the configured capability service.
 // Returns error when resolver or sandbox creation fails.
-func (c *Container) createCapabilityWithCompiler(imageService image_domain.Service, videoService video_domain.Service, componentsDir string, localDirExists bool) (capabilities.Service, error) {
+func (c *Container) createCapabilityWithCompiler(
+	imageService image_domain.Service,
+	videoService video_domain.Service,
+	baseDir string,
+	componentsDir string,
+	localDirExists bool,
+) (capabilities.Service, error) {
 	resolver, err := c.GetResolver()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get resolver for compiler: %w", err)
@@ -131,10 +144,18 @@ func (c *Container) createCapabilityWithCompiler(imageService image_domain.Servi
 		inputReader = compiler_adapters.NewMemoryInputReader()
 	}
 
+	compilerOpts := []compiler_domain.OrchestratorOption{
+		compiler_domain.WithOrchestratorModuleName(moduleName),
+	}
+
+	if cssPreProcessor, preErr := c.createCSSPreProcessor(resolver, baseDir); preErr == nil {
+		compilerOpts = append(compilerOpts, compiler_domain.WithOrchestratorCSSPreProcessor(cssPreProcessor))
+	}
+
 	compiler := compiler_domain.NewCompilerOrchestrator(
 		inputReader,
 		[]compiler_domain.TransformationPort{},
-		compiler_domain.WithOrchestratorModuleName(moduleName),
+		compilerOpts...,
 	)
 
 	return capabilities.NewServiceWithBuiltins(
@@ -142,6 +163,31 @@ func (c *Container) createCapabilityWithCompiler(imageService image_domain.Servi
 		capabilities.WithImageProvider(imageService),
 		capabilities.WithVideoProvider(videoService),
 	)
+}
+
+// createCSSPreProcessor creates a CSS pre-processor that resolves @import
+// statements in component style blocks.
+//
+// Takes resolver (resolver_domain.ResolverPort) which resolves CSS import
+// paths including @/ aliases.
+// Takes baseDir (string) which is the root directory for the sandbox.
+//
+// Returns compiler_domain.CSSPreProcessorPort which resolves CSS imports.
+// Returns error when sandbox creation fails.
+func (c *Container) createCSSPreProcessor(resolver resolver_domain.ResolverPort, baseDir string) (compiler_domain.CSSPreProcessorPort, error) {
+	sourceSandbox, err := c.createSandbox("compiler-css-source", baseDir, safedisk.ModeReadOnly)
+	if err != nil {
+		return nil, fmt.Errorf("creating CSS pre-processor sandbox: %w", err)
+	}
+	fsReader := generator_adapters.NewFSReader(sourceSandbox)
+	processor := cssinliner.NewProcessor(cssinliner.ProcessorConfig{
+		Resolver: resolver,
+		Loader:   esbuildconfig.LoaderLocalCSS,
+		Options: &esbuildconfig.Options{
+			UnsupportedCSSFeatures: compat.Nesting,
+		},
+	})
+	return compiler_adapters.NewCSSPreProcessor(processor, fsReader, resolver.GetModuleName(), baseDir), nil
 }
 
 // hasExternalModuleComponents returns true if any external component

@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/cssinliner"
 	"piko.sh/piko/internal/esbuild/compat"
 	"piko.sh/piko/internal/esbuild/config"
 	"piko.sh/piko/internal/esbuild/css_ast"
@@ -2420,8 +2421,9 @@ func TestNewCSSProcessor(t *testing.T) {
 		processor := NewCSSProcessor(config.LoaderLocalCSS, nil, resolver)
 
 		require.NotNil(t, processor)
-		require.NotNil(t, processor.options)
-		assert.Equal(t, resolver, processor.resolver)
+		require.NotNil(t, processor.processor)
+		require.NotNil(t, processor.processor.GetOptions())
+		assert.Equal(t, resolver, processor.processor.GetResolver())
 	})
 
 	t.Run("creates processor with provided config", func(t *testing.T) {
@@ -2435,9 +2437,9 @@ func TestNewCSSProcessor(t *testing.T) {
 		processor := NewCSSProcessor(config.LoaderLocalCSS, options, resolver)
 
 		require.NotNil(t, processor)
-		assert.Same(t, options, processor.options)
-		assert.True(t, processor.options.MinifyWhitespace)
-		assert.True(t, processor.options.ASCIIOnly)
+		assert.Same(t, options, processor.processor.GetOptions())
+		assert.True(t, processor.processor.GetOptions().MinifyWhitespace)
+		assert.True(t, processor.processor.GetOptions().ASCIIOnly)
 	})
 
 	t.Run("creates processor with nil resolver", func(t *testing.T) {
@@ -2446,7 +2448,7 @@ func TestNewCSSProcessor(t *testing.T) {
 		processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{}, nil)
 
 		require.NotNil(t, processor)
-		assert.Nil(t, processor.resolver)
+		assert.Nil(t, processor.processor.GetResolver())
 	})
 }
 
@@ -2457,12 +2459,12 @@ func TestCSSProcessor_SetResolver(t *testing.T) {
 		t.Parallel()
 
 		processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{}, nil)
-		assert.Nil(t, processor.resolver)
+		assert.Nil(t, processor.processor.GetResolver())
 
 		newResolver := newTestResolver()
 		processor.SetResolver(newResolver)
 
-		assert.Equal(t, newResolver, processor.resolver)
+		assert.Equal(t, newResolver, processor.processor.GetResolver())
 	})
 
 	t.Run("replaces existing resolver", func(t *testing.T) {
@@ -2470,12 +2472,12 @@ func TestCSSProcessor_SetResolver(t *testing.T) {
 
 		originalResolver := newTestResolver()
 		processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{}, originalResolver)
-		assert.Equal(t, originalResolver, processor.resolver)
+		assert.Equal(t, originalResolver, processor.processor.GetResolver())
 
 		replacementResolver := newTestResolver()
 		processor.SetResolver(replacementResolver)
 
-		assert.Equal(t, replacementResolver, processor.resolver)
+		assert.Equal(t, replacementResolver, processor.processor.GetResolver())
 		assert.NotEqual(t, originalResolver, replacementResolver)
 	})
 
@@ -2487,7 +2489,7 @@ func TestCSSProcessor_SetResolver(t *testing.T) {
 
 		processor.SetResolver(nil)
 
-		assert.Nil(t, processor.resolver)
+		assert.Nil(t, processor.processor.GetResolver())
 	})
 }
 
@@ -2649,7 +2651,7 @@ func TestConvertESBuildMessagesToDiagnostics(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			diagnostics := convertESBuildMessagesToDiagnostics(tc.messages, tc.sourcePath, tc.startLocation)
+			diagnostics := cssinliner.ConvertESBuildMessagesToDiagnostics(tc.messages, tc.sourcePath, tc.startLocation, "")
 
 			if tc.expectedLen == 0 {
 				tc.checkDiags(t, diagnostics)

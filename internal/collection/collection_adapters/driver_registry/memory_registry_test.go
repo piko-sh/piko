@@ -24,6 +24,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
 )
@@ -98,9 +100,7 @@ func (m *mockProvider) GenerateRevalidator(
 func TestNewMemoryRegistry(t *testing.T) {
 	registry := NewMemoryRegistry()
 
-	if registry == nil {
-		t.Fatal("NewMemoryRegistry returned nil")
-	}
+	require.NotNil(t, registry, "NewMemoryRegistry returned nil")
 
 	if registry.providers == nil {
 		t.Error("providers map was not initialised")
@@ -205,9 +205,7 @@ func TestGet_Found(t *testing.T) {
 		t.Fatal("Get returned ok=false for registered provider")
 	}
 
-	if provider == nil {
-		t.Fatal("Get returned nil provider")
-	}
+	require.NotNil(t, provider, "Get returned nil provider")
 
 	if provider.Name() != expected.Name() {
 		t.Errorf("expected provider name %q, got %q", expected.Name(), provider.Name())
@@ -235,9 +233,7 @@ func TestList_Empty(t *testing.T) {
 	registry := NewMemoryRegistry()
 
 	names := registry.List()
-	if names == nil {
-		t.Fatal("List returned nil")
-	}
+	require.NotNil(t, names, "List returned nil")
 
 	if len(names) != 0 {
 		t.Errorf("expected empty list, got %d names", len(names))
@@ -405,9 +401,7 @@ func TestConcurrentGet(t *testing.T) {
 			if !ok {
 				t.Errorf("Get returned ok=false for registered provider %q", name)
 			}
-			if provider == nil {
-				t.Errorf("Get returned nil provider for %q", name)
-			}
+			require.NotNil(t, provider, "Get returned nil provider for %q", name)
 		}(i)
 	}
 
