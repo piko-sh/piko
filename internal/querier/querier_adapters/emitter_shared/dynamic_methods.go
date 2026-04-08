@@ -41,10 +41,10 @@ func buildDynamicOneQueryStatements(
 	scanArguments []ast.Expr,
 	query *querier_dto.AnalysedQuery,
 ) []ast.Stmt {
-	stmts := []ast.Stmt{
-		goastutil.VarDecl(IdentRow, goastutil.CachedIdent(rowTypeName)),
-	}
-	stmts = append(stmts, BuildEmbedPreAllocStatements(query)...)
+	embedStmts := BuildEmbedPreAllocStatements(query)
+	stmts := make([]ast.Stmt, 0, 3+len(embedStmts))
+	stmts = append(stmts, goastutil.VarDecl(IdentRow, goastutil.CachedIdent(rowTypeName)))
+	stmts = append(stmts, embedStmts...)
 	stmts = append(stmts,
 		goastutil.DefineStmt(IdentErr,
 			goastutil.CallExpr(

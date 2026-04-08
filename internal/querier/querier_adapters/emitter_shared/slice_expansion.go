@@ -102,7 +102,9 @@ func BuildSliceExpansionPreamble(query *querier_dto.AnalysedQuery) []ast.Stmt {
 		Elts: specElements,
 	}
 
-	statements := []ast.Stmt{
+	flatteningStatements := buildParameterFlatteningStatements(query)
+	statements := make([]ast.Stmt, 0, 2+len(flatteningStatements))
+	statements = append(statements,
 		goastutil.DefineStmt(IdentQuery,
 			goastutil.CallExpr(
 				goastutil.CachedIdent(identPikoExpandSlicePlaceholders),
@@ -110,11 +112,10 @@ func BuildSliceExpansionPreamble(query *querier_dto.AnalysedQuery) []ast.Stmt {
 				specLiteral,
 			),
 		),
-	}
+		goastutil.DefineStmt(identArgs, buildArgsMakeCall(query)),
+	)
 
-	statements = append(statements, goastutil.DefineStmt(identArgs, buildArgsMakeCall(query)))
-
-	statements = append(statements, buildParameterFlatteningStatements(query)...)
+	statements = append(statements, flatteningStatements...)
 
 	return statements
 }

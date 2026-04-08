@@ -1,26 +1,52 @@
+const DEFAULT_TYPE_SPEED = 50;
+const DEFAULT_TYPEHTML_SPEED = 25;
+const MILLISECONDS_PER_SECOND = 1e3;
+const MAX_HTML_ENTITY_LENGTH = 10;
+const DEFAULT_ANCHOR_WIDTH = 200;
+const DEFAULT_ANCHOR_HEIGHT = 40;
+const ANCHOR_PADDING = 6;
+const customHandlers = /* @__PURE__ */ new Map();
+function registerTimelineAction(name, handler) {
+  customHandlers.set(name, handler);
+}
 function captureTypewriterTexts(component, actions, textMap) {
   for (const action of actions) {
-    if (action.action !== "type") continue;
+    if (action.action !== "type") {
+      continue;
+    }
     const el = component.refs?.[action.ref];
-    if (!el) continue;
-    textMap.set(action.ref, el.textContent ?? "");
+    if (!el) {
+      continue;
+    }
+    textMap.set(action.ref, el.textContent);
     el.textContent = "";
   }
 }
 function captureTypehtmlContents(component, actions, htmlMap) {
   for (const action of actions) {
-    if (action.action !== "typehtml") continue;
+    if (action.action !== "typehtml") {
+      continue;
+    }
     const el = component.refs?.[action.ref];
-    if (!el) continue;
+    if (!el) {
+      continue;
+    }
     htmlMap.set(action.ref, el.innerHTML);
     el.innerHTML = "";
   }
 }
 function evaluateTimeline(component, actions, currentTime, typewriterTexts, typehtmlContents) {
+  evaluateVisibility(component, actions, currentTime);
+  evaluateClasses(component, actions, currentTime);
+  dispatchActions(component, actions, currentTime, typewriterTexts, typehtmlContents);
+}
+function evaluateVisibility(component, actions, currentTime) {
   const visibilityState = /* @__PURE__ */ new Map();
   const visibilityInitial = /* @__PURE__ */ new Map();
   for (const action of actions) {
-    if (action.action !== "show" && action.action !== "hide") continue;
+    if (action.action !== "show" && action.action !== "hide") {
+      continue;
+    }
     if (!visibilityInitial.has(action.ref)) {
       visibilityInitial.set(action.ref, action.action === "hide");
     }
@@ -30,19 +56,25 @@ function evaluateTimeline(component, actions, currentTime, typewriterTexts, type
   }
   for (const [ref, initialVisible] of visibilityInitial) {
     const el = component.refs?.[ref];
-    if (!el) continue;
-    const visible = visibilityState.has(ref) ? visibilityState.get(ref) : initialVisible;
+    if (!el) {
+      continue;
+    }
+    const visible = visibilityState.get(ref) ?? initialVisible;
     if (visible) {
       el.removeAttribute("p-timeline-hidden");
     } else {
       el.setAttribute("p-timeline-hidden", "");
     }
   }
+}
+function evaluateClasses(component, actions, currentTime) {
   const classState = /* @__PURE__ */ new Map();
   const classInitial = /* @__PURE__ */ new Map();
   for (const action of actions) {
-    if (action.action !== "addclass" && action.action !== "removeclass") continue;
-    const key = action.ref + "\0" + action.class;
+    if (action.action !== "addclass" && action.action !== "removeclass") {
+      continue;
+    }
+    const key = `${action.ref}\0${action.class}`;
     if (!classInitial.has(key)) {
       classInitial.set(key, action.action === "removeclass");
     }
@@ -55,41 +87,62 @@ function evaluateTimeline(component, actions, currentTime, typewriterTexts, type
     const ref = key.substring(0, sep);
     const className = key.substring(sep + 1);
     const el = component.refs?.[ref];
-    if (!el) continue;
-    const present = classState.has(key) ? classState.get(key) : initialPresent;
+    if (!el) {
+      continue;
+    }
+    const present = classState.get(key) ?? initialPresent;
     if (present) {
       el.classList.add(className);
     } else {
       el.classList.remove(className);
     }
   }
+}
+function clearTooltips(component, actions) {
   for (const action of actions) {
-    if (action.action !== "tooltip") continue;
+    if (action.action !== "tooltip") {
+      continue;
+    }
     const el = component.refs?.[action.ref];
-    if (el) el.removeAttribute("title");
+    if (el) {
+      el.removeAttribute("title");
+    }
   }
+}
+function dispatchActions(component, actions, currentTime, typewriterTexts, typehtmlContents) {
+  clearTooltips(component, actions);
   for (const action of actions) {
     const el = component.refs?.[action.ref];
-    if (!el) continue;
     switch (action.action) {
       case "type":
-        evaluateTypewriter(el, action, currentTime, typewriterTexts);
+        if (el) {
+          evaluateTypewriter(el, action, currentTime, typewriterTexts);
+        }
         break;
       case "typehtml":
-        evaluateTypehtmlWriter(el, action, currentTime, typehtmlContents);
+        if (el) {
+          evaluateTypehtmlWriter(el, action, currentTime, typehtmlContents);
+        }
         break;
       case "tooltip":
-        if (currentTime >= action.time && action.value) {
+        if (el && currentTime >= action.time && action.value) {
           el.setAttribute("title", action.value);
         }
         break;
+      default: {
+        const handler = customHandlers.get(action.action);
+        if (handler) {
+          handler(el ?? null, action, currentTime, component);
+        }
+        break;
+      }
     }
   }
 }
 function evaluateTypewriter(element, action, currentTime, typewriterTexts) {
   const fullText = typewriterTexts.get(action.ref) ?? "";
-  const speed = action.speed ?? 50;
-  const elapsed = (currentTime - action.time) * 1e3;
+  const speed = action.speed ?? DEFAULT_TYPE_SPEED;
+  const elapsed = (currentTime - action.time) * MILLISECONDS_PER_SECOND;
   if (elapsed <= 0) {
     element.textContent = "";
     return;
@@ -102,14 +155,24 @@ function evaluateTypewriter(element, action, currentTime, typewriterTexts) {
 }
 function evaluateTypehtmlWriter(element, action, currentTime, htmlMap) {
   const fullHtml = htmlMap.get(action.ref) ?? "";
-  const speed = action.speed ?? 25;
-  const elapsed = (currentTime - action.time) * 1e3;
+  const speed = action.speed ?? DEFAULT_TYPEHTML_SPEED;
+  const elapsed = (currentTime - action.time) * MILLISECONDS_PER_SECOND;
   if (elapsed <= 0) {
     element.innerHTML = "";
     return;
   }
   const charsToShow = Math.floor(elapsed / speed);
   element.innerHTML = sliceHtml(fullHtml, charsToShow);
+}
+function trackHtmlTag(tag, openTags) {
+  if (tag.startsWith("</")) {
+    openTags.pop();
+  } else if (!tag.endsWith("/>")) {
+    const match = tag.match(/^<(\w+)/);
+    if (match) {
+      openTags.push(match[1]);
+    }
+  }
 }
 function sliceHtml(html, visibleCount) {
   let visible = 0;
@@ -118,18 +181,15 @@ function sliceHtml(html, visibleCount) {
   while (i < html.length && visible < visibleCount) {
     if (html[i] === "<") {
       const tagEnd = html.indexOf(">", i);
-      if (tagEnd === -1) break;
-      const tag = html.substring(i, tagEnd + 1);
-      if (tag.startsWith("</")) {
-        openTags.pop();
-      } else if (!tag.endsWith("/>")) {
-        const match = tag.match(/^<(\w+)/);
-        if (match) openTags.push(match[1]);
+      if (tagEnd === -1) {
+        break;
       }
+      const tag = html.substring(i, tagEnd + 1);
+      trackHtmlTag(tag, openTags);
       i = tagEnd + 1;
     } else if (html[i] === "&") {
       const semiPos = html.indexOf(";", i);
-      if (semiPos !== -1 && semiPos - i <= 10) {
+      if (semiPos !== -1 && semiPos - i <= MAX_HTML_ENTITY_LENGTH) {
         i = semiPos + 1;
       } else {
         i++;
@@ -142,42 +202,83 @@ function sliceHtml(html, visibleCount) {
   }
   while (i < html.length && html[i] === "<") {
     const tagEnd = html.indexOf(">", i);
-    if (tagEnd === -1) break;
-    const tag = html.substring(i, tagEnd + 1);
-    if (tag.startsWith("</")) {
-      openTags.pop();
-    } else if (!tag.endsWith("/>")) {
-      const match = tag.match(/^<(\w+)/);
-      if (match) openTags.push(match[1]);
+    if (tagEnd === -1) {
+      break;
     }
+    const tag = html.substring(i, tagEnd + 1);
+    trackHtmlTag(tag, openTags);
     i = tagEnd + 1;
   }
   let result = html.substring(0, i);
   for (let t = openTags.length - 1; t >= 0; t--) {
-    result += "</" + openTags[t] + ">";
+    result += `</${openTags[t]}>`;
   }
   return result;
 }
-function evaluateAnchors(component) {
-  const sr = component.shadowRoot;
-  if (!sr) return;
-  const anchored = sr.querySelectorAll("[p-timeline-anchor]");
-  if (anchored.length === 0) return;
-  let container = null;
-  for (const child of sr.children) {
+function findAnchorContainer(shadowRoot) {
+  for (const child of Array.from(shadowRoot.children)) {
     if (child instanceof HTMLElement && child.tagName !== "STYLE") {
-      container = child;
-      break;
+      return child;
     }
   }
-  if (!container) return;
-  const cr = container.getBoundingClientRect();
-  const pad = 6;
-  for (const el of anchored) {
+  return null;
+}
+function computeAnchorPosition(targetRect, containerRect, elementWidth, elementHeight, wantBottom, wantRight) {
+  let top;
+  if (wantBottom) {
+    top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
+    if (top + elementHeight > containerRect.height - ANCHOR_PADDING) {
+      top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
+    }
+  } else {
+    top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
+    if (top < ANCHOR_PADDING) {
+      top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
+    }
+  }
+  let left;
+  if (wantRight) {
+    left = targetRect.right - containerRect.left - elementWidth;
+  } else {
+    left = targetRect.left - containerRect.left;
+  }
+  if (left + elementWidth > containerRect.width - ANCHOR_PADDING) {
+    left = containerRect.width - elementWidth - ANCHOR_PADDING;
+  }
+  if (left < ANCHOR_PADDING) {
+    left = ANCHOR_PADDING;
+  }
+  if (top < ANCHOR_PADDING) {
+    top = ANCHOR_PADDING;
+  }
+  if (top + elementHeight > containerRect.height - ANCHOR_PADDING) {
+    top = containerRect.height - elementHeight - ANCHOR_PADDING;
+  }
+  return { top, left };
+}
+function evaluateAnchors(component) {
+  const sr = component.shadowRoot;
+  if (!sr) {
+    return;
+  }
+  const anchored = sr.querySelectorAll("[p-timeline-anchor]");
+  if (anchored.length === 0) {
+    return;
+  }
+  const container = findAnchorContainer(sr);
+  if (!container) {
+    return;
+  }
+  const containerRect = container.getBoundingClientRect();
+  for (const el of Array.from(anchored)) {
     const htmlEl = el;
-    if (htmlEl.hasAttribute("p-timeline-hidden")) continue;
+    if (htmlEl.hasAttribute("p-timeline-hidden")) {
+      continue;
+    }
     const raw = htmlEl.getAttribute("p-timeline-anchor");
-    if (!raw) continue;
+    if (!raw) {
+      continue;
+    }
     const parts = raw.split(" ");
     const targetRef = parts[0];
     const position = parts[1] || "bottom-left";
@@ -191,39 +292,25 @@ function evaluateAnchors(component) {
       htmlEl.style.bottom = "";
       continue;
     }
-    const tr = target.getBoundingClientRect();
-    const tw = htmlEl.offsetWidth || 200;
-    const th = htmlEl.offsetHeight || 40;
-    let top;
-    if (wantBottom) {
-      top = tr.bottom - cr.top + pad;
-      if (top + th > cr.height - pad) {
-        top = tr.top - cr.top - th - pad;
-      }
-    } else {
-      top = tr.top - cr.top - th - pad;
-      if (top < pad) {
-        top = tr.bottom - cr.top + pad;
-      }
-    }
-    let left;
-    if (wantRight) {
-      left = tr.right - cr.left - tw;
-    } else {
-      left = tr.left - cr.left;
-    }
-    if (left + tw > cr.width - pad) left = cr.width - tw - pad;
-    if (left < pad) left = pad;
-    if (top < pad) top = pad;
-    if (top + th > cr.height - pad) top = cr.height - th - pad;
-    htmlEl.style.top = top + "px";
-    htmlEl.style.left = left + "px";
+    const targetRect = target.getBoundingClientRect();
+    const elementWidth = htmlEl.offsetWidth || DEFAULT_ANCHOR_WIDTH;
+    const elementHeight = htmlEl.offsetHeight || DEFAULT_ANCHOR_HEIGHT;
+    const pos = computeAnchorPosition(
+      targetRect,
+      containerRect,
+      elementWidth,
+      elementHeight,
+      wantBottom,
+      wantRight
+    );
+    htmlEl.style.top = `${pos.top}px`;
+    htmlEl.style.left = `${pos.left}px`;
     htmlEl.style.right = "auto";
     htmlEl.style.bottom = "auto";
   }
 }
 function resolveTimeline(raw) {
-  if (!raw || !Array.isArray(raw) || raw.length === 0) {
+  if (!Array.isArray(raw) || raw.length === 0) {
     return null;
   }
   if ("time" in raw[0]) {
@@ -249,6 +336,7 @@ function setupAnimation(component) {
     console.warn(`Animation: no $$timeline data found on ${component.tagName}.`);
     return;
   }
+  const validatedTimeline = rawTimeline;
   let sortedActions = [];
   let typewriterTexts = /* @__PURE__ */ new Map();
   let typehtmlContents = /* @__PURE__ */ new Map();
@@ -256,8 +344,10 @@ function setupAnimation(component) {
   let captured = false;
   const ppEl = component;
   function activateTimeline() {
-    const actions = resolveTimeline(rawTimeline);
-    if (!actions) return;
+    const actions = resolveTimeline(validatedTimeline);
+    if (!actions) {
+      return;
+    }
     sortedActions = [...actions].sort((a, b) => a.time - b.time);
     typewriterTexts = /* @__PURE__ */ new Map();
     typehtmlContents = /* @__PURE__ */ new Map();
@@ -269,18 +359,17 @@ function setupAnimation(component) {
   if (isResponsive) {
     const entries = rawTimeline;
     for (const entry of entries) {
-      if (entry.media == null || entry.media === "") continue;
+      if (entry.media == null || entry.media === "") {
+        continue;
+      }
       const mql = window.matchMedia(entry.media);
       const handler = () => {
         activateTimeline();
         if (initialised) {
-          captured = false;
+          captureTypewriterTexts(ppEl, sortedActions, typewriterTexts);
+          captureTypehtmlContents(ppEl, sortedActions, typehtmlContents);
+          captured = true;
           const currentTime = parseFloat(ppEl.getAttribute("time") ?? "0");
-          if (!captured) {
-            captured = true;
-            captureTypewriterTexts(ppEl, sortedActions, typewriterTexts);
-            captureTypehtmlContents(ppEl, sortedActions, typehtmlContents);
-          }
           evaluateTimeline(ppEl, sortedActions, currentTime, typewriterTexts, typehtmlContents);
           evaluateAnchors(ppEl);
         }
@@ -290,7 +379,9 @@ function setupAnimation(component) {
     }
   }
   const observer = new MutationObserver(() => {
-    if (!initialised) return;
+    if (!initialised) {
+      return;
+    }
     if (!captured) {
       captured = true;
       captureTypewriterTexts(ppEl, sortedActions, typewriterTexts);
@@ -301,7 +392,9 @@ function setupAnimation(component) {
     evaluateAnchors(ppEl);
   });
   ppEl.onAfterRender(() => {
-    if (initialised) return;
+    if (initialised) {
+      return;
+    }
     initialised = true;
     observer.observe(ppEl, { attributes: true, attributeFilter: ["time"] });
   });
@@ -313,4 +406,5 @@ function setupAnimation(component) {
   });
 }
 window.__piko_animation = setupAnimation;
+window.__piko_registerTimelineAction = registerTimelineAction;
 //# sourceMappingURL=ppframework.animation.es.js.map

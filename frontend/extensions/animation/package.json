@@ -16,18 +16,20 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@rollup/plugin-terser": "^0.4.4",
-    "@vitest/coverage-v8": "^4.0.16",
+    "@types/jsdom": "^28.0.1",
     "@typescript-eslint/eslint-plugin": "^8.50.1",
     "@typescript-eslint/parser": "^8.50.1",
+    "@vitest/coverage-v8": "^4.0.16",
     "eslint": "^9.39.2",
     "eslint-plugin-jsdoc": "^61.5.0",
     "eslint-plugin-promise": "^7.2.1",
     "jscpd": "^4",
+    "jsdom": "^29.0.2",
     "terser": "^5.44.1",
     "typescript": "~5.9.3",
     "vite": "^7.2.6",
-    "vitest": "^4.0.16",
-    "vite-plugin-compression2": "^2.4.0"
+    "vite-plugin-compression2": "^2.4.0",
+    "vitest": "^4.0.16"
   },
   "author": "PolitePixels Limited",
   "license": "Apache-2.0"

@@ -23,7 +23,7 @@ interface TimelineAction {
     /** Time in seconds at which the action fires. */
     time: number;
     /** The kind of action to perform on the target element. */
-    action: "show" | "hide" | "type" | "typehtml" | "addclass" | "removeclass" | "tooltip";
+    action: string;
     /** The component ref name identifying the target element. */
     ref: string;
     /** Typing speed in milliseconds per character for type/typehtml actions. */
@@ -32,6 +32,18 @@ interface TimelineAction {
     class?: string;
     /** Arbitrary string value used by tooltip actions. */
     value?: string;
+    /** Additional parameters for custom (user-defined) actions. */
+    params?: Record<string, string>;
+}
+
+/** Minimal interface for a PKC component used by the animation extension. */
+interface PikoComponent extends HTMLElement {
+    /** Map of p-ref names to their corresponding DOM elements. */
+    refs?: Record<string, HTMLElement>;
+    /** Registers a callback invoked after the component's first render. */
+    onAfterRender(callback: () => void): void;
+    /** Registers a callback invoked when the component is removed from the DOM. */
+    onDisconnected(callback: () => void): void;
 }
 
 /** A responsive timeline entry that associates a media query with a set of actions. */
@@ -59,7 +71,7 @@ interface TimelineEntry {
  * @returns The resolved array of actions, or null if the input is empty or invalid.
  */
 function resolveTimeline(raw: TimelineAction[] | TimelineEntry[]): TimelineAction[] | null {
-    if (!raw || !Array.isArray(raw) || raw.length === 0) {
+    if (!Array.isArray(raw) || raw.length === 0) {
         return null;
     }
 
@@ -105,17 +117,19 @@ export function setupAnimation(component: HTMLElement): void {
         return;
     }
 
+    const validatedTimeline: TimelineAction[] | TimelineEntry[] = rawTimeline;
+
     let sortedActions: TimelineAction[] = [];
     let typewriterTexts = new Map<string, string>();
     let typehtmlContents = new Map<string, string>();
     let initialised = false;
     let captured = false;
 
-    const ppEl = component as any;
+    const ppEl = component as PikoComponent;
 
     function activateTimeline(): void {
-        const actions = resolveTimeline(rawTimeline!);
-        if (!actions) return;
+        const actions = resolveTimeline(validatedTimeline);
+        if (!actions) {return;}
         sortedActions = [...actions].sort((a, b) => a.time - b.time);
         typewriterTexts = new Map<string, string>();
         typehtmlContents = new Map<string, string>();
@@ -130,18 +144,15 @@ export function setupAnimation(component: HTMLElement): void {
     if (isResponsive) {
         const entries = rawTimeline as TimelineEntry[];
         for (const entry of entries) {
-            if (entry.media == null || entry.media === '') continue;
+            if (entry.media == null || entry.media === '') {continue;}
             const mql = window.matchMedia(entry.media);
             const handler = () => {
                 activateTimeline();
                 if (initialised) {
-                    captured = false;
+                    captureTypewriterTexts(ppEl, sortedActions, typewriterTexts);
+                    captureTypehtmlContents(ppEl, sortedActions, typehtmlContents);
+                    captured = true;
                     const currentTime = parseFloat(ppEl.getAttribute('time') ?? '0');
-                    if (!captured) {
-                        captured = true;
-                        captureTypewriterTexts(ppEl, sortedActions, typewriterTexts);
-                        captureTypehtmlContents(ppEl, sortedActions, typehtmlContents);
-                    }
                     evaluateTimeline(ppEl, sortedActions, currentTime, typewriterTexts, typehtmlContents);
                     evaluateAnchors(ppEl);
                 }
@@ -152,7 +163,7 @@ export function setupAnimation(component: HTMLElement): void {
     }
 
     const observer = new MutationObserver(() => {
-        if (!initialised) return;
+        if (!initialised) {return;}
         if (!captured) {
             captured = true;
             captureTypewriterTexts(ppEl, sortedActions, typewriterTexts);
@@ -164,7 +175,7 @@ export function setupAnimation(component: HTMLElement): void {
     });
 
     ppEl.onAfterRender(() => {
-        if (initialised) return;
+        if (initialised) {return;}
         initialised = true;
         observer.observe(ppEl, { attributes: true, attributeFilter: ['time'] });
     });
@@ -177,4 +188,4 @@ export function setupAnimation(component: HTMLElement): void {
     });
 }
 
-export type {TimelineAction};
+export type {TimelineAction, PikoComponent};

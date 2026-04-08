@@ -20,13 +20,13 @@ package compiler_domain
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"piko.sh/piko/internal/htmllexer"
+	"piko.sh/piko/internal/json"
 )
 
 const (
@@ -37,16 +37,28 @@ const (
 	// attrRef is the HTML attribute name used to identify the
 	// target element by p-ref.
 	attrRef = "ref"
+
+	// pikoTagPrefix is the namespace prefix for all piko timeline
+	// action tags (e.g. piko:show, piko:type).
+	pikoTagPrefix = "piko:"
+
+	// errFormatOutsideAt is the error format string used when an
+	// action element appears outside a piko:at block.
+	errFormatOutsideAt = "%s must be inside a piko:at element"
 )
 
 // timelineAction represents a single timed action in a piko:timeline block.
 type timelineAction struct {
 	// Action is the type of action: "show", "hide", "type", "typehtml",
-	// "addclass", "removeclass", or "tooltip".
+	// "addclass", "removeclass", "tooltip", or a custom user-defined name.
 	Action string `json:"action"`
 
 	// Ref is the p-ref name of the target element.
 	Ref string `json:"ref"`
+
+	// Params holds additional attributes for custom (user-defined) actions.
+	// Omitted from JSON when empty.
+	Params map[string]string `json:"params,omitempty"`
 
 	// Class is the CSS class name to add or remove (addclass/removeclass only).
 	// Omitted from JSON when empty.
@@ -143,8 +155,40 @@ func parseTimelineTag(
 	case "piko:tooltip":
 		return parseTooltipAction(attrs, *currentTime, *insideAt)
 	default:
-		return nil, nil
+		if !strings.HasPrefix(tagName, pikoTagPrefix) {
+			return nil, nil
+		}
+		return parseGenericAction(tagName, attrs, *currentTime, *insideAt)
 	}
+}
+
+// parseGenericAction handles unknown piko:* elements by passing
+// through all attributes as key-value params, enabling user-defined
+// custom timeline actions.
+//
+// Takes tagName (string) which is the lowercased HTML tag name.
+// Takes attrs (map[string]string) which contains the tag's
+// attribute key-value pairs.
+// Takes currentTime (float64) which is the current timeline
+// position in seconds.
+// Takes insideAt (bool) which indicates whether parsing is
+// inside a piko:at block.
+//
+// Returns a timeline action with the action name derived from
+// the tag, an optional ref, and all other attributes in Params.
+func parseGenericAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
+	if !insideAt {
+		return nil, fmt.Errorf(errFormatOutsideAt, tagName)
+	}
+	action := strings.TrimPrefix(tagName, pikoTagPrefix)
+	ref := attrs[attrRef]
+	params := make(map[string]string, len(attrs))
+	for k, v := range attrs {
+		if k != attrRef {
+			params[k] = v
+		}
+	}
+	return &timelineAction{Time: currentTime, Action: action, Ref: ref, Params: params}, nil
 }
 
 // parseAtDirective handles a <piko:at time="..."> element by
@@ -185,13 +229,13 @@ func parseAtDirective(attrs map[string]string, currentTime *float64, insideAt *b
 // Returns a timeline action with the ref and action type set.
 func parseRefAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
-		return nil, fmt.Errorf("%s must be inside a piko:at element", tagName)
+		return nil, fmt.Errorf(errFormatOutsideAt, tagName)
 	}
 	ref, ok := attrs[attrRef]
 	if !ok {
 		return nil, fmt.Errorf("%s element missing required 'ref' attribute", tagName)
 	}
-	action := strings.TrimPrefix(tagName, "piko:")
+	action := strings.TrimPrefix(tagName, pikoTagPrefix)
 	return &timelineAction{Time: currentTime, Action: action, Ref: ref}, nil
 }
 
@@ -210,13 +254,13 @@ func parseRefAction(tagName string, attrs map[string]string, currentTime float64
 // optional speed set.
 func parseTypingAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
-		return nil, fmt.Errorf("%s must be inside a piko:at element", tagName)
+		return nil, fmt.Errorf(errFormatOutsideAt, tagName)
 	}
 	ref, ok := attrs[attrRef]
 	if !ok {
 		return nil, fmt.Errorf("%s element missing required 'ref' attribute", tagName)
 	}
-	action := strings.TrimPrefix(tagName, "piko:")
+	action := strings.TrimPrefix(tagName, pikoTagPrefix)
 	a := &timelineAction{Time: currentTime, Action: action, Ref: ref}
 	if speedStr, hasSpeed := attrs["speed"]; hasSpeed {
 		speed, err := strconv.ParseFloat(speedStr, 64)
@@ -243,7 +287,7 @@ func parseTypingAction(tagName string, attrs map[string]string, currentTime floa
 // name set.
 func parseClassAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
-		return nil, fmt.Errorf("%s must be inside a piko:at element", tagName)
+		return nil, fmt.Errorf(errFormatOutsideAt, tagName)
 	}
 	ref, ok := attrs[attrRef]
 	if !ok {
@@ -253,7 +297,7 @@ func parseClassAction(tagName string, attrs map[string]string, currentTime float
 	if !ok {
 		return nil, fmt.Errorf("%s element missing required 'class' attribute", tagName)
 	}
-	action := strings.TrimPrefix(tagName, "piko:")
+	action := strings.TrimPrefix(tagName, pikoTagPrefix)
 	return &timelineAction{Time: currentTime, Action: action, Ref: ref, Class: class}, nil
 }
 
@@ -271,7 +315,7 @@ func parseClassAction(tagName string, attrs map[string]string, currentTime float
 // optional value set.
 func parseTooltipAction(attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
-		return nil, errors.New("piko:tooltip must be inside a piko:at element")
+		return nil, fmt.Errorf(errFormatOutsideAt, "piko:tooltip")
 	}
 	ref, ok := attrs[attrRef]
 	if !ok {

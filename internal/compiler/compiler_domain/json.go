@@ -16,8 +16,20 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {setupAnimation} from './timeline';
-import {registerTimelineAction} from './actions';
+package compiler_domain
 
-(window as unknown as Record<string, unknown>).__piko_animation = setupAnimation;
-(window as unknown as Record<string, unknown>).__piko_registerTimelineAction = registerTimelineAction;
+import (
+	"reflect"
+
+	"piko.sh/piko/internal/json"
+)
+
+func init() {
+	pretouchTypes := []reflect.Type{
+		reflect.TypeFor[timelineAction](),
+	}
+
+	for _, t := range pretouchTypes {
+		_ = json.Pretouch(t)
+	}
+}

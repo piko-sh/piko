@@ -16,8 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {setupAnimation} from './timeline';
-import {registerTimelineAction} from './actions';
+import js from "@eslint/js";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
+import jsdoc from "eslint-plugin-jsdoc";
+import promise from "eslint-plugin-promise";
+import { createEslintConfig, BROWSER_GLOBALS, BROWSER_TEST_GLOBALS } from "../../eslint.base.mjs";
 
-(window as unknown as Record<string, unknown>).__piko_animation = setupAnimation;
-(window as unknown as Record<string, unknown>).__piko_registerTimelineAction = registerTimelineAction;
+export default createEslintConfig({
+  js, tseslint, tsparser, jsdoc, promise,
+  globals: BROWSER_GLOBALS,
+  testGlobals: BROWSER_TEST_GLOBALS,
+});

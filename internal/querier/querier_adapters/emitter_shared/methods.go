@@ -190,8 +190,10 @@ func BuildOneMethod(
 //
 // Returns []ast.Stmt which contains the scan statements.
 func buildOneMethodScanStatements(rowTypeName string, queryRowCall ast.Expr, scanArguments []ast.Expr, query *querier_dto.AnalysedQuery) []ast.Stmt {
-	statements := []ast.Stmt{goastutil.VarDecl(IdentRow, goastutil.CachedIdent(rowTypeName))}
-	statements = append(statements, BuildEmbedPreAllocStatements(query)...)
+	embedStatements := BuildEmbedPreAllocStatements(query)
+	statements := make([]ast.Stmt, 0, 3+len(embedStatements))
+	statements = append(statements, goastutil.VarDecl(IdentRow, goastutil.CachedIdent(rowTypeName)))
+	statements = append(statements, embedStatements...)
 	statements = append(statements,
 		goastutil.DefineStmt(IdentErr,
 			goastutil.CallExpr(
