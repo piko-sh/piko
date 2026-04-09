@@ -278,6 +278,7 @@ func (e *InMemoryPKJSEmitter) EmitJS(
 	source string,
 	pagePath string,
 	_ string,
+	_ string,
 	_ bool,
 ) (artefactID string, err error) {
 	e.mu.Lock()

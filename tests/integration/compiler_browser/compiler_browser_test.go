@@ -45,6 +45,7 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/esbuild/compat"
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
+	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/testutil/leakcheck"
 	browserpkg "piko.sh/piko/wdk/browser"
@@ -182,6 +183,12 @@ func TestCompiler_Functional(t *testing.T) {
 					w.Header().Set("Content-Type", "application/javascript")
 					_, _ = fmt.Fprint(w, artefact.Files[artefact.BaseJSPath])
 				default:
+					assetPrefix := "/_piko/assets/" + testModuleName + "/"
+					if strings.HasPrefix(r.URL.Path, assetPrefix) {
+						serveTranspiledAsset(t, w, r, testDir, assetPrefix)
+						return
+					}
+
 					requestedPath := strings.TrimPrefix(r.URL.Path, "/")
 					testFilePath := filepath.Join(testDir, requestedPath)
 					if content, err := os.ReadFile(testFilePath); err == nil {
@@ -585,6 +592,22 @@ func (r *testFSReader) ReadFile(_ context.Context, path string) ([]byte, error) 
 	return os.ReadFile(path)
 }
 
+const testModuleName = "testmodule"
+
+func hasLibTSFiles(testDir string) bool {
+	libDir := filepath.Join(testDir, "lib")
+	entries, err := os.ReadDir(libDir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".ts") {
+			return true
+		}
+	}
+	return false
+}
+
 func hasCSSFiles(testDir string) bool {
 	entries, err := os.ReadDir(testDir)
 	if err != nil {
@@ -600,30 +623,77 @@ func hasCSSFiles(testDir string) bool {
 
 func buildCompilerOpts(t *testing.T, testDir string) []compiler_domain.OrchestratorOption {
 	t.Helper()
-	if !hasCSSFiles(testDir) {
+
+	var opts []compiler_domain.OrchestratorOption
+
+	if hasLibTSFiles(testDir) {
+		opts = append(opts, compiler_domain.WithOrchestratorModuleName(testModuleName))
+	}
+
+	if hasCSSFiles(testDir) {
+		mockResolver := &resolver_domain.MockResolver{
+			ResolveCSSPathFunc: func(_ context.Context, importPath string, containingDir string) (string, error) {
+				if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
+					return filepath.Join(containingDir, filepath.FromSlash(importPath)), nil
+				}
+				return "", fmt.Errorf("unsupported CSS import path in test: %s", importPath)
+			},
+		}
+		processor := cssinliner.NewProcessor(cssinliner.ProcessorConfig{
+			Resolver: mockResolver,
+			Loader:   esbuildconfig.LoaderLocalCSS,
+			Options: &esbuildconfig.Options{
+				MinifyWhitespace:       true,
+				MinifySyntax:           true,
+				UnsupportedCSSFeatures: compat.Nesting,
+			},
+		})
+		preProcessor := compiler_adapters.NewCSSPreProcessor(processor, &testFSReader{}, "", "")
+		opts = append(opts, compiler_domain.WithOrchestratorCSSPreProcessor(preProcessor))
+	}
+
+	if len(opts) == 0 {
 		return nil
 	}
-	mockResolver := &resolver_domain.MockResolver{
-		ResolveCSSPathFunc: func(_ context.Context, importPath string, containingDir string) (string, error) {
-			if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
-				return filepath.Join(containingDir, filepath.FromSlash(importPath)), nil
-			}
-			return "", fmt.Errorf("unsupported CSS import path in test: %s", importPath)
-		},
+	return opts
+}
+
+func serveTranspiledAsset(t *testing.T, w http.ResponseWriter, r *http.Request, testDir string, assetPrefix string) {
+	t.Helper()
+
+	relPath := strings.TrimPrefix(r.URL.Path, assetPrefix)
+
+	directPath := filepath.Join(testDir, relPath)
+	if content, err := os.ReadFile(directPath); err == nil {
+		w.Header().Set("Content-Type", "application/javascript")
+		_, _ = fmt.Fprint(w, string(content))
+		return
 	}
-	processor := cssinliner.NewProcessor(cssinliner.ProcessorConfig{
-		Resolver: mockResolver,
-		Loader:   esbuildconfig.LoaderLocalCSS,
-		Options: &esbuildconfig.Options{
-			MinifyWhitespace:       true,
-			MinifySyntax:           true,
-			UnsupportedCSSFeatures: compat.Nesting,
-		},
-	})
-	preProcessor := compiler_adapters.NewCSSPreProcessor(processor, &testFSReader{}, "", "")
-	return []compiler_domain.OrchestratorOption{
-		compiler_domain.WithOrchestratorCSSPreProcessor(preProcessor),
+
+	if base, ok := strings.CutSuffix(relPath, ".js"); ok {
+		tsPath := filepath.Join(testDir, base+".ts")
+		tsContent, err := os.ReadFile(tsPath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		transpiler := generator_domain.NewJSTranspiler()
+		result, err := transpiler.Transpile(context.Background(), string(tsContent), generator_domain.TranspileOptions{
+			Filename: tsPath,
+		})
+		if err != nil {
+			t.Logf("ERROR: Failed to transpile %s: %v", tsPath, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/javascript")
+		_, _ = fmt.Fprint(w, result.Code)
+		return
 	}
+
+	http.NotFound(w, r)
 }
 
 func createTestHarnessHTML(artefact *compiler_dto.CompiledArtefact) string {

@@ -257,7 +257,8 @@ func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 	defer func() { _ = file.Close() }()
 
 	profiles := GetProfilesForFile(fec.artefactID, nil)
-	_, err = ls.registryService.UpsertArtefact(ctx, fec.artefactID, fec.relPath, file, "local_disk_cache", profiles)
+	normalisedID := NormaliseAssetArtefactID(fec.artefactID)
+	_, err = ls.registryService.UpsertArtefact(ctx, normalisedID, fec.relPath, file, "local_disk_cache", profiles)
 	if err != nil {
 		l.Error("Failed to upsert asset artefact", logger_domain.Error(err))
 	}
@@ -269,7 +270,8 @@ func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 func (ls *lifecycleService) deleteAssetArtefact(fec fileEventContext) {
 	ctx, l := logger_domain.From(fec.ctx, log)
 
-	err := ls.registryService.DeleteArtefact(ctx, fec.artefactID)
+	normalisedID := NormaliseAssetArtefactID(fec.artefactID)
+	err := ls.registryService.DeleteArtefact(ctx, normalisedID)
 	if err != nil && !errors.Is(err, registry_domain.ErrArtefactNotFound) {
 		l.Error("Failed to delete asset artefact", logger_domain.Error(err))
 	}

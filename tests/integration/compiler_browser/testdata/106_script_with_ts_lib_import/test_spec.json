@@ -1,0 +1,16 @@
+[
+  {
+    "action": "checkText",
+    "selector": "ts-lib-import-component >>> p",
+    "expected": "Hello, WORLD!"
+  },
+  {
+    "action": "click",
+    "selector": "ts-lib-import-component >>> button"
+  },
+  {
+    "action": "checkText",
+    "selector": "ts-lib-import-component >>> p",
+    "expected": "Hello, PIKO!"
+  }
+]

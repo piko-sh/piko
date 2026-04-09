@@ -165,12 +165,12 @@ func (m *mockSearchIndexEmitter) EmitSearchIndex(ctx context.Context, collection
 }
 
 type mockPKJSEmitter struct {
-	EmitJSFunc func(ctx context.Context, source string, pagePath string, outputDir string, minify bool) (string, error)
+	EmitJSFunc func(ctx context.Context, source string, pagePath string, moduleName string, outputDir string, minify bool) (string, error)
 }
 
-func (m *mockPKJSEmitter) EmitJS(ctx context.Context, source string, pagePath string, outputDir string, minify bool) (string, error) {
+func (m *mockPKJSEmitter) EmitJS(ctx context.Context, source string, pagePath string, moduleName string, outputDir string, minify bool) (string, error) {
 	if m.EmitJSFunc != nil {
-		return m.EmitJSFunc(ctx, source, pagePath, outputDir, minify)
+		return m.EmitJSFunc(ctx, source, pagePath, moduleName, outputDir, minify)
 	}
 	return "pk-js/" + pagePath + ".js", nil
 }

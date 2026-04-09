@@ -138,6 +138,104 @@ const value = 42;
 	}
 }
 
+func TestJSTranspiler_Transpile_ImportRewriting(t *testing.T) {
+	t.Parallel()
+
+	transpiler := generator_domain.NewJSTranspiler()
+	ctx := context.Background()
+
+	testCases := []struct {
+		name     string
+		source   string
+		opts     generator_domain.TranspileOptions
+		contains []string
+		excludes []string
+	}{
+		{
+			name:     ".ts import rewritten to .js",
+			source:   "import { x } from './utils.ts';\nconsole.log(x);",
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts"},
+			contains: []string{`"./utils.js"`},
+			excludes: []string{`"./utils.ts"`},
+		},
+		{
+			name:     ".js import unchanged",
+			source:   "import { x } from './utils.js';\nconsole.log(x);",
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts"},
+			contains: []string{`"./utils.js"`},
+		},
+		{
+			name:     "bare specifier unchanged",
+			source:   "import { x } from 'lodash';\nconsole.log(x);",
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts"},
+			contains: []string{`"lodash"`},
+		},
+		{
+			name:     "@/ import with module name gets rewritten",
+			source:   "import { greet } from '@/lib/utils';\nconsole.log(greet);",
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts", ModuleName: "mymod"},
+			contains: []string{`"/_piko/assets/mymod/lib/utils.js"`},
+			excludes: []string{`"@/lib/utils"`},
+		},
+		{
+			name:     "@/ import with .ts extension gets rewritten to .js",
+			source:   "import { greet } from '@/lib/utils.ts';\nconsole.log(greet);",
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts", ModuleName: "mymod"},
+			contains: []string{`"/_piko/assets/mymod/lib/utils.js"`},
+			excludes: []string{`utils.ts`},
+		},
+		{
+			name:     "@/ import without module name stays unchanged",
+			source:   "import { greet } from '@/lib/utils';\nconsole.log(greet);",
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts"},
+			contains: []string{`"@/lib/utils"`},
+		},
+		{
+			name:     "dynamic import .ts rewritten to .js",
+			source:   `const mod = import('./utils.ts');`,
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts"},
+			contains: []string{`"./utils.js"`},
+			excludes: []string{`"./utils.ts"`},
+		},
+		{
+			name:     "export from .ts rewritten to .js",
+			source:   `export { x } from './other.ts';`,
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts"},
+			contains: []string{`"./other.js"`},
+			excludes: []string{`"./other.ts"`},
+		},
+		{
+			name:     "extensionless relative import gets .js",
+			source:   "import { x } from './bar';\nconsole.log(x);",
+			opts:     generator_domain.TranspileOptions{Filename: "test.ts"},
+			contains: []string{`"./bar.js"`},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := transpiler.Transpile(ctx, tc.source, tc.opts)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			for _, s := range tc.contains {
+				if !strings.Contains(result.Code, s) {
+					t.Errorf("expected output to contain %q, got:\n%s", s, result.Code)
+				}
+			}
+
+			for _, s := range tc.excludes {
+				if strings.Contains(result.Code, s) {
+					t.Errorf("expected output NOT to contain %q, got:\n%s", s, result.Code)
+				}
+			}
+		})
+	}
+}
+
 func TestJSTranspiler_Transpile_SyntaxError(t *testing.T) {
 	t.Parallel()
 

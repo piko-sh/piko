@@ -415,7 +415,7 @@ func TestEmitClientSideJS(t *testing.T) {
 			name: "emitter error returns empty with warning",
 			setup: func(s *generatorService) {
 				s.pkJSEmitter = &mockPKJSEmitter{
-					EmitJSFunc: func(_ context.Context, _ string, _ string, _ string, _ bool) (string, error) {
+					EmitJSFunc: func(_ context.Context, _ string, _ string, _ string, _ string, _ bool) (string, error) {
 						return "", errors.New("js fail")
 					},
 				}

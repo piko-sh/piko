@@ -221,6 +221,45 @@ func TestGetProfilesForFile(t *testing.T) {
 		assert.Nil(t, profiles)
 	})
 
+	t.Run("TypeScript file gets transpile, minify, and compress profiles", func(t *testing.T) {
+		t.Parallel()
+
+		profiles := GetProfilesForFile("lib/svg-animations.ts", nil)
+
+		require.NotEmpty(t, profiles)
+		assert.Len(t, profiles, 4)
+
+		profileNames := make([]string, len(profiles))
+		for i, p := range profiles {
+			profileNames[i] = p.Name
+		}
+
+		assert.Contains(t, profileNames, "transpiled_js")
+		assert.Contains(t, profileNames, "minified")
+		assert.Contains(t, profileNames, "gzip")
+		assert.Contains(t, profileNames, "br")
+
+		for _, p := range profiles {
+			if p.Name == "transpiled_js" {
+				assert.Equal(t, capabilities_dto.CapabilityTranspileTypeScript.String(), p.Profile.CapabilityName)
+				assert.Equal(t, registry_dto.PriorityNeed, p.Profile.Priority)
+				assert.Equal(t, "source", p.Profile.DependsOn.First())
+
+				mimeType, ok := p.Profile.ResultingTags.GetByName("mimeType")
+				assert.True(t, ok)
+				assert.Equal(t, "application/javascript", mimeType)
+
+				fileExt, ok := p.Profile.ResultingTags.GetByName("fileExtension")
+				assert.True(t, ok)
+				assert.Equal(t, ".js", fileExt)
+			}
+			if p.Name == "minified" {
+				assert.Equal(t, capabilities_dto.CapabilityMinifyJS.String(), p.Profile.CapabilityName)
+				assert.Equal(t, "transpiled_js", p.Profile.DependsOn.First())
+			}
+		}
+	})
+
 	t.Run("case insensitive extension matching", func(t *testing.T) {
 		t.Parallel()
 
@@ -512,4 +551,53 @@ func TestBuildJSProfiles(t *testing.T) {
 		assert.Contains(t, profileNames, "gzip")
 		assert.Contains(t, profileNames, "br")
 	})
+}
+
+func TestBuildTypeScriptProfiles(t *testing.T) {
+	t.Parallel()
+
+	ctx := profileContext{
+		artefactID: "lib/svg-animations.ts",
+		ext:        ".ts",
+	}
+
+	profiles := buildTypeScriptProfiles(ctx)
+
+	require.Len(t, profiles, 4)
+
+	assert.Equal(t, "transpiled_js", profiles[0].Name)
+	assert.Equal(t, capabilities_dto.CapabilityTranspileTypeScript.String(), profiles[0].Profile.CapabilityName)
+	assert.Equal(t, registry_dto.PriorityNeed, profiles[0].Profile.Priority)
+	assert.Equal(t, "source", profiles[0].Profile.DependsOn.First())
+
+	sourcePath, ok := profiles[0].Profile.Params.GetByName("sourcePath")
+	assert.True(t, ok)
+	assert.Equal(t, "lib/svg-animations.ts", sourcePath)
+
+	assert.Equal(t, "minified", profiles[1].Name)
+	assert.Equal(t, "transpiled_js", profiles[1].Profile.DependsOn.First())
+}
+
+func TestNormaliseAssetArtefactID(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "TypeScript to JavaScript", input: "module/lib/utils.ts", expected: "module/lib/utils.js"},
+		{name: "JavaScript unchanged", input: "module/lib/utils.js", expected: "module/lib/utils.js"},
+		{name: "CSS unchanged", input: "module/lib/style.css", expected: "module/lib/style.css"},
+		{name: "PKC unchanged", input: "module/components/button.pkc", expected: "module/components/button.pkc"},
+		{name: "deeply nested TypeScript", input: "module/lib/deeply/nested/file.ts", expected: "module/lib/deeply/nested/file.js"},
+		{name: "empty string", input: "", expected: ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.expected, NormaliseAssetArtefactID(tc.input))
+		})
+	}
 }

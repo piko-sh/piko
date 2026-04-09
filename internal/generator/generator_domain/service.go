@@ -847,7 +847,7 @@ func (s *generatorService) emitActionsJS(
 		return nil
 	}
 
-	if _, err := s.pkJSEmitter.EmitJS(ctx, string(tsSource), "pk/actions.gen", outputDir, false); err != nil {
+	if _, err := s.pkJSEmitter.EmitJS(ctx, string(tsSource), "pk/actions.gen", s.resolver.GetModuleName(), outputDir, false); err != nil {
 		return fmt.Errorf("failed to emit actions JavaScript: %w", err)
 	}
 	l.Internal("Emitted actions JavaScript for browser consumption")
@@ -1163,7 +1163,7 @@ func (s *generatorService) emitClientSideJS(
 	pagePath := derivePagePath(request.SourcePath, request.BaseDir)
 	outputDir := filepath.Join(s.baseDir, distDir)
 
-	jsPath, err := s.pkJSEmitter.EmitJS(ctx, annotationResult.ClientScript, pagePath, outputDir, false)
+	jsPath, err := s.pkJSEmitter.EmitJS(ctx, annotationResult.ClientScript, pagePath, request.ModuleName, outputDir, false)
 	if err != nil {
 		l.Warn("Failed to emit client-side JS, continuing without it",
 			logger_domain.String("source", request.SourcePath),

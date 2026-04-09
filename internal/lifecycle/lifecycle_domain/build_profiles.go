@@ -43,6 +43,10 @@ const (
 	// profileCompiledJS is the profile name for compiled JavaScript components.
 	profileCompiledJS = "compiled_js"
 
+	// profileTranspiledJS is the profile name for TypeScript-to-JavaScript
+	// transpilation output.
+	profileTranspiledJS = "transpiled_js"
+
 	// blobStoreID is the storage backend identifier for cached assets.
 	blobStoreID = "local_disk_cache"
 
@@ -66,6 +70,9 @@ const (
 
 	// extensionMinJS is the file extension for pre-minified JavaScript files.
 	extensionMinJS = ".min.js"
+
+	// minifiedTypeJS is the asset type tag for minified JavaScript output.
+	minifiedTypeJS = "minified-js"
 
 	// profileSliceCapacity is the default pre-allocation capacity for
 	// profile slices during build profile construction.
@@ -93,6 +100,7 @@ var extensionProfiles = map[string]profileBuilder{
 	".svg":         buildSVGProfiles,
 	".css":         buildCSSProfiles,
 	".js":          buildJSProfiles,
+	".ts":          buildTypeScriptProfiles,
 }
 
 // GetProfilesForFile returns the processing profiles for a file based on its
@@ -185,7 +193,7 @@ func buildComponentProfiles(ctx profileContext) []registry_dto.NamedProfile {
 	return append(profiles, buildMinifyCompressChain(
 		capabilities_dto.CapabilityMinifyJS.String(),
 		profileCompiledJS,
-		"minified-js",
+		minifiedTypeJS,
 		mimeTypeJS,
 		extensionMinJS,
 	)...)
@@ -260,7 +268,7 @@ func isPreMinified(name string) bool {
 // chain profiles for JavaScript processing.
 func buildJSProfiles(ctx profileContext) []registry_dto.NamedProfile {
 	if isPreMinified(ctx.artefactID) {
-		return buildCompressChain(profileSource, "minified-js", mimeTypeJS, extensionMinJS)
+		return buildCompressChain(profileSource, minifiedTypeJS, mimeTypeJS, extensionMinJS)
 	}
 
 	if strings.HasPrefix(ctx.artefactID, "pk-js/") {
@@ -290,7 +298,7 @@ func buildJSProfiles(ctx profileContext) []registry_dto.NamedProfile {
 	return buildMinifyCompressChain(
 		capabilities_dto.CapabilityMinifyJS.String(),
 		profileSource,
-		"minified-js",
+		minifiedTypeJS,
 		mimeTypeJS,
 		extensionMinJS,
 	)
@@ -310,6 +318,49 @@ func getMimeTypeForExtension(ext string) string {
 	default:
 		return mimeTypeIcon
 	}
+}
+
+// buildTypeScriptProfiles creates profiles for TypeScript files that need
+// transpilation to JavaScript, followed by minification and compression.
+//
+// Takes ctx (profileContext) which provides the artefact ID and file extension.
+//
+// Returns []registry_dto.NamedProfile which contains the transpilation profile
+// followed by the minify/compress chain.
+func buildTypeScriptProfiles(ctx profileContext) []registry_dto.NamedProfile {
+	profiles := make([]registry_dto.NamedProfile, 0, profileSliceCapacity)
+	profiles = append(profiles, makeProfile(profileTranspiledJS, registry_dto.PriorityNeed,
+		capabilities_dto.CapabilityTranspileTypeScript.String(), profileSource,
+		map[string]string{
+			"type":             "transpiled-js",
+			"storageBackendId": blobStoreID,
+			"mimeType":         mimeTypeJS,
+			"fileExtension":    ".js",
+		},
+		map[string]string{"sourcePath": ctx.artefactID},
+	))
+
+	return append(profiles, buildMinifyCompressChain(
+		capabilities_dto.CapabilityMinifyJS.String(),
+		profileTranspiledJS,
+		minifiedTypeJS,
+		mimeTypeJS,
+		extensionMinJS,
+	)...)
+}
+
+// NormaliseAssetArtefactID replaces transpilable source extensions in an
+// artefact ID with the output extension. TypeScript ".ts" becomes ".js" so
+// that the registry entry matches the path browsers will request.
+//
+// Takes artefactID (string) which is the computed artefact identifier.
+//
+// Returns string which is the normalised artefact ID.
+func NormaliseAssetArtefactID(artefactID string) string {
+	if base, ok := strings.CutSuffix(artefactID, ".ts"); ok {
+		return base + ".js"
+	}
+	return artefactID
 }
 
 // buildMinifyCompressChain creates a chain of profiles for minifying and then

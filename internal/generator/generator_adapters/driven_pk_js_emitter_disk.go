@@ -135,6 +135,7 @@ func (e *DiskPKJSEmitter) EmitJS(
 	ctx context.Context,
 	source string,
 	pagePath string,
+	moduleName string,
 	_ string,
 	_ bool,
 ) (string, error) {
@@ -153,8 +154,9 @@ func (e *DiskPKJSEmitter) EmitJS(
 
 	filename := filepath.Base(cleanPath) + ".ts"
 	result, err := e.transpiler.Transpile(ctx, transformedSource, generator_domain.TranspileOptions{
-		Filename: filename,
-		Minify:   e.minify,
+		Filename:   filename,
+		Minify:     e.minify,
+		ModuleName: moduleName,
 	})
 	if err != nil {
 		return "", fmt.Errorf("transpiling PK JS for %s: %w", pagePath, err)

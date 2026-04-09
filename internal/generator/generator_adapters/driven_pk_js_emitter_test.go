@@ -139,7 +139,7 @@ const user: User = { name: "Alice" };
 
 			mock, lastArtefactID, _, lastContent, _, lastDesiredProfiles := newCapturingRegistryMock(false)
 			emitter := generator_adapters.NewPKJSEmitter(mock)
-			artefactID, err := emitter.EmitJS(ctx, tc.source, tc.pagePath, "", false)
+			artefactID, err := emitter.EmitJS(ctx, tc.source, tc.pagePath, "", "", false)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -190,7 +190,7 @@ func TestPKJSEmitter_EmitJS_SyntaxError(t *testing.T) {
 	mock, _, _, _, _, _ := newCapturingRegistryMock(false)
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
-	_, err := emitter.EmitJS(ctx, "const x = {{{", "pages/broken", "", false)
+	_, err := emitter.EmitJS(ctx, "const x = {{{", "pages/broken", "", "", false)
 	if err == nil {
 		t.Error("expected error for syntax error, got nil")
 	}
@@ -204,7 +204,7 @@ func TestPKJSEmitter_EmitJS_RegistryError(t *testing.T) {
 	mock, _, _, _, _, _ := newCapturingRegistryMock(true)
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
-	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", false)
+	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", "", false)
 	if err == nil {
 		t.Error("expected error when registry fails, got nil")
 	}
@@ -214,7 +214,7 @@ func TestPKJSEmitter_EmitJS_NilRegistry(t *testing.T) {
 
 	emitter := generator_adapters.NewPKJSEmitter(nil)
 	ctx := context.Background()
-	artefactID, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", false)
+	artefactID, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", "", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestPKJSEmitter_ProfilesPriorityNeed(t *testing.T) {
 	mock, _, _, _, _, lastDesiredProfiles := newCapturingRegistryMock(false)
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
-	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/checkout", "", false)
+	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/checkout", "", "", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -238,6 +238,53 @@ func TestPKJSEmitter_ProfilesPriorityNeed(t *testing.T) {
 	}
 	if minifiedProfile.Priority != registry_dto.PriorityNeed {
 		t.Errorf("expected minified profile to have PriorityNeed, got %v", minifiedProfile.Priority)
+	}
+}
+
+func TestPKJSEmitter_EmitJS_ModuleAliasRewriting(t *testing.T) {
+	t.Parallel()
+
+	mock, _, _, lastContent, _, _ := newCapturingRegistryMock(false)
+	emitter := generator_adapters.NewPKJSEmitter(mock)
+	ctx := context.Background()
+
+	source := `import { greet } from '@/lib/greeting';
+const el = document.querySelector('.output');
+if (el) { el.textContent = greet("World"); }`
+
+	_, err := emitter.EmitJS(ctx, source, "pages/test", "github.com/org/repo", "", false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(*lastContent, `"/_piko/assets/github.com/org/repo/lib/greeting.js"`) {
+		t.Errorf("expected @/ import to be rewritten to served asset path, got:\n%s", *lastContent)
+	}
+	if strings.Contains(*lastContent, `@/lib/greeting`) {
+		t.Errorf("expected @/ alias to be removed from output, got:\n%s", *lastContent)
+	}
+}
+
+func TestPKJSEmitter_EmitJS_TSExtensionRewriting(t *testing.T) {
+	t.Parallel()
+
+	mock, _, _, lastContent, _, _ := newCapturingRegistryMock(false)
+	emitter := generator_adapters.NewPKJSEmitter(mock)
+	ctx := context.Background()
+
+	source := `import { helper } from './utils.ts';
+console.log(helper());`
+
+	_, err := emitter.EmitJS(ctx, source, "pages/test", "", "", false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(*lastContent, `"./utils.js"`) {
+		t.Errorf("expected .ts import to be rewritten to .js, got:\n%s", *lastContent)
+	}
+	if strings.Contains(*lastContent, `"./utils.ts"`) {
+		t.Errorf("expected .ts extension to be removed from output, got:\n%s", *lastContent)
 	}
 }
 

@@ -22,18 +22,23 @@ import (
 	"context"
 	"fmt"
 
-	"piko.sh/piko/internal/esbuild/ast"
+	esbuildast "piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/config"
 	"piko.sh/piko/internal/esbuild/js_parser"
 	"piko.sh/piko/internal/esbuild/js_printer"
 	"piko.sh/piko/internal/esbuild/logger"
 	"piko.sh/piko/internal/esbuild/renamer"
+	"piko.sh/piko/internal/jsimport"
 )
 
 // TranspileOptions configures the TypeScript to JavaScript transpilation.
 type TranspileOptions struct {
 	// Filename is the source file path used in error messages and source maps.
 	Filename string
+
+	// ModuleName is the Go module name for @/ alias resolution. When set,
+	// import paths starting with @/ are rewritten to served asset paths.
+	ModuleName string
 
 	// Minify enables shorter syntax and removes whitespace when true.
 	Minify bool
@@ -94,7 +99,9 @@ func (*JSTranspiler) Transpile(_ context.Context, source string, opts TranspileO
 		return nil, fmt.Errorf("typescript parsing failed for %s", opts.Filename)
 	}
 
-	symbols := ast.NewSymbolMap(1)
+	jsimport.RewriteImportRecords(tree.ImportRecords, opts.ModuleName)
+
+	symbols := esbuildast.NewSymbolMap(1)
 	symbols.SymbolsForSource[0] = tree.Symbols
 
 	r := renamer.NewNoOpRenamer(symbols)

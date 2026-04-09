@@ -39,7 +39,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 		tempDir := t.TempDir()
 		emitter := NewDiskPKJSEmitter(tempDir, false)
 
-		artefactID, err := emitter.EmitJS(context.Background(), "", "pages/test", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), "", "pages/test", "", "", false)
 
 		require.NoError(t, err)
 		assert.Empty(t, artefactID)
@@ -51,7 +51,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 		emitter := NewDiskPKJSEmitter(tempDir, false)
 
 		source := `function greet(name: string): string { return "Hello " + name; }`
-		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/greeting", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/greeting", "", "", false)
 
 		require.NoError(t, err)
 		assert.Equal(t, "pk-js/pages/greeting.js", artefactID)
@@ -70,7 +70,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 		emitter := NewDiskPKJSEmitter(tempDir, false)
 
 		source := `console.log("test");`
-		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/checkout.pk", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/checkout.pk", "", "", false)
 
 		require.NoError(t, err)
 		assert.Equal(t, "pk-js/pages/checkout.js", artefactID)
@@ -82,7 +82,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 		emitter := NewDiskPKJSEmitter(tempDir, false)
 
 		source := `console.log("nested");`
-		artefactID, err := emitter.EmitJS(context.Background(), source, "partials/widgets/counter", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), source, "partials/widgets/counter", "", "", false)
 
 		require.NoError(t, err)
 		assert.Equal(t, "pk-js/partials/widgets/counter.js", artefactID)
@@ -98,7 +98,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 		emitter := NewDiskPKJSEmitter(tempDir, false)
 
 		source := `console.log("track me");`
-		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/tracked", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/tracked", "", "", false)
 		require.NoError(t, err)
 
 		writtenPath := emitter.GetWrittenFilePath(artefactID)
@@ -116,7 +116,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 		emitter := NewDiskPKJSEmitter(tempDir, false)
 
 		source := `console.log("reset me");`
-		_, err := emitter.EmitJS(context.Background(), source, "pages/reset", "", false)
+		_, err := emitter.EmitJS(context.Background(), source, "pages/reset", "", "", false)
 		require.NoError(t, err)
 
 		assert.Len(t, emitter.GetAllWrittenFiles(), 1)
@@ -131,7 +131,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 		emitter := NewDiskPKJSEmitter(tempDir, false)
 
 		source := `function broken( { this is not valid }`
-		_, err := emitter.EmitJS(context.Background(), source, "pages/broken", "", false)
+		_, err := emitter.EmitJS(context.Background(), source, "pages/broken", "", "", false)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "transpiling")
@@ -147,7 +147,7 @@ func TestDiskPKJSEmitter_EmitJS(t *testing.T) {
 			return "Hello " + name;
 		}
 		`
-		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/minified", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/minified", "", "", false)
 		require.NoError(t, err)
 
 		content, err := os.ReadFile(emitter.GetWrittenFilePath(artefactID))
@@ -167,7 +167,7 @@ func TestDiskPKJSEmitter_EmitJS_Sandbox(t *testing.T) {
 
 		emitter := NewDiskPKJSEmitter("/output", false, WithEmitterSandbox(sandbox))
 		source := `console.log("hello");`
-		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/test", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/test", "", "", false)
 
 		require.NoError(t, err)
 		assert.Equal(t, "pk-js/pages/test.js", artefactID)
@@ -186,7 +186,7 @@ func TestDiskPKJSEmitter_EmitJS_Sandbox(t *testing.T) {
 
 		emitter := NewDiskPKJSEmitter("/output", false, WithEmitterSandbox(sandbox))
 		source := `console.log("path");`
-		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/tracked", "", false)
+		artefactID, err := emitter.EmitJS(context.Background(), source, "pages/tracked", "", "", false)
 
 		require.NoError(t, err)
 		assert.Equal(t, "/output/pk-js/pages/tracked.js", emitter.GetWrittenFilePath(artefactID))
@@ -199,7 +199,7 @@ func TestDiskPKJSEmitter_EmitJS_Sandbox(t *testing.T) {
 		sandbox.MkdirAllErr = errors.New("disk full")
 
 		emitter := NewDiskPKJSEmitter("/output", false, WithEmitterSandbox(sandbox))
-		_, err := emitter.EmitJS(context.Background(), `console.log("fail");`, "pages/fail", "", false)
+		_, err := emitter.EmitJS(context.Background(), `console.log("fail");`, "pages/fail", "", "", false)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "creating directory")
@@ -212,7 +212,7 @@ func TestDiskPKJSEmitter_EmitJS_Sandbox(t *testing.T) {
 		sandbox.WriteFileErr = errors.New("permission denied")
 
 		emitter := NewDiskPKJSEmitter("/output", false, WithEmitterSandbox(sandbox))
-		_, err := emitter.EmitJS(context.Background(), `console.log("fail");`, "pages/fail", "", false)
+		_, err := emitter.EmitJS(context.Background(), `console.log("fail");`, "pages/fail", "", "", false)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "writing PK JS")

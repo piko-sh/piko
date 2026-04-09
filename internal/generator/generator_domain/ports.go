@@ -339,21 +339,24 @@ type SearchIndexEmitterPort interface {
 type PKJSEmitterPort interface {
 	// EmitJS transpiles and stores JavaScript for a PK page in the registry.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - source: The TypeScript/JavaScript source code from the PK <script> block
-	//   - pagePath: The relative path of the page (e.g., "pages/checkout")
-	//   - outputDir: Ignored (registry handles storage)
-	//   - minify: Ignored (capabilities pipeline handles minification)
+	// Takes source (string) which is the TypeScript/JavaScript source code from
+	// the PK <script> block.
+	// Takes pagePath (string) which is the relative path of the page (e.g.
+	// "pages/checkout").
+	// Takes moduleName (string) which is the Go module name for @/ alias
+	// resolution in imports.
+	// Takes outputDir (string) which is ignored (registry handles storage).
+	// Takes minify (bool) which is ignored (capabilities pipeline handles
+	// minification).
 	//
-	// Returns:
-	//   - The artefact ID (e.g., "pk-js/pages/checkout.js") for storage in
-	//     manifest
-	//   - An error if transpilation or registry storage fails
+	// Returns artefactID (string) which is the registry key (e.g.
+	// "pk-js/pages/checkout.js") for storage in the manifest.
+	// Returns error when transpilation or registry storage fails.
 	EmitJS(
 		ctx context.Context,
 		source string,
 		pagePath string,
+		moduleName string,
 		outputDir string,
 		minify bool,
 	) (artefactID string, err error)
@@ -372,12 +375,10 @@ type PKJSEmitterPort interface {
 type I18nEmitterPort interface {
 	// EmitI18n encodes translations to a FlatBuffer binary file.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - outputPath: Full path for the output file (e.g., "dist/i18n.bin")
+	// Takes outputPath (string) which is the full path for the output file
+	// (e.g. "dist/i18n.bin").
 	//
-	// Returns:
-	//   - An error if loading translations or file writing fails
+	// Returns error when loading translations or file writing fails.
 	EmitI18n(ctx context.Context, outputPath string) error
 }
 

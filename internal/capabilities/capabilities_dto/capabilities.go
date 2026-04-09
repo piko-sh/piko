@@ -55,6 +55,10 @@ const (
 	// CapabilityVideoThumbnail is the capability for extracting thumbnail images
 	// from videos.
 	CapabilityVideoThumbnail Capability = "video-thumbnail"
+
+	// CapabilityTranspileTypeScript identifies the TypeScript-to-JavaScript
+	// transpilation capability.
+	CapabilityTranspileTypeScript Capability = "transpile-typescript"
 )
 
 // String returns the capability as its underlying string value.

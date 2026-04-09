@@ -738,6 +738,7 @@ func (bs *buildService) upsertFileArtefact(
 ) {
 	ctx, l := logger_domain.From(ctx, log)
 	profiles := lifecycle_domain.GetProfilesForFile(artefactID, nil)
+	artefactID = lifecycle_domain.NormaliseAssetArtefactID(artefactID)
 	l.Trace("Upserting artefact with profiles", logger_domain.Int("profileCount", len(profiles)))
 
 	upsertCtx, upsertSpan, upsertLog := log.Span(ctx, "upsertArtefact",
@@ -1234,6 +1235,7 @@ func (bs *buildService) seedExternalAssetEntry(
 	defer func() { _ = file.Close(); _ = sandbox.Close() }()
 
 	profiles := lifecycle_domain.GetProfilesForFile(artefactID, nil)
+	artefactID = lifecycle_domain.NormaliseAssetArtefactID(artefactID)
 	if _, upsertErr := bs.registryService.UpsertArtefact(ctx, artefactID, relPathSlash, file, localDiskCacheSource, profiles); upsertErr != nil {
 		l.Error("Failed to seed external asset artefact",
 			logger_domain.String("artefact_id", artefactID),

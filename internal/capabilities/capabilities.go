@@ -55,12 +55,13 @@ type Option func(*dependencies)
 // builtinCapabilities maps built-in capability types to their handler
 // functions.
 var builtinCapabilities = map[capabilities_dto.Capability]capabilityFunc{
-	capabilities_dto.CapabilityCompressGzip:   capabilities_functions.Gzip(),
-	capabilities_dto.CapabilityCompressBrotli: capabilities_functions.Brotli(),
-	capabilities_dto.CapabilityCopyJS:         capabilities_functions.CopyJS(),
-	capabilities_dto.CapabilityMinifyCSS:      capabilities_functions.MinifyCSS(),
-	capabilities_dto.CapabilityMinifyJS:       capabilities_functions.MinifyJavascript(),
-	capabilities_dto.CapabilityMinifySVG:      capabilities_functions.MinifySVG(),
+	capabilities_dto.CapabilityCompressGzip:        capabilities_functions.Gzip(),
+	capabilities_dto.CapabilityCompressBrotli:      capabilities_functions.Brotli(),
+	capabilities_dto.CapabilityCopyJS:              capabilities_functions.CopyJS(),
+	capabilities_dto.CapabilityMinifyCSS:           capabilities_functions.MinifyCSS(),
+	capabilities_dto.CapabilityMinifyJS:            capabilities_functions.MinifyJavascript(),
+	capabilities_dto.CapabilityMinifySVG:           capabilities_functions.MinifySVG(),
+	capabilities_dto.CapabilityTranspileTypeScript: capabilities_functions.TranspileTypeScript(),
 }
 
 // WithCompiler is a functional option that sets the compiler service.

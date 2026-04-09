@@ -81,6 +81,33 @@ func TestTransformJSImportPath(t *testing.T) {
 			wantPath:       "@/scripts/lib.js",
 			wantDependency: false,
 		},
+		{
+			name:             "@/ path without extension gets .js appended",
+			moduleName:       "github.com/user/project",
+			importPath:       "@/lib/svg-animations",
+			wantPath:         "/_piko/assets/github.com/user/project/lib/svg-animations.js",
+			wantDependency:   true,
+			wantResolvedPath: "github.com/user/project/lib/svg-animations.js",
+			wantServedPath:   "/_piko/assets/github.com/user/project/lib/svg-animations.js",
+		},
+		{
+			name:             "@/ path with .ts extension gets .js",
+			moduleName:       "github.com/user/project",
+			importPath:       "@/lib/svg-animations.ts",
+			wantPath:         "/_piko/assets/github.com/user/project/lib/svg-animations.js",
+			wantDependency:   true,
+			wantResolvedPath: "github.com/user/project/lib/svg-animations.js",
+			wantServedPath:   "/_piko/assets/github.com/user/project/lib/svg-animations.js",
+		},
+		{
+			name:             "@/ path with .css extension stays unchanged",
+			moduleName:       "github.com/user/project",
+			importPath:       "@/styles/theme.css",
+			wantPath:         "/_piko/assets/github.com/user/project/styles/theme.css",
+			wantDependency:   true,
+			wantResolvedPath: "github.com/user/project/styles/theme.css",
+			wantServedPath:   "/_piko/assets/github.com/user/project/styles/theme.css",
+		},
 	}
 
 	for _, tt := range tests {
@@ -99,57 +126,6 @@ func TestTransformJSImportPath(t *testing.T) {
 			} else {
 				assert.Nil(t, gotDep)
 			}
-		})
-	}
-}
-
-func TestIsJSImportTransformable(t *testing.T) {
-	tests := []struct {
-		name       string
-		importPath string
-		want       bool
-	}{
-		{
-			name:       "@/ path is transformable",
-			importPath: "@/lib/utils.js",
-			want:       true,
-		},
-		{
-			name:       "@/ path with deep nesting is transformable",
-			importPath: "@/a/b/c/d/e.js",
-			want:       true,
-		},
-		{
-			name:       "relative path is not transformable",
-			importPath: "./local.js",
-			want:       false,
-		},
-		{
-			name:       "absolute path is not transformable",
-			importPath: "/absolute/path.js",
-			want:       false,
-		},
-		{
-			name:       "external URL is not transformable",
-			importPath: "https://example.com/lib.js",
-			want:       false,
-		},
-		{
-			name:       "bare module specifier is not transformable",
-			importPath: "lodash",
-			want:       false,
-		},
-		{
-			name:       "@ without slash is not transformable",
-			importPath: "@scope/package",
-			want:       false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := isJSImportTransformable(tt.importPath)
-			assert.Equal(t, tt.want, got)
 		})
 	}
 }

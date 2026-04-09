@@ -20,10 +20,9 @@ package compiler_domain
 
 import (
 	"context"
-	"strings"
 
-	"piko.sh/piko/internal/assetpath"
 	"piko.sh/piko/internal/compiler/compiler_dto"
+	"piko.sh/piko/internal/jsimport"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -43,7 +42,7 @@ import (
 // transformed, or nil otherwise.
 func TransformJSImportPath(ctx context.Context, importPath string, moduleName string) (string, *compiler_dto.JSDependency) {
 	ctx, l := logger_domain.From(ctx, log)
-	if !strings.HasPrefix(importPath, "@/") {
+	if !jsimport.IsTransformable(importPath) {
 		return importPath, nil
 	}
 
@@ -53,10 +52,8 @@ func TransformJSImportPath(ctx context.Context, importPath string, moduleName st
 		return importPath, nil
 	}
 
-	subpath := strings.TrimPrefix(importPath, "@/")
-	resolvedPath := moduleName + "/" + subpath
-
-	servedPath := assetpath.DefaultServePath + "/" + resolvedPath
+	servedPath := jsimport.ResolveModuleAlias(importPath, moduleName)
+	resolvedPath := jsimport.ResolveModulePath(importPath, moduleName)
 
 	dependency := &compiler_dto.JSDependency{
 		OriginalPath: importPath,
@@ -71,16 +68,4 @@ func TransformJSImportPath(ctx context.Context, importPath string, moduleName st
 	)
 
 	return servedPath, dependency
-}
-
-// isJSImportTransformable reports whether the given import path can be
-// changed. Paths that should not be changed include external URLs (http://,
-// https://), data URIs (data:), absolute paths (/), and paths not starting
-// with @/.
-//
-// Takes importPath (string) which is the path to check.
-//
-// Returns bool which is true if the path starts with @/.
-func isJSImportTransformable(importPath string) bool {
-	return strings.HasPrefix(importPath, "@/")
 }
