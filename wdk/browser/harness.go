@@ -163,6 +163,33 @@ func (h *Harness) IsInteractive() bool {
 	return h.opts.interactive
 }
 
+// NewSession creates a standalone browser session (tab) that does not require
+// testing.TB. Unlike Page, Session methods return errors instead of calling
+// Fatalf, making it suitable for CLI tools and standalone programs.
+//
+// Safe for concurrent use. Uses a mutex to protect access to the browser.
+//
+// Returns *Session which is a browser tab ready for interaction.
+// Returns error when the harness has not been set up or page creation fails.
+func (h *Harness) NewSession() (*Session, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.browser == nil {
+		return nil, errors.New("harness not set up - call Setup() first")
+	}
+
+	incognitoPage, err := h.browser.NewIncognitoPage()
+	if err != nil {
+		return nil, fmt.Errorf("creating session: %w", err)
+	}
+
+	return &Session{
+		page:      incognitoPage,
+		serverURL: h.serverURL,
+	}, nil
+}
+
 // doSetup performs the actual setup work.
 //
 // Returns error when the project path cannot be resolved, the temp directory

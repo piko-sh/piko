@@ -58,6 +58,10 @@ type ScreenshotOptions struct {
 
 	// CaptureBeyondViewport captures content outside the visible browser window.
 	CaptureBeyondViewport bool
+
+	// OptimiseForSpeed trades encoding efficiency for faster capture. Useful
+	// when taking many screenshots in a tight loop (e.g. video frame capture).
+	OptimiseForSpeed bool
 }
 
 // DefaultScreenshotOptions returns sensible defaults for screenshots.
@@ -100,6 +104,7 @@ func ScreenshotWithFormat(ctx *ActionContext, opts ScreenshotOptions) ([]byte, e
 			WithQuality(int64(opts.Quality)).
 			WithFromSurface(opts.FromSurface).
 			WithCaptureBeyondViewport(opts.CaptureBeyondViewport).
+			WithOptimizeForSpeed(opts.OptimiseForSpeed).
 			Do(ctx2)
 		return err
 	}))
