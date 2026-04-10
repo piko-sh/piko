@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"piko.sh/piko/wdk/maths"
 )
 
 // EventType classifies a backend analytics event.
@@ -73,12 +75,26 @@ type Event struct {
 	// reference only — do not read the body.
 	Request *http.Request
 
+	// Revenue holds optional monetary data for e-commerce analytics
+	// events (e.g. purchases, refunds). Nil when the event does not
+	// carry revenue information.
+	Revenue *maths.Money
+
 	// Properties holds arbitrary key-value metadata. Adapters that
 	// support custom properties read from here.
 	Properties map[string]string
 
 	// MatchedPattern is the route pattern that matched (e.g. "/blog/{slug}").
 	MatchedPattern string
+
+	// Hostname is the request host (e.g. "example.com"). Required by
+	// backends like Plausible that associate events with a site domain.
+	Hostname string
+
+	// URL is the full request URL including query parameters (e.g.
+	// "/blog/my-post?utm_source=twitter"). Useful for UTM attribution
+	// and campaign tracking.
+	URL string
 
 	// ClientIP is the real client IP as resolved by the RealIP middleware.
 	ClientIP string
@@ -103,6 +119,12 @@ type Event struct {
 
 	// ActionName is the name of the server action, empty for page views.
 	ActionName string
+
+	// EventName is an explicit name for custom analytics events (e.g.
+	// "signup", "purchase"). Separate from ActionName which is specific
+	// to Piko server actions. Used by adapters that track named goals
+	// or conversions.
+	EventName string
 
 	// Duration is the time taken to handle the request.
 	Duration time.Duration
@@ -141,5 +163,6 @@ func ReleaseEvent(ev *Event) {
 	}
 	ev.Request = nil
 	ev.Properties = nil
+	ev.Revenue = nil
 	eventPool.Put(ev)
 }

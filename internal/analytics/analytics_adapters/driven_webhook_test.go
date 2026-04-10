@@ -29,6 +29,7 @@ import (
 
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/json"
+	"piko.sh/piko/wdk/maths"
 )
 
 func TestWebhookCollector_BatchFlush(t *testing.T) {
@@ -394,5 +395,84 @@ func TestWebhookCollector_DoubleClose(t *testing.T) {
 
 	if err := wc.Close(context.Background()); err != nil {
 		t.Fatalf("second Close returned error: %v", err)
+	}
+}
+
+func TestWebhookCollector_RevenueAndNewFields(t *testing.T) {
+	var mu sync.Mutex
+	var received [][]eventSnapshot
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		var batch []eventSnapshot
+		if err := json.Unmarshal(body, &batch); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		mu.Lock()
+		received = append(received, batch)
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	wc := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+
+	rev := maths.NewMoneyFromString("49.99", "GBP")
+	ev := &analytics_dto.Event{
+		Hostname:   "shop.example.com",
+		URL:        "/checkout?ref=email",
+		Path:       "/checkout",
+		EventName:  "purchase",
+		StatusCode: 200,
+		Type:       analytics_dto.EventCustom,
+		Revenue:    &rev,
+		Timestamp:  time.Now(),
+	}
+	if err := wc.Collect(context.Background(), ev); err != nil {
+		t.Fatalf("Collect returned error: %v", err)
+	}
+	if err := wc.Flush(context.Background()); err != nil {
+		t.Fatalf("Flush returned error: %v", err)
+	}
+	if err := wc.Close(context.Background()); err != nil {
+		t.Fatalf("Close returned error: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(received) != 1 || len(received[0]) != 1 {
+		t.Fatalf("expected 1 batch with 1 event")
+	}
+	snap := received[0][0]
+	if snap.Hostname != "shop.example.com" {
+		t.Errorf("Hostname = %q, want shop.example.com", snap.Hostname)
+	}
+	if snap.URL != "/checkout?ref=email" {
+		t.Errorf("URL = %q, want /checkout?ref=email", snap.URL)
+	}
+	if snap.EventName != "purchase" {
+		t.Errorf("EventName = %q, want purchase", snap.EventName)
+	}
+	if snap.Revenue == nil {
+		t.Fatal("Revenue is nil, want non-nil")
+	}
+	revenueNumber := snap.Revenue.MustNumber()
+	if revenueNumber != "49.99" {
+		t.Errorf("Revenue amount = %q, want 49.99", revenueNumber)
+	}
+	currencyCode, err := snap.Revenue.CurrencyCode()
+	if err != nil {
+		t.Fatalf("Revenue.CurrencyCode() error: %v", err)
+	}
+	if currencyCode != "GBP" {
+		t.Errorf("Revenue currency = %q, want GBP", currencyCode)
+	}
+	if snap.Type != "custom" {
+		t.Errorf("Type = %q, want custom", snap.Type)
 	}
 }

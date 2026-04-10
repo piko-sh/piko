@@ -248,6 +248,10 @@ func (s *Service) Close(ctx context.Context) error {
 func AcquireEventCopy(src *analytics_dto.Event) *analytics_dto.Event {
 	ev := analytics_dto.AcquireEvent()
 	*ev = *src
+	if src.Revenue != nil {
+		rev := *src.Revenue
+		ev.Revenue = &rev
+	}
 	if src.Properties != nil {
 		ev.Properties = make(map[string]string, len(src.Properties))
 		maps.Copy(ev.Properties, src.Properties)

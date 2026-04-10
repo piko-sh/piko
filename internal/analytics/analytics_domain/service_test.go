@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/analytics/analytics_dto"
+	"piko.sh/piko/wdk/maths"
 )
 
 type mockCollector struct {
@@ -180,9 +181,14 @@ func TestService_ZeroCollectors(t *testing.T) {
 }
 
 func TestAcquireEventCopy(t *testing.T) {
+	rev := maths.NewMoneyFromString("29.99", "GBP")
 	src := analytics_dto.AcquireEvent()
 	src.Path = "/original"
 	src.ClientIP = "1.2.3.4"
+	src.Hostname = "example.com"
+	src.URL = "/original?ref=test"
+	src.EventName = "purchase"
+	src.Revenue = &rev
 	src.Properties = map[string]string{"key": "value"}
 
 	cp := AcquireEventCopy(src)
@@ -193,13 +199,42 @@ func TestAcquireEventCopy(t *testing.T) {
 	if cp.ClientIP != src.ClientIP {
 		t.Errorf("copy ClientIP = %q, want %q", cp.ClientIP, src.ClientIP)
 	}
+	if cp.Hostname != src.Hostname {
+		t.Errorf("copy Hostname = %q, want %q", cp.Hostname, src.Hostname)
+	}
+	if cp.URL != src.URL {
+		t.Errorf("copy URL = %q, want %q", cp.URL, src.URL)
+	}
+	if cp.EventName != src.EventName {
+		t.Errorf("copy EventName = %q, want %q", cp.EventName, src.EventName)
+	}
 	if cp.Properties["key"] != "value" {
 		t.Error("copy Properties missing expected key")
+	}
+	if cp.Revenue == nil {
+		t.Fatal("copy Revenue is nil, want non-nil")
+	}
+	if cp.Revenue == src.Revenue {
+		t.Error("copy Revenue pointer is shared with source")
 	}
 
 	cp.Properties["key"] = "changed"
 	if src.Properties["key"] != "value" {
 		t.Error("mutating copy Properties affected source")
+	}
+
+	analytics_dto.ReleaseEvent(src)
+	analytics_dto.ReleaseEvent(cp)
+}
+
+func TestAcquireEventCopy_NilRevenue(t *testing.T) {
+	src := analytics_dto.AcquireEvent()
+	src.Path = "/no-revenue"
+
+	cp := AcquireEventCopy(src)
+
+	if cp.Revenue != nil {
+		t.Error("copy Revenue should be nil when source Revenue is nil")
 	}
 
 	analytics_dto.ReleaseEvent(src)

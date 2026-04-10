@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"piko.sh/piko/wdk/maths"
 )
 
 func TestEventType_String(t *testing.T) {
@@ -52,8 +54,20 @@ func TestAcquireEvent_ReturnsZeroedEvent(t *testing.T) {
 	if ev.Request != nil {
 		t.Error("expected Request to be nil")
 	}
+	if ev.Revenue != nil {
+		t.Error("expected Revenue to be nil")
+	}
 	if ev.ClientIP != "" {
 		t.Error("expected ClientIP to be empty")
+	}
+	if ev.Hostname != "" {
+		t.Error("expected Hostname to be empty")
+	}
+	if ev.URL != "" {
+		t.Error("expected URL to be empty")
+	}
+	if ev.EventName != "" {
+		t.Error("expected EventName to be empty")
 	}
 	if ev.StatusCode != 0 {
 		t.Error("expected StatusCode to be zero")
@@ -67,12 +81,17 @@ func TestAcquireEvent_ReturnsZeroedEvent(t *testing.T) {
 }
 
 func TestAcquireEvent_ResetsFieldsFromPreviousUse(t *testing.T) {
+	rev := maths.NewMoneyFromString("29.99", "GBP")
 	ev := AcquireEvent()
 	ev.ClientIP = "1.2.3.4"
+	ev.Hostname = "example.com"
+	ev.URL = "/test?utm_source=twitter"
+	ev.EventName = "purchase"
 	ev.Path = "/test"
 	ev.StatusCode = 200
 	ev.Properties = map[string]string{"key": "value"}
 	ev.Request = &http.Request{}
+	ev.Revenue = &rev
 	ev.Timestamp = time.Now()
 	ev.Duration = 5 * time.Second
 	ev.Type = EventCustom
@@ -83,6 +102,15 @@ func TestAcquireEvent_ResetsFieldsFromPreviousUse(t *testing.T) {
 
 	if ev2.ClientIP != "" {
 		t.Errorf("expected ClientIP to be reset, got %q", ev2.ClientIP)
+	}
+	if ev2.Hostname != "" {
+		t.Errorf("expected Hostname to be reset, got %q", ev2.Hostname)
+	}
+	if ev2.URL != "" {
+		t.Errorf("expected URL to be reset, got %q", ev2.URL)
+	}
+	if ev2.EventName != "" {
+		t.Errorf("expected EventName to be reset, got %q", ev2.EventName)
 	}
 	if ev2.Path != "" {
 		t.Errorf("expected Path to be reset, got %q", ev2.Path)
@@ -95,6 +123,9 @@ func TestAcquireEvent_ResetsFieldsFromPreviousUse(t *testing.T) {
 	}
 	if ev2.Request != nil {
 		t.Error("expected Request to be nil after reset")
+	}
+	if ev2.Revenue != nil {
+		t.Error("expected Revenue to be nil after reset")
 	}
 	if !ev2.Timestamp.IsZero() {
 		t.Error("expected Timestamp to be zero after reset")

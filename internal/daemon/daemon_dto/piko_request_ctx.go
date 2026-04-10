@@ -22,6 +22,8 @@ import (
 	"context"
 	"net/http"
 	"sync"
+
+	"piko.sh/piko/wdk/maths"
 )
 
 // PikoRequestCtx is the single per-request carrier stored in the
@@ -67,6 +69,30 @@ type PikoRequestCtx struct {
 	// MatchedPattern is the route pattern that matched the request
 	// (e.g., "/blog/{slug}"). Set by the route handler closure.
 	MatchedPattern string
+
+	// AnalyticsRevenue holds optional revenue data stashed by action
+	// handlers during request processing. The analytics middleware
+	// copies this into the automatic pageview event after the handler
+	// returns. Nil when no revenue is associated with the request.
+	AnalyticsRevenue *maths.Money
+
+	// AnalyticsProperties holds key-value metadata stashed by action
+	// handlers during request processing. The analytics middleware
+	// merges these into the automatic pageview event. Nil when no
+	// properties have been set; the map is allocated lazily on first
+	// use to avoid overhead for requests that don't need it.
+	AnalyticsProperties map[string]string
+
+	// Hostname is the request host (e.g. "example.com"). Set by the
+	// analytics middleware from r.Host. Used to enrich custom analytics
+	// events fired from action handlers.
+	Hostname string
+
+	// AnalyticsEventName is an explicit event name stashed by action
+	// handlers. When set, the analytics middleware changes the
+	// automatic event type from EventPageView to EventCustom and uses
+	// this as the EventName.
+	AnalyticsEventName string
 
 	// RequestIDCounter holds the raw counter for server-generated
 	// request IDs. When non-zero, the formatted string is produced
@@ -189,6 +215,8 @@ func ReleasePikoRequestCtx(pctx *PikoRequestCtx) {
 	pctx.CachedLogger = nil
 	pctx.CachedAuth = nil
 	pctx.ResponseWriter = nil
+	pctx.AnalyticsRevenue = nil
+	pctx.AnalyticsProperties = nil
 	pikoRequestCtxPool.Put(pctx)
 }
 

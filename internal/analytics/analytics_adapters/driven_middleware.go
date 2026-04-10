@@ -72,6 +72,7 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 		}
 
 		pctx.ResponseWriter = w
+		pctx.Hostname = r.Host
 		start := time.Now()
 
 		next.ServeHTTP(pctx, r)
@@ -83,6 +84,8 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 
 		ev := analytics_dto.AcquireEvent()
 		ev.Request = r
+		ev.Hostname = r.Host
+		ev.URL = r.URL.String()
 		ev.Path = r.URL.Path
 		ev.Method = r.Method
 		ev.UserAgent = r.UserAgent()
@@ -94,6 +97,13 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 		ev.ClientIP = pctx.ClientIP
 		ev.Locale = pctx.Locale
 		ev.MatchedPattern = pctx.MatchedPattern
+		ev.Revenue = pctx.AnalyticsRevenue
+		ev.Properties = pctx.AnalyticsProperties
+
+		if pctx.AnalyticsEventName != "" {
+			ev.EventName = pctx.AnalyticsEventName
+			ev.Type = analytics_dto.EventCustom
+		}
 
 		if auth, ok := pctx.CachedAuth.(daemon_dto.AuthContext); ok && auth.IsAuthenticated() {
 			ev.UserID = auth.UserID()

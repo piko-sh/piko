@@ -29,6 +29,7 @@ import (
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/maths"
 )
 
 type testCollector struct {
@@ -88,6 +89,12 @@ func TestMiddleware_FiresPageViewEvent(t *testing.T) {
 	ev := events[0]
 	if ev.Path != "/test-path" {
 		t.Errorf("Path = %q, want /test-path", ev.Path)
+	}
+	if ev.Hostname != "example.com" {
+		t.Errorf("Hostname = %q, want example.com", ev.Hostname)
+	}
+	if ev.URL != "/test-path" {
+		t.Errorf("URL = %q, want /test-path", ev.URL)
 	}
 	if ev.Method != http.MethodGet {
 		t.Errorf("Method = %q, want GET", ev.Method)
@@ -264,6 +271,130 @@ func TestMiddleware_NilPikoRequestCtx(t *testing.T) {
 	if len(events) != 0 {
 		t.Errorf("expected 0 events without PikoRequestCtx, got %d", len(events))
 	}
+}
+
+func TestMiddleware_StashedRevenuePropertiesAndEventName(t *testing.T) {
+	tc := &testCollector{}
+	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
+	svc.Start(context.Background())
+
+	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pctx := daemon_dto.PikoRequestCtxFromContext(r.Context())
+		revenue := maths.NewMoneyFromString("49.99", "GBP")
+		pctx.AnalyticsRevenue = &revenue
+		pctx.AnalyticsProperties = map[string]string{"plan": "pro", "source": "email"}
+		pctx.AnalyticsEventName = "purchase"
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	req := newRequestWithPctx(http.MethodPost, "/checkout", pctx)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+	svc.Close(context.Background())
+
+	events := tc.collected()
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	ev := events[0]
+	if ev.Type != analytics_dto.EventCustom {
+		t.Errorf("Type = %v, want EventCustom", ev.Type)
+	}
+	if ev.EventName != "purchase" {
+		t.Errorf("EventName = %q, want purchase", ev.EventName)
+	}
+	if ev.Revenue == nil {
+		t.Fatal("Revenue is nil, want non-nil")
+	}
+	revenueNumber := ev.Revenue.MustNumber()
+	if revenueNumber != "49.99" {
+		t.Errorf("Revenue amount = %q, want 49.99", revenueNumber)
+	}
+	currencyCode, err := ev.Revenue.CurrencyCode()
+	if err != nil {
+		t.Fatalf("Revenue.CurrencyCode() error: %v", err)
+	}
+	if currencyCode != "GBP" {
+		t.Errorf("Revenue currency = %q, want GBP", currencyCode)
+	}
+	if ev.Properties["plan"] != "pro" {
+		t.Errorf("Properties[plan] = %q, want pro", ev.Properties["plan"])
+	}
+	if ev.Properties["source"] != "email" {
+		t.Errorf("Properties[source] = %q, want email", ev.Properties["source"])
+	}
+
+	daemon_dto.ReleasePikoRequestCtx(pctx)
+}
+
+func TestMiddleware_EventNameChangesTypeToCustom(t *testing.T) {
+	tc := &testCollector{}
+	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
+	svc.Start(context.Background())
+
+	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pctx := daemon_dto.PikoRequestCtxFromContext(r.Context())
+		pctx.AnalyticsEventName = "signup"
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	req := newRequestWithPctx(http.MethodGet, "/register", pctx)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+	svc.Close(context.Background())
+
+	events := tc.collected()
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	ev := events[0]
+	if ev.Type != analytics_dto.EventCustom {
+		t.Errorf("Type = %v, want EventCustom when AnalyticsEventName is set", ev.Type)
+	}
+	if ev.EventName != "signup" {
+		t.Errorf("EventName = %q, want signup", ev.EventName)
+	}
+
+	daemon_dto.ReleasePikoRequestCtx(pctx)
+}
+
+func TestMiddleware_NoEventNameKeepsPageView(t *testing.T) {
+	tc := &testCollector{}
+	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
+	svc.Start(context.Background())
+
+	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	req := newRequestWithPctx(http.MethodGet, "/page", pctx)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+	svc.Close(context.Background())
+
+	events := tc.collected()
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	if events[0].Type != analytics_dto.EventPageView {
+		t.Errorf("Type = %v, want EventPageView when no AnalyticsEventName set", events[0].Type)
+	}
+	if events[0].EventName != "" {
+		t.Errorf("EventName = %q, want empty", events[0].EventName)
+	}
+
+	daemon_dto.ReleasePikoRequestCtx(pctx)
 }
 
 type stubAuth struct {

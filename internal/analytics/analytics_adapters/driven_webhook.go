@@ -30,6 +30,7 @@ import (
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/maths"
 )
 
 const (
@@ -53,11 +54,21 @@ const (
 // eventSnapshot is a serialisable copy of event data. The raw
 // *http.Request is not retained.
 type eventSnapshot struct {
+	// Revenue holds optional monetary data for e-commerce events.
+	// Nil when the event does not carry revenue information.
+	Revenue *maths.Money `json:"revenue,omitempty"`
+
 	// Properties holds arbitrary key-value metadata for the event.
 	Properties map[string]string `json:"properties,omitempty"`
 
 	// Timestamp is when the event occurred.
 	Timestamp time.Time `json:"timestamp"`
+
+	// Hostname is the request host (e.g. "example.com").
+	Hostname string `json:"hostname,omitempty"`
+
+	// URL is the full request URL including query parameters.
+	URL string `json:"url,omitempty"`
 
 	// ClientIP is the real client IP as resolved by the RealIP middleware.
 	ClientIP string `json:"client_ip"`
@@ -85,6 +96,9 @@ type eventSnapshot struct {
 
 	// ActionName is the name of the server action, empty for page views.
 	ActionName string `json:"action_name,omitempty"`
+
+	// EventName is the explicit custom event name (e.g. "signup").
+	EventName string `json:"event_name,omitempty"`
 
 	// Type is the event classification ("pageview", "action", "custom").
 	Type string `json:"type"`
@@ -238,6 +252,8 @@ func NewWebhookCollector(url string, opts ...WebhookOption) *WebhookCollector {
 // Returns error which is always nil.
 func (wc *WebhookCollector) Collect(_ context.Context, event *analytics_dto.Event) error {
 	snap := eventSnapshot{
+		Hostname:       event.Hostname,
+		URL:            event.URL,
 		ClientIP:       event.ClientIP,
 		Path:           event.Path,
 		Method:         event.Method,
@@ -247,10 +263,15 @@ func (wc *WebhookCollector) Collect(_ context.Context, event *analytics_dto.Even
 		Locale:         event.Locale,
 		UserID:         event.UserID,
 		ActionName:     event.ActionName,
+		EventName:      event.EventName,
 		Timestamp:      event.Timestamp,
 		DurationMS:     float64(event.Duration) / float64(time.Millisecond),
 		StatusCode:     event.StatusCode,
 		Type:           event.Type.String(),
+	}
+	if event.Revenue != nil {
+		rev := *event.Revenue
+		snap.Revenue = &rev
 	}
 	if event.Properties != nil {
 		snap.Properties = make(map[string]string, len(event.Properties))
