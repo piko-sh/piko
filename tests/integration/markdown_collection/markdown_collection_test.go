@@ -77,7 +77,7 @@ func TestMarkdownCollection(t *testing.T) {
 
 			var allItems []collection_dto.ContentItem
 			for _, col := range collections {
-				items, fetchErr := provider.FetchStaticContent(ctx, col.Name, source)
+				items, fetchErr := provider.FetchStaticContent(ctx, col.Name, collection_dto.ContentSource{})
 				require.NoError(t, fetchErr, "FetchStaticContent failed for collection %q", col.Name)
 				allItems = append(allItems, items...)
 			}
