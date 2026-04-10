@@ -1,0 +1,22 @@
+{
+  "description": "Validates that when a partial uses p-for on a nested piko:partial invocation, loop variable expressions in the nested partial's props are correctly resolved and recognised as loop-dependent.",
+  "expectedDiagnostics": 0,
+  "assertNodes": [
+    {
+      "select": "div.item-row[p-for]",
+      "description": "The expanded item_row root should have the p-for directive with correctly resolved types.",
+      "assertOnDirective": [
+        {
+          "name": "p-for",
+          "rawExpression": "item in state.Items"
+        }
+      ],
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "item.Label",
+          "resolvedTypeIs": "string"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Categories"
+  </h1>
+  <div [p-for: cat in state.Categories] [p-key: cat.Name] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <h2 [p-text: cat.Name] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+    <div class="category-list" :category_name="cat.Name" {P: cat.Name, OriginPackage: main_aaf9a2e0} [ANNOTATIONS: OriginPackage: partials_category_list_3eee8006 OriginPath: partials/category_list.pk PARTIAL InvKey: category_list_category_name_cat_name_9264de01 Package: partials_category_list_3eee8006 InvPackage: main_aaf9a2e0]>
+      <div class="item-row" :detail="item.Extra?.Detail" {P: item.Extra?.Detail, OriginPackage: partials_category_list_3eee8006} :label="item.Label" {P: item.Label, OriginPackage: partials_category_list_3eee8006} [p-for: item in state.Items] [p-key: item.Label] [ANNOTATIONS: OriginPackage: partials_item_row_8e7dec6a OriginPath: partials/item_row.pk PARTIAL InvKey: item_row_category_list_category_name_cat_name_9264de01_detail_item_extra_detail_label_item_label_99d11cd1 Package: partials_item_row_8e7dec6a InvPackage: partials_category_list_3eee8006]>
+        <span [p-text: state.Label] [ANNOTATIONS: OriginPackage: partials_item_row_8e7dec6a OriginPath: partials/item_row.pk] />
+        <span class="detail" [p-if: (state.Detail != ``)] [p-text: state.Detail] [ANNOTATIONS: OriginPackage: partials_item_row_8e7dec6a OriginPath: partials/item_row.pk] />
+      </div>
+    </div>
+  </div>
+</div>
+
+--- END AST DUMP ---
+*/

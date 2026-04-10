@@ -601,14 +601,14 @@ func (fe *forEmitter) collectPartialInvocationsRecursive(
 		return
 	}
 
+	if node != originalNode && node.DirFor != nil {
+		return
+	}
+
 	if node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil {
 		if invocation := fe.findCanonicalInvocation(node.GoAnnotations.PartialInfo.InvocationKey); invocation != nil {
 			*allInvocations = append(*allInvocations, invocation)
 		}
-	}
-
-	if node != originalNode && node.DirFor != nil {
-		return
 	}
 
 	for _, child := range node.Children {
