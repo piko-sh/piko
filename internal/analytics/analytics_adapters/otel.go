@@ -40,6 +40,18 @@ var (
 
 	// webhookBatchSize tracks the number of events per batch.
 	webhookBatchSize metric.Int64Histogram
+
+	// ga4SendCount is the total number of GA4 Measurement Protocol batch POSTs.
+	ga4SendCount metric.Int64Counter
+
+	// ga4SendDuration is the time taken for each GA4 POST.
+	ga4SendDuration metric.Float64Histogram
+
+	// ga4ErrorCount is the number of failed GA4 POSTs.
+	ga4ErrorCount metric.Int64Counter
+
+	// ga4BatchSize tracks the number of events per GA4 batch.
+	ga4BatchSize metric.Int64Histogram
 )
 
 func init() {
@@ -73,6 +85,39 @@ func init() {
 	webhookBatchSize, err = meter.Int64Histogram(
 		"analytics.webhook.batch_size",
 		metric.WithDescription("Number of events per webhook batch"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	ga4SendCount, err = meter.Int64Counter(
+		"analytics.ga4.send_count",
+		metric.WithDescription("Total GA4 Measurement Protocol batch POST requests"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	ga4SendDuration, err = meter.Float64Histogram(
+		"analytics.ga4.send_duration",
+		metric.WithDescription("Duration of GA4 POST requests"),
+		metric.WithUnit("ms"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	ga4ErrorCount, err = meter.Int64Counter(
+		"analytics.ga4.error_count",
+		metric.WithDescription("Failed GA4 POST requests"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	ga4BatchSize, err = meter.Int64Histogram(
+		"analytics.ga4.batch_size",
+		metric.WithDescription("Number of events per GA4 batch"),
 	)
 	if err != nil {
 		otel.Handle(err)

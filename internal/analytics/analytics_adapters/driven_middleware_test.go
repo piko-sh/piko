@@ -44,6 +44,7 @@ func (c *testCollector) Collect(_ context.Context, ev *analytics_dto.Event) erro
 	return nil
 }
 
+func (c *testCollector) Start(_ context.Context)       {}
 func (c *testCollector) Flush(_ context.Context) error { return nil }
 func (c *testCollector) Close(_ context.Context) error { return nil }
 func (c *testCollector) Name() string                  { return "test" }

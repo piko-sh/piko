@@ -1,0 +1,387 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="pp-cart">
+    <div class="cart-panel">
+        <h2 class="cart-title">
+            Cart
+            <span class="cart-count" p-text="state.items.length"></span>
+        </h2>
+
+        <div class="cart-empty" p-if="state.items.length == 0">
+            Your cart is empty. Add some products!
+        </div>
+
+        <div class="cart-items" p-if="state.items.length != 0">
+            <div class="cart-item" p-for="(index, item) in state.items" p-key="item.productId">
+                <div class="cart-item-info">
+                    <span class="cart-item-name" p-text="item.name"></span>
+                    <span class="cart-item-qty">
+                        Qty: <span p-text="item.quantity"></span>
+                    </span>
+                </div>
+                <div class="cart-item-actions">
+                    <span class="cart-item-price" p-text="'$' + (item.price * item.quantity).toFixed(2)"></span>
+                    <button class="remove-btn" p-on:click="removeItem(item.productId)">Remove</button>
+                </div>
+            </div>
+
+            <div class="cart-total">
+                <span>Total</span>
+                <span class="total-price" p-text="'$' + state.total.toFixed(2)"></span>
+            </div>
+
+            <button class="checkout-btn" p-on:click="checkout()">
+                Purchase
+            </button>
+        </div>
+
+        <div class="cart-result" p-if="state.lastResult != ''">
+            <div class="result-message" p-text="state.lastResult"></div>
+        </div>
+
+        <div class="analytics-log">
+            <h3 class="log-title">Analytics Events</h3>
+            <div class="log-empty" p-if="state.events.length === 0">
+                No events yet. Add items and purchase to see analytics.
+            </div>
+            <div class="log-entry" p-for="(index, event) in state.events" p-key="index">
+                <span class="log-badge" p-text="event.source"></span>
+                <span class="log-event" p-text="event.name"></span>
+                <span class="log-detail" p-text="event.detail"></span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    interface CartItem {
+        productId: string;
+        name: string;
+        price: number;
+        quantity: number;
+    }
+
+    interface AnalyticsLogEntry {
+        source: string;
+        name: string;
+        detail: string;
+    }
+
+    const state = {
+        items: [] as CartItem[],
+        total: 0 as number,
+        lastResult: '' as string,
+        events: [] as AnalyticsLogEntry[],
+    };
+
+    function logEvent(source: string, name: string, detail: string): void {
+        state.events.unshift({ source, name, detail });
+        if (state.events.length > 20) {
+            state.events.pop();
+        }
+    }
+
+    function recalculateTotal(): void {
+        state.total = state.items.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0,
+        );
+    }
+
+    function addItem(productId: string, name: string, price: number): void {
+        const existing = state.items.find((item) => item.productId === productId);
+        if (existing) {
+            existing.quantity++;
+        } else {
+            state.items.push({ productId, name, price, quantity: 1 });
+        }
+        recalculateTotal();
+
+        logEvent('frontend', 'add_to_cart', `${name} - $${price.toFixed(2)}`);
+
+        piko.analytics.track('add_to_cart', {
+            item_name: name,
+            value: price,
+            currency: 'USD',
+        });
+    }
+
+    function removeItem(productId: string): void {
+        const item = state.items.find((i) => i.productId === productId);
+        if (item) {
+            logEvent('frontend', 'remove_from_cart', item.name);
+        }
+        state.items = state.items.filter((item) => item.productId !== productId);
+        recalculateTotal();
+    }
+
+    async function checkout(): Promise<void> {
+        if (state.items.length === 0) return;
+
+        const cartItems = state.items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+        }));
+
+        const totalAmount = state.total;
+
+        logEvent('frontend', 'begin_checkout', `$${totalAmount.toFixed(2)} (${state.items.length} items)`);
+
+        try {
+            const response = await action.cart.Purchase({
+                items: cartItems,
+                totalAmount: totalAmount.toFixed(2),
+                currency: 'USD',
+            }).call();
+
+            state.lastResult = `Order ${response.orderId} confirmed! $${response.chargedAmount} charged.`;
+            logEvent('backend', 'purchase', `Order ${response.orderId} - $${response.chargedAmount}`);
+            logEvent('backend', 'revenue_tracked', `SetAnalyticsRevenue($${response.chargedAmount} USD)`);
+
+            piko.analytics.track('purchase', {
+                transaction_id: response.orderId,
+                value: totalAmount,
+                currency: 'USD',
+            });
+
+            state.items = [];
+            state.total = 0;
+        } catch (error: any) {
+            state.lastResult = `Error: ${error.message}`;
+            logEvent('backend', 'purchase_error', error.message);
+        }
+    }
+
+    document.addEventListener('click', (event: MouseEvent) => {
+        const button = (event.target as HTMLElement).closest('.add-to-cart-btn');
+        if (!button) return;
+
+        const productId = (button as HTMLElement).dataset.productId ?? '';
+        const productName = (button as HTMLElement).dataset.productName ?? '';
+        const priceStr = (button as HTMLElement).dataset.productPrice ?? '0';
+        const price = parseFloat(priceStr);
+
+        addItem(productId, productName, price);
+    });
+
+    if (typeof piko !== 'undefined' && piko.hooks) {
+        piko.hooks.on('page:view', () => {
+            logEvent('frontend', 'page:view', window.location.pathname);
+        });
+
+        piko.hooks.on('action:complete', (payload: any) => {
+            logEvent('frontend', 'action:complete', `${payload.actionName} (${Math.round(payload.duration)}ms)`);
+        });
+    }
+</script>
+
+<style>
+.cart-panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 20px;
+}
+
+.cart-title {
+    margin: 0 0 16px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-count {
+    background: var(--color-primary);
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.cart-empty {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    padding: 24px 0;
+    text-align: center;
+}
+
+.cart-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--color-background);
+    border-radius: 6px;
+}
+
+.cart-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cart-item-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.cart-item-qty {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.cart-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cart-item-price {
+    font-weight: 600;
+}
+
+.remove-btn {
+    padding: 4px 8px;
+    background: none;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.remove-btn:hover {
+    background: #fef2f2;
+}
+
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-top: 8px;
+    border-top: 1px solid var(--color-border);
+    font-weight: 600;
+}
+
+.total-price {
+    font-size: 1.25rem;
+    color: var(--color-primary);
+}
+
+.checkout-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--color-success);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 8px;
+}
+
+.checkout-btn:hover {
+    background: #047857;
+}
+
+.cart-result {
+    margin-top: 12px;
+    padding: 12px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 6px;
+}
+
+.result-message {
+    color: #065f46;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.analytics-log {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+
+.log-title {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.log-empty {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    padding: 8px 0;
+}
+
+.log-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 0.8rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.log-badge {
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.log-entry:has(.log-badge) .log-badge {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.log-event {
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.log-detail {
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+</style>

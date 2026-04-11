@@ -155,12 +155,15 @@ func NewService(collectors []Collector, opts ...ServiceOption) *Service {
 func (s *Service) Start(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 
+	detachedCtx := context.WithoutCancel(ctx)
+
 	for i := range s.workers {
 		w := &s.workers[i]
+		w.collector.Start(ctx)
 		l.Internal("Analytics collector workers started",
 			logger_domain.String(logKeyCollector, w.collector.Name()),
 			logger_domain.Int("worker_count", s.workerCount))
-		startWorkerDrains(w, s.workerCount)
+		startWorkerDrains(detachedCtx, w, s.workerCount)
 	}
 }
 
@@ -169,16 +172,16 @@ func (s *Service) Start(ctx context.Context) {
 // and the drop counter is incremented.
 //
 // Takes event (*analytics_dto.Event) which is the event to distribute.
-func (s *Service) Track(event *analytics_dto.Event) {
+func (s *Service) Track(ctx context.Context, event *analytics_dto.Event) {
 	if s.stopped.Load() {
 		analytics_dto.ReleaseEvent(event)
 		return
 	}
 
-	eventsTrackedCount.Add(context.Background(), 1)
+	eventsTrackedCount.Add(ctx, 1)
 
 	if len(s.workers) == 1 {
-		sendToWorker(&s.workers[0], event)
+		sendToWorker(ctx, &s.workers[0], event)
 		return
 	}
 
@@ -189,7 +192,7 @@ func (s *Service) Track(event *analytics_dto.Event) {
 		} else {
 			ev = AcquireEventCopy(event)
 		}
-		sendToWorker(&s.workers[i], ev)
+		sendToWorker(ctx, &s.workers[i], ev)
 	}
 }
 
@@ -249,8 +252,7 @@ func AcquireEventCopy(src *analytics_dto.Event) *analytics_dto.Event {
 	ev := analytics_dto.AcquireEvent()
 	*ev = *src
 	if src.Revenue != nil {
-		rev := *src.Revenue
-		ev.Revenue = &rev
+		ev.Revenue = new(*src.Revenue)
 	}
 	if src.Properties != nil {
 		ev.Properties = make(map[string]string, len(src.Properties))
@@ -263,7 +265,10 @@ func AcquireEventCopy(src *analytics_dto.Event) *analytics_dto.Event {
 // collector worker. Multiple goroutines share the same channel,
 // enabling parallel event delivery when a collector's Collect method
 // performs I/O.
-func startWorkerDrains(w *collectorWorker, count int) {
+//
+// Takes w (*collectorWorker) which is the worker to drain.
+// Takes count (int) which is the number of goroutines to launch.
+func startWorkerDrains(ctx context.Context, w *collectorWorker, count int) {
 	collectorAttr := metric.WithAttributes(
 		attribute.String(logKeyCollector, w.collector.Name()),
 	)
@@ -273,10 +278,10 @@ func startWorkerDrains(w *collectorWorker, count int) {
 		go func() {
 			defer w.wg.Done()
 			for ev := range w.eventCh {
-				if err := w.collector.Collect(context.Background(), ev); err != nil {
-					eventsFailedCount.Add(context.Background(), 1, collectorAttr)
+				if err := w.collector.Collect(ctx, ev); err != nil {
+					eventsFailedCount.Add(ctx, 1, collectorAttr)
 				} else {
-					eventsCollectedCount.Add(context.Background(), 1, collectorAttr)
+					eventsCollectedCount.Add(ctx, 1, collectorAttr)
 				}
 				analytics_dto.ReleaseEvent(ev)
 			}
@@ -285,11 +290,15 @@ func startWorkerDrains(w *collectorWorker, count int) {
 }
 
 // sendToWorker attempts a non-blocking send to the worker's channel.
-func sendToWorker(w *collectorWorker, ev *analytics_dto.Event) {
+// The event is dropped and released if the channel is full.
+//
+// Takes w (*collectorWorker) which is the target worker.
+// Takes ev (*analytics_dto.Event) which is the event to send.
+func sendToWorker(ctx context.Context, w *collectorWorker, ev *analytics_dto.Event) {
 	select {
 	case w.eventCh <- ev:
 	default:
-		eventsDroppedCount.Add(context.Background(), 1,
+		eventsDroppedCount.Add(ctx, 1,
 			metric.WithAttributes(attribute.String(logKeyCollector, w.collector.Name())))
 		analytics_dto.ReleaseEvent(ev)
 	}

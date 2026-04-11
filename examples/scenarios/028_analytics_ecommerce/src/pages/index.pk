@@ -1,0 +1,158 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Piko Shop"
+            server.current-page="home">
+
+            <div class="store-layout">
+                <section class="products-section">
+                    <h1 class="page-title">Products</h1>
+                    <p class="page-subtitle">
+                        Add items to your cart and purchase to see analytics events fire
+                        on both the frontend (browser console) and backend (webhook collector).
+                    </p>
+
+                    <div class="product-grid">
+                        <piko:partial is="product_card"
+                            server.product-id="prod-001"
+                            server.name="Wireless Headphones"
+                            server.description="Premium noise-cancelling headphones with 30-hour battery life."
+                            server.price="$79.99"
+                            server.price-value="79.99"
+                            server.emoji="🎧"
+                        ></piko:partial>
+
+                        <piko:partial is="product_card"
+                            server.product-id="prod-002"
+                            server.name="Mechanical Keyboard"
+                            server.description="Tactile switches with RGB backlighting and USB-C."
+                            server.price="$129.00"
+                            server.price-value="129.00"
+                            server.emoji="⌨️"
+                        ></piko:partial>
+
+                        <piko:partial is="product_card"
+                            server.product-id="prod-003"
+                            server.name="USB-C Hub"
+                            server.description="7-in-1 hub with HDMI, USB 3.0, and SD card reader."
+                            server.price="$49.99"
+                            server.price-value="49.99"
+                            server.emoji="🔌"
+                        ></piko:partial>
+
+                        <piko:partial is="product_card"
+                            server.product-id="prod-004"
+                            server.name="Desk Lamp"
+                            server.description="Adjustable LED lamp with colour temperature control."
+                            server.price="$34.99"
+                            server.price-value="34.99"
+                            server.emoji="💡"
+                        ></piko:partial>
+
+                        <piko:partial is="product_card"
+                            server.product-id="prod-005"
+                            server.name="Webcam HD"
+                            server.description="1080p webcam with auto-focus and built-in microphone."
+                            server.price="$59.99"
+                            server.price-value="59.99"
+                            server.emoji="📷"
+                        ></piko:partial>
+
+                        <piko:partial is="product_card"
+                            server.product-id="prod-006"
+                            server.name="Mouse Pad XL"
+                            server.description="Extended desk mat with stitched edges and non-slip base."
+                            server.price="$19.99"
+                            server.price-value="19.99"
+                            server.emoji="🖱️"
+                        ></piko:partial>
+                    </div>
+                </section>
+
+                <aside class="cart-section">
+                    <pp-cart></pp-cart>
+                </aside>
+            </div>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+    product_card "testmodule/partials/product_card.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    piko.AddAnalyticsProperty(r.Context(), "page_category", "storefront")
+    piko.AddAnalyticsProperty(r.Context(), "user_id", "user-alex-demo")
+
+    return piko.NoResponse{}, piko.Metadata{
+        Title:       "Piko Shop - Analytics Demo",
+        Description: "A demo ecommerce storefront showing frontend and backend analytics integration with Piko.",
+    }, nil
+}
+</script>
+
+<style>
+.page-title {
+    margin: 0 0 4px;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.page-subtitle {
+    margin: 0 0 24px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    max-width: 600px;
+}
+
+.store-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .store-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.cart-section {
+    position: sticky;
+    top: 80px;
+}
+</style>

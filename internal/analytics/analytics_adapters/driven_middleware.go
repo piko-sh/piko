@@ -85,7 +85,7 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 		ev := analytics_dto.AcquireEvent()
 		ev.Request = r
 		ev.Hostname = r.Host
-		ev.URL = r.URL.String()
+		ev.URL = r.RequestURI
 		ev.Path = r.URL.Path
 		ev.Method = r.Method
 		ev.UserAgent = r.UserAgent()
@@ -109,6 +109,6 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 			ev.UserID = auth.UserID()
 		}
 
-		m.service.Track(ev)
+		m.service.Track(r.Context(), ev)
 	})
 }

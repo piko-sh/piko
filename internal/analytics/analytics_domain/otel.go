@@ -43,6 +43,14 @@ var (
 	// eventsFailedCount is the number of events that a collector's Collect
 	// method rejected with an error.
 	eventsFailedCount metric.Int64Counter
+
+	// batcherRetriesCount is the number of batch send retries across
+	// all batchers.
+	batcherRetriesCount metric.Int64Counter
+
+	// batcherCircuitOpenCount is the number of times a batcher's
+	// circuit breaker transitioned to the open state.
+	batcherCircuitOpenCount metric.Int64Counter
 )
 
 func init() {
@@ -75,6 +83,22 @@ func init() {
 	eventsFailedCount, err = meter.Int64Counter(
 		"analytics.events_failed",
 		metric.WithDescription("Analytics events rejected by collectors"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	batcherRetriesCount, err = meter.Int64Counter(
+		"analytics.batcher.retries",
+		metric.WithDescription("Total batch send retry attempts"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	batcherCircuitOpenCount, err = meter.Int64Counter(
+		"analytics.batcher.circuit_open",
+		metric.WithDescription("Circuit breaker transitions to open state"),
 	)
 	if err != nil {
 		otel.Handle(err)

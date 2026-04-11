@@ -217,6 +217,9 @@ func ReleasePikoRequestCtx(pctx *PikoRequestCtx) {
 	pctx.ResponseWriter = nil
 	pctx.AnalyticsRevenue = nil
 	pctx.AnalyticsProperties = nil
+	pctx.AnalyticsEventName = ""
+	pctx.ResponseStatusCode = 0
+	pctx.Hostname = ""
 	pikoRequestCtxPool.Put(pctx)
 }
 

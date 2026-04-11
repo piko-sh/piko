@@ -1,0 +1,185 @@
+{
+  "description": "Verifies an ecommerce storefront with cart management, purchase action, and analytics event tracking",
+  "requestURL": "/",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "comment",
+      "value": "Verify initial page renders with products and empty cart"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#app"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Piko Shop"
+    },
+    {
+      "action": "checkText",
+      "selector": "#user-badge",
+      "expected": "Logged in as: Alex Demo"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #cart-count",
+      "expected": "0"
+    },
+    {
+      "action": "checkVisible",
+      "selector": "pp-cart >>> #cart-empty",
+      "expected": true
+    },
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "initial.html"
+    },
+
+    {
+      "action": "comment",
+      "value": "Add first product (Wireless Headphones) to cart"
+    },
+    {
+      "action": "click",
+      "selector": "#add-prod-001"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #cart-count",
+      "expected": "1"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #total-amount",
+      "expected": "79.99"
+    },
+
+    {
+      "action": "comment",
+      "value": "Add second product (Mechanical Keyboard) to cart"
+    },
+    {
+      "action": "click",
+      "selector": "#add-prod-002"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #cart-count",
+      "expected": "2"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #total-amount",
+      "expected": "208.99"
+    },
+
+    {
+      "action": "comment",
+      "value": "Add headphones again to increase quantity"
+    },
+    {
+      "action": "click",
+      "selector": "#add-prod-001"
+    },
+    {
+      "action": "wait",
+      "value": "200"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #cart-count",
+      "expected": "2"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #total-amount",
+      "expected": "288.98"
+    },
+
+    {
+      "action": "comment",
+      "value": "Verify analytics event log shows add_to_cart events"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #event-log .event-entry:first-child .event-name",
+      "expected": "add_to_cart"
+    },
+
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_add_items.html"
+    },
+
+    {
+      "action": "comment",
+      "value": "Purchase the cart - fires action.cart.Purchase with revenue tracking"
+    },
+    {
+      "action": "click",
+      "selector": "pp-cart >>> #purchase-btn"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": "pp-cart >>> #purchase-result",
+      "timeout": 5000
+    },
+
+    {
+      "action": "comment",
+      "value": "Verify purchase result contains order confirmation and amount"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "pp-cart >>> #result-message",
+      "expected": "confirmed!"
+    },
+    {
+      "action": "checkTextContains",
+      "selector": "pp-cart >>> #result-message",
+      "expected": "$288.98"
+    },
+
+    {
+      "action": "comment",
+      "value": "Cart should be emptied after purchase"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #cart-count",
+      "expected": "0"
+    },
+
+    {
+      "action": "comment",
+      "value": "Event log should show purchase event from backend"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #event-log .event-entry:first-child .event-source",
+      "expected": "backend"
+    },
+    {
+      "action": "checkText",
+      "selector": "pp-cart >>> #event-log .event-entry:first-child .event-name",
+      "expected": "purchase"
+    },
+
+    {
+      "action": "captureDOM",
+      "selector": "#app",
+      "goldenFile": "after_purchase.html"
+    }
+  ]
+}

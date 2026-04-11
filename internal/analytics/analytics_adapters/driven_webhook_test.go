@@ -60,6 +60,7 @@ func TestWebhookCollector_BatchFlush(t *testing.T) {
 		WithWebhookBatchSize(3),
 		WithWebhookFlushInterval(1*time.Hour),
 	)
+	wc.Start(context.Background())
 
 	for i := range 3 {
 		ev := &analytics_dto.Event{
@@ -129,6 +130,7 @@ func TestWebhookCollector_FlushOnShutdown(t *testing.T) {
 		WithWebhookBatchSize(100),
 		WithWebhookFlushInterval(1*time.Hour),
 	)
+	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
 		Path:       "/pending",
@@ -177,6 +179,7 @@ func TestWebhookCollector_CustomHeaders(t *testing.T) {
 		WithWebhookBatchSize(1),
 		WithWebhookHeaders(headers),
 	)
+	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
 		Path:       "/auth",
@@ -222,6 +225,7 @@ func TestWebhookCollector_Properties(t *testing.T) {
 	defer srv.Close()
 
 	wc := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
 		Path:       "/purchase",
@@ -268,6 +272,7 @@ func TestWebhookCollector_WithTimeout(t *testing.T) {
 		WithWebhookBatchSize(1),
 		WithWebhookTimeout(30*time.Second),
 	)
+	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
 		Path:       "/timeout-test",
@@ -293,6 +298,7 @@ func TestWebhookCollector_ErrorStatusCode(t *testing.T) {
 	defer srv.Close()
 
 	wc := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
 		Path:       "/error",
@@ -335,6 +341,7 @@ func TestWebhookCollector_TimerFlush(t *testing.T) {
 		WithWebhookBatchSize(100),
 		WithWebhookFlushInterval(50*time.Millisecond),
 	)
+	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
 		Path:       "/timer",
@@ -368,6 +375,7 @@ func TestWebhookCollector_FlushEmptyBuffer(t *testing.T) {
 	defer srv.Close()
 
 	wc := NewWebhookCollector(srv.URL)
+	wc.Start(context.Background())
 
 	if err := wc.Flush(context.Background()); err != nil {
 		t.Fatalf("Flush returned error: %v", err)
@@ -421,6 +429,7 @@ func TestWebhookCollector_RevenueAndNewFields(t *testing.T) {
 	defer srv.Close()
 
 	wc := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	wc.Start(context.Background())
 
 	rev := maths.NewMoneyFromString("49.99", "GBP")
 	ev := &analytics_dto.Event{

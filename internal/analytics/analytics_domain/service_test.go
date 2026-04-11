@@ -29,9 +29,9 @@ import (
 )
 
 type mockCollector struct {
-	mu     sync.Mutex
-	events []analytics_dto.Event
 	name   string
+	events []analytics_dto.Event
+	mu     sync.Mutex
 }
 
 func newMockCollector(name string) *mockCollector {
@@ -46,6 +46,7 @@ func (m *mockCollector) Collect(_ context.Context, ev *analytics_dto.Event) erro
 	return nil
 }
 
+func (m *mockCollector) Start(_ context.Context)       {}
 func (m *mockCollector) Flush(_ context.Context) error { return nil }
 func (m *mockCollector) Close(_ context.Context) error { return nil }
 func (m *mockCollector) Name() string                  { return m.name }
@@ -66,7 +67,7 @@ func TestService_SingleCollector(t *testing.T) {
 	ev := analytics_dto.AcquireEvent()
 	ev.Path = "/hello"
 	ev.Type = analytics_dto.EventPageView
-	svc.Track(ev)
+	svc.Track(context.Background(), ev)
 
 	if err := svc.Close(context.Background()); err != nil {
 		t.Fatalf("Close returned error: %v", err)
@@ -93,7 +94,7 @@ func TestService_MultipleCollectors(t *testing.T) {
 	ev := analytics_dto.AcquireEvent()
 	ev.Path = "/multi"
 	ev.ClientIP = "10.0.0.1"
-	svc.Track(ev)
+	svc.Track(context.Background(), ev)
 
 	if err := svc.Close(context.Background()); err != nil {
 		t.Fatalf("Close returned error: %v", err)
@@ -120,7 +121,7 @@ func TestService_DropsEventsWhenChannelFull(t *testing.T) {
 	for range 5 {
 		ev := analytics_dto.AcquireEvent()
 		ev.Path = "/overflow"
-		svc.Track(ev)
+		svc.Track(context.Background(), ev)
 	}
 
 	svc.Start(context.Background())
@@ -144,7 +145,7 @@ func TestService_TrackAfterClose(t *testing.T) {
 
 	ev := analytics_dto.AcquireEvent()
 	ev.Path = "/late"
-	svc.Track(ev)
+	svc.Track(context.Background(), ev)
 
 	events := mc.collected()
 	for _, e := range events {
@@ -173,7 +174,7 @@ func TestService_ZeroCollectors(t *testing.T) {
 
 	ev := analytics_dto.AcquireEvent()
 	ev.Path = "/empty"
-	svc.Track(ev)
+	svc.Track(context.Background(), ev)
 
 	if err := svc.Close(context.Background()); err != nil {
 		t.Fatalf("Close returned error: %v", err)

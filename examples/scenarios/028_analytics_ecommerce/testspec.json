@@ -1,0 +1,5 @@
+{
+  "description": "Verifies an ecommerce storefront with frontend and backend analytics tracking",
+  "requestURL": "/",
+  "expectedStatus": 200
+}

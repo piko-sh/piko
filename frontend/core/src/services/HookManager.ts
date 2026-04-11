@@ -62,6 +62,9 @@ export const HookEvent = {
 
     /** Fired when an error occurs. */
     ERROR: 'error',
+
+    /** Fired when user code requests a custom analytics event via piko.analytics.track(). */
+    ANALYTICS_TRACK: 'analytics:track',
 } as const;
 
 /** Union type of all hook event string values. */
@@ -191,6 +194,16 @@ export interface ErrorPayload {
     timestamp: number;
 }
 
+/** Payload for analytics:track events fired by piko.analytics.track(). */
+export interface AnalyticsTrackPayload {
+    /** The custom event name (e.g. "purchase", "sign_up", "add_to_cart"). */
+    eventName: string;
+    /** Key-value parameters to send with the event. */
+    params: Record<string, string | number | boolean>;
+    /** Unix timestamp of when track() was called. */
+    timestamp: number;
+}
+
 /** Maps hook event types to their corresponding payload types. */
 export interface HookPayloads {
     [HookEvent.FRAMEWORK_READY]: FrameworkReadyPayload;
@@ -208,6 +221,7 @@ export interface HookPayloads {
     [HookEvent.NETWORK_ONLINE]: NetworkPayload;
     [HookEvent.NETWORK_OFFLINE]: NetworkPayload;
     [HookEvent.ERROR]: ErrorPayload;
+    [HookEvent.ANALYTICS_TRACK]: AnalyticsTrackPayload;
 }
 
 /** Callback function type for hook subscribers, typed by event. */

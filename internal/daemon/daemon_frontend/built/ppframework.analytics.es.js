@@ -148,6 +148,20 @@ function registerAnalyticsHooks(pk, config, mode) {
       { error_description: description }
     );
   });
+  pk.hooks.on("analytics:track", (payload) => {
+    const p = payload;
+    if (!p?.eventName) return;
+    dispatchEvent(
+      mode,
+      p.eventName,
+      { ...p.params },
+      `piko_${p.eventName}`,
+      { ...p.params }
+    );
+    if (mode.debugMode) {
+      console.warn(`[piko/analytics] Custom track: ${p.eventName}`, p.params);
+    }
+  });
 }
 waitForPiko("analytics").then((pk) => {
   const config = pk.getModuleConfig("analytics");

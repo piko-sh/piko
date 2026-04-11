@@ -1,0 +1,61 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <h1>Piko Shop</h1>
+        <p id="user-badge">Logged in as: Alex Demo</p>
+
+        <div id="products">
+            <div class="product" data-product-id="prod-001" data-product-name="Wireless Headphones" data-product-price="79.99">
+                <span class="product-name">Wireless Headphones</span>
+                <span class="product-price">$79.99</span>
+                <button class="add-to-cart-btn" id="add-prod-001">Add to Cart</button>
+            </div>
+            <div class="product" data-product-id="prod-002" data-product-name="Mechanical Keyboard" data-product-price="129.00">
+                <span class="product-name">Mechanical Keyboard</span>
+                <span class="product-price">$129.00</span>
+                <button class="add-to-cart-btn" id="add-prod-002">Add to Cart</button>
+            </div>
+            <div class="product" data-product-id="prod-003" data-product-name="USB-C Hub" data-product-price="49.99">
+                <span class="product-name">USB-C Hub</span>
+                <span class="product-price">$49.99</span>
+                <button class="add-to-cart-btn" id="add-prod-003">Add to Cart</button>
+            </div>
+        </div>
+
+        <pp-cart id="cart"></pp-cart>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    piko.AddAnalyticsProperty(r.Context(), "page_category", "storefront")
+    piko.AddAnalyticsProperty(r.Context(), "user_id", "user-alex-demo")
+
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Piko Shop - Analytics Demo",
+    }, nil
+}
+</script>

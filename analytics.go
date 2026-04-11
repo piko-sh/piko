@@ -21,7 +21,6 @@ package piko
 import (
 	"context"
 
-	"piko.sh/piko/internal/analytics/analytics_adapters"
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/bootstrap"
@@ -51,37 +50,6 @@ const (
 	EventCustom = analytics_dto.EventCustom
 )
 
-// WebhookCollectorOption configures a [WebhookCollector].
-type WebhookCollectorOption = analytics_adapters.WebhookOption
-
-// NewWebhookCollector creates a backend analytics collector that
-// batches events and POSTs them as JSON to the given URL. This is
-// provided as a built-in adapter to demonstrate the pattern; for
-// production use, dedicated adapters for specific analytics backends
-// are recommended.
-//
-// Takes url (string) which is the webhook endpoint.
-// Takes opts (...WebhookCollectorOption) which configure the collector.
-//
-// Returns AnalyticsCollector which posts JSON batches to the URL.
-func NewWebhookCollector(url string, opts ...WebhookCollectorOption) AnalyticsCollector {
-	return analytics_adapters.NewWebhookCollector(url, opts...)
-}
-
-// WithWebhookHeaders sets custom HTTP headers sent with each batch
-// POST (e.g. Authorization).
-var WithWebhookHeaders = analytics_adapters.WithWebhookHeaders
-
-// WithWebhookBatchSize sets the maximum number of events per batch.
-var WithWebhookBatchSize = analytics_adapters.WithWebhookBatchSize
-
-// WithWebhookFlushInterval sets the time between automatic batch
-// flushes.
-var WithWebhookFlushInterval = analytics_adapters.WithWebhookFlushInterval
-
-// WithWebhookTimeout sets the HTTP client timeout for batch POSTs.
-var WithWebhookTimeout = analytics_adapters.WithWebhookTimeout
-
 // TrackAnalyticsEvent sends a custom analytics event to all registered
 // collectors. The event is enriched with request context (ClientIP,
 // Locale, UserID, etc.) from the PikoRequestCtx if available.
@@ -99,7 +67,7 @@ func TrackAnalyticsEvent(ctx context.Context, event *AnalyticsEvent) {
 		enrichEventFromRequestCtx(event, pctx)
 	}
 
-	svc.Track(event)
+	svc.Track(ctx, event)
 }
 
 // SetAnalyticsRevenue attaches revenue data to the automatic

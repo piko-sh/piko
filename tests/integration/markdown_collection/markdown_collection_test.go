@@ -64,7 +64,7 @@ func TestMarkdownCollection(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
 
-			provider, source := createProvider(t, tc.Path)
+			provider, _ := createProvider(t, tc.Path)
 
 			config := collection_dto.ProviderConfig{
 				BasePath:      tc.Path,

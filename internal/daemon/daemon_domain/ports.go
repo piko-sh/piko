@@ -127,13 +127,13 @@ type RouterDependencies struct {
 	// Nil means no route protection middleware is installed.
 	AuthGuardConfig *daemon_dto.AuthGuardConfig
 
-	// CSPConfig provides the computed CSP settings for security headers
-	// middleware.
-	CSPConfig security_dto.CSPRuntimeConfig
-
 	// AnalyticsService distributes analytics events to registered
 	// collectors. Nil means no analytics middleware is installed.
 	AnalyticsService *analytics_domain.Service
+
+	// CSPConfig provides the computed CSP settings for security headers
+	// middleware.
+	CSPConfig security_dto.CSPRuntimeConfig
 }
 
 // RouterConfig holds the exact fields the HTTP router needs from the server

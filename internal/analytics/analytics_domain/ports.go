@@ -30,6 +30,10 @@ import (
 // goroutines. The Event passed to Collect must not be retained after
 // the method returns; copy any needed data.
 type Collector interface {
+	// Start launches any background goroutines (e.g. flush loops)
+	// needed by the collector.
+	Start(ctx context.Context)
+
 	// Collect receives a single analytics event. The implementation
 	// may buffer events internally for batching.
 	//

@@ -386,7 +386,18 @@ declare type HookEventType =
     | 'form:clean'
     | 'network:online'
     | 'network:offline'
-    | 'error';
+    | 'error'
+    | 'analytics:track';
+
+/** Payload emitted when custom analytics tracking is requested via piko.analytics.track(). */
+declare interface AnalyticsTrackPayload {
+    /** The custom event name (e.g. "purchase", "sign_up"). */
+    eventName: string;
+    /** Key-value parameters for the event. */
+    params: Record<string, string | number | boolean>;
+    /** Unix timestamp in milliseconds. */
+    timestamp: number;
+}
 
 /** Callback invoked when a hook event fires. */
 declare type HookCallback<T = unknown> = (payload: T) => void;
@@ -946,6 +957,25 @@ declare global {
              * @param event - Hook event to clear. Omit to clear all events.
              */
             const clear: (event?: HookEventType) => void;
+        }
+
+        /** Custom analytics event tracking. */
+        export namespace analytics {
+            /**
+             * Send a custom analytics event to GA4 and/or GTM.
+             * If the analytics extension is not loaded, the call is silently ignored.
+             *
+             * @param eventName - The event name (e.g. "purchase", "sign_up", "add_to_cart").
+             * @param params - Optional key-value parameters for the event.
+             *
+             * @example
+             * piko.analytics.track('purchase', {
+             *     transaction_id: 'T12345',
+             *     value: 99.99,
+             *     currency: 'GBP',
+             * });
+             */
+            const track: (eventName: string, params?: Record<string, string | number | boolean>) => void;
         }
     }
 }
